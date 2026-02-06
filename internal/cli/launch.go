@@ -136,16 +136,16 @@ func launchHeaders() []string {
 	return []string{"ID", "UUID", "NAME", "STATUS", "START TIME", "NUMBER"}
 }
 
-func launchRow(l *types.LaunchResource) ([]string, []string) {
-	startTime := time.Time(l.StartTime).UTC().Format(time.DateTime)
+func launchRow(launch *types.LaunchResource) ([]string, []string) {
+	startTime := time.Time(launch.StartTime).UTC().Format(time.DateTime)
 
 	return launchHeaders(), []string{
-		strconv.FormatInt(l.Id, 10),
-		l.Uuid,
-		l.Name,
-		l.Status,
+		strconv.FormatInt(launch.Id, 10),
+		launch.Uuid,
+		launch.Name,
+		launch.Status,
 		startTime,
-		strconv.FormatInt(l.Number, 10),
+		strconv.FormatInt(launch.Number, 10),
 	}
 }
 

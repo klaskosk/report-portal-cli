@@ -1,0 +1,191 @@
+# Minimal Report Portal stack for integration tests.
+#
+# Derived from the official Report Portal docker-compose.yml (24.1 tag):
+# https://raw.githubusercontent.com/reportportal/reportportal/refs/tags/24.1/docker-compose.yml
+# See also: https://reportportal.io/docs/installation-steps/DeployWithDocker
+#
+# The upstream docker-compose.yml is licensed under the Apache License, Version 2.0.
+# Copyright (c) EPAM Systems.
+# See: https://github.com/reportportal/reportportal/blob/master/LICENSE
+#
+# Pinned to Report Portal 5.11.0 (release 24.1).
+# Only services required for API testing are included.
+# Excluded: ui, index, analyzer, analyzer-train, metrics-gatherer, jobs.
+
+services:
+  gateway:
+    image: traefik:v2.11
+    ports:
+      - "8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command:
+      - --providers.docker=true
+      - --providers.docker.constraints=Label(`traefik.expose`, `true`)
+      - --entrypoints.web.address=:8080
+      - --api.dashboard=false
+    networks:
+      - reportportal
+
+  opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    environment:
+      discovery.type: single-node
+      plugins.security.disabled: "true"
+      bootstrap.memory_lock: "true"
+      OPENSEARCH_JAVA_OPTS: -Xms512m -Xmx512m
+      DISABLE_INSTALL_DEMO_CONFIG: "true"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    healthcheck:
+      test: ["CMD", "curl", "-s", "-f", "http://0.0.0.0:9200/_cat/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    networks:
+      - reportportal
+
+  postgres:
+    image: postgres:12.17-alpine3.17
+    shm_size: "512m"
+    environment:
+      POSTGRES_USER: &db_user rpuser
+      POSTGRES_PASSWORD: &db_password rppass
+      POSTGRES_DB: &db_name reportportal
+    command:
+      - -c
+      - checkpoint_completion_target=0.9
+      - -c
+      - work_mem=96MB
+      - -c
+      - wal_writer_delay=20ms
+      - -c
+      - synchronous_commit=off
+      - -c
+      - wal_buffers=32MB
+      - -c
+      - min_wal_size=2GB
+      - -c
+      - max_wal_size=4GB
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $$POSTGRES_DB -U $$POSTGRES_USER"]
+      interval: 10s
+      timeout: 120s
+      retries: 10
+    networks:
+      - reportportal
+
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: &rabbitmq_user rabbitmq
+      RABBITMQ_DEFAULT_PASS: &rabbitmq_password rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 30s
+      timeout: 30s
+      retries: 5
+    networks:
+      - reportportal
+
+  migrations:
+    image: reportportal/migrations:5.11.0
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_SERVER: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: *db_name
+      POSTGRES_USER: *db_user
+      POSTGRES_PASSWORD: *db_password
+      OS_HOST: opensearch
+      OS_PORT: 9200
+      OS_PROTOCOL: http
+    networks:
+      - reportportal
+
+  api:
+    image: reportportal/service-api:5.11.0
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      gateway:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    environment:
+      RP_DB_HOST: postgres
+      RP_DB_USER: *db_user
+      RP_DB_PASS: *db_password
+      RP_DB_NAME: *db_name
+      RP_AMQP_HOST: &rabbitmq_host rabbitmq
+      RP_AMQP_PORT: &rabbitmq_port 5672
+      RP_AMQP_USER: *rabbitmq_user
+      RP_AMQP_PASS: *rabbitmq_password
+      RP_AMQP_APIUSER: *rabbitmq_user
+      RP_AMQP_APIPASS: *rabbitmq_password
+      RP_AMQP_ANALYZER-VHOST: analyzer
+      DATASTORE_TYPE: filesystem
+      LOGGING_LEVEL_ORG_HIBERNATE_SQL: info
+      RP_REQUESTLOGGING: "false"
+      AUDIT_LOGGER: "OFF"
+      MANAGEMENT_HEALTH_ELASTICSEARCH_ENABLED: "false"
+      RP_ENVIRONMENT_VARIABLE_ALLOW_DELETE_ACCOUNT: "false"
+      JAVA_OPTS: >
+        -Xmx1g
+        -XX:+HeapDumpOnOutOfMemoryError
+        -XX:HeapDumpPath=/tmp
+      RP_JOBS_BASEURL: http://api:8585
+    labels:
+      - "traefik.http.middlewares.api-strip-prefix.stripprefix.prefixes=/api"
+      - "traefik.http.routers.api.middlewares=api-strip-prefix@docker"
+      - "traefik.http.routers.api.rule=PathPrefix(`/api`)"
+      - "traefik.http.routers.api.service=api"
+      - "traefik.http.services.api.loadbalancer.server.port=8585"
+      - "traefik.http.services.api.loadbalancer.server.scheme=http"
+      - "traefik.expose=true"
+    networks:
+      - reportportal
+
+  uat:
+    image: reportportal/service-authorization:5.11.0
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      RP_DB_HOST: postgres
+      RP_DB_USER: *db_user
+      RP_DB_PASS: *db_password
+      RP_DB_NAME: *db_name
+      RP_AMQP_HOST: *rabbitmq_host
+      RP_AMQP_PORT: *rabbitmq_port
+      RP_AMQP_USER: *rabbitmq_user
+      RP_AMQP_PASS: *rabbitmq_password
+      RP_AMQP_APIUSER: *rabbitmq_user
+      RP_AMQP_APIPASS: *rabbitmq_password
+      DATASTORE_TYPE: filesystem
+      RP_SESSION_LIVE: 86400
+      RP_INITIAL_ADMIN_PASSWORD: "test-password"
+      JAVA_OPTS: -Djava.security.egd=file:/dev/./urandom -XX:MinRAMPercentage=60.0 -XX:MaxRAMPercentage=90.0
+    healthcheck:
+      test: curl -f http://0.0.0.0:9999/health
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 10s
+    labels:
+      - "traefik.http.middlewares.uat-strip-prefix.stripprefix.prefixes=/uat"
+      - "traefik.http.routers.uat.middlewares=uat-strip-prefix@docker"
+      - "traefik.http.routers.uat.rule=PathPrefix(`/uat`)"
+      - "traefik.http.routers.uat.service=uat"
+      - "traefik.http.services.uat.loadbalancer.server.port=9999"
+      - "traefik.http.services.uat.loadbalancer.server.scheme=http"
+      - "traefik.expose=true"
+    networks:
+      - reportportal
+
+networks:
+  reportportal:

@@ -10,15 +10,8 @@ linters:
     - gochecknoglobals
     - mnd
     - tagliatelle
-    - varnamelen
     - wsl
   settings:
-    staticcheck:
-        checks:
-          - all
-          # Incorrect or missing package comment.
-          # https://staticcheck.dev/docs/checks/#ST1000
-          - -ST1000
     gomoddirectives:
       replace-local: true
     revive:
@@ -28,6 +21,19 @@ linters:
             - []
             - []
             - [{skipPackageNameChecks: true}]
+    staticcheck:
+        checks:
+          - all
+          # Incorrect or missing package comment.
+          # https://staticcheck.dev/docs/checks/#ST1000
+          - -ST1000
+    varnamelen:
+      ignore-type-assert-ok: true
+      ignore-map-index-ok: true
+      ignore-chan-recv-ok: true
+      ignore-names:
+        - i
+        - err
 formatters:
   enable:
     - gci

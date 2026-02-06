@@ -9,7 +9,7 @@ generate:
 output-options:
   skip-fmt: false
   skip-prune: true
-  nullable-type: true
+  nullable-type: false
   name-normalizer: ToCamelCaseWithDigits
   overlay:
     path: overlay.openapi.yaml

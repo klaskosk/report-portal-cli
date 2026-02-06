@@ -19,10 +19,22 @@ vet: ## Run go vet on all packages
 generate: ## Run go generate for all packages
 	go generate ./...
 
+.PHONY: test
+test: ## Run unit tests
+	go test ./... ./pkg/... -count=1
+
+.PHONY: test-integration
+test-integration: ## Run integration tests (requires Docker)
+	cd test/integration && go test -tags=integration -v -count=1 -timeout 10m ./...
+
+.PHONY: test-all
+test-all: test test-integration ## Run all tests
+
 .PHONY: tidy
 tidy: ## Run go mod tidy for all modules
 	go mod tidy
 	cd pkg && go mod tidy
+	cd test/integration && go mod tidy
 
 .PHONY: lint
 lint: ## Run golangci-lint and auto-fix issues
