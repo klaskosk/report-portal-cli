@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/HEAD/configuration-schema.json
+package: api
+output: ../internal/api/api.gen.go
+
+generate:
+  client: true
+  models: true
+
+output-options:
+  skip-fmt: false
+  skip-prune: true
+  nullable-type: true
+  name-normalizer: ToCamelCaseWithDigits
+  overlay:
+    path: overlay.openapi.yaml
+
+import-mapping:
+  components.openapi.yaml: github.com/klaskosk/report-portal-cli/pkg/types

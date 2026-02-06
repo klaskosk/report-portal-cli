@@ -1,0 +1,2568 @@
+openapi: 3.0.1
+info:
+  title: ReportPortal
+  description: Report Portal API documentation
+  contact:
+    name: Support
+    email: support@reportportal.io
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0
+  version: 5.11.0
+servers:
+  - url: '{protocol}://{authority}/api'
+    description: ReportPortal server
+    variables:
+      protocol:
+        default: https
+        description: Protocol
+        enum:
+          - http
+          - https
+      authority:
+        description: Host name and port (if needed) of Report Portal server
+        default: demo.reportportal.io
+# Manual added section
+security:
+  - bearerAuth: []
+tags:
+- name: activity-controller
+  description: Activity Controller
+- name: activity-event-controller
+  description: Activity Event Controller
+- name: bug-tracking-system-controller
+  description: Bug Tracking System Controller
+- name: dashboard-controller
+  description: Dashboard Controller
+- name: demo-data-controller
+  description: Demo Data Controller
+- name: deprecated-user-controller
+  description: Deprecated UserController
+- name: file-storage-controller
+  description: File Storage Controller
+- name: integration-controller
+  description: Integration Controller
+- name: launch-async-controller
+  description: Launch Async Controller
+- name: launch-controller
+  description: Launch Controller
+- name: log-async-controller
+  description: Log Async Controller
+- name: log-controller
+  description: Log Controller
+- name: onboarding-controller
+  description: Onboarding Controller
+- name: plugin-controller
+  description: Plugin Controller
+- name: plugin-public-controller
+  description: Plugin Public Controller
+- name: project-controller
+  description: Project Controller
+- name: project-settings-controller
+  description: Project Settings Controller
+- name: settings-controller
+  description: Settings Controller
+- name: test-item-async-controller
+  description: Test Item Async Controller
+- name: test-item-controller
+  description: Test Item Controller
+- name: user-controller
+  description: User Controller
+- name: user-filter-controller
+  description: User Filter Controller
+- name: widget-controller
+  description: Widget Controller
+
+components:
+  schemas:
+    ActivityEventResource:
+      title: ActivityEventResource
+      required:
+      - event_name
+      - id
+      - object_id
+      - object_name
+      - object_type
+      - project_id
+      - project_name
+      - subject_id
+      - subject_name
+      - subject_type
+      type: object
+      properties:
+        created_at:
+          type: string
+          example: yyyy-MM-dd'T'HH:mm:ssZ
+        details:
+          type: object
+          properties: {}
+        event_name:
+          type: string
+        id:
+          type: integer
+          format: int64
+        object_id:
+          type: integer
+          format: int64
+        object_name:
+          type: string
+        object_type:
+          type: string
+        project_id:
+          type: integer
+          format: int64
+        project_name:
+          type: string
+        subject_id:
+          type: string
+        subject_name:
+          type: string
+        subject_type:
+          type: string
+    ActivityResource:
+      title: ActivityResource
+      required:
+      - actionType
+      - id
+      - lastModified
+      - loggedObjectId
+      - objectType
+      - projectId
+      - user
+      type: object
+      properties:
+        actionType:
+          type: string
+        details:
+          type: object
+          properties: {}
+        id:
+          type: integer
+          format: int64
+        lastModified:
+          type: string
+          format: date-time
+        loggedObjectId:
+          type: integer
+          format: int64
+        objectName:
+          type: string
+        objectType:
+          type: string
+        projectId:
+          type: integer
+          format: int64
+        projectName:
+          type: string
+        user:
+          type: string
+    AddWidgetRq:
+      title: AddWidgetRq
+      type: object
+      properties:
+        addWidget:
+          $ref: 'components.openapi.yaml#/components/schemas/WidgetObjectModel'
+    AllowedValue:
+      title: AllowedValue
+      type: object
+      properties:
+        valueId:
+          type: string
+        valueName:
+          type: string
+    AnalyticsResource:
+      title: AnalyticsResource
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        type:
+          type: string
+    AnalyzeLaunchRQ:
+      title: AnalyzeLaunchRQ
+      type: object
+      properties:
+        analyzeItemsMode:
+          type: array
+          items:
+            type: string
+            enum:
+            - TO_INVESTIGATE
+            - AUTO_ANALYZED
+            - MANUALLY_ANALYZED
+        analyzerMode:
+          type: string
+          enum:
+          - ALL
+          - LAUNCH_NAME
+          - CURRENT_LAUNCH
+          - PREVIOUS_LAUNCH
+          - CURRENT_AND_THE_SAME_NAME
+        analyzerTypeName:
+          type: string
+          enum:
+          - autoAnalyzer
+          - patternAnalyzer
+        launchId:
+          type: integer
+          format: int64
+    ApiKeyRQ:
+      title: ApiKeyRQ
+      required:
+      - name
+      type: object
+      properties:
+        name:
+          type: string
+    ApiKeyRS:
+      title: ApiKeyRS
+      required:
+      - id
+      - name
+      - user_id
+      type: object
+      properties:
+        api_key:
+          type: string
+        created_at:
+          type: string
+          example: yyyy-MM-dd'T'HH:mm:ssZ
+        id:
+          type: integer
+          format: int64
+        last_used_at:
+          type: string
+          example: yyyy-MM-dd
+        name:
+          type: string
+        user_id:
+          type: integer
+          format: int64
+    ApiKeysRS:
+      title: ApiKeysRS
+      required:
+      - items
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/ApiKeyRS'
+    AssignUsersRQ:
+      title: AssignUsersRQ
+      required:
+      - userNames
+      type: object
+      properties:
+        userNames:
+          type: object
+          additionalProperties:
+            type: string
+    AssignedProject:
+      title: AssignedProject
+      type: object
+      properties:
+        entryType:
+          type: string
+        projectRole:
+          type: string
+    BatchElementCreatedRS:
+      title: BatchElementCreatedRS
+      type: object
+      properties:
+        id:
+          type: string
+        message:
+          type: string
+        stackTrace:
+          type: string
+    BatchSaveOperatingRS:
+      title: BatchSaveOperatingRS
+      type: object
+      properties:
+        responses:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/BatchElementCreatedRS'
+    BinaryContent:
+      title: BinaryContent
+      required:
+      - contentType
+      - id
+      - thumbnailId
+      type: object
+      properties:
+        contentType:
+          type: string
+        id:
+          type: string
+        thumbnailId:
+          type: string
+    BulkInfoUpdateRQ:
+      title: BulkInfoUpdateRQ
+      type: object
+      properties:
+        attributes:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/UpdateItemAttributeRQ'
+        description:
+          $ref: 'components.openapi.yaml#/components/schemas/Description'
+        ids:
+          type: array
+          items:
+            type: integer
+            format: int64
+    BulkRQ«long,FinishExecutionRQ»:
+      title: "BulkRQ«long,FinishExecutionRQ»"
+      required:
+      - entities
+      type: object
+      properties:
+        entities:
+          type: object
+          additionalProperties:
+            $ref: 'components.openapi.yaml#/components/schemas/FinishExecutionRQ'
+    BulkRQ«long,UpdateLaunchRQ»:
+      title: "BulkRQ«long,UpdateLaunchRQ»"
+      required:
+      - entities
+      type: object
+      properties:
+        entities:
+          type: object
+          additionalProperties:
+            $ref: 'components.openapi.yaml#/components/schemas/UpdateLaunchRQ'
+    BulkUpdateFilterRQ:
+      title: BulkUpdateFilterRQ
+      required:
+      - conditions
+      - name
+      - orders
+      - type
+      type: object
+      properties:
+        conditions:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/UserFilterCondition'
+        description:
+          type: string
+        id:
+          type: string
+        name:
+          type: string
+        orders:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/Order'
+        type:
+          type: string
+          enum:
+          - launch
+          - testitem
+          - log
+    ChangePasswordRQ:
+      title: ChangePasswordRQ
+      type: object
+      properties:
+        newPassword:
+          type: string
+        oldPassword:
+          type: string
+    ChartStatisticsContent:
+      title: ChartStatisticsContent
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        number:
+          type: integer
+          format: int32
+        startTime:
+          $ref: 'components.openapi.yaml#/components/schemas/Timestamp'
+        values:
+          type: object
+          additionalProperties:
+            type: string
+    ClusterInfoResource:
+      title: ClusterInfoResource
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        index:
+          type: integer
+          format: int64
+        launchId:
+          type: integer
+          format: int64
+        message:
+          type: string
+        metadata:
+          type: object
+          properties: {}
+    CollectionsRQ«BulkUpdateFilterRQ»:
+      title: CollectionsRQ«BulkUpdateFilterRQ»
+      required:
+      - elements
+      type: object
+      properties:
+        elements:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/BulkUpdateFilterRQ'
+    ContentParameters:
+      title: ContentParameters
+      required:
+      - contentFields
+      - itemsCount
+      type: object
+      properties:
+        contentFields:
+          type: array
+          items:
+            type: string
+        itemsCount:
+          type: integer
+          format: int32
+        widgetOptions:
+          type: object
+          properties: {}
+    CreateClustersRQ:
+      title: CreateClustersRQ
+      required:
+      - launchId
+      type: object
+      properties:
+        launchId:
+          type: integer
+          format: int64
+        removeNumbers:
+          type: boolean
+    CreateDashboardRQ:
+      title: CreateDashboardRQ
+      required:
+      - name
+      type: object
+      properties:
+        description:
+          type: string
+        name:
+          type: string
+    CreateIssueSubTypeRQ:
+      title: CreateIssueSubTypeRQ
+      required:
+      - color
+      - longName
+      - shortName
+      - typeRef
+      type: object
+      properties:
+        color:
+          type: string
+        longName:
+          type: string
+        shortName:
+          type: string
+        typeRef:
+          type: string
+    CreatePatternTemplateRQ:
+      title: CreatePatternTemplateRQ
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        name:
+          type: string
+        type:
+          type: string
+        value:
+          type: string
+    CreateProjectRQ:
+      title: CreateProjectRQ
+      required:
+      - entryType
+      - projectName
+      type: object
+      properties:
+        entryType:
+          type: string
+          enum:
+          - INTERNAL
+        projectName:
+          type: string
+    CreateUserBidRS:
+      title: CreateUserBidRS
+      type: object
+      properties:
+        backLink:
+          type: string
+        bid:
+          type: string
+        message:
+          type: string
+    CreateUserRQ:
+      title: CreateUserRQ
+      required:
+      - defaultProject
+      - email
+      - role
+      type: object
+      properties:
+        defaultProject:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+    CreateUserRQConfirm:
+      title: CreateUserRQConfirm
+      required:
+      - email
+      - fullName
+      - login
+      - password
+      type: object
+      properties:
+        email:
+          type: string
+        fullName:
+          type: string
+        login:
+          type: string
+        password:
+          type: string
+    CreateUserRQFull:
+      title: CreateUserRQFull
+      required:
+      - accountRole
+      - defaultProject
+      - email
+      - fullName
+      - login
+      - password
+      - projectRole
+      type: object
+      properties:
+        accountRole:
+          type: string
+          enum:
+          - USER
+          - ADMINISTRATOR
+        defaultProject:
+          type: string
+        email:
+          type: string
+        fullName:
+          type: string
+        login:
+          type: string
+        password:
+          type: string
+        projectRole:
+          type: string
+          enum:
+          - CUSTOMER
+          - MEMBER
+          - LEAD
+          - PROJECT_MANAGER
+    CreateUserRS:
+      title: CreateUserRS
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        login:
+          type: string
+        warning:
+          type: string
+    DashboardResource:
+      title: DashboardResource
+      required:
+      - id
+      - name
+      type: object
+      properties:
+        description:
+          type: string
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        owner:
+          type: string
+        widgets:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/WidgetObjectModel'
+    DefineIssueRQ:
+      title: DefineIssueRQ
+      required:
+      - issues
+      type: object
+      properties:
+        issues:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/IssueDefinition'
+    DeleteBulkRQ:
+      title: DeleteBulkRQ
+      type: object
+      properties:
+        ids:
+          type: array
+          items:
+            type: integer
+            format: int64
+    DeleteBulkRS:
+      title: DeleteBulkRS
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/ErrorRS'
+        notFound:
+          type: array
+          items:
+            type: integer
+            format: int64
+        successfullyDeleted:
+          type: array
+          items:
+            type: integer
+            format: int64
+    DemoDataRq:
+      title: DemoDataRq
+      type: object
+      properties:
+        createDashboard:
+          type: boolean
+    DemoDataRs:
+      title: DemoDataRs
+      type: object
+      properties:
+        dashboardId:
+          type: integer
+          format: int64
+        launchIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+    Description:
+      title: Description
+      type: object
+      properties:
+        action:
+          type: string
+          enum:
+          - DELETE
+          - UPDATE
+          - CREATE
+        comment:
+          type: string
+    EditUserRQ:
+      title: EditUserRQ
+      type: object
+      properties:
+        email:
+          type: string
+        fullName:
+          type: string
+        role:
+          type: string
+    EntryCreatedAsyncRS:
+      title: EntryCreatedAsyncRS
+      type: object
+      properties:
+        id:
+          type: string
+    EntryCreatedRS:
+      title: EntryCreatedRS
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+    Entry«long,int»:
+      title: "Entry«long,int»"
+      type: object
+      properties:
+        key:
+          type: integer
+          format: int64
+        value:
+          type: integer
+          format: int32
+    ErrorRS:
+      title: ErrorRS
+      type: object
+      properties:
+        errorCode:
+          type: string
+          enum:
+          - INCORRECT_REQUEST
+          - BINARY_DATA_CANNOT_BE_SAVED
+          - ACCESS_DENIED
+          - ADDRESS_LOCKED
+          - PROJECT_NOT_FOUND
+          - LAUNCH_NOT_FOUND
+          - TEST_SUITE_NOT_FOUND
+          - TEST_ITEM_NOT_FOUND
+          - LOG_NOT_FOUND
+          - ROLE_NOT_FOUND
+          - USER_NOT_FOUND
+          - WIDGET_NOT_FOUND
+          - WIDGET_NOT_FOUND_IN_DASHBOARD
+          - DASHBOARD_NOT_FOUND
+          - USER_FILTER_NOT_FOUND
+          - ACTIVITY_NOT_FOUND
+          - UNABLE_TO_CREATE_WIDGET
+          - INTEGRATION_NOT_FOUND
+          - PROJECT_NOT_CONFIGURED
+          - SERVER_SETTINGS_NOT_FOUND
+          - ISSUE_TYPE_NOT_FOUND
+          - PROJECT_SETTINGS_NOT_FOUND
+          - TICKET_NOT_FOUND
+          - AUTH_INTEGRATION_NOT_FOUND
+          - WIDGET_NOT_FOUND_IN_PROJECT
+          - USER_FILTER_NOT_FOUND_IN_PROJECT
+          - DASHBOARD_NOT_FOUND_IN_PROJECT
+          - PATTERN_TEMPLATE_NOT_FOUND_IN_PROJECT
+          - TEST_ITEM_OR_LAUNCH_NOT_FOUND
+          - ANALYZER_NOT_FOUND
+          - ATTACHMENT_NOT_FOUND
+          - UNABLE_TO_LOAD_BINARY_DATA
+          - CLUSTER_NOT_FOUND
+          - NOT_FOUND
+          - INCORRECT_FILTER_PARAMETERS
+          - INCORRECT_SORTING_PARAMETERS
+          - INCORRECT_INTEGRATION_NAME
+          - UNABLE_MODIFY_SHARABLE_RESOURCE
+          - INCORRECT_AUTHENTICATION_TYPE
+          - UNABLE_POST_TICKET
+          - UNABLE_INTERACT_WITH_INTEGRATION
+          - UNABLE_ASSIGN_UNASSIGN_USER_TO_PROJECT
+          - EMAIL_CONFIGURATION_IS_INCORRECT
+          - PROJECT_UPDATE_NOT_ALLOWED
+          - UNABLE_TO_UPDATE_YOURSELF_ROLE
+          - FORBIDDEN_OPERATION
+          - RESOURCE_ALREADY_EXISTS
+          - ROLE_ALREADY_EXISTS_ERROR
+          - USER_ALREADY_EXISTS
+          - USER_FILTER_ALREADY_EXISTS
+          - PROJECT_ALREADY_EXISTS
+          - DASHBOARD_UPDATE_ERROR
+          - UNABLE_LOAD_WIDGET_CONTENT
+          - UNABLE_ADD_TO_FAVORITE
+          - INTEGRATION_ALREADY_EXISTS
+          - SERVER_SETTINGS_ALREADY_EXISTS
+          - UNABLE_REMOVE_FROM_FAVORITE
+          - LAUNCH_IS_NOT_FINISHED
+          - TEST_ITEM_IS_NOT_FINISHED
+          - INCORRECT_FINISH_STATUS
+          - BAD_REQUEST_ERROR
+          - BAD_SAVE_LOG_REQUEST
+          - REPORTING_ITEM_ALREADY_FINISHED
+          - AMBIGUOUS_TEST_ITEM_STATUS
+          - FAILED_TEST_ITEM_ISSUE_TYPE_DEFINITION
+          - FINISH_TIME_EARLIER_THAN_START_TIME
+          - FINISH_ITEM_NOT_ALLOWED
+          - FINISH_LAUNCH_NOT_ALLOWED
+          - START_ITEM_NOT_ALLOWED
+          - CHILD_START_TIME_EARLIER_THAN_PARENT
+          - UNSUPPORTED_TEST_ITEM_TYPE
+          - LOGGING_IS_NOT_ALLOWED
+          - BAD_SAVE_WIDGET_REQUEST
+          - BAD_UPDATE_WIDGET_REQUEST
+          - UNABLE_LOAD_TEST_ITEM_HISTORY
+          - BAD_SAVE_USER_FILTER_REQUEST
+          - RETRIES_HANDLER_ERROR
+          - IMPORT_FILE_ERROR
+          - PARSING_XML_ERROR
+          - OBJECT_RETRIEVAL_ERROR
+          - PLUGIN_UPLOAD_ERROR
+          - PLUGIN_REMOVE_ERROR
+          - UNABLE_TO_SAVE_CHILD_ITEM_FOR_THE_RETRY
+          - PATTERN_ANALYSIS_ERROR
+          - PROJECT_DOESNT_CONTAIN_USER
+          - UNCLASSIFIED_REPORT_PORTAL_ERROR
+          - BAD_UPDATE_PREFERENCE_REQUEST
+          - UNSUPPORTED_MERGE_STRATEGY_TYPE
+          - DEMO_DATA_GENERATION_ERROR
+          - UNCLASSIFIED_ERROR
+        message:
+          type: string
+        stackTrace:
+          type: string
+    ExternalSystemIssue:
+      title: ExternalSystemIssue
+      type: object
+      properties:
+        btsProject:
+          type: string
+        btsUrl:
+          type: string
+        pluginName:
+          type: string
+        submitDate:
+          type: integer
+          format: int64
+        ticketId:
+          type: string
+        url:
+          type: string
+    File:
+      title: File
+      type: object
+      properties:
+        name:
+          type: string
+    FinishExecutionRQ:
+      title: FinishExecutionRQ
+      required:
+      - endTime
+      type: object
+      properties:
+        attributes:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/ItemAttributesRQ'
+        description:
+          type: string
+        endTime:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+          - PASSED
+          - FAILED
+          - STOPPED
+          - SKIPPED
+          - INTERRUPTED
+          - CANCELLED
+          - INFO
+          - WARN
+    FinishLaunchRS:
+      title: FinishLaunchRS
+      type: object
+      properties:
+        id:
+          type: string
+        link:
+          type: string
+        number:
+          type: integer
+          format: int64
+    FinishTestItemRQ:
+      title: FinishTestItemRQ
+      required:
+      - endTime
+      - launchUuid
+      type: object
+      properties:
+        attributes:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/ItemAttributesRQ'
+        description:
+          type: string
+        endTime:
+          type: string
+          format: date-time
+        issue:
+          $ref: 'components.openapi.yaml#/components/schemas/Issue'
+        launchUuid:
+          type: string
+        retry:
+          type: boolean
+        retryOf:
+          type: string
+        status:
+          type: string
+          enum:
+          - PASSED
+          - FAILED
+          - STOPPED
+          - SKIPPED
+          - INTERRUPTED
+          - CANCELLED
+          - INFO
+          - WARN
+        testCaseId:
+          type: string
+    GetLogsUnderRq:
+      title: GetLogsUnderRq
+      type: object
+      properties:
+        itemIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+        logLevel:
+          type: string
+          enum:
+          - error
+          - warn
+          - info
+          - debug
+          - trace
+          - fatal
+          - unknown
+    IntegrationRQ:
+      title: IntegrationRQ
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        integrationParameters:
+          type: object
+          properties: {}
+        name:
+          type: string
+    IntegrationResource:
+      title: IntegrationResource
+      type: object
+      properties:
+        creationDate:
+          type: string
+          format: date-time
+        creator:
+          type: string
+        enabled:
+          type: boolean
+        id:
+          type: integer
+          format: int64
+        integrationParameters:
+          type: object
+          properties: {}
+        integrationType:
+          $ref: 'components.openapi.yaml#/components/schemas/IntegrationTypeResource'
+        name:
+          type: string
+        projectId:
+          type: integer
+          format: int64
+    IntegrationTypeResource:
+      title: IntegrationTypeResource
+      type: object
+      properties:
+        authFlow:
+          type: string
+          enum:
+          - OAUTH
+          - BASIC
+          - TOKEN
+          - FORM
+          - LDAP
+        creationDate:
+          type: string
+          format: date-time
+        details:
+          type: object
+          properties: {}
+        enabled:
+          type: boolean
+        groupType:
+          type: string
+        name:
+          type: string
+        type:
+          type: integer
+          format: int64
+    Issue:
+      title: Issue
+      required:
+      - issueType
+      type: object
+      properties:
+        autoAnalyzed:
+          type: boolean
+        comment:
+          type: string
+        externalSystemIssues:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/ExternalSystemIssue'
+        ignoreAnalyzer:
+          type: boolean
+        issueType:
+          type: string
+    IssueDefinition:
+      title: IssueDefinition
+      required:
+      - issue
+      - testItemId
+      type: object
+      properties:
+        issue:
+          $ref: 'components.openapi.yaml#/components/schemas/Issue'
+        testItemId:
+          type: integer
+          format: int64
+    IssueSubTypeCreatedRS:
+      title: IssueSubTypeCreatedRS
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        locator:
+          type: string
+    IssueSubTypeResource:
+      title: IssueSubTypeResource
+      type: object
+      properties:
+        color:
+          type: string
+        id:
+          type: integer
+          format: int64
+        locator:
+          type: string
+        longName:
+          type: string
+        shortName:
+          type: string
+        typeRef:
+          type: string
+    ItemAttributeResource:
+      title: ItemAttributeResource
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+    ItemAttributesRQ:
+      title: ItemAttributesRQ
+      type: object
+      properties:
+        key:
+          type: string
+        system:
+          type: boolean
+          example: false
+        value:
+          type: string
+    ItemPathName:
+      title: ItemPathName
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+    Iterable«ActivityEventResource»:
+      title: Iterable«ActivityEventResource»
+      type: object
+    Iterable«ClusterInfoResource»:
+      title: Iterable«ClusterInfoResource»
+      type: object
+    Iterable«DashboardResource»:
+      title: Iterable«DashboardResource»
+      type: object
+    Iterable«LaunchResource»:
+      title: Iterable«LaunchResource»
+      type: object
+    Iterable«LogResource»:
+      title: Iterable«LogResource»
+      type: object
+    Iterable«OwnedEntityResource»:
+      title: Iterable«OwnedEntityResource»
+      type: object
+    Iterable«ProjectInfoResource»:
+      title: Iterable«ProjectInfoResource»
+      type: object
+    Iterable«SearchLogRs»:
+      title: Iterable«SearchLogRs»
+      type: object
+    Iterable«SearchUserResource»:
+      title: Iterable«SearchUserResource»
+      type: object
+    Iterable«TestItemHistoryElement»:
+      title: Iterable«TestItemHistoryElement»
+      type: object
+    Iterable«TestItemResource»:
+      title: Iterable«TestItemResource»
+      type: object
+    Iterable«UserFilterResource»:
+      title: Iterable«UserFilterResource»
+      type: object
+    Iterable«UserResource»:
+      title: Iterable«UserResource»
+      type: object
+    Iterable«object»:
+      title: Iterable«object»
+      type: object
+    Iterable«string»:
+      title: Iterable«string»
+      type: object
+    LaunchImportRQ:
+      title: LaunchImportRQ
+      type: object
+      properties:
+        attributes:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/ItemAttributesRQ'
+        description:
+          type: string
+        mode:
+          type: string
+          enum:
+          - DEFAULT
+          - DEBUG
+        name:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+    LaunchPathName:
+      title: LaunchPathName
+      type: object
+      properties:
+        name:
+          type: string
+        number:
+          type: integer
+          format: int32
+    LaunchResource:
+      title: LaunchResource
+      required:
+      - id
+      - name
+      - number
+      - startTime
+      - status
+      - uuid
+      type: object
+      properties:
+        analysing:
+          type: array
+          items:
+            type: string
+        approximateDuration:
+          type: number
+          format: double
+        attributes:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/ItemAttributeResource'
+        description:
+          type: string
+        endTime:
+          type: string
+          format: date-time
+        hasRetries:
+          type: boolean
+        id:
+          type: integer
+          format: int64
+        lastModified:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+          properties: {}
+        mode:
+          type: string
+          enum:
+          - DEFAULT
+          - DEBUG
+        name:
+          type: string
+        number:
+          type: integer
+          format: int64
+        owner:
+          type: string
+        rerun:
+          type: boolean
+        startTime:
+          type: string
+          format: date-time
+        statistics:
+          $ref: 'components.openapi.yaml#/components/schemas/StatisticsResource'
+        status:
+          type: string
+        uuid:
+          type: string
+    LaunchesPerUser:
+      title: LaunchesPerUser
+      type: object
+      properties:
+        count:
+          type: integer
+          format: int32
+        fullName:
+          type: string
+    LinkExternalIssueRQ:
+      title: LinkExternalIssueRQ
+      type: object
+      properties:
+        issues:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/ExternalSystemIssue'
+        testItemIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+    LogEntry:
+      title: LogEntry
+      type: object
+      properties:
+        level:
+          type: string
+        message:
+          type: string
+    LogResource:
+      title: LogResource
+      required:
+      - id
+      - uuid
+      type: object
+      properties:
+        binaryContent:
+          $ref: 'components.openapi.yaml#/components/schemas/BinaryContent'
+        id:
+          type: integer
+          format: int64
+        itemId:
+          type: integer
+          format: int64
+        launchId:
+          type: integer
+          format: int64
+        level:
+          type: string
+          enum:
+          - error
+          - warn
+          - info
+          - debug
+          - trace
+          - fatal
+          - unknown
+        message:
+          type: string
+        thumbnail:
+          type: string
+        time:
+          type: string
+          format: date-time
+        uuid:
+          type: string
+    MergeLaunchesRQ:
+      title: MergeLaunchesRQ
+      required:
+      - extendSuitesDescription
+      - launches
+      - name
+      type: object
+      properties:
+        attributes:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/ItemAttributeResource'
+        description:
+          type: string
+        endTime:
+          type: string
+          format: date-time
+        extendSuitesDescription:
+          type: boolean
+        launches:
+          type: array
+          items:
+            type: integer
+            format: int64
+        mergeType:
+          type: string
+          enum:
+          - BASIC
+          - DEEP
+        mode:
+          type: string
+          enum:
+          - DEFAULT
+          - DEBUG
+        name:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+    NamedValue:
+      title: NamedValue
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+    OperationCompletionRS:
+      title: OperationCompletionRS
+      type: object
+      properties:
+        message:
+          type: string
+    Order:
+      title: Order
+      required:
+      - isAsc
+      - sortingColumn
+      type: object
+      properties:
+        isAsc:
+          type: boolean
+        sortingColumn:
+          type: string
+    OwnedEntityResource:
+      title: OwnedEntityResource
+      type: object
+      properties:
+        description:
+          type: string
+        id:
+          type: string
+        name:
+          type: string
+        owner:
+          type: string
+    PagedLogResource:
+      title: PagedLogResource
+      required:
+      - id
+      - uuid
+      type: object
+      properties:
+        binaryContent:
+          $ref: 'components.openapi.yaml#/components/schemas/BinaryContent'
+        id:
+          type: integer
+          format: int64
+        itemId:
+          type: integer
+          format: int64
+        launchId:
+          type: integer
+          format: int64
+        level:
+          type: string
+          enum:
+          - error
+          - warn
+          - info
+          - debug
+          - trace
+          - fatal
+          - unknown
+        message:
+          type: string
+        pagesLocation:
+          type: array
+          items:
+            $ref: "components.openapi.yaml#/components/schemas/Entry«long,int»"
+        thumbnail:
+          type: string
+        time:
+          type: string
+          format: date-time
+        uuid:
+          type: string
+    PagedResponse«ActivityEventResource»:
+      title: PagedResponse«ActivityEventResource»
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/ActivityEventResource'
+        limit:
+          type: integer
+          format: int32
+        offset:
+          type: integer
+          format: int64
+        order:
+          type: string
+        sort:
+          type: string
+        total_count:
+          type: integer
+          format: int64
+    ParameterResource:
+      title: ParameterResource
+      required:
+      - key
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+    PathNameResource:
+      title: PathNameResource
+      type: object
+      properties:
+        itemPaths:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/ItemPathName'
+        launchPathName:
+          $ref: 'components.openapi.yaml#/components/schemas/LaunchPathName'
+    PatternTemplateResource:
+      title: PatternTemplateResource
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        type:
+          type: string
+        value:
+          type: string
+    Position:
+      title: Position
+      type: object
+      properties:
+        positionX:
+          type: integer
+          format: int32
+        positionY:
+          type: integer
+          format: int32
+    PostFormField:
+      title: PostFormField
+      required:
+      - id
+      - required
+      type: object
+      properties:
+        commandName:
+          type: string
+        definedValues:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/AllowedValue'
+        description:
+          type: string
+        fieldName:
+          type: string
+        fieldType:
+          type: string
+        id:
+          type: string
+        namedValue:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/NamedValue'
+        required:
+          type: boolean
+        value:
+          type: array
+          items:
+            type: string
+    PostTicketRQ:
+      title: PostTicketRQ
+      required:
+      - backLinks
+      - fields
+      - item
+      type: object
+      properties:
+        backLinks:
+          type: object
+          additionalProperties:
+            type: string
+        domain:
+          type: string
+        fields:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/PostFormField'
+        includeComments:
+          type: boolean
+        includeData:
+          type: boolean
+        includeLogs:
+          type: boolean
+        item:
+          type: integer
+          format: int64
+        logQuantity:
+          type: integer
+          format: int32
+        password:
+          type: string
+        token:
+          type: string
+        username:
+          type: string
+    PreferenceResource:
+      title: PreferenceResource
+      required:
+      - projectId
+      type: object
+      properties:
+        filters:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/UserFilterResource'
+        projectId:
+          type: integer
+          format: int64
+        userId:
+          type: integer
+          format: int64
+    ProjectConfiguration:
+      title: ProjectConfiguration
+      required:
+      - attributes
+      type: object
+      properties:
+        attributes:
+          type: object
+          additionalProperties:
+            type: string
+        notificationsConfiguration:
+          $ref: 'components.openapi.yaml#/components/schemas/ProjectNotificationConfigDTO'
+        patterns:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/PatternTemplateResource'
+        subTypes:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: 'components.openapi.yaml#/components/schemas/IssueSubTypeResource'
+    ProjectConfigurationUpdate:
+      title: ProjectConfigurationUpdate
+      required:
+      - attributes
+      type: object
+      properties:
+        attributes:
+          type: object
+          additionalProperties:
+            type: string
+    ProjectInfoResource:
+      title: ProjectInfoResource
+      type: object
+      properties:
+        creationDate:
+          type: string
+          format: date-time
+        entryType:
+          type: string
+        id:
+          type: integer
+          format: int64
+        lastRun:
+          type: string
+          format: date-time
+        launchesPerUser:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/LaunchesPerUser'
+        launchesPerWeek:
+          type: string
+        launchesQuantity:
+          type: integer
+          format: int32
+        organization:
+          type: string
+        projectName:
+          type: string
+        uniqueTickets:
+          type: integer
+          format: int32
+        usersQuantity:
+          type: integer
+          format: int32
+    ProjectNotificationConfigDTO:
+      title: ProjectNotificationConfigDTO
+      type: object
+      properties:
+        cases:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/SenderCaseDTO'
+        enabled:
+          type: boolean
+    ProjectResource:
+      title: ProjectResource
+      required:
+      - configuration
+      - entryType
+      - projectId
+      - projectName
+      type: object
+      properties:
+        allocatedStorage:
+          type: integer
+          format: int64
+        configuration:
+          $ref: 'components.openapi.yaml#/components/schemas/ProjectConfiguration'
+        creationDate:
+          type: string
+          format: date-time
+        entryType:
+          type: string
+        integrations:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/IntegrationResource'
+        organization:
+          type: string
+        projectId:
+          type: integer
+          format: int64
+        projectName:
+          type: string
+        users:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/ProjectUser'
+    ProjectSettingsResource:
+      title: ProjectSettingsResource
+      required:
+      - project
+      - subTypes
+      type: object
+      properties:
+        project:
+          type: integer
+          format: int64
+        subTypes:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: 'components.openapi.yaml#/components/schemas/IssueSubTypeResource'
+    ProjectUser:
+      title: ProjectUser
+      type: object
+      properties:
+        login:
+          type: string
+        projectRole:
+          type: string
+    ResetPasswordRQ:
+      title: ResetPasswordRQ
+      required:
+      - password
+      - uuid
+      type: object
+      properties:
+        password:
+          type: string
+        uuid:
+          type: string
+    RestorePasswordRQ:
+      title: RestorePasswordRQ
+      required:
+      - email
+      type: object
+      properties:
+        email:
+          type: string
+    SaveLogRQ:
+      title: SaveLogRQ
+      required:
+      - launchUuid
+      - time
+      type: object
+      properties:
+        file:
+          $ref: 'components.openapi.yaml#/components/schemas/File'
+        itemUuid:
+          type: string
+          description: UUID of test item owned this log
+        launchUuid:
+          type: string
+        level:
+          type: string
+          enum:
+          - error
+          - warn
+          - info
+          - debug
+          - trace
+          - fatal
+          - unknown
+        message:
+          type: string
+        time:
+          type: string
+          format: date-time
+        uuid:
+          type: string
+    SearchCriteria:
+      title: SearchCriteria
+      required:
+      - filter_key
+      - value
+      type: object
+      properties:
+        filter_key:
+          type: string
+        operation:
+          type: string
+          enum:
+          - EQ
+          - NE
+          - CNT
+          - NON_CNT
+          - BTW
+          - IN
+        value:
+          type: string
+    SearchCriteriaRQ:
+      title: SearchCriteriaRQ
+      type: object
+      properties:
+        search_criterias:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/SearchCriteria'
+    SearchLogRq:
+      title: SearchLogRq
+      type: object
+      properties:
+        filterId:
+          type: integer
+          format: int64
+        searchMode:
+          type: string
+          enum:
+          - currentLaunch
+          - launchName
+          - filter
+    SearchLogRs:
+      title: SearchLogRs
+      type: object
+      properties:
+        duration:
+          type: number
+          format: double
+        issue:
+          $ref: 'components.openapi.yaml#/components/schemas/Issue'
+        itemId:
+          type: integer
+          format: int64
+        itemName:
+          type: string
+        launchId:
+          type: integer
+          format: int64
+        logs:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/LogEntry'
+        path:
+          type: string
+        pathNames:
+          $ref: 'components.openapi.yaml#/components/schemas/PathNameResource'
+        patternTemplates:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+    SearchUserResource:
+      title: SearchUserResource
+      required:
+      - email
+      - id
+      - login
+      type: object
+      properties:
+        email:
+          type: string
+        fullName:
+          type: string
+        id:
+          type: integer
+          format: int64
+        login:
+          type: string
+    SenderCaseDTO:
+      title: SenderCaseDTO
+      type: object
+      properties:
+        attributes:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/ItemAttributeResource'
+        attributesOperator:
+          type: string
+          enum:
+          - AND
+          - OR
+        enabled:
+          type: boolean
+        id:
+          type: integer
+          format: int64
+        launchNames:
+          type: array
+          items:
+            type: string
+        recipients:
+          type: array
+          items:
+            type: string
+        ruleName:
+          type: string
+        sendCase:
+          type: string
+          enum:
+          - ALWAYS
+          - FAILED
+          - MORE_10
+          - MORE_20
+          - MORE_50
+    Serializable:
+      title: Serializable
+      type: object
+    Size:
+      title: Size
+      type: object
+      properties:
+        height:
+          type: integer
+          format: int32
+        width:
+          type: integer
+          format: int32
+    StartLaunchRQ:
+      title: StartLaunchRQ
+      required:
+      - name
+      - startTime
+      type: object
+      properties:
+        attributes:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/ItemAttributesRQ'
+        description:
+          type: string
+        mode:
+          type: string
+          enum:
+          - DEFAULT
+          - DEBUG
+        name:
+          type: string
+        rerun:
+          type: boolean
+        rerunOf:
+          type: string
+          description: UUID of desired launch to rerun
+        startTime:
+          type: string
+          format: date-time
+    StartLaunchRS:
+      title: StartLaunchRS
+      type: object
+      properties:
+        id:
+          type: string
+        number:
+          type: integer
+          format: int64
+    StartTestItemRQ:
+      title: StartTestItemRQ
+      required:
+      - launchUuid
+      - name
+      - startTime
+      - type
+      type: object
+      properties:
+        attributes:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/ItemAttributesRQ'
+        codeRef:
+          type: string
+        description:
+          type: string
+        hasStats:
+          type: boolean
+        launchUuid:
+          type: string
+          description: UUID of parent launch
+        name:
+          type: string
+        parameters:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/ParameterResource'
+        retry:
+          type: boolean
+        retryOf:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+        testCaseId:
+          type: string
+        type:
+          type: string
+          enum:
+          - SUITE
+          - STORY
+          - TEST
+          - SCENARIO
+          - STEP
+          - BEFORE_CLASS
+          - BEFORE_GROUPS
+          - BEFORE_METHOD
+          - BEFORE_SUITE
+          - BEFORE_TEST
+          - AFTER_CLASS
+          - AFTER_GROUPS
+          - AFTER_METHOD
+          - AFTER_SUITE
+          - AFTER_TEST
+        uniqueId:
+          type: string
+    StatisticsResource:
+      title: StatisticsResource
+      type: object
+      properties:
+        defects:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties:
+              type: integer
+              format: int32
+        executions:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int32
+    SuggestInfo:
+      title: SuggestInfo
+      type: object
+      properties:
+        clusterId:
+          type: integer
+          format: int64
+        esPosition:
+          type: integer
+          format: int32
+        esScore:
+          type: number
+          format: float
+        isMergedLog:
+          type: boolean
+        issueType:
+          type: string
+        launchId:
+          type: integer
+          format: int64
+        launchName:
+          type: string
+        launchNumber:
+          type: integer
+          format: int64
+        matchScore:
+          type: number
+          format: float
+        methodName:
+          type: string
+        minShouldMatch:
+          type: integer
+          format: int32
+        modelFeatureNames:
+          type: string
+        modelFeatureValues:
+          type: string
+        modelInfo:
+          type: string
+        processedTime:
+          type: number
+          format: float
+        project:
+          type: integer
+          format: int64
+        relevantItem:
+          type: integer
+          format: int64
+        relevantLogId:
+          type: integer
+          format: int64
+        resultPosition:
+          type: integer
+          format: int32
+        testItem:
+          type: integer
+          format: int64
+        testItemLogId:
+          type: integer
+          format: int64
+        usedLogLines:
+          type: integer
+          format: int32
+        userChoice:
+          type: integer
+          format: int32
+    SuggestedItem:
+      title: SuggestedItem
+      type: object
+      properties:
+        logs:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/LogResource'
+        suggestRs:
+          $ref: 'components.openapi.yaml#/components/schemas/SuggestInfo'
+        testItemResource:
+          $ref: 'components.openapi.yaml#/components/schemas/TestItemResource'
+    TestItemHistoryElement:
+      title: TestItemHistoryElement
+      type: object
+      properties:
+        groupingField:
+          type: string
+        resources:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/TestItemResource'
+    TestItemResource:
+      title: TestItemResource
+      type: object
+      properties:
+        attributes:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/ItemAttributeResource'
+        codeRef:
+          type: string
+        description:
+          type: string
+        endTime:
+          type: string
+          format: date-time
+        hasChildren:
+          type: boolean
+        hasStats:
+          type: boolean
+        id:
+          type: integer
+          format: int64
+        issue:
+          $ref: 'components.openapi.yaml#/components/schemas/Issue'
+        launchId:
+          type: integer
+          format: int64
+        launchStatus:
+          type: string
+        name:
+          type: string
+        parameters:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/ParameterResource'
+        parent:
+          type: integer
+          format: int64
+        path:
+          type: string
+        pathNames:
+          $ref: 'components.openapi.yaml#/components/schemas/PathNameResource'
+        patternTemplates:
+          type: array
+          items:
+            type: string
+        retries:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/TestItemResource'
+        startTime:
+          type: string
+          format: date-time
+        statistics:
+          $ref: 'components.openapi.yaml#/components/schemas/StatisticsResource'
+        status:
+          type: string
+        testCaseHash:
+          type: integer
+          format: int32
+        testCaseId:
+          type: string
+        type:
+          type: string
+        uniqueId:
+          type: string
+        uuid:
+          type: string
+    Ticket:
+      title: Ticket
+      type: object
+      properties:
+        id:
+          type: string
+        pluginName:
+          type: string
+        status:
+          type: string
+        summary:
+          type: string
+        url:
+          type: string
+    Timestamp:
+      title: Timestamp
+      type: object
+      properties:
+        date:
+          type: integer
+          format: int32
+        day:
+          type: integer
+          format: int32
+        hours:
+          type: integer
+          format: int32
+        minutes:
+          type: integer
+          format: int32
+        month:
+          type: integer
+          format: int32
+        nanos:
+          type: integer
+          format: int32
+        seconds:
+          type: integer
+          format: int32
+        time:
+          type: integer
+          format: int64
+        timezoneOffset:
+          type: integer
+          format: int32
+        year:
+          type: integer
+          format: int32
+    UnassignUsersRQ:
+      title: UnassignUsersRQ
+      required:
+      - userNames
+      type: object
+      properties:
+        userNames:
+          type: array
+          items:
+            type: string
+    UnlinkExternalIssueRQ:
+      title: UnlinkExternalIssueRQ
+      type: object
+      properties:
+        testItemIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+        ticketIds:
+          type: array
+          items:
+            type: string
+    UpdateDashboardRQ:
+      title: UpdateDashboardRQ
+      required:
+      - name
+      type: object
+      properties:
+        description:
+          type: string
+        name:
+          type: string
+        updateWidgets:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/WidgetObjectModel'
+    UpdateIssueSubTypeRQ:
+      title: UpdateIssueSubTypeRQ
+      required:
+      - ids
+      type: object
+      properties:
+        ids:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/UpdateOneIssueSubTypeRQ'
+    UpdateItemAttributeRQ:
+      title: UpdateItemAttributeRQ
+      type: object
+      properties:
+        action:
+          type: string
+          enum:
+          - DELETE
+          - UPDATE
+          - CREATE
+        from:
+          $ref: 'components.openapi.yaml#/components/schemas/ItemAttributeResource'
+        to:
+          $ref: 'components.openapi.yaml#/components/schemas/ItemAttributeResource'
+    UpdateLaunchRQ:
+      title: UpdateLaunchRQ
+      type: object
+      properties:
+        attributes:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/ItemAttributeResource'
+        description:
+          type: string
+        mode:
+          type: string
+          enum:
+          - DEFAULT
+          - DEBUG
+    UpdateOneIssueSubTypeRQ:
+      title: UpdateOneIssueSubTypeRQ
+      required:
+      - locator
+      - typeRef
+      type: object
+      properties:
+        color:
+          type: string
+        locator:
+          type: string
+        longName:
+          type: string
+        shortName:
+          type: string
+        typeRef:
+          type: string
+    UpdatePatternTemplateRQ:
+      title: UpdatePatternTemplateRQ
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        name:
+          type: string
+    UpdatePluginStateRQ:
+      title: UpdatePluginStateRQ
+      type: object
+      properties:
+        enabled:
+          type: boolean
+    UpdateProjectRQ:
+      title: UpdateProjectRQ
+      type: object
+      properties:
+        configuration:
+          $ref: 'components.openapi.yaml#/components/schemas/ProjectConfigurationUpdate'
+        users:
+          type: object
+          additionalProperties:
+            type: string
+    UpdateTestItemRQ:
+      title: UpdateTestItemRQ
+      type: object
+      properties:
+        attributes:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/ItemAttributeResource'
+        description:
+          type: string
+        status:
+          type: string
+    UpdateUserFilterRQ:
+      title: UpdateUserFilterRQ
+      required:
+      - conditions
+      - name
+      - orders
+      - type
+      type: object
+      properties:
+        conditions:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/UserFilterCondition'
+        description:
+          type: string
+        name:
+          type: string
+        orders:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/Order'
+        type:
+          type: string
+          enum:
+          - launch
+          - testitem
+          - log
+    UserBidRS:
+      title: UserBidRS
+      type: object
+      properties:
+        email:
+          type: string
+        isActive:
+          type: boolean
+        uuid:
+          type: string
+    UserFilterCondition:
+      title: UserFilterCondition
+      required:
+      - condition
+      - filteringField
+      - value
+      type: object
+      properties:
+        condition:
+          type: string
+        filteringField:
+          type: string
+        value:
+          type: string
+    UserFilterResource:
+      title: UserFilterResource
+      required:
+      - conditions
+      - id
+      - name
+      - orders
+      - owner
+      - type
+      type: object
+      properties:
+        conditions:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/UserFilterCondition'
+        description:
+          type: string
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        orders:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/Order'
+        owner:
+          type: string
+        type:
+          type: string
+    UserResource:
+      title: UserResource
+      required:
+      - email
+      - id
+      - userId
+      type: object
+      properties:
+        accountType:
+          type: string
+        assignedProjects:
+          type: object
+          additionalProperties:
+            $ref: 'components.openapi.yaml#/components/schemas/AssignedProject'
+        email:
+          type: string
+        fullName:
+          type: string
+        id:
+          type: integer
+          format: int64
+        metadata:
+          type: object
+          properties: {}
+        photoId:
+          type: string
+        photoLoaded:
+          type: boolean
+        userId:
+          type: string
+        userRole:
+          type: string
+    WidgetObjectModel:
+      title: WidgetObjectModel
+      type: object
+      properties:
+        widgetId:
+          type: integer
+          format: int64
+        widgetName:
+          type: string
+        widgetOptions:
+          type: object
+          properties: {}
+        widgetPosition:
+          $ref: 'components.openapi.yaml#/components/schemas/Position'
+        widgetSize:
+          $ref: 'components.openapi.yaml#/components/schemas/Size'
+        widgetType:
+          type: string
+    WidgetPreviewRQ:
+      title: WidgetPreviewRQ
+      required:
+      - widgetType
+      type: object
+      properties:
+        contentParameters:
+          $ref: 'components.openapi.yaml#/components/schemas/ContentParameters'
+        filterIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+        widgetType:
+          type: string
+          enum:
+          - oldLineChart
+          - investigatedTrend
+          - launchStatistics
+          - statisticTrend
+          - casesTrend
+          - notPassed
+          - overallStatistics
+          - uniqueBugTable
+          - bugTrend
+          - activityStream
+          - launchesComparisonChart
+          - launchesDurationChart
+          - launchesTable
+          - topTestCases
+          - flakyTestCases
+          - passingRateSummary
+          - passingRatePerLaunch
+          - productStatus
+          - mostTimeConsuming
+          - cumulative
+    WidgetRQ:
+      title: WidgetRQ
+      required:
+      - name
+      - widgetType
+      type: object
+      properties:
+        contentParameters:
+          $ref: 'components.openapi.yaml#/components/schemas/ContentParameters'
+        description:
+          type: string
+        filterIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+        name:
+          type: string
+        widgetType:
+          type: string
+          enum:
+          - oldLineChart
+          - investigatedTrend
+          - launchStatistics
+          - statisticTrend
+          - casesTrend
+          - notPassed
+          - overallStatistics
+          - uniqueBugTable
+          - bugTrend
+          - activityStream
+          - launchesComparisonChart
+          - launchesDurationChart
+          - launchesTable
+          - topTestCases
+          - flakyTestCases
+          - passingRateSummary
+          - passingRatePerLaunch
+          - productStatus
+          - mostTimeConsuming
+          - cumulative
+          - topPatternTemplates
+          - componentHealthCheck
+          - componentHealthCheckTable
+    WidgetResource:
+      title: WidgetResource
+      required:
+      - contentParameters
+      - id
+      - name
+      - widgetType
+      type: object
+      properties:
+        appliedFilters:
+          type: array
+          items:
+            $ref: 'components.openapi.yaml#/components/schemas/UserFilterResource'
+        content:
+          type: object
+          properties: {}
+        contentParameters:
+          $ref: 'components.openapi.yaml#/components/schemas/ContentParameters'
+        description:
+          type: string
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        owner:
+          type: string
+        widgetType:
+          type: string
+          enum:
+          - oldLineChart
+          - investigatedTrend
+          - launchStatistics
+          - statisticTrend
+          - casesTrend
+          - notPassed
+          - overallStatistics
+          - uniqueBugTable
+          - bugTrend
+          - activityStream
+          - launchesComparisonChart
+          - launchesDurationChart
+          - launchesTable
+          - topTestCases
+          - flakyTestCases
+          - passingRateSummary
+          - passingRatePerLaunch
+          - productStatus
+          - mostTimeConsuming
+          - cumulative
+    YesNoRS:
+      title: YesNoRS
+      type: object
+      properties:
+        is:
+          type: boolean

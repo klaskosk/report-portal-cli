@@ -1,0 +1,45 @@
+overlay: 1.0.0
+info:
+  title: Patch timestamps and error responses
+  version: 1.0.0
+actions:
+  - target: $..[?(@.format == 'date-time')]
+    update:
+      x-go-type: types.EpochMillis
+      x-go-type-import:
+        path: github.com/klaskosk/report-portal-cli/pkg/types
+  # Add default error response to all API operations. The RP API returns ErrorRS for all error cases (400, 401, 403,
+  # 404, 500, etc.). Using 'default' generates a single JSONDefault field on each response struct that captures any
+  # non-success status code.
+  - target: $.paths.*.get.responses
+    update:
+      default:
+        description: Error response
+        content:
+          application/json:
+            schema:
+              $ref: 'components.openapi.yaml#/components/schemas/ErrorRS'
+  - target: $.paths.*.post.responses
+    update:
+      default:
+        description: Error response
+        content:
+          application/json:
+            schema:
+              $ref: 'components.openapi.yaml#/components/schemas/ErrorRS'
+  - target: $.paths.*.put.responses
+    update:
+      default:
+        description: Error response
+        content:
+          application/json:
+            schema:
+              $ref: 'components.openapi.yaml#/components/schemas/ErrorRS'
+  - target: $.paths.*.delete.responses
+    update:
+      default:
+        description: Error response
+        content:
+          application/json:
+            schema:
+              $ref: 'components.openapi.yaml#/components/schemas/ErrorRS'
