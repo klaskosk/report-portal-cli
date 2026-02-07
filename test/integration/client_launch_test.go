@@ -3,8 +3,7 @@
 package integration_test
 
 import (
-	"context"
-	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/klaskosk/report-portal-cli/pkg/client"
@@ -20,8 +19,8 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 	})
 
 	Context("List", func() {
-		It("returns launches for the project", func() {
-			result, err := c.Project(testProject).Launches().List(context.Background())
+		It("returns launches for the project", func(ctx SpecContext) {
+			result, err := c.Project(testProject).Launches().List(ctx)
 			Expect(err).NotTo(HaveOccurred(),
 				"listing launches for project %q should not fail", testProject)
 			Expect(result).NotTo(BeNil(),
@@ -30,9 +29,9 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 				"launch list should contain seeded demo launches")
 		})
 
-		It("filters by name", func() {
+		It("filters by name", func(ctx SpecContext) {
 			// First, list all to discover a known name.
-			all, err := c.Project(testProject).Launches().List(context.Background(),
+			all, err := c.Project(testProject).Launches().List(ctx,
 				client.WithPageSize(1),
 			)
 			Expect(err).NotTo(HaveOccurred(),
@@ -42,7 +41,7 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 
 			knownName := all.Content[0].Name
 
-			filtered, err := c.Project(testProject).Launches().List(context.Background(),
+			filtered, err := c.Project(testProject).Launches().List(ctx,
 				client.WithName(knownName),
 			)
 			Expect(err).NotTo(HaveOccurred(),
@@ -54,8 +53,8 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			}
 		})
 
-		It("paginates results", func() {
-			page1, err := c.Project(testProject).Launches().List(context.Background(),
+		It("paginates results", func(ctx SpecContext) {
+			page1, err := c.Project(testProject).Launches().List(ctx,
 				client.WithPageSize(1),
 				client.WithPageNumber(1),
 				client.WithSort("id,asc"),
@@ -65,7 +64,7 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			Expect(page1.Content).To(HaveLen(1),
 				"page 1 with page size 1 should return exactly 1 launch")
 
-			page2, err := c.Project(testProject).Launches().List(context.Background(),
+			page2, err := c.Project(testProject).Launches().List(ctx,
 				client.WithPageSize(1),
 				client.WithPageNumber(2),
 				client.WithSort("id,asc"),
@@ -81,8 +80,8 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			}
 		})
 
-		It("sorts by start time descending", func() {
-			result, err := c.Project(testProject).Launches().List(context.Background(),
+		It("sorts by start time descending", func(ctx SpecContext) {
+			result, err := c.Project(testProject).Launches().List(ctx,
 				client.WithSort("startTime,desc"),
 				client.WithPageSize(10),
 			)
@@ -104,8 +103,10 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 	})
 
 	Context("GetByID", func() {
-		It("returns the launch", func() {
-			list, err := c.Project(testProject).Launches().List(context.Background(),
+		var knownID int64
+
+		BeforeEach(func(ctx SpecContext) {
+			list, err := c.Project(testProject).Launches().List(ctx,
 				client.WithPageSize(1),
 			)
 			Expect(err).NotTo(HaveOccurred(),
@@ -113,11 +114,13 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			Expect(list.Content).NotTo(BeEmpty(),
 				"launch list should contain at least one launch for ID lookup")
 
-			knownID := list.Content[0].Id
+			knownID = list.Content[0].Id
+		})
 
+		It("returns the launch", func(ctx SpecContext) {
 			launch, err := c.Project(testProject).Launches().GetByID(
-				context.Background(),
-				fmt.Sprintf("%d", knownID),
+				ctx,
+				strconv.FormatInt(knownID, 10),
 			)
 			Expect(err).NotTo(HaveOccurred(),
 				"getting launch by ID %d should not fail", knownID)
@@ -127,9 +130,9 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 				"returned launch ID should match requested ID %d", knownID)
 		})
 
-		It("returns not found for an invalid ID", func() {
+		It("returns not found for an invalid ID", func(ctx SpecContext) {
 			_, err := c.Project(testProject).Launches().GetByID(
-				context.Background(),
+				ctx,
 				"999999",
 			)
 			Expect(err).To(HaveOccurred(),
@@ -140,8 +143,10 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 	})
 
 	Context("GetByUUID", func() {
-		It("returns the launch", func() {
-			list, err := c.Project(testProject).Launches().List(context.Background(),
+		var knownUUID string
+
+		BeforeEach(func(ctx SpecContext) {
+			list, err := c.Project(testProject).Launches().List(ctx,
 				client.WithPageSize(1),
 			)
 			Expect(err).NotTo(HaveOccurred(),
@@ -149,10 +154,12 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			Expect(list.Content).NotTo(BeEmpty(),
 				"launch list should contain at least one launch for UUID lookup")
 
-			knownUUID := list.Content[0].Uuid
+			knownUUID = list.Content[0].Uuid
+		})
 
+		It("returns the launch", func(ctx SpecContext) {
 			launch, err := c.Project(testProject).Launches().GetByUUID(
-				context.Background(),
+				ctx,
 				knownUUID,
 			)
 			Expect(err).NotTo(HaveOccurred(),
@@ -163,9 +170,9 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 				"returned launch UUID should match requested UUID %q", knownUUID)
 		})
 
-		It("returns not found for an invalid UUID", func() {
+		It("returns not found for an invalid UUID", func(ctx SpecContext) {
 			_, err := c.Project(testProject).Launches().GetByUUID(
-				context.Background(),
+				ctx,
 				"00000000-0000-0000-0000-000000000000",
 			)
 			Expect(err).To(HaveOccurred(),

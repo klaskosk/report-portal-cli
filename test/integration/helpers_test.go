@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/klaskosk/report-portal-cli/pkg/client"
 	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 // httpClient is used for all outbound HTTP calls in the test suite,
@@ -25,10 +27,10 @@ var httpClient = &http.Client{Timeout: 30 * time.Second}
 
 // newClient creates a client.Client pointing at the live Report Portal instance.
 func newClient() *client.Client {
+	GinkgoHelper()
+
 	c, err := client.New(baseURL, bearerToken)
-	if err != nil {
-		panic(fmt.Sprintf("failed to create test client: %v", err))
-	}
+	Expect(err).NotTo(HaveOccurred(), "failed to create test client")
 
 	return c
 }
@@ -44,7 +46,12 @@ func obtainAPIToken(ctx context.Context, rpBaseURL, username, password string) (
 		"password":   {password},
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenURL, strings.NewReader(form.Encode()))
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		tokenURL,
+		strings.NewReader(form.Encode()),
+	)
 	if err != nil {
 		return "", fmt.Errorf("creating token request: %w", err)
 	}
@@ -61,7 +68,11 @@ func obtainAPIToken(ctx context.Context, rpBaseURL, username, password string) (
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
 
-		return "", fmt.Errorf("token request failed with status %d: %s", resp.StatusCode, string(respBody))
+		return "", fmt.Errorf(
+			"token request failed with status %d: %s",
+			resp.StatusCode,
+			string(respBody),
+		)
 	}
 
 	var tokenResponse struct {
@@ -82,7 +93,12 @@ func seedDemoData(ctx context.Context, rpBaseURL, token, projectName string) err
 
 	payload := `{"createDashboard": false, "launchesQuantity": 3}`
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, demoURL, strings.NewReader(payload))
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		demoURL,
+		strings.NewReader(payload),
+	)
 	if err != nil {
 		return fmt.Errorf("creating demo data request: %w", err)
 	}
@@ -99,7 +115,11 @@ func seedDemoData(ctx context.Context, rpBaseURL, token, projectName string) err
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
 
-		return fmt.Errorf("demo data request failed with status %d: %s", resp.StatusCode, string(respBody))
+		return fmt.Errorf(
+			"demo data request failed with status %d: %s",
+			resp.StatusCode,
+			string(respBody),
+		)
 	}
 
 	return nil
@@ -112,7 +132,12 @@ func createProject(ctx context.Context, rpBaseURL, token, projectName string) er
 
 	payload := fmt.Sprintf(`{"projectName":%q,"entryType":"INTERNAL"}`, projectName)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, projectURL, strings.NewReader(payload))
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		projectURL,
+		strings.NewReader(payload),
+	)
 	if err != nil {
 		return fmt.Errorf("creating project request: %w", err)
 	}
@@ -129,7 +154,11 @@ func createProject(ctx context.Context, rpBaseURL, token, projectName string) er
 	if resp.StatusCode != http.StatusCreated {
 		respBody, _ := io.ReadAll(resp.Body)
 
-		return fmt.Errorf("project creation failed with status %d: %s", resp.StatusCode, string(respBody))
+		return fmt.Errorf(
+			"project creation failed with status %d: %s",
+			resp.StatusCode,
+			string(respBody),
+		)
 	}
 
 	return nil
@@ -142,7 +171,12 @@ func deleteProject(ctx context.Context, rpBaseURL, token, projectName string) {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, projectURL, nil)
 	if err != nil {
-		GinkgoWriter.Printf("warning: could not build delete-project request for %q: %v\n", projectName, err)
+		GinkgoWriter.Printf(
+			"warning: could not build delete-project request for %q: %v\n",
+			projectName,
+			err,
+		)
+
 		return
 	}
 
@@ -151,13 +185,19 @@ func deleteProject(ctx context.Context, rpBaseURL, token, projectName string) {
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		GinkgoWriter.Printf("warning: delete-project request failed for %q: %v\n", projectName, err)
+
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
-		GinkgoWriter.Printf("warning: delete-project returned %d for %q: %s\n", resp.StatusCode, projectName, string(respBody))
+		GinkgoWriter.Printf(
+			"warning: delete-project returned %d for %q: %s\n",
+			resp.StatusCode,
+			projectName,
+			string(respBody),
+		)
 	}
 }
 
@@ -174,16 +214,20 @@ func runCLI(args ...string) cliResult {
 	fullArgs := append([]string{"--url", baseURL, "--token", bearerToken}, args...)
 
 	cmd := exec.Command(rpBinaryPath, fullArgs...)
+	setCoverDir(cmd)
 
 	var stdout, stderr bytes.Buffer
+
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
 	err := cmd.Run()
 
 	exitCode := 0
+
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
+		exitErr := &exec.ExitError{}
+		if errors.As(err, &exitErr) {
 			exitCode = exitErr.ExitCode()
 		} else {
 			exitCode = -1
@@ -203,16 +247,20 @@ func runCLI(args ...string) cliResult {
 func runCLIWithArgs(args ...string) cliResult {
 	cmd := exec.Command(rpBinaryPath, args...)
 	cmd.Env = sanitizedEnv()
+	setCoverDir(cmd)
 
 	var stdout, stderr bytes.Buffer
+
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
 	err := cmd.Run()
 
 	exitCode := 0
+
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
+		exitErr := &exec.ExitError{}
+		if errors.As(err, &exitErr) {
 			exitCode = exitErr.ExitCode()
 		} else {
 			exitCode = -1
@@ -231,20 +279,24 @@ func runCLIWithArgs(args ...string) cliResult {
 func runCLIWithEnv(env map[string]string, args ...string) cliResult {
 	cmd := exec.Command(rpBinaryPath, args...)
 	cmd.Env = sanitizedEnv()
+	setCoverDir(cmd)
 
 	for k, v := range env {
 		cmd.Env = append(cmd.Env, k+"="+v)
 	}
 
 	var stdout, stderr bytes.Buffer
+
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
 	err := cmd.Run()
 
 	exitCode := 0
+
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
+		exitErr := &exec.ExitError{}
+		if errors.As(err, &exitErr) {
 			exitCode = exitErr.ExitCode()
 		} else {
 			exitCode = -1
@@ -256,6 +308,21 @@ func runCLIWithEnv(env map[string]string, args ...string) cliResult {
 		Stderr:   stderr.String(),
 		ExitCode: exitCode,
 	}
+}
+
+// setCoverDir adds GOCOVERDIR to cmd's environment so the coverage-instrumented
+// binary writes its profile data. If cmd.Env is nil (inheriting the parent env)
+// it is first populated from os.Environ().
+func setCoverDir(cmd *exec.Cmd) {
+	if coverDir == "" {
+		return
+	}
+
+	if cmd.Env == nil {
+		cmd.Env = os.Environ()
+	}
+
+	cmd.Env = append(cmd.Env, "GOCOVERDIR="+coverDir)
 }
 
 // sanitizedEnv returns a copy of the current environment with all RP_* variables

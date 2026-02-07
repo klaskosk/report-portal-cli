@@ -33,6 +33,11 @@ var (
 
 	// rpBinaryPath is the path to the compiled rp CLI binary.
 	rpBinaryPath string
+
+	// coverDir is the directory where the coverage-instrumented binary writes
+	// its profiling data. Each invocation of the binary appends a new counter
+	// file, and after the suite the data can be merged with go tool covdata.
+	coverDir string
 )
 
 func TestIntegration(t *testing.T) {
@@ -40,9 +45,7 @@ func TestIntegration(t *testing.T) {
 	RunSpecs(t, "Integration Suite")
 }
 
-var _ = BeforeSuite(func() {
-	ctx := context.Background()
-
+var _ = BeforeSuite(func(ctx SpecContext) {
 	By("starting the Report Portal compose stack")
 
 	composeFile := filepath.Join(".", "docker-compose.test.yml")
@@ -53,33 +56,29 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred(),
 		"failed to create docker compose stack from %q", composeFile)
 
-	DeferCleanup(func() {
+	DeferCleanup(func(ctx SpecContext) {
 		By("tearing down the compose stack")
 
-		downCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-
-		err := stack.Down(downCtx,
+		err := stack.Down(ctx,
 			compose.RemoveOrphans(true),
 			compose.RemoveVolumes(true),
 		)
 		Expect(err).NotTo(HaveOccurred(),
 			"failed to tear down the compose stack")
-	})
+	}, NodeTimeout(30*time.Second))
 
 	err = stack.
-		WaitForService("api", wait.ForLog("Started ReportPortalApp").WithStartupTimeout(5*time.Minute)).
+		WaitForService(
+			"api",
+			wait.ForLog("Started ReportPortalApp").WithStartupTimeout(5*time.Minute),
+		).
 		WaitForService("uat", wait.ForLog("Started").WithStartupTimeout(5*time.Minute)).
 		Up(ctx)
 	if err != nil {
 		dumpServiceLogs(ctx, stack, "api", "migrations", "gateway")
-		Fail(
-			fmt.Sprintf(
-				"failed to start compose stack and wait for services to become healthy: %v",
-				err,
-			),
-		)
 	}
+	Expect(err).To(Succeed(),
+		"failed to start compose stack and wait for services to become healthy: %v", err)
 
 	By("discovering the gateway port")
 
@@ -103,8 +102,9 @@ var _ = BeforeSuite(func() {
 	// Traefik may take a moment to register the UAT route after the service starts.
 	Eventually(func() error {
 		bearerToken, err = obtainAPIToken(ctx, baseURL, testAdminUser, testAdminPassword)
+
 		return err
-	}).WithTimeout(60 * time.Second).WithPolling(2 * time.Second).Should(Succeed(),
+	}).WithTimeout(60*time.Second).WithPolling(2*time.Second).Should(Succeed(),
 		"failed to obtain API token for user %q", testAdminUser)
 	GinkgoWriter.Println("API token obtained successfully")
 
@@ -116,6 +116,10 @@ var _ = BeforeSuite(func() {
 	GinkgoWriter.Printf("CLI binary built at: %s\n", rpBinaryPath)
 
 	DeferCleanup(func() {
+		if coverDir != "" {
+			mergeCoverage(coverDir)
+		}
+
 		os.RemoveAll(filepath.Dir(rpBinaryPath))
 	})
 
@@ -124,7 +128,7 @@ var _ = BeforeSuite(func() {
 	// The API route may take a moment to register with Traefik after the service starts.
 	Eventually(func() error {
 		return seedDemoData(ctx, baseURL, bearerToken, testProject)
-	}).WithTimeout(60 * time.Second).WithPolling(2 * time.Second).Should(Succeed(),
+	}).WithTimeout(60*time.Second).WithPolling(2*time.Second).Should(Succeed(),
 		"failed to seed demo data into project %q", testProject)
 	GinkgoWriter.Println("Demo data seeded")
 })
@@ -136,12 +140,14 @@ func dumpServiceLogs(ctx context.Context, stack *compose.DockerCompose, services
 		container, err := stack.ServiceContainer(ctx, svc)
 		if err != nil {
 			GinkgoWriter.Printf("[%s] could not get container: %v\n", svc, err)
+
 			continue
 		}
 
 		logs, err := container.Logs(ctx)
 		if err != nil {
 			GinkgoWriter.Printf("[%s] could not get logs: %v\n", svc, err)
+
 			continue
 		}
 
@@ -152,16 +158,29 @@ func dumpServiceLogs(ctx context.Context, stack *compose.DockerCompose, services
 	}
 }
 
-// buildCLIBinary compiles the rp binary into a temporary directory.
+// buildCLIBinary compiles a coverage-instrumented rp binary into a temporary
+// directory. It also creates the GOCOVERDIR directory where the binary will
+// write its coverage counter files at exit.
 func buildCLIBinary() (string, error) {
 	tmpDir, err := os.MkdirTemp("", "rp-integration-test-*")
 	if err != nil {
 		return "", fmt.Errorf("creating temp dir: %w", err)
 	}
 
+	coverDir = filepath.Join(tmpDir, "covdata")
+	if err := os.MkdirAll(coverDir, 0o755); err != nil {
+		os.RemoveAll(tmpDir)
+
+		return "", fmt.Errorf("creating coverage data dir: %w", err)
+	}
+
 	binaryPath := filepath.Join(tmpDir, "rp")
 
-	cmd := exec.Command("go", "build", "-o", binaryPath, "./cmd/rp")
+	cmd := exec.Command("go", "build",
+		"-cover",
+		"-coverpkg=github.com/klaskosk/report-portal-cli/...,github.com/klaskosk/report-portal-cli/pkg/...",
+		"-o", binaryPath, "./cmd/rp",
+	)
 	cmd.Dir = filepath.Join("..", "..")
 	cmd.Stdout = GinkgoWriter
 	cmd.Stderr = GinkgoWriter
@@ -172,5 +191,34 @@ func buildCLIBinary() (string, error) {
 		return "", fmt.Errorf("building CLI binary: %w", err)
 	}
 
+	GinkgoWriter.Printf("Coverage data dir: %s\n", coverDir)
+
 	return binaryPath, nil
+}
+
+// mergeCoverage converts the raw coverage counter files into a Go coverage
+// profile (integration.coverprofile) in the current directory and prints a
+// per-function summary. The output file can be loaded with go tool cover.
+func mergeCoverage(dataDir string) {
+	outFile := "integration.coverprofile"
+
+	textfmt := exec.Command("go", "tool", "covdata", "textfmt", "-i="+dataDir, "-o="+outFile)
+	textfmt.Stdout = GinkgoWriter
+	textfmt.Stderr = GinkgoWriter
+
+	if err := textfmt.Run(); err != nil {
+		GinkgoWriter.Printf("warning: could not convert coverage data: %v\n", err)
+
+		return
+	}
+
+	GinkgoWriter.Printf("Coverage profile written to %s\n", outFile)
+
+	funcCmd := exec.Command("go", "tool", "cover", "-func="+outFile)
+	funcCmd.Stdout = GinkgoWriter
+	funcCmd.Stderr = GinkgoWriter
+
+	if err := funcCmd.Run(); err != nil {
+		GinkgoWriter.Printf("warning: could not print coverage summary: %v\n", err)
+	}
 }
