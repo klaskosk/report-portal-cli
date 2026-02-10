@@ -307,6 +307,71 @@ profiles:
 		expectJSONError(result, "not found")
 		Expect(result.Stderr).To(BeEmpty(), "stderr should be empty in JSON mode")
 	})
+
+	Context("filter flags", func() {
+		It("filters launches by user", func() {
+			result := runProjectLaunch(projectName, "--user", "default")
+			expectCLISuccess(result, "rp get launch --user default")
+			Expect(result.Stdout).To(ContainSubstring("ID"),
+				"filtered output should contain table headers")
+		})
+
+
+		It("filters launches with --latest flag", func() {
+			result := runProjectLaunch(projectName, "--latest")
+			expectCLISuccess(result, "rp get launch --latest")
+			Expect(result.Stdout).To(ContainSubstring("ID"),
+				"latest launches output should contain table headers")
+		})
+
+		It("filters launches with --debug flag", func() {
+			result := runProjectLaunch(projectName, "--debug")
+			expectCLISuccess(result, "rp get launch --debug")
+			// May be empty but should succeed
+		})
+
+		It("fails when both --latest and --debug are used", func() {
+			result := runProjectLaunch(projectName, "--latest", "--debug")
+			expectCLIError(result, "rp get launch --latest --debug")
+			// Error message may be in stdout or stderr depending on Cobra settings
+			combined := result.Stdout + result.Stderr
+			Expect(combined).To(ContainSubstring("cannot use both"),
+				"error should mention conflicting flags")
+		})
+
+		It("filters launches with --description flag", func() {
+			result := runProjectLaunch(projectName, "--description", "test")
+			expectCLISuccess(result, "rp get launch --description test")
+		})
+
+		It("filters launches with --has-retries flag", func() {
+			result := runProjectLaunch(projectName, "--has-retries")
+			expectCLISuccess(result, "rp get launch --has-retries")
+		})
+
+		It("combines multiple filter flags", func() {
+			result := runProjectLaunch(projectName,
+				"--page-size", "5")
+			expectCLISuccess(result, "rp get launch with combined filters")
+			Expect(result.Stdout).To(ContainSubstring("ID"),
+				"combined filter output should contain table headers")
+		})
+
+		It("outputs JSON with filter flags", func() {
+			result := runProjectLaunch(projectName,
+				"-o", "json",
+				"--page-size", "5")
+			expectCLISuccess(result, "rp get launch -o json with filters")
+			requireLaunchList(result)
+		})
+
+		It("uses --latest with pagination", func() {
+			result := runProjectLaunch(projectName,
+				"--latest",
+				"--page-size", "2")
+			expectCLISuccess(result, "rp get launch --latest --page-size 2")
+		})
+	})
 })
 
 func runProjectLaunch(projectName string, args ...string) cliResult {

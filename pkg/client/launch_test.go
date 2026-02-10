@@ -185,3 +185,350 @@ func TestLaunchScope_AuthorizationHeader(t *testing.T) {
 	_, err := c.Project("test").Launches().List(context.Background())
 	require.NoError(t, err)
 }
+
+func TestLaunchScope_GetLatest_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/launch/latest")
+		assertMethod(t, r, http.MethodGet)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"content": [
+				{"id": 1, "uuid": "latest-uuid", "name": "Latest Launch", "status": "PASSED", "startTime": 1700000000000, "number": 5}
+			],
+			"page": {"number": 1, "size": 10, "totalElements": 1, "totalPages": 1}
+		}`))
+	}))
+
+	result, err := c.Project("my_project").Launches().GetLatest(context.Background())
+	require.NoError(t, err)
+	require.Len(t, result.Content, 1)
+
+	assert.Equal(t, "Latest Launch", result.Content[0].Name)
+}
+
+func TestLaunchScope_GetLatest_WithOptions(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		query := r.URL.Query()
+
+		assert.Equal(t, "My Launch", query.Get("filter.eq.name"))
+		assert.Equal(t, "10", query.Get("page.size"))
+		assertPath(t, r, "/api/v1/my_project/launch/latest")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"content": [],
+			"page": {"number": 1, "size": 10, "totalElements": 0, "totalPages": 0}
+		}`))
+	}))
+
+	_, err := c.Project("my_project").Launches().GetLatest(context.Background(),
+		client.WithName("My Launch"),
+		client.WithPageSize(10),
+	)
+	require.NoError(t, err)
+}
+
+func TestLaunchScope_GetDebug_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/launch/mode")
+		assertMethod(t, r, http.MethodGet)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"content": [
+				{"id": 2, "uuid": "debug-uuid", "name": "Debug Launch", "status": "IN_PROGRESS", "startTime": 1700000000000, "number": 3, "mode": "DEBUG"}
+			],
+			"page": {"number": 1, "size": 10, "totalElements": 1, "totalPages": 1}
+		}`))
+	}))
+
+	result, err := c.Project("my_project").Launches().GetDebug(context.Background())
+	require.NoError(t, err)
+	require.Len(t, result.Content, 1)
+
+	assert.Equal(t, "Debug Launch", result.Content[0].Name)
+}
+
+func TestLaunchScope_GetDebug_WithOptions(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		query := r.URL.Query()
+
+		assert.Equal(t, "Debug Test", query.Get("filter.eq.name"))
+		assert.Equal(t, "5", query.Get("page.size"))
+		assertPath(t, r, "/api/v1/my_project/launch/mode")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"content": [],
+			"page": {"number": 1, "size": 5, "totalElements": 0, "totalPages": 0}
+		}`))
+	}))
+
+	_, err := c.Project("my_project").Launches().GetDebug(context.Background(),
+		client.WithName("Debug Test"),
+		client.WithPageSize(5),
+	)
+	require.NoError(t, err)
+}
+
+
+func TestLaunchScope_WithUserFilters(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		option   client.ListLaunchesOption
+		expected map[string]string
+	}{
+		{
+			name:   "WithUser",
+			option: client.WithUser("testuser"),
+			expected: map[string]string{
+				"filter.eq.user": "testuser",
+			},
+		},
+		{
+			name:   "WithUserID",
+			option: client.WithUserID(42),
+			expected: map[string]string{
+				"filter.eq.userId": "42",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				query := r.URL.Query()
+
+				for key, expectedValue := range tt.expected {
+					assert.Equal(t, expectedValue, query.Get(key), "query parameter mismatch for "+key)
+				}
+
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+
+				_, _ = w.Write([]byte(`{
+					"content": [],
+					"page": {"number": 1, "size": 10, "totalElements": 0, "totalPages": 0}
+				}`))
+			}))
+
+			_, err := c.Project("my_project").Launches().List(context.Background(), tt.option)
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestLaunchScope_WithMode(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		query := r.URL.Query()
+
+		assert.Equal(t, "DEBUG", query.Get("filter.eq.mode"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"content": [],
+			"page": {"number": 1, "size": 10, "totalElements": 0, "totalPages": 0}
+		}`))
+	}))
+
+	_, err := c.Project("my_project").Launches().List(context.Background(),
+		client.WithMode("DEBUG"),
+	)
+	require.NoError(t, err)
+}
+
+func TestLaunchScope_WithAttributeFilters(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		option   client.ListLaunchesOption
+		expected map[string]string
+	}{
+		{
+			name:   "WithAttribute",
+			option: client.WithAttribute("env", "production"),
+			expected: map[string]string{
+				"filter.eq.compositeAttribute": "env:production",
+			},
+		},
+		{
+			name:   "WithAttributeKey",
+			option: client.WithAttributeKey("browser"),
+			expected: map[string]string{
+				"filter.eq.attributeKey": "browser",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				query := r.URL.Query()
+
+				for key, expectedValue := range tt.expected {
+					assert.Equal(t, expectedValue, query.Get(key), "query parameter mismatch for "+key)
+				}
+
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+
+				_, _ = w.Write([]byte(`{
+					"content": [],
+					"page": {"number": 1, "size": 10, "totalElements": 0, "totalPages": 0}
+				}`))
+			}))
+
+			_, err := c.Project("my_project").Launches().List(context.Background(), tt.option)
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestLaunchScope_WithOtherFilters(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		option   client.ListLaunchesOption
+		expected map[string]string
+	}{
+		{
+			name:   "WithDescription",
+			option: client.WithDescription("Test description"),
+			expected: map[string]string{
+				"filter.eq.description": "Test description",
+			},
+		},
+		{
+			name:   "WithNumber",
+			option: client.WithNumber(5),
+			expected: map[string]string{
+				"filter.eq.number": "5",
+			},
+		},
+		{
+			name:   "WithHasRetries",
+			option: client.WithHasRetries(true),
+			expected: map[string]string{
+				"filter.eq.hasRetries": "true",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				query := r.URL.Query()
+
+				for key, expectedValue := range tt.expected {
+					assert.Equal(t, expectedValue, query.Get(key), "query parameter mismatch for "+key)
+				}
+
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+
+				_, _ = w.Write([]byte(`{
+					"content": [],
+					"page": {"number": 1, "size": 10, "totalElements": 0, "totalPages": 0}
+				}`))
+			}))
+
+			_, err := c.Project("my_project").Launches().List(context.Background(), tt.option)
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestLaunchScope_GetNames_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/launch/names")
+		assertMethod(t, r, http.MethodGet)
+
+		query := r.URL.Query()
+		assert.Equal(t, "smoke", query.Get("filter.cnt.name"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`["Smoke Tests", "Smoke Suite", "Smoke Regression"]`))
+	}))
+
+	names, err := c.Project("my_project").Launches().GetNames(context.Background(), "smoke")
+	require.NoError(t, err)
+	require.Len(t, names, 3)
+
+	assert.Equal(t, "Smoke Tests", names[0])
+	assert.Equal(t, "Smoke Suite", names[1])
+	assert.Equal(t, "Smoke Regression", names[2])
+}
+
+func TestLaunchScope_GetNames_Empty(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/launch/names")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`[]`))
+	}))
+
+	names, err := c.Project("my_project").Launches().GetNames(context.Background(), "nonexistent")
+	require.NoError(t, err)
+	require.Len(t, names, 0)
+}
+
+func TestLaunchScope_GetNames_NoFilter(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		query := r.URL.Query()
+		assert.Equal(t, "", query.Get("filter.cnt.name"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`["Launch 1", "Launch 2"]`))
+	}))
+
+	names, err := c.Project("my_project").Launches().GetNames(context.Background(), "")
+	require.NoError(t, err)
+	require.Len(t, names, 2)
+}

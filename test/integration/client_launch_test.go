@@ -198,4 +198,160 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 				"error for non-existent launch UUID should be a not-found error, got: %v", err)
 		})
 	})
+
+	Context("GetLatest", func() {
+		It("returns latest launches", func(ctx SpecContext) {
+			result, err := c.Project(projectName).Launches().GetLatest(ctx)
+			Expect(err).NotTo(HaveOccurred(),
+				"getting latest launches should not fail")
+			Expect(result).NotTo(BeNil(),
+				"latest launches result should not be nil")
+			Expect(result.Content).NotTo(BeEmpty(),
+				"latest launches should contain launches")
+		})
+
+		It("supports filtering options", func(ctx SpecContext) {
+			// Get a known launch name first
+			all, err := c.Project(projectName).Launches().List(ctx,
+				client.WithPageSize(1),
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(all.Content).NotTo(BeEmpty())
+
+			knownName := all.Content[0].Name
+
+			// Filter latest by name
+			result, err := c.Project(projectName).Launches().GetLatest(ctx,
+				client.WithName(knownName),
+			)
+			Expect(err).NotTo(HaveOccurred(),
+				"getting latest launches with name filter should not fail")
+			Expect(result).NotTo(BeNil())
+
+			for _, launch := range result.Content {
+				Expect(launch.Name).To(Equal(knownName),
+					"filtered latest launch should have name %q", knownName)
+			}
+		})
+
+		It("supports pagination", func(ctx SpecContext) {
+			result, err := c.Project(projectName).Launches().GetLatest(ctx,
+				client.WithPageSize(1),
+			)
+			Expect(err).NotTo(HaveOccurred(),
+				"getting latest launches with page size should not fail")
+			Expect(result).NotTo(BeNil())
+			Expect(result.Content).To(HaveLen(1),
+				"latest launches with page size 1 should return exactly 1 launch")
+		})
+	})
+
+	Context("GetDebug", func() {
+		It("returns debug launches", func(ctx SpecContext) {
+			result, err := c.Project(projectName).Launches().GetDebug(ctx)
+			Expect(err).NotTo(HaveOccurred(),
+				"getting debug launches should not fail")
+			Expect(result).NotTo(BeNil(),
+				"debug launches result should not be nil")
+			// Note: may be empty if no debug launches exist
+		})
+
+		It("supports filtering options", func(ctx SpecContext) {
+			result, err := c.Project(projectName).Launches().GetDebug(ctx,
+				client.WithPageSize(5),
+			)
+			Expect(err).NotTo(HaveOccurred(),
+				"getting debug launches with page size should not fail")
+			Expect(result).NotTo(BeNil())
+		})
+	})
+
+	Context("GetNames", func() {
+		It("returns launch names", func(ctx SpecContext) {
+			names, err := c.Project(projectName).Launches().GetNames(ctx, "")
+			Expect(err).NotTo(HaveOccurred(),
+				"getting launch names should not fail")
+			Expect(names).NotTo(BeNil(),
+				"launch names result should not be nil")
+			Expect(names).NotTo(BeEmpty(),
+				"launch names should contain names from seeded launches")
+		})
+
+		It("filters names by substring", func(ctx SpecContext) {
+			// Get all names first to find a common substring
+			allNames, err := c.Project(projectName).Launches().GetNames(ctx, "")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(allNames).NotTo(BeEmpty())
+
+			// Use first few characters of first name as filter
+			if len(allNames) > 0 && len(allNames[0]) > 3 {
+				filter := allNames[0][:3]
+
+				filteredNames, err := c.Project(projectName).Launches().GetNames(ctx, filter)
+				Expect(err).NotTo(HaveOccurred(),
+					"getting launch names with filter %q should not fail", filter)
+				Expect(filteredNames).NotTo(BeNil())
+
+				// All returned names should contain the filter
+				for _, name := range filteredNames {
+					Expect(name).To(ContainSubstring(filter),
+						"filtered name %q should contain substring %q", name, filter)
+				}
+			}
+		})
+
+		It("returns empty list for non-matching filter", func(ctx SpecContext) {
+			names, err := c.Project(projectName).Launches().GetNames(ctx, "nonexistent_xyz_123")
+			Expect(err).NotTo(HaveOccurred(),
+				"getting launch names with non-matching filter should not fail")
+			Expect(names).NotTo(BeNil())
+		})
+	})
+
+	Context("Filter Options", func() {
+		It("filters by user", func(ctx SpecContext) {
+			// Get a known user first
+			all, err := c.Project(projectName).Launches().List(ctx,
+				client.WithPageSize(1),
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(all.Content).NotTo(BeEmpty())
+			Expect(all.Content[0].Owner).NotTo(BeNil(), "launch should have an owner")
+
+			knownUser := *all.Content[0].Owner
+
+			result, err := c.Project(projectName).Launches().List(ctx,
+				client.WithUser(knownUser),
+			)
+			Expect(err).NotTo(HaveOccurred(),
+				"filtering launches by user %q should not fail", knownUser)
+
+			for _, launch := range result.Content {
+				if launch.Owner != nil {
+					Expect(*launch.Owner).To(Equal(knownUser),
+						"filtered launch should have owner %q", knownUser)
+				}
+			}
+		})
+
+
+		It("filters by description", func(ctx SpecContext) {
+			// Note: this test may not find matches if seeded launches don't have descriptions
+			result, err := c.Project(projectName).Launches().List(ctx,
+				client.WithDescription("test"),
+			)
+			Expect(err).NotTo(HaveOccurred(),
+				"filtering launches by description should not fail")
+			Expect(result).NotTo(BeNil())
+		})
+
+		It("filters by has retries", func(ctx SpecContext) {
+			result, err := c.Project(projectName).Launches().List(ctx,
+				client.WithHasRetries(false),
+			)
+			Expect(err).NotTo(HaveOccurred(),
+				"filtering launches by hasRetries should not fail")
+			Expect(result).NotTo(BeNil())
+		})
+	})
 })

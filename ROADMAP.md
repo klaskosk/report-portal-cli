@@ -34,7 +34,7 @@ If you want the fastest path to a customer-ready MVP while still building toward
 - [x] **PR: reduce wrapper boilerplate + baseline CLI consistency**
   - Add shared helpers for logging + `JSONDefault` checking, then refactor `LaunchScope` to use them.
   - Normalize common list/pagination/sorting behavior in both client options and CLI flags.
-- [ ] **PR: expand launch read surface**
+- [x] **PR: expand launch read surface**
   - Client: list/get/search launch endpoints + report/export retrieval where relevant.
   - CLI: strengthen `rp get launch` for list/get/filter/report workflows and stable machine-readable output.
 - [ ] **PR: expand test-item read surface**

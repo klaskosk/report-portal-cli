@@ -20,13 +20,18 @@ Examples:
   rp get launch                     List the 10 most recent launches
   rp get launch 42                  Get launch by numeric ID
   rp get launch abc-def-123         Get launch by UUID
-  rp get launch -p other_project    List launches in a different project`,
+  rp get launch -p other_project    List launches in a different project
+  rp get launch --user john         List launches by user john
+  rp get launch --mode DEBUG        List debug-mode launches
+  rp get launch --latest            List latest launches
+  rp get launch --debug             List debug launches (shorthand)`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: runGetLaunch,
 	}
 
 	cmd.Flags().StringP("project", "p", "", "project name (overrides profile default)")
 	registerListFlags(cmd)
+	registerLaunchFilterFlags(cmd)
 
 	return cmd
 }
@@ -113,11 +118,35 @@ func listLaunches(
 		return fmt.Errorf("invalid list flags: %w", err)
 	}
 
-	result, err := scope.List(ctx,
+	filterFlags, err := resolveLaunchFilterFlags(cmd)
+	if err != nil {
+		printer.PrintError(err)
+
+		return fmt.Errorf("invalid filter flags: %w", err)
+	}
+
+	// Build options list
+	options := []client.ListLaunchesOption{
 		client.WithPageSize(flags.pageSize),
 		client.WithPageNumber(flags.page),
 		client.WithSort(flags.sort...),
-	)
+	}
+
+	// Add filter options
+	options = append(options, applyLaunchFilterOptions(filterFlags)...)
+
+	// Call the appropriate endpoint based on flags
+	var result *types.IterableLaunchResource
+
+	switch {
+	case filterFlags.latest:
+		result, err = scope.GetLatest(ctx, options...)
+	case filterFlags.debug:
+		result, err = scope.GetDebug(ctx, options...)
+	default:
+		result, err = scope.List(ctx, options...)
+	}
+
 	if err != nil {
 		printer.PrintError(err)
 
@@ -156,4 +185,92 @@ func isNumericID(s string) bool {
 	_, err := strconv.ParseInt(s, 10, 64)
 
 	return err == nil
+}
+
+// launchFilterFlags holds the resolved filter flags for launch queries.
+type launchFilterFlags struct {
+	user        string
+	mode        string
+	attributes  []string
+	description string
+	hasRetries  bool
+	latest      bool
+	debug       bool
+}
+
+// registerLaunchFilterFlags adds launch-specific filter flags to cmd.
+func registerLaunchFilterFlags(cmd *cobra.Command) {
+	cmd.Flags().String("user", "", "filter by username")
+	cmd.Flags().String("mode", "", "filter by mode (DEFAULT, DEBUG)")
+	cmd.Flags().StringArray("attribute", []string{}, "filter by attribute key:value (repeatable)")
+	cmd.Flags().String("description", "", "filter by description")
+	cmd.Flags().Bool("has-retries", false, "filter launches with retries")
+	cmd.Flags().Bool("latest", false, "show latest launches (uses /launch/latest endpoint)")
+	cmd.Flags().Bool("debug", false, "show debug-mode launches (uses /launch/mode endpoint)")
+}
+
+// resolveLaunchFilterFlags reads the launch filter flags from cmd and returns them.
+func resolveLaunchFilterFlags(cmd *cobra.Command) (launchFilterFlags, error) {
+	user, _ := cmd.Flags().GetString("user")
+	mode, _ := cmd.Flags().GetString("mode")
+	attributes, _ := cmd.Flags().GetStringArray("attribute")
+	description, _ := cmd.Flags().GetString("description")
+	hasRetries, _ := cmd.Flags().GetBool("has-retries")
+	latest, _ := cmd.Flags().GetBool("latest")
+	debug, _ := cmd.Flags().GetBool("debug")
+
+	if latest && debug {
+		return launchFilterFlags{}, fmt.Errorf("cannot use both --latest and --debug flags")
+	}
+
+	return launchFilterFlags{
+		user:        user,
+		mode:        mode,
+		attributes:  attributes,
+		description: description,
+		hasRetries:  hasRetries,
+		latest:      latest,
+		debug:       debug,
+	}, nil
+}
+
+// applyLaunchFilterOptions converts launchFilterFlags to client options.
+func applyLaunchFilterOptions(filters launchFilterFlags) []client.ListLaunchesOption {
+	var options []client.ListLaunchesOption
+
+	if filters.user != "" {
+		options = append(options, client.WithUser(filters.user))
+	}
+
+	if filters.mode != "" {
+		options = append(options, client.WithMode(filters.mode))
+	}
+
+	for _, attr := range filters.attributes {
+		// Parse "key:value" format
+		if key, value, found := parseAttribute(attr); found {
+			options = append(options, client.WithAttribute(key, value))
+		}
+	}
+
+	if filters.description != "" {
+		options = append(options, client.WithDescription(filters.description))
+	}
+
+	if filters.hasRetries {
+		options = append(options, client.WithHasRetries(true))
+	}
+
+	return options
+}
+
+// parseAttribute parses an attribute string in "key:value" format.
+func parseAttribute(attr string) (key, value string, ok bool) {
+	for i := 0; i < len(attr); i++ {
+		if attr[i] == ':' {
+			return attr[:i], attr[i+1:], true
+		}
+	}
+
+	return "", "", false
 }
