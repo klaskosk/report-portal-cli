@@ -40,6 +40,9 @@ tidy: ## Run go mod tidy for all modules
 lint: ## Run golangci-lint and auto-fix issues
 	golangci-lint-v2 run --fix
 
+.PHONY: verify
+verify: lint vet test test-integration ## Run full verification: lint, vet, unit tests, and integration tests
+
 .PHONY: clean
 clean: ## Remove the built binary
 	rm -f $(BUILD_DIR)/$(BINARY)

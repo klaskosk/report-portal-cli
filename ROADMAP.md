@@ -31,22 +31,22 @@ This document is a high-level, shippable roadmap broken into small, independentl
 
 If you want the fastest path to a customer-ready MVP while still building toward broad API coverage:
 
-- **PR: reduce wrapper boilerplate + baseline CLI consistency**
+- [x] **PR: reduce wrapper boilerplate + baseline CLI consistency**
   - Add shared helpers for logging + `JSONDefault` checking, then refactor `LaunchScope` to use them.
   - Normalize common list/pagination/sorting behavior in both client options and CLI flags.
-- **PR: expand launch read surface**
+- [ ] **PR: expand launch read surface**
   - Client: list/get/search launch endpoints + report/export retrieval where relevant.
   - CLI: strengthen `rp get launch` for list/get/filter/report workflows and stable machine-readable output.
-- **PR: expand test-item read surface**
+- [ ] **PR: expand test-item read surface**
   - Client: get/list/search test item endpoints (including hierarchy/navigation support where available).
   - CLI: `rp get item` for list/get workflows aligned with launch navigation patterns.
-- **PR: add log + attachment read flows**
+- [ ] **PR: add log + attachment read flows**
   - Client: list/get logs, resolve/download attachments/files where API supports it.
   - CLI: `rp get log` and attachment download command shape (`rp download` / `rp file get`).
-- **PR: lock naming + stabilize end-to-end read flow**
+- [ ] **PR: lock naming + stabilize end-to-end read flow**
   - Decide and document canonical resource names (`item` as canonical; optional aliases only for compatibility).
   - Add one full integration workflow: launch get/list -> item get/list -> log get/list -> attachment download.
-- **PR: add identity + discovery follow-up**
+- [ ] **PR: add identity + discovery follow-up**
   - Client: `UsersScope.GetMyself` + `ProjectsScope.List/Get`.
   - CLI: `rp whoami` + `rp get project`.
 

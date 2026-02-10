@@ -10,8 +10,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const defaultPageSize = 10
-
 func newGetLaunchCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "launch [id-or-uuid]",
@@ -28,6 +26,7 @@ Examples:
 	}
 
 	cmd.Flags().StringP("project", "p", "", "project name (overrides profile default)")
+	registerListFlags(cmd)
 
 	return cmd
 }
@@ -109,11 +108,15 @@ func listLaunches(
 	ctx := cmd.Context()
 	scope := clientInstance.Project(project).Launches()
 
-	pageSize := int32(defaultPageSize)
+	flags, err := resolveListFlags(cmd)
+	if err != nil {
+		return fmt.Errorf("invalid list flags: %w", err)
+	}
 
 	result, err := scope.List(ctx,
-		client.WithPageSize(pageSize),
-		client.WithSort("startTime,desc"),
+		client.WithPageSize(flags.pageSize),
+		client.WithPageNumber(flags.page),
+		client.WithSort(flags.sort...),
 	)
 	if err != nil {
 		printer.PrintError(err)

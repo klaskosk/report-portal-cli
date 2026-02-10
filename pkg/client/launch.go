@@ -19,8 +19,7 @@ func (l *LaunchScope) GetByUUID(
 	ctx context.Context,
 	uuid string,
 ) (*types.LaunchResource, error) {
-	logger := l.project.logger().
-		With(slog.String("operation", "GetLaunchByUUID"), slog.String("uuid", uuid))
+	logger := l.project.operationLogger("GetLaunchByUUID", slog.String("uuid", uuid))
 	logger.InfoContext(ctx, "API request")
 
 	response, err := l.project.client.raw.GetLaunchByUuidUsingGETWithResponse(
@@ -34,11 +33,7 @@ func (l *LaunchScope) GetByUUID(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	if response.JSONDefault != nil {
-		return nil, newAPIError("get launch by uuid", response.StatusCode(), response.JSONDefault)
-	}
-
-	return response.JSON200, nil
+	return handleResponse(response, "get launch by uuid", response.JSONDefault, response.JSON200)
 }
 
 // GetByID returns a single launch by its numeric ID.
@@ -46,8 +41,7 @@ func (l *LaunchScope) GetByID(
 	ctx context.Context,
 	id string,
 ) (*types.LaunchResource, error) {
-	logger := l.project.logger().
-		With(slog.String("operation", "GetLaunchByID"), slog.String("id", id))
+	logger := l.project.operationLogger("GetLaunchByID", slog.String("id", id))
 	logger.InfoContext(ctx, "API request")
 
 	response, err := l.project.client.raw.GetLaunchUsingGETWithResponse(
@@ -61,11 +55,7 @@ func (l *LaunchScope) GetByID(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	if response.JSONDefault != nil {
-		return nil, newAPIError("get launch by id", response.StatusCode(), response.JSONDefault)
-	}
-
-	return response.JSON200, nil
+	return handleResponse(response, "get launch by id", response.JSONDefault, response.JSON200)
 }
 
 // ListLaunchesOption configures the filter and pagination parameters for listing launches.
@@ -76,7 +66,7 @@ func (l *LaunchScope) List(
 	ctx context.Context,
 	options ...ListLaunchesOption,
 ) (*types.IterableLaunchResource, error) {
-	logger := l.project.logger().With(slog.String("operation", "ListLaunches"))
+	logger := l.project.operationLogger("ListLaunches")
 
 	params := &api.GetProjectLaunchesUsingGETParams{}
 	for _, option := range options {
@@ -96,11 +86,7 @@ func (l *LaunchScope) List(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	if response.JSONDefault != nil {
-		return nil, newAPIError("list launches", response.StatusCode(), response.JSONDefault)
-	}
-
-	return response.JSON200, nil
+	return handleResponse(response, "list launches", response.JSONDefault, response.JSON200)
 }
 
 // WithName filters launches by name.
