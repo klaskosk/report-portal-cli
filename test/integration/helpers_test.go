@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -86,40 +87,98 @@ func obtainAPIToken(ctx context.Context, rpBaseURL, username, password string) (
 	return tokenResponse.AccessToken, nil
 }
 
-// seedDemoData generates sample launches, test items, and logs in the given project
-// using the Report Portal demo data endpoint.
-func seedDemoData(ctx context.Context, rpBaseURL, token, projectName string) error {
-	demoURL := fmt.Sprintf("%s/api/v1/demo/%s/generate", rpBaseURL, projectName)
-
-	payload := `{"createDashboard": false, "launchesQuantity": 3}`
-
-	req, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodPost,
-		demoURL,
-		strings.NewReader(payload),
-	)
-	if err != nil {
-		return fmt.Errorf("creating demo data request: %w", err)
+// seedTestLaunches creates the given number of launches in the project using the
+// StartLaunch and FinishLaunch API endpoints. This provides predictable, version-controlled
+// test data instead of relying on Report Portal's demo data endpoint.
+func seedTestLaunches(ctx context.Context, rpBaseURL, token, projectName string, count int) error {
+	apiBase := rpBaseURL
+	if !strings.HasSuffix(apiBase, "/api") {
+		apiBase = strings.TrimSuffix(apiBase, "/") + "/api"
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
+	now := time.Now()
+	for i := 0; i < count; i++ {
+		startTime := now.Add(-time.Duration(count-i) * time.Minute)
+		endTime := startTime.Add(30 * time.Second)
+		launchName := fmt.Sprintf("integration-test-launch-%d", i+1)
 
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("requesting demo data: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(resp.Body)
-
-		return fmt.Errorf(
-			"demo data request failed with status %d: %s",
-			resp.StatusCode,
-			string(respBody),
+		startPayload := fmt.Sprintf(
+			`{"name":%q,"startTime":%d}`,
+			launchName,
+			startTime.UnixMilli(),
 		)
+		startURL := fmt.Sprintf("%s/v1/%s/launch", apiBase, projectName)
+
+		req, err := http.NewRequestWithContext(
+			ctx,
+			http.MethodPost,
+			startURL,
+			strings.NewReader(startPayload),
+		)
+		if err != nil {
+			return fmt.Errorf("creating start launch request: %w", err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		resp, err := httpClient.Do(req)
+		if err != nil {
+			return fmt.Errorf("starting launch %q: %w", launchName, err)
+		}
+
+		respBody, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
+			return fmt.Errorf(
+				"start launch %q failed with status %d: %s",
+				launchName, resp.StatusCode, string(respBody),
+			)
+		}
+
+		var startResult struct {
+			ID string `json:"id"`
+		}
+		if err := json.Unmarshal(respBody, &startResult); err != nil {
+			return fmt.Errorf("parsing start launch response: %w", err)
+		}
+		if startResult.ID == "" {
+			return fmt.Errorf("start launch %q returned empty id", launchName)
+		}
+
+		finishPayload := fmt.Sprintf(
+			`{"endTime":%d,"status":"PASSED"}`,
+			endTime.UnixMilli(),
+		)
+		finishURL := fmt.Sprintf("%s/v1/%s/launch/%s/finish", apiBase, projectName, startResult.ID)
+
+		finishReq, err := http.NewRequestWithContext(
+			ctx,
+			http.MethodPut,
+			finishURL,
+			strings.NewReader(finishPayload),
+		)
+		if err != nil {
+			return fmt.Errorf("creating finish launch request: %w", err)
+		}
+		finishReq.Header.Set("Content-Type", "application/json")
+		finishReq.Header.Set("Authorization", "Bearer "+token)
+
+		finishResp, err := httpClient.Do(finishReq)
+		if err != nil {
+			return fmt.Errorf("finishing launch %q: %w", launchName, err)
+		}
+
+		if finishResp.StatusCode != http.StatusOK {
+			finishBody, _ := io.ReadAll(finishResp.Body)
+			finishResp.Body.Close()
+
+			return fmt.Errorf(
+				"finish launch %q failed with status %d: %s",
+				launchName, finishResp.StatusCode, string(finishBody),
+			)
+		}
+		finishResp.Body.Close()
 	}
 
 	return nil
@@ -343,4 +402,44 @@ func sanitizedEnv() []string {
 	env = append(env, "XDG_CONFIG_HOME=/tmp/rp-integration-test-no-config")
 
 	return env
+}
+
+func writeTempConfig(content string) (string, error) {
+	dir, err := os.MkdirTemp("", "rp-config-*")
+	if err != nil {
+		return "", fmt.Errorf("creating temp config dir: %w", err)
+	}
+
+	path := filepath.Join(dir, "config.yaml")
+	trimmed := strings.TrimSpace(content) + "\n"
+	if err := os.WriteFile(path, []byte(trimmed), 0o600); err != nil {
+		os.RemoveAll(dir)
+
+		return "", fmt.Errorf("writing config file: %w", err)
+	}
+
+	return path, nil
+}
+
+func expectJSONError(result cliResult, expectedSubstring string) {
+	GinkgoHelper()
+
+	Expect(result.Stdout).NotTo(BeEmpty(), "stdout should contain a JSON error payload")
+
+	var payload map[string]string
+	err := json.Unmarshal([]byte(result.Stdout), &payload)
+	Expect(err).NotTo(HaveOccurred(), "stdout should contain valid JSON")
+	Expect(payload).To(HaveKey("error"), "JSON error payload should include an error field")
+	if expectedSubstring != "" {
+		Expect(
+			strings.ToLower(payload["error"]),
+		).To(ContainSubstring(strings.ToLower(expectedSubstring)))
+	}
+}
+
+func expectLogLevel(result cliResult, level string, description string) {
+	GinkgoHelper()
+
+	Expect(result.Stderr).To(ContainSubstring("level="+level),
+		"%s should emit %s logs; stderr: %s", description, level, result.Stderr)
 }

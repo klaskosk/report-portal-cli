@@ -25,7 +25,7 @@ test: ## Run unit tests
 
 .PHONY: test-integration
 test-integration: ## Run integration tests (requires Docker)
-	cd test/integration && go test -tags=integration -v -count=1 -timeout 10m ./...
+	cd test/integration && go test -tags=integration -cover -coverpkg=github.com/klaskosk/report-portal-cli/...,github.com/klaskosk/report-portal-cli/pkg/... -v -count=1 -timeout 10m ./...
 
 .PHONY: test-all
 test-all: test test-integration ## Run all tests

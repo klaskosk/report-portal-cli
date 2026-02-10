@@ -21,7 +21,6 @@ import (
 const (
 	testAdminUser     = "superadmin"
 	testAdminPassword = "test-password"
-	testProject       = "superadmin_personal"
 )
 
 var (
@@ -122,15 +121,6 @@ var _ = BeforeSuite(func(ctx SpecContext) {
 
 		os.RemoveAll(filepath.Dir(rpBinaryPath))
 	})
-
-	By("seeding demo data")
-
-	// The API route may take a moment to register with Traefik after the service starts.
-	Eventually(func() error {
-		return seedDemoData(ctx, baseURL, bearerToken, testProject)
-	}).WithTimeout(60*time.Second).WithPolling(2*time.Second).Should(Succeed(),
-		"failed to seed demo data into project %q", testProject)
-	GinkgoWriter.Println("Demo data seeded")
 })
 
 // dumpServiceLogs writes the container logs for the named services to GinkgoWriter
@@ -172,6 +162,12 @@ func buildCLIBinary() (string, error) {
 		os.RemoveAll(tmpDir)
 
 		return "", fmt.Errorf("creating coverage data dir: %w", err)
+	}
+
+	if err := os.Setenv("GOCOVERDIR", coverDir); err != nil {
+		os.RemoveAll(tmpDir)
+
+		return "", fmt.Errorf("setting GOCOVERDIR: %w", err)
 	}
 
 	binaryPath := filepath.Join(tmpDir, "rp")

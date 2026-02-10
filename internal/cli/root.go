@@ -28,6 +28,10 @@ func newRootCmd() *cobra.Command {
 			logger := newLogger(verbosity)
 			cmd.SetContext(context.WithValue(cmd.Context(), loggerKey{}, logger))
 
+			if verbosity >= 3 {
+				logger.Log(cmd.Context(), LevelTrace, "trace logging enabled")
+			}
+
 			return initConfig(cmd)
 		},
 	}
