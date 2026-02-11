@@ -14,6 +14,80 @@ type TestItemScope struct {
 	project *ProjectScope
 }
 
+// StartRoot creates a root test item under an existing launch.
+func (i *TestItemScope) StartRoot(
+	ctx context.Context,
+	request types.StartTestItemRQ,
+) (*types.EntryCreatedAsyncRS, error) {
+	logger := i.project.operationLogger("StartRootTestItem", slog.String("name", request.Name))
+	logger.InfoContext(ctx, "API request")
+
+	response, err := i.project.client.raw.StartRootItemUsingPOST1WithResponse(
+		ctx,
+		i.project.projectName,
+		request,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("start root test item: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "start root test item", response.JSONDefault, response.JSON201)
+}
+
+// StartChild creates a child test item under the given parent item.
+func (i *TestItemScope) StartChild(
+	ctx context.Context,
+	parentItemID string,
+	request types.StartTestItemRQ,
+) (*types.EntryCreatedAsyncRS, error) {
+	logger := i.project.operationLogger(
+		"StartChildTestItem",
+		slog.String("parentItemId", parentItemID),
+		slog.String("name", request.Name),
+	)
+	logger.InfoContext(ctx, "API request")
+
+	response, err := i.project.client.raw.StartChildItemUsingPOST1WithResponse(
+		ctx,
+		i.project.projectName,
+		parentItemID,
+		request,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("start child test item: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "start child test item", response.JSONDefault, response.JSON201)
+}
+
+// Finish marks an existing test item as finished.
+func (i *TestItemScope) Finish(
+	ctx context.Context,
+	itemID string,
+	request types.FinishTestItemRQ,
+) (*types.OperationCompletionRS, error) {
+	logger := i.project.operationLogger("FinishTestItem", slog.String("itemId", itemID))
+	logger.InfoContext(ctx, "API request")
+
+	response, err := i.project.client.raw.FinishTestItemUsingPUT1WithResponse(
+		ctx,
+		i.project.projectName,
+		itemID,
+		request,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("finish test item: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "finish test item", response.JSONDefault, response.JSON200)
+}
+
 // GetByID returns a single test item by its numeric ID.
 func (i *TestItemScope) GetByID(
 	ctx context.Context,

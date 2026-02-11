@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/klaskosk/report-portal-cli/pkg/client"
+	"github.com/klaskosk/report-portal-cli/pkg/types"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -91,10 +92,13 @@ func obtainAPIToken(ctx context.Context, rpBaseURL, username, password string) (
 // StartLaunch and FinishLaunch API endpoints. This provides predictable, version-controlled
 // test data instead of relying on Report Portal's demo data endpoint.
 func seedTestLaunches(ctx context.Context, rpBaseURL, token, projectName string, count int) error {
-	apiBase := rpBaseURL
-	if !strings.HasSuffix(apiBase, "/api") {
-		apiBase = strings.TrimSuffix(apiBase, "/") + "/api"
+	testClient, err := client.New(rpBaseURL, token)
+	if err != nil {
+		return fmt.Errorf("creating client for launch seeding: %w", err)
 	}
+
+	launches := testClient.Project(projectName).Launches()
+	finishedStatus := types.FinishExecutionRQStatusPASSED
 
 	now := time.Now()
 	for i := 0; i < count; i++ {
@@ -102,371 +106,324 @@ func seedTestLaunches(ctx context.Context, rpBaseURL, token, projectName string,
 		endTime := startTime.Add(30 * time.Second)
 		launchName := fmt.Sprintf("integration-test-launch-%d", i+1)
 
-		startPayload := fmt.Sprintf(
-			`{"name":%q,"startTime":%d}`,
-			launchName,
-			startTime.UnixMilli(),
-		)
-		startURL := fmt.Sprintf("%s/v1/%s/launch", apiBase, projectName)
-
-		req, err := http.NewRequestWithContext(
-			ctx,
-			http.MethodPost,
-			startURL,
-			strings.NewReader(startPayload),
-		)
-		if err != nil {
-			return fmt.Errorf("creating start launch request: %w", err)
-		}
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+token)
-
-		resp, err := httpClient.Do(req)
+		startedLaunch, err := launches.Start(ctx, types.StartLaunchRQ{
+			Name:      launchName,
+			StartTime: types.EpochMillis(startTime),
+		})
 		if err != nil {
 			return fmt.Errorf("starting launch %q: %w", launchName, err)
 		}
-
-		respBody, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
-
-		if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
-			return fmt.Errorf(
-				"start launch %q failed with status %d: %s",
-				launchName, resp.StatusCode, string(respBody),
-			)
-		}
-
-		var startResult struct {
-			ID string `json:"id"`
-		}
-		if err := json.Unmarshal(respBody, &startResult); err != nil {
-			return fmt.Errorf("parsing start launch response: %w", err)
-		}
-		if startResult.ID == "" {
+		if startedLaunch == nil || startedLaunch.Id == nil || *startedLaunch.Id == "" {
 			return fmt.Errorf("start launch %q returned empty id", launchName)
 		}
 
-		finishPayload := fmt.Sprintf(
-			`{"endTime":%d,"status":"PASSED"}`,
-			endTime.UnixMilli(),
-		)
-		finishURL := fmt.Sprintf("%s/v1/%s/launch/%s/finish", apiBase, projectName, startResult.ID)
-
-		finishReq, err := http.NewRequestWithContext(
-			ctx,
-			http.MethodPut,
-			finishURL,
-			strings.NewReader(finishPayload),
-		)
-		if err != nil {
-			return fmt.Errorf("creating finish launch request: %w", err)
-		}
-		finishReq.Header.Set("Content-Type", "application/json")
-		finishReq.Header.Set("Authorization", "Bearer "+token)
-
-		finishResp, err := httpClient.Do(finishReq)
+		_, err = launches.Finish(ctx, *startedLaunch.Id, types.FinishExecutionRQ{
+			EndTime: types.EpochMillis(endTime),
+			Status:  &finishedStatus,
+		})
 		if err != nil {
 			return fmt.Errorf("finishing launch %q: %w", launchName, err)
 		}
-
-		if finishResp.StatusCode != http.StatusOK {
-			finishBody, _ := io.ReadAll(finishResp.Body)
-			finishResp.Body.Close()
-
-			return fmt.Errorf(
-				"finish launch %q failed with status %d: %s",
-				launchName, finishResp.StatusCode, string(finishBody),
-			)
-		}
-		finishResp.Body.Close()
 	}
 
 	return nil
 }
 
 type seededTestItems struct {
-	LaunchID   int64
-	LaunchUUID string
-	SuiteID    int64
-	SuiteUUID  string
-	SuiteName  string
-	TestID     int64
-	TestUUID   string
-	TestName   string
+	LaunchID  int64
+	SuiteID   int64
+	SuiteUUID string
 }
 
-// seedTestItems creates one launch with one SUITE and one TEST child item and
-// returns their resolved IDs/UUIDs for use in integration tests.
-func seedTestItems(ctx context.Context, rpBaseURL, token, projectName string) (seededTestItems, error) {
-	apiBase := rpBaseURL
-	if !strings.HasSuffix(apiBase, "/api") {
-		apiBase = strings.TrimSuffix(apiBase, "/") + "/api"
+const (
+	seedResolutionAttempts = 20
+	seedResolutionInterval = 250 * time.Millisecond
+)
+
+// waitForSeedResolution handles eventual consistency in Report Portal indexing
+// after async start/finish API calls.
+func waitForSeedResolution(
+	ctx context.Context,
+	attempts int,
+	interval time.Duration,
+	check func() bool,
+) bool {
+	for attempt := range attempts {
+		if check() {
+			return true
+		}
+
+		if attempt == attempts-1 {
+			break
+		}
+
+		select {
+		case <-ctx.Done():
+			return false
+		case <-time.After(interval):
+		}
 	}
+
+	return false
+}
+
+// seedTestItems creates one launch with one SUITE and one TEST child item and returns their resolved IDs/UUIDs for use
+// in integration tests.
+func seedTestItems(
+	ctx context.Context,
+	rpBaseURL, token, projectName string,
+) (seededTestItems, error) {
+	testClient, err := client.New(rpBaseURL, token)
+	if err != nil {
+		return seededTestItems{}, fmt.Errorf("creating client for item seeding: %w", err)
+	}
+
+	project := testClient.Project(projectName)
+	launches := project.Launches()
+	items := project.Items()
 
 	now := time.Now()
 	launchName := fmt.Sprintf("integration-item-launch-%d", now.UnixNano())
 	suiteName := fmt.Sprintf("integration-suite-%d", now.UnixNano())
 	testName := fmt.Sprintf("integration-test-%d", now.UnixNano())
 
-	startLaunchPayload := fmt.Sprintf(`{"name":%q,"startTime":%d}`, launchName, now.UnixMilli())
-	startLaunchURL := fmt.Sprintf("%s/v1/%s/launch", apiBase, projectName)
-
-	startLaunchReq, err := http.NewRequestWithContext(
+	refs, err := startSeededItemHierarchy(
 		ctx,
-		http.MethodPost,
-		startLaunchURL,
-		strings.NewReader(startLaunchPayload),
-	)
-	if err != nil {
-		return seededTestItems{}, fmt.Errorf("creating start launch request: %w", err)
-	}
-	startLaunchReq.Header.Set("Content-Type", "application/json")
-	startLaunchReq.Header.Set("Authorization", "Bearer "+token)
-
-	startLaunchResp, err := httpClient.Do(startLaunchReq)
-	if err != nil {
-		return seededTestItems{}, fmt.Errorf("starting launch for item seeding: %w", err)
-	}
-	startLaunchBody, _ := io.ReadAll(startLaunchResp.Body)
-	startLaunchResp.Body.Close()
-
-	if startLaunchResp.StatusCode != http.StatusCreated && startLaunchResp.StatusCode != http.StatusOK {
-		return seededTestItems{}, fmt.Errorf(
-			"start launch for item seeding failed with status %d: %s",
-			startLaunchResp.StatusCode,
-			string(startLaunchBody),
-		)
-	}
-
-	var startLaunchResult struct {
-		ID string `json:"id"`
-	}
-	if err := json.Unmarshal(startLaunchBody, &startLaunchResult); err != nil {
-		return seededTestItems{}, fmt.Errorf("parsing start launch response: %w", err)
-	}
-	if startLaunchResult.ID == "" {
-		return seededTestItems{}, fmt.Errorf("start launch returned empty id")
-	}
-
-	var (
-		launchID   int64
-		launchUUID = startLaunchResult.ID
-	)
-	if launchUUID == "" {
-		return seededTestItems{}, fmt.Errorf("could not resolve seeded launch %q", launchName)
-	}
-
-	startItem := func(itemURL string, payload string) (string, error) {
-		req, reqErr := http.NewRequestWithContext(
-			ctx,
-			http.MethodPost,
-			itemURL,
-			strings.NewReader(payload),
-		)
-		if reqErr != nil {
-			return "", fmt.Errorf("creating start item request: %w", reqErr)
-		}
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+token)
-
-		resp, doErr := httpClient.Do(req)
-		if doErr != nil {
-			return "", fmt.Errorf("starting item: %w", doErr)
-		}
-		body, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
-
-		if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
-			return "", fmt.Errorf("start item failed with status %d: %s", resp.StatusCode, string(body))
-		}
-
-		var startResp struct {
-			ID string `json:"id"`
-		}
-		if decodeErr := json.Unmarshal(body, &startResp); decodeErr != nil {
-			return "", fmt.Errorf("parsing start item response: %w", decodeErr)
-		}
-		if startResp.ID == "" {
-			return "", fmt.Errorf("start item returned empty id")
-		}
-
-		return startResp.ID, nil
-	}
-
-	suitePayload := fmt.Sprintf(
-		`{"launchUuid":%q,"name":%q,"startTime":"%s","type":"SUITE","hasStats":true}`,
-		launchUUID,
+		launches,
+		items,
+		now,
+		launchName,
 		suiteName,
-		now.UTC().Format(time.RFC3339Nano),
-	)
-	suiteURL := fmt.Sprintf("%s/v1/%s/item", apiBase, projectName)
-	suiteRef, err := startItem(suiteURL, suitePayload)
-	if err != nil {
-		return seededTestItems{}, fmt.Errorf("starting suite item: %w", err)
-	}
-
-	testPayload := fmt.Sprintf(
-		`{"launchUuid":%q,"name":%q,"startTime":"%s","type":"TEST","hasStats":true}`,
-		launchUUID,
 		testName,
-		now.Add(1*time.Second).UTC().Format(time.RFC3339Nano),
 	)
-	testURL := fmt.Sprintf("%s/v1/%s/item/%s", apiBase, projectName, url.PathEscape(suiteRef))
-	testRef, err := startItem(testURL, testPayload)
 	if err != nil {
-		return seededTestItems{}, fmt.Errorf("starting child test item: %w", err)
+		return seededTestItems{}, err
 	}
 
-	finishItem := func(itemRef string, status string, endTime time.Time) error {
-		finishPayload := fmt.Sprintf(
-			`{"launchUuid":%q,"endTime":"%s","status":%q}`,
-			launchUUID,
-			endTime.UTC().Format(time.RFC3339Nano),
-			status,
-		)
-		finishURL := fmt.Sprintf("%s/v1/%s/item/%s", apiBase, projectName, url.PathEscape(itemRef))
+	if err := finishSeededItemHierarchy(ctx, launches, items, now, refs); err != nil {
+		return seededTestItems{}, err
+	}
 
-		req, reqErr := http.NewRequestWithContext(
-			ctx,
-			http.MethodPut,
-			finishURL,
-			strings.NewReader(finishPayload),
-		)
-		if reqErr != nil {
-			return fmt.Errorf("creating finish item request: %w", reqErr)
-		}
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+token)
+	resolved, err := resolveSeededItemIdentifiers(ctx, launches, items, refs)
+	if err != nil {
+		return seededTestItems{}, err
+	}
 
-		resp, doErr := httpClient.Do(req)
-		if doErr != nil {
-			return fmt.Errorf("finishing item %q: %w", itemRef, doErr)
-		}
-		body, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
+	return resolved, nil
+}
 
-		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf("finish item %q failed with status %d: %s", itemRef, resp.StatusCode, string(body))
+type seededItemRefs struct {
+	LaunchUUID string
+	SuiteRef   string
+	TestRef    string
+}
+
+// startSeededItemHierarchy creates a launch with one SUITE root and one TEST child. It returns async references that
+// are later finished and resolved to numeric IDs.
+func startSeededItemHierarchy(
+	ctx context.Context,
+	launches *client.LaunchScope,
+	items *client.TestItemScope,
+	now time.Time,
+	launchName, suiteName, testName string,
+) (seededItemRefs, error) {
+	startedLaunch, err := launches.Start(ctx, types.StartLaunchRQ{
+		Name:      launchName,
+		StartTime: types.EpochMillis(now),
+	})
+	if err != nil {
+		return seededItemRefs{}, fmt.Errorf("starting launch for item seeding: %w", err)
+	}
+	if startedLaunch == nil || startedLaunch.Id == nil || *startedLaunch.Id == "" {
+		return seededItemRefs{}, fmt.Errorf("start launch returned empty id")
+	}
+
+	launchUUID := *startedLaunch.Id
+	hasStats := true
+
+	suiteType := types.StartTestItemRQType("SUITE")
+	startedSuite, err := items.StartRoot(ctx, types.StartTestItemRQ{
+		LaunchUuid: launchUUID,
+		Name:       suiteName,
+		StartTime:  types.EpochMillis(now),
+		Type:       suiteType,
+		HasStats:   &hasStats,
+	})
+	if err != nil {
+		return seededItemRefs{}, fmt.Errorf("starting suite item: %w", err)
+	}
+	if startedSuite == nil || startedSuite.Id == nil || *startedSuite.Id == "" {
+		return seededItemRefs{}, fmt.Errorf("starting suite item returned empty id")
+	}
+
+	suiteRef := *startedSuite.Id
+	testType := types.StartTestItemRQType("TEST")
+	startedTest, err := items.StartChild(ctx, suiteRef, types.StartTestItemRQ{
+		LaunchUuid: launchUUID,
+		Name:       testName,
+		StartTime:  types.EpochMillis(now.Add(1 * time.Second)),
+		Type:       testType,
+		HasStats:   &hasStats,
+	})
+	if err != nil {
+		return seededItemRefs{}, fmt.Errorf("starting child test item: %w", err)
+	}
+	if startedTest == nil || startedTest.Id == nil || *startedTest.Id == "" {
+		return seededItemRefs{}, fmt.Errorf("starting child test item returned empty id")
+	}
+
+	return seededItemRefs{
+		LaunchUUID: launchUUID,
+		SuiteRef:   suiteRef,
+		TestRef:    *startedTest.Id,
+	}, nil
+}
+
+// finishSeededItemHierarchy closes the child item, parent suite, and launch in that order so Report Portal persists a
+// complete hierarchy for listing tests.
+func finishSeededItemHierarchy(
+	ctx context.Context,
+	launches *client.LaunchScope,
+	items *client.TestItemScope,
+	now time.Time,
+	refs seededItemRefs,
+) error {
+	finishedItemStatus := types.FinishTestItemRQStatusPASSED
+	finishItem := func(itemRef string, endTime time.Time) error {
+		_, finishErr := items.Finish(ctx, itemRef, types.FinishTestItemRQ{
+			LaunchUuid: refs.LaunchUUID,
+			EndTime:    types.EpochMillis(endTime),
+			Status:     &finishedItemStatus,
+		})
+		if finishErr != nil {
+			return fmt.Errorf("finishing item %q: %w", itemRef, finishErr)
 		}
 
 		return nil
 	}
 
-	if err := finishItem(testRef, "PASSED", now.Add(5*time.Second)); err != nil {
-		return seededTestItems{}, err
+	if err := finishItem(refs.TestRef, now.Add(5*time.Second)); err != nil {
+		return err
 	}
-	if err := finishItem(suiteRef, "PASSED", now.Add(6*time.Second)); err != nil {
-		return seededTestItems{}, err
+	if err := finishItem(refs.SuiteRef, now.Add(6*time.Second)); err != nil {
+		return err
 	}
 
-	finishLaunchPayload := fmt.Sprintf(`{"endTime":%d,"status":"PASSED"}`, now.Add(7*time.Second).UnixMilli())
-	finishLaunchURL := fmt.Sprintf("%s/v1/%s/launch/%s/finish", apiBase, projectName, startLaunchResult.ID)
-
-	finishLaunchReq, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodPut,
-		finishLaunchURL,
-		strings.NewReader(finishLaunchPayload),
-	)
+	finishedLaunchStatus := types.FinishExecutionRQStatusPASSED
+	_, err := launches.Finish(ctx, refs.LaunchUUID, types.FinishExecutionRQ{
+		EndTime: types.EpochMillis(now.Add(7 * time.Second)),
+		Status:  &finishedLaunchStatus,
+	})
 	if err != nil {
-		return seededTestItems{}, fmt.Errorf("creating finish launch request: %w", err)
-	}
-	finishLaunchReq.Header.Set("Content-Type", "application/json")
-	finishLaunchReq.Header.Set("Authorization", "Bearer "+token)
-
-	finishLaunchResp, err := httpClient.Do(finishLaunchReq)
-	if err != nil {
-		return seededTestItems{}, fmt.Errorf("finishing launch for item seeding: %w", err)
-	}
-	finishLaunchBody, _ := io.ReadAll(finishLaunchResp.Body)
-	finishLaunchResp.Body.Close()
-
-	if finishLaunchResp.StatusCode != http.StatusOK {
-		return seededTestItems{}, fmt.Errorf(
-			"finish launch for item seeding failed with status %d: %s",
-			finishLaunchResp.StatusCode,
-			string(finishLaunchBody),
-		)
+		return fmt.Errorf("finishing launch for item seeding: %w", err)
 	}
 
-	resolveItemByUUID := func(itemUUID string) (int64, string, int64, error) {
-		itemURL := fmt.Sprintf("%s/v1/%s/item/uuid/%s", apiBase, projectName, url.PathEscape(itemUUID))
-		for range 20 {
-			req, reqErr := http.NewRequestWithContext(ctx, http.MethodGet, itemURL, nil)
-			if reqErr != nil {
-				return 0, "", 0, fmt.Errorf("creating get item request: %w", reqErr)
-			}
-			req.Header.Set("Authorization", "Bearer "+token)
+	return nil
+}
 
-			resp, doErr := httpClient.Do(req)
-			if doErr != nil {
-				return 0, "", 0, fmt.Errorf("getting item by uuid %q: %w", itemUUID, doErr)
-			}
-			body, _ := io.ReadAll(resp.Body)
-			resp.Body.Close()
-
-			if resp.StatusCode == http.StatusOK {
-				var item struct {
-					ID   int64  `json:"id"`
-					UUID string `json:"uuid"`
-					LaunchID int64 `json:"launchId"`
-				}
-				if decodeErr := json.Unmarshal(body, &item); decodeErr != nil {
-					return 0, "", 0, fmt.Errorf("parsing get item response: %w", decodeErr)
-				}
-				if item.ID != 0 && item.UUID != "" {
-					return item.ID, item.UUID, item.LaunchID, nil
-				}
-			}
-
-			time.Sleep(250 * time.Millisecond)
-		}
-
-		return 0, "", 0, fmt.Errorf("could not resolve item by uuid %q", itemUUID)
-	}
-
-	suiteID, suiteUUID, _, err := resolveItemByUUID(suiteRef)
+// resolveSeededItemIdentifiers resolves async references into the stable IDs consumed by integration tests and waits
+// for child indexing before returning.
+func resolveSeededItemIdentifiers(
+	ctx context.Context,
+	launches *client.LaunchScope,
+	items *client.TestItemScope,
+	refs seededItemRefs,
+) (seededTestItems, error) {
+	suiteID, suiteUUID, err := resolveItemByUUID(ctx, items, refs.SuiteRef)
 	if err != nil {
 		return seededTestItems{}, fmt.Errorf("resolving suite item identifiers: %w", err)
 	}
-	testID, testUUID, _, err := resolveItemByUUID(testRef)
-	if err != nil {
+
+	// Ensure the child item is indexed before item-list tests execute.
+	if _, _, err := resolveItemByUUID(ctx, items, refs.TestRef); err != nil {
 		return seededTestItems{}, fmt.Errorf("resolving child test item identifiers: %w", err)
 	}
 
-	launchClient := newClient()
-	for range 20 {
-		launchList, listErr := launchClient.Project(projectName).Launches().List(
-			ctx,
-			client.WithName(launchName),
-			client.WithPageSize(1),
-			client.WithSort("startTime,desc"),
-		)
-		if listErr == nil && len(launchList.Content) > 0 && launchList.Content[0].Id != 0 {
-			launchID = launchList.Content[0].Id
-			if launchList.Content[0].Uuid != "" {
-				launchUUID = launchList.Content[0].Uuid
-			}
-
-			break
-		}
-
-		time.Sleep(250 * time.Millisecond)
-	}
-	if launchID == 0 {
-		return seededTestItems{}, fmt.Errorf("could not resolve launch ID for seeded test items")
+	launchID, err := resolveLaunchIDByUUID(ctx, launches, refs.LaunchUUID)
+	if err != nil {
+		return seededTestItems{}, err
 	}
 
 	return seededTestItems{
-		LaunchID:   launchID,
-		LaunchUUID: launchUUID,
-		SuiteID:    suiteID,
-		SuiteUUID:  suiteUUID,
-		SuiteName:  suiteName,
-		TestID:     testID,
-		TestUUID:   testUUID,
-		TestName:   testName,
+		LaunchID:  launchID,
+		SuiteID:   suiteID,
+		SuiteUUID: suiteUUID,
 	}, nil
+}
+
+// resolveItemByUUID polls GetByUUID until the item has both numeric ID and UUID, which avoids flakes from asynchronous
+// indexing in Report Portal.
+func resolveItemByUUID(
+	ctx context.Context,
+	items *client.TestItemScope,
+	itemUUID string,
+) (int64, string, error) {
+	var (
+		resolvedItemID   int64
+		resolvedItemUUID string
+	)
+
+	resolved := waitForSeedResolution(
+		ctx,
+		seedResolutionAttempts,
+		seedResolutionInterval,
+		func() bool {
+			item, getErr := items.GetByUUID(ctx, itemUUID)
+			if getErr == nil && item != nil && item.Id != nil && item.Uuid != nil {
+				if *item.Id != 0 && *item.Uuid != "" {
+					resolvedItemID = *item.Id
+					resolvedItemUUID = *item.Uuid
+
+					return true
+				}
+			}
+
+			return false
+		},
+	)
+	if !resolved {
+		if ctx.Err() != nil {
+			return 0, "", fmt.Errorf("could not resolve item by uuid %q: %w", itemUUID, ctx.Err())
+		}
+
+		return 0, "", fmt.Errorf("could not resolve item by uuid %q", itemUUID)
+	}
+
+	return resolvedItemID, resolvedItemUUID, nil
+}
+
+// resolveLaunchIDByUUID polls GetByUUID until the launch has a non-zero ID.
+func resolveLaunchIDByUUID(
+	ctx context.Context,
+	launches *client.LaunchScope,
+	launchUUID string,
+) (int64, error) {
+	var launchID int64
+
+	resolved := waitForSeedResolution(
+		ctx,
+		seedResolutionAttempts,
+		seedResolutionInterval,
+		func() bool {
+			launch, getErr := launches.GetByUUID(ctx, launchUUID)
+			if getErr == nil && launch != nil && launch.Id != 0 {
+				launchID = launch.Id
+
+				return true
+			}
+
+			return false
+		},
+	)
+	if !resolved {
+		if ctx.Err() != nil {
+			return 0, fmt.Errorf("could not resolve launch id: %w", ctx.Err())
+		}
+
+		return 0, fmt.Errorf("could not resolve launch ID for seeded test items")
+	}
+
+	return launchID, nil
 }
 
 // createProject creates a new Report Portal project with the given name.

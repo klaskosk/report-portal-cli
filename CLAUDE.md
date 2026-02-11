@@ -19,6 +19,7 @@ The API client wraps a generated OpenAPI client (`pkg/internal/api/`) with a sco
 - **Timestamps**: Use `types.EpochMillis`, not raw ints or `time.Time`.
 - **Test style**: Black-box (`package client_test`), `t.Parallel()` everywhere, httptest for unit tests. `export_test.go` exposes test-only constructors.
 - **Integration tests**: Ginkgo/Gomega, `//go:build integration`, testcontainers-compose for a real Report Portal stack.
+- **Table testing**: In Ginkgo, use `DescribeTable` with `Entry` to test table-driven scenarios. In unit tests, use a `[]struct{}{}` with `t.Run` to test table-driven scenarios.
 
 ## Commands
 

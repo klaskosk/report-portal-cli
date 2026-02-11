@@ -1,10 +1,14 @@
 package client_test
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/klaskosk/report-portal-cli/pkg/client"
+	"github.com/klaskosk/report-portal-cli/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -132,6 +136,271 @@ func TestTestItemScope_GetByUUID_NotFound(t *testing.T) {
 	_, err := c.Project("my_project").Items().GetByUUID(t.Context(), "unknown-uuid")
 	require.Error(t, err)
 	assert.True(t, client.IsNotFound(err))
+}
+
+func TestTestItemScope_StartRoot_Success(t *testing.T) {
+	t.Parallel()
+
+	startTime := time.UnixMilli(1700000000000)
+	itemType := types.StartTestItemRQType("SUITE")
+	hasStats := true
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/item")
+		assertMethod(t, r, http.MethodPost)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		assert.Equal(t, "launch-uuid-1", payload["launchUuid"])
+		assert.Equal(t, "Authentication Suite", payload["name"])
+		assert.Equal(t, float64(startTime.UnixMilli()), payload["startTime"])
+		assert.Equal(t, string(itemType), payload["type"])
+		assert.Equal(t, true, payload["hasStats"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"id":"suite-uuid-1"}`))
+	}))
+
+	result, err := c.Project("my_project").Items().StartRoot(
+		t.Context(),
+		types.StartTestItemRQ{
+			LaunchUuid: "launch-uuid-1",
+			Name:       "Authentication Suite",
+			StartTime:  types.EpochMillis(startTime),
+			Type:       itemType,
+			HasStats:   &hasStats,
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Id)
+	assert.Equal(t, "suite-uuid-1", *result.Id)
+}
+
+func TestTestItemScope_StartRoot_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "BadRequest",
+			statusCode: http.StatusBadRequest,
+			body:       `{"errorCode": 4001, "message": "Invalid test item payload."}`,
+			check:      client.IsBadRequest,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			itemType := types.StartTestItemRQType("SUITE")
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Items().StartRoot(
+				t.Context(),
+				types.StartTestItemRQ{
+					LaunchUuid: "launch-uuid-1",
+					Name:       "Authentication Suite",
+					StartTime:  types.EpochMillis(time.Now()),
+					Type:       itemType,
+				},
+			)
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestTestItemScope_StartChild_Success(t *testing.T) {
+	t.Parallel()
+
+	startTime := time.UnixMilli(1700000001000)
+	itemType := types.StartTestItemRQType("TEST")
+	hasStats := true
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/item/suite-uuid-1")
+		assertMethod(t, r, http.MethodPost)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		assert.Equal(t, "launch-uuid-1", payload["launchUuid"])
+		assert.Equal(t, "Login Test", payload["name"])
+		assert.Equal(t, float64(startTime.UnixMilli()), payload["startTime"])
+		assert.Equal(t, string(itemType), payload["type"])
+		assert.Equal(t, true, payload["hasStats"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"id":"test-uuid-1"}`))
+	}))
+
+	result, err := c.Project("my_project").Items().StartChild(
+		t.Context(),
+		"suite-uuid-1",
+		types.StartTestItemRQ{
+			LaunchUuid: "launch-uuid-1",
+			Name:       "Login Test",
+			StartTime:  types.EpochMillis(startTime),
+			Type:       itemType,
+			HasStats:   &hasStats,
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Id)
+	assert.Equal(t, "test-uuid-1", *result.Id)
+}
+
+func TestTestItemScope_StartChild_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "NotFound",
+			statusCode: http.StatusNotFound,
+			body:       `{"errorCode": 40440, "message": "Parent item not found."}`,
+			check:      client.IsNotFound,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			itemType := types.StartTestItemRQType("TEST")
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Items().StartChild(
+				t.Context(),
+				"missing-parent",
+				types.StartTestItemRQ{
+					LaunchUuid: "launch-uuid-1",
+					Name:       "Login Test",
+					StartTime:  types.EpochMillis(time.Now()),
+					Type:       itemType,
+				},
+			)
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestTestItemScope_Finish_Success(t *testing.T) {
+	t.Parallel()
+
+	endTime := time.UnixMilli(1700000005000)
+	status := types.FinishTestItemRQStatusPASSED
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/item/test-uuid-1")
+		assertMethod(t, r, http.MethodPut)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		assert.Equal(t, "launch-uuid-1", payload["launchUuid"])
+		assert.Equal(t, float64(endTime.UnixMilli()), payload["endTime"])
+		assert.Equal(t, string(status), payload["status"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"Test item finished."}`))
+	}))
+
+	result, err := c.Project("my_project").Items().Finish(
+		t.Context(),
+		"test-uuid-1",
+		types.FinishTestItemRQ{
+			LaunchUuid: "launch-uuid-1",
+			EndTime:    types.EpochMillis(endTime),
+			Status:     &status,
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Message)
+	assert.Equal(t, "Test item finished.", *result.Message)
+}
+
+func TestTestItemScope_Finish_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "NotFound",
+			statusCode: http.StatusNotFound,
+			body:       `{"errorCode": 40440, "message": "Test item not found."}`,
+			check:      client.IsNotFound,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			status := types.FinishTestItemRQStatusPASSED
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Items().Finish(
+				t.Context(),
+				"missing-item",
+				types.FinishTestItemRQ{
+					LaunchUuid: "launch-uuid-1",
+					EndTime:    types.EpochMillis(time.Now()),
+					Status:     &status,
+				},
+			)
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
 }
 
 func TestTestItemScope_List_Success(t *testing.T) {

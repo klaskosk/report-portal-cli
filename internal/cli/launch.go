@@ -126,17 +126,15 @@ func listLaunches(
 		return fmt.Errorf("invalid filter flags: %w", err)
 	}
 
-	// Build options list
-	options := []client.ListLaunchesOption{
+	options := make([]client.ListLaunchesOption, 0, 3)
+	options = append(
+		options,
 		client.WithPageSize(flags.pageSize),
 		client.WithPageNumber(flags.page),
 		client.WithSort(flags.sort...),
-	}
-
-	// Add filter options
+	)
 	options = append(options, applyLaunchFilterOptions(filterFlags)...)
 
-	// Call the appropriate endpoint based on flags
 	var result *types.IterableLaunchResource
 
 	switch {
@@ -248,7 +246,6 @@ func applyLaunchFilterOptions(filters launchFilterFlags) []client.ListLaunchesOp
 	}
 
 	for _, attr := range filters.attributes {
-		// Parse "key:value" format
 		if key, value, found := parseAttribute(attr); found {
 			options = append(options, client.WithAttribute(key, value))
 		}

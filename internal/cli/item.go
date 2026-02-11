@@ -124,11 +124,13 @@ func listItems(
 		return fmt.Errorf("invalid filter flags: %w", err)
 	}
 
-	options := []client.ListTestItemsOption{
+	options := make([]client.ListTestItemsOption, 0, 3)
+	options = append(
+		options,
 		client.WithItemPageSize(flags.pageSize),
 		client.WithItemPageNumber(flags.page),
 		client.WithItemSort(flags.sort...),
-	}
+	)
 	options = append(options, applyItemFilterOptions(filterFlags)...)
 
 	result, err := scope.List(ctx, options...)

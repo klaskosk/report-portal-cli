@@ -14,6 +14,52 @@ type LaunchScope struct {
 	project *ProjectScope
 }
 
+// Start creates a new launch in the project.
+func (l *LaunchScope) Start(
+	ctx context.Context,
+	request types.StartLaunchRQ,
+) (*types.StartLaunchRS, error) {
+	logger := l.project.operationLogger("StartLaunch", slog.String("name", request.Name))
+	logger.InfoContext(ctx, "API request")
+
+	response, err := l.project.client.raw.StartLaunchUsingPOST1WithResponse(
+		ctx,
+		l.project.projectName,
+		request,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("start launch: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "start launch", response.JSONDefault, response.JSON201)
+}
+
+// Finish marks an existing launch as finished.
+func (l *LaunchScope) Finish(
+	ctx context.Context,
+	launchID string,
+	request types.FinishExecutionRQ,
+) (*types.FinishLaunchRS, error) {
+	logger := l.project.operationLogger("FinishLaunch", slog.String("launchId", launchID))
+	logger.InfoContext(ctx, "API request")
+
+	response, err := l.project.client.raw.FinishLaunchUsingPUT1WithResponse(
+		ctx,
+		l.project.projectName,
+		launchID,
+		request,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("finish launch: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "finish launch", response.JSONDefault, response.JSON200)
+}
+
 // GetByUUID returns a single launch by its UUID.
 func (l *LaunchScope) GetByUUID(
 	ctx context.Context,

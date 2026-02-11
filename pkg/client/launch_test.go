@@ -1,10 +1,14 @@
 package client_test
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/klaskosk/report-portal-cli/pkg/client"
+	"github.com/klaskosk/report-portal-cli/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -114,6 +118,173 @@ func TestLaunchScope_GetByUUID_NotFound(t *testing.T) {
 	_, err := c.Project("my_project").Launches().GetByUUID(t.Context(), "nonexistent")
 	require.Error(t, err)
 	assert.True(t, client.IsNotFound(err))
+}
+
+func TestLaunchScope_Start_Success(t *testing.T) {
+	t.Parallel()
+
+	startTime := time.UnixMilli(1700000000000)
+	mode := types.StartLaunchRQModeDEFAULT
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/launch")
+		assertMethod(t, r, http.MethodPost)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		assert.Equal(t, "Integration Launch", payload["name"])
+		assert.Equal(t, float64(startTime.UnixMilli()), payload["startTime"])
+		assert.Equal(t, string(mode), payload["mode"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"id":"launch-uuid-1","number":7}`))
+	}))
+
+	result, err := c.Project("my_project").Launches().Start(t.Context(), types.StartLaunchRQ{
+		Name:      "Integration Launch",
+		StartTime: types.EpochMillis(startTime),
+		Mode:      &mode,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Id)
+	require.NotNil(t, result.Number)
+
+	assert.Equal(t, "launch-uuid-1", *result.Id)
+	assert.Equal(t, int64(7), *result.Number)
+}
+
+func TestLaunchScope_Start_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "BadRequest",
+			statusCode: http.StatusBadRequest,
+			body:       `{"errorCode": 4001, "message": "Invalid launch payload."}`,
+			check:      client.IsBadRequest,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Launches().Start(
+				t.Context(),
+				types.StartLaunchRQ{Name: "Integration Launch", StartTime: types.EpochMillis(time.Now())},
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestLaunchScope_Finish_Success(t *testing.T) {
+	t.Parallel()
+
+	endTime := time.UnixMilli(1700000007000)
+	status := types.FinishExecutionRQStatusPASSED
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/launch/launch-uuid-1/finish")
+		assertMethod(t, r, http.MethodPut)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		assert.Equal(t, float64(endTime.UnixMilli()), payload["endTime"])
+		assert.Equal(t, string(status), payload["status"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"id":"launch-uuid-1","link":"http://rp/launch/1","number":7}`))
+	}))
+
+	result, err := c.Project("my_project").Launches().Finish(
+		t.Context(),
+		"launch-uuid-1",
+		types.FinishExecutionRQ{
+			EndTime: types.EpochMillis(endTime),
+			Status:  &status,
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Id)
+	require.NotNil(t, result.Link)
+	require.NotNil(t, result.Number)
+
+	assert.Equal(t, "launch-uuid-1", *result.Id)
+	assert.Equal(t, "http://rp/launch/1", *result.Link)
+	assert.Equal(t, int64(7), *result.Number)
+}
+
+func TestLaunchScope_Finish_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "NotFound",
+			statusCode: http.StatusNotFound,
+			body:       `{"errorCode": 40410, "message": "Launch not found."}`,
+			check:      client.IsNotFound,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			status := types.FinishExecutionRQStatusPASSED
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Launches().Finish(
+				t.Context(),
+				"missing-launch",
+				types.FinishExecutionRQ{
+					EndTime: types.EpochMillis(time.Now()),
+					Status:  &status,
+				},
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
 }
 
 func TestLaunchScope_List_Success(t *testing.T) {
