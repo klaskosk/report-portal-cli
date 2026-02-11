@@ -2,19 +2,31 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/spf13/cobra"
 )
 
 // Execute runs the root command and returns any error.
+// Errors from command handlers are already printed by the handler via
+// printer.PrintError and wrapped with printedError. Any other errors
+// (Cobra-level failures, config errors) are printed here as a fallback.
 func Execute() error {
-	err := newRootCmd().Execute()
-	if err != nil {
-		return fmt.Errorf("executing command: %w", err)
+	cmd := newRootCmd()
+
+	err := cmd.Execute()
+	if err == nil {
+		return nil
 	}
 
-	return nil
+	var printed *printedError
+	if !errors.As(err, &printed) {
+		outputFmt, _ := cmd.PersistentFlags().GetString("output")
+		newPrinter(outputFmt).PrintError(err)
+	}
+
+	return fmt.Errorf("executing command: %w", err)
 }
 
 func newRootCmd() *cobra.Command {

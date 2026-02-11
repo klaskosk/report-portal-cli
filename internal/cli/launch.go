@@ -27,7 +27,7 @@ Examples:
   rp get launch --latest            List latest launches
   rp get launch --debug             List debug launches (shorthand)`,
 		Args: cobra.MaximumNArgs(1),
-		RunE: runGetLaunch,
+		RunE: withPrintedErrors(runGetLaunch),
 	}
 
 	cmd.Flags().StringP("project", "p", "", "project name (overrides profile default)")
@@ -114,26 +114,10 @@ func listLaunches(
 	ctx := cmd.Context()
 	scope := clientInstance.Project(project).Launches()
 
-	flags, err := resolveListFlags(cmd)
+	options, filterFlags, err := resolveLaunchOptions(cmd, printer)
 	if err != nil {
-		return fmt.Errorf("invalid list flags: %w", err)
+		return err
 	}
-
-	filterFlags, err := resolveLaunchFilterFlags(cmd)
-	if err != nil {
-		printer.PrintError(err)
-
-		return fmt.Errorf("invalid filter flags: %w", err)
-	}
-
-	options := make([]client.ListLaunchesOption, 0, 3)
-	options = append(
-		options,
-		client.WithPageSize(flags.pageSize),
-		client.WithPageNumber(flags.page),
-		client.WithSort(flags.sort...),
-	)
-	options = append(options, applyLaunchFilterOptions(filterFlags)...)
 
 	var result *types.IterableLaunchResource
 
@@ -161,6 +145,43 @@ func listLaunches(
 	}
 
 	return printer.Print(result.Content, headers, rows)
+}
+
+// resolveLaunchOptions builds the full set of list options from pagination and filter flags.
+func resolveLaunchOptions(
+	cmd *cobra.Command,
+	printer *Printer,
+) ([]client.ListLaunchesOption, launchFilterFlags, error) {
+	flags, err := resolveListFlags(cmd)
+	if err != nil {
+		printer.PrintError(err)
+
+		return nil, launchFilterFlags{}, fmt.Errorf("invalid list flags: %w", err)
+	}
+
+	filterFlags, err := resolveLaunchFilterFlags(cmd)
+	if err != nil {
+		printer.PrintError(err)
+
+		return nil, launchFilterFlags{}, fmt.Errorf("invalid filter flags: %w", err)
+	}
+
+	filterOptions, err := applyLaunchFilterOptions(filterFlags)
+	if err != nil {
+		printer.PrintError(err)
+
+		return nil, launchFilterFlags{}, fmt.Errorf("invalid filter flags: %w", err)
+	}
+
+	options := make([]client.ListLaunchesOption, 0, 3+len(filterOptions))
+	options = append(options,
+		client.WithPageSize(flags.pageSize),
+		client.WithPageNumber(flags.page),
+		client.WithSort(flags.sort...),
+	)
+	options = append(options, filterOptions...)
+
+	return options, filterFlags, nil
 }
 
 func launchHeaders() []string {
@@ -234,7 +255,7 @@ func resolveLaunchFilterFlags(cmd *cobra.Command) (launchFilterFlags, error) {
 }
 
 // applyLaunchFilterOptions converts launchFilterFlags to client options.
-func applyLaunchFilterOptions(filters launchFilterFlags) []client.ListLaunchesOption {
+func applyLaunchFilterOptions(filters launchFilterFlags) ([]client.ListLaunchesOption, error) {
 	var options []client.ListLaunchesOption
 
 	if filters.user != "" {
@@ -246,9 +267,12 @@ func applyLaunchFilterOptions(filters launchFilterFlags) []client.ListLaunchesOp
 	}
 
 	for _, attr := range filters.attributes {
-		if key, value, found := parseAttribute(attr); found {
-			options = append(options, client.WithAttribute(key, value))
+		key, value, found := parseAttribute(attr)
+		if !found {
+			return nil, fmt.Errorf("invalid attribute format %q (expected key:value)", attr)
 		}
+
+		options = append(options, client.WithAttribute(key, value))
 	}
 
 	if filters.description != "" {
@@ -259,13 +283,18 @@ func applyLaunchFilterOptions(filters launchFilterFlags) []client.ListLaunchesOp
 		options = append(options, client.WithHasRetries(true))
 	}
 
-	return options
+	return options, nil
 }
 
 // parseAttribute parses an attribute string in "key:value" format.
+// The key must be non-empty; the value may be empty.
 func parseAttribute(attr string) (string, string, bool) {
 	for i := range len(attr) {
 		if attr[i] == ':' {
+			if i == 0 {
+				return "", "", false
+			}
+
 			return attr[:i], attr[i+1:], true
 		}
 	}

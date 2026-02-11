@@ -20,6 +20,10 @@ type APIError struct {
 }
 
 func (e *APIError) Error() string {
+	if e.response == nil {
+		return fmt.Sprintf("%s: HTTP %d", e.operation, e.statusCode)
+	}
+
 	return fmt.Sprintf(
 		"%s: HTTP %d: [%d] %s",
 		e.operation,
@@ -41,10 +45,24 @@ func newAPIError(operation string, statusCode int, resp *types.ErrorRS) *APIErro
 func (e *APIError) StatusCode() int { return e.statusCode }
 
 // ErrorCode returns the Report Portal application error code from the response body.
-func (e *APIError) ErrorCode() int { return e.response.ErrorCode }
+// Returns 0 if no structured response body was available.
+func (e *APIError) ErrorCode() int {
+	if e.response == nil {
+		return 0
+	}
+
+	return e.response.ErrorCode
+}
 
 // Message returns the human-readable error message from the response body.
-func (e *APIError) Message() string { return e.response.Message }
+// Returns an empty string if no structured response body was available.
+func (e *APIError) Message() string {
+	if e.response == nil {
+		return ""
+	}
+
+	return e.response.Message
+}
 
 // Operation returns a short description of the API call that failed (e.g. "get launch by uuid").
 func (e *APIError) Operation() string { return e.operation }
@@ -74,17 +92,47 @@ func IsConflict(err error) bool {
 	return HasStatusCode(err, http.StatusConflict)
 }
 
-// HasStatusCode reports whether err is an API error whose HTTP status code matches code. This is the general-purpose
-// escape hatch for status codes not covered by a named predicate.
-func HasStatusCode(err error, code int) bool {
-	var apiError *APIError
+// statusCoder is implemented by error types that carry an HTTP status code.
+type statusCoder interface {
+	StatusCode() int
+}
 
-	return errors.As(err, &apiError) && apiError.statusCode == code
+// HasStatusCode reports whether err is an API error whose HTTP status code matches code. This is the general-purpose
+// escape hatch for status codes not covered by a named predicate. It matches both APIError (structured JSON error
+// bodies) and UnexpectedStatusError (non-JSON or missing error bodies).
+func HasStatusCode(err error, code int) bool {
+	var sc statusCoder
+
+	return errors.As(err, &sc) && sc.StatusCode() == code
 }
 
 // HasErrorCode reports whether err is an API error whose Report Portal application error code matches code.
 func HasErrorCode(err error, code int) bool {
 	var apiError *APIError
 
-	return errors.As(err, &apiError) && apiError.response.ErrorCode == code
+	return errors.As(err, &apiError) && apiError.ErrorCode() == code
 }
+
+// UnexpectedStatusError represents an HTTP error response that did not contain a parseable JSON error body. This
+// typically occurs when a proxy, gateway, or infrastructure component returns an HTML or plain-text error page.
+type UnexpectedStatusError struct {
+	operation  string
+	statusCode int
+}
+
+func (e *UnexpectedStatusError) Error() string {
+	return fmt.Sprintf("%s: unexpected HTTP %d (no JSON error body)", e.operation, e.statusCode)
+}
+
+func newUnexpectedStatusError(operation string, statusCode int) *UnexpectedStatusError {
+	return &UnexpectedStatusError{
+		operation:  operation,
+		statusCode: statusCode,
+	}
+}
+
+// StatusCode returns the HTTP status code from the response.
+func (e *UnexpectedStatusError) StatusCode() int { return e.statusCode }
+
+// Operation returns a short description of the API call that failed.
+func (e *UnexpectedStatusError) Operation() string { return e.operation }

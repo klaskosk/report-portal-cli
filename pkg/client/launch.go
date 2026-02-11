@@ -198,7 +198,10 @@ func WithAttribute(key, value string) ListLaunchesOption {
 		if params.FilterEqCompositeAttribute == nil {
 			params.FilterEqCompositeAttribute = &[]string{composite}
 		} else {
-			*params.FilterEqCompositeAttribute = append(*params.FilterEqCompositeAttribute, composite)
+			*params.FilterEqCompositeAttribute = append(
+				*params.FilterEqCompositeAttribute,
+				composite,
+			)
 		}
 	}
 }
@@ -295,7 +298,9 @@ func (l *LaunchScope) GetDebug(
 	return handleResponse(response, "get debug launches", response.JSONDefault, response.JSON200)
 }
 
-// convertToLatestParams converts GetProjectLaunchesUsingGETParams to GetLatestLaunchesUsingGETParams.
+// convertToLatestParams converts GetProjectLaunchesUsingGETParams to GetLatestLaunchesUsingGETParams. NOTE: This
+// function must be kept in sync with convertToDebugParams -- they map identical field sets to structurally identical
+// (but distinct) generated param types.
 func convertToLatestParams(
 	src *api.GetProjectLaunchesUsingGETParams,
 ) *api.GetLatestLaunchesUsingGETParams {
@@ -313,17 +318,28 @@ func convertToLatestParams(
 		FilterEqNumber:             src.FilterEqNumber,
 		FilterEqProjectId:          src.FilterEqProjectId,
 		FilterEqStartTime:          src.FilterEqStartTime,
-		FilterEqStatus:             src.FilterEqStatus,
-		FilterEqUser:               src.FilterEqUser,
-		FilterEqUserId:             src.FilterEqUserId,
-		FilterEqUuid:               src.FilterEqUuid,
-		PagePage:                   src.PagePage,
-		PageSize:                   src.PageSize,
-		PageSort:                   src.PageSort,
+		FilterEqStatisticsDefectsAutomationBugAb001: src.FilterEqStatisticsDefectsAutomationBugAb001,
+		FilterEqStatisticsDefectsNoDefectNd001:      src.FilterEqStatisticsDefectsNoDefectNd001,
+		FilterEqStatisticsDefectsProductBugPb001:    src.FilterEqStatisticsDefectsProductBugPb001,
+		FilterEqStatisticsDefectsSystemIssueSi001:   src.FilterEqStatisticsDefectsSystemIssueSi001,
+		FilterEqStatisticsDefectsToInvestigateTi001: src.FilterEqStatisticsDefectsToInvestigateTi001,
+		FilterEqStatisticsExecutionsFailed:          src.FilterEqStatisticsExecutionsFailed,
+		FilterEqStatisticsExecutionsPassed:          src.FilterEqStatisticsExecutionsPassed,
+		FilterEqStatisticsExecutionsSkipped:         src.FilterEqStatisticsExecutionsSkipped,
+		FilterEqStatisticsExecutionsTotal:           src.FilterEqStatisticsExecutionsTotal,
+		FilterEqStatus:                              src.FilterEqStatus,
+		FilterEqUser:                                src.FilterEqUser,
+		FilterEqUserId:                              src.FilterEqUserId,
+		FilterEqUuid:                                src.FilterEqUuid,
+		PagePage:                                    src.PagePage,
+		PageSize:                                    src.PageSize,
+		PageSort:                                    src.PageSort,
 	}
 }
 
-// convertToDebugParams converts GetProjectLaunchesUsingGETParams to GetDebugLaunchesUsingGETParams.
+// convertToDebugParams converts GetProjectLaunchesUsingGETParams to GetDebugLaunchesUsingGETParams. NOTE: This function
+// must be kept in sync with convertToLatestParams -- they map identical field sets to structurally identical (but
+// distinct) generated param types.
 func convertToDebugParams(
 	src *api.GetProjectLaunchesUsingGETParams,
 ) *api.GetDebugLaunchesUsingGETParams {
@@ -341,13 +357,22 @@ func convertToDebugParams(
 		FilterEqNumber:             src.FilterEqNumber,
 		FilterEqProjectId:          src.FilterEqProjectId,
 		FilterEqStartTime:          src.FilterEqStartTime,
-		FilterEqStatus:             src.FilterEqStatus,
-		FilterEqUser:               src.FilterEqUser,
-		FilterEqUserId:             src.FilterEqUserId,
-		FilterEqUuid:               src.FilterEqUuid,
-		PagePage:                   src.PagePage,
-		PageSize:                   src.PageSize,
-		PageSort:                   src.PageSort,
+		FilterEqStatisticsDefectsAutomationBugAb001: src.FilterEqStatisticsDefectsAutomationBugAb001,
+		FilterEqStatisticsDefectsNoDefectNd001:      src.FilterEqStatisticsDefectsNoDefectNd001,
+		FilterEqStatisticsDefectsProductBugPb001:    src.FilterEqStatisticsDefectsProductBugPb001,
+		FilterEqStatisticsDefectsSystemIssueSi001:   src.FilterEqStatisticsDefectsSystemIssueSi001,
+		FilterEqStatisticsDefectsToInvestigateTi001: src.FilterEqStatisticsDefectsToInvestigateTi001,
+		FilterEqStatisticsExecutionsFailed:          src.FilterEqStatisticsExecutionsFailed,
+		FilterEqStatisticsExecutionsPassed:          src.FilterEqStatisticsExecutionsPassed,
+		FilterEqStatisticsExecutionsSkipped:         src.FilterEqStatisticsExecutionsSkipped,
+		FilterEqStatisticsExecutionsTotal:           src.FilterEqStatisticsExecutionsTotal,
+		FilterEqStatus:                              src.FilterEqStatus,
+		FilterEqUser:                                src.FilterEqUser,
+		FilterEqUserId:                              src.FilterEqUserId,
+		FilterEqUuid:                                src.FilterEqUuid,
+		PagePage:                                    src.PagePage,
+		PageSize:                                    src.PageSize,
+		PageSort:                                    src.PageSort,
 	}
 }
 

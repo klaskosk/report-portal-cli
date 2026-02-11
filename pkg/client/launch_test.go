@@ -190,7 +190,10 @@ func TestLaunchScope_Start_Errors(t *testing.T) {
 			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
 			_, err := testClient.Project("my_project").Launches().Start(
 				t.Context(),
-				types.StartLaunchRQ{Name: "Integration Launch", StartTime: types.EpochMillis(time.Now())},
+				types.StartLaunchRQ{
+					Name:      "Integration Launch",
+					StartTime: types.EpochMillis(time.Now()),
+				},
 			)
 
 			require.Error(t, err)

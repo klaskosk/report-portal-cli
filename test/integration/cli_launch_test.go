@@ -349,12 +349,12 @@ profiles:
 			expectCLISuccess(result, "rp get launch --has-retries")
 		})
 
-		It("combines multiple filter flags", func() {
+		It("applies page-size flag", func() {
 			result := runProjectLaunch(projectName,
 				"--page-size", "5")
-			expectCLISuccess(result, "rp get launch with combined filters")
+			expectCLISuccess(result, "rp get launch --page-size 5")
 			Expect(result.Stdout).To(ContainSubstring("ID"),
-				"combined filter output should contain table headers")
+				"page-size filtered output should contain table headers")
 		})
 
 		It("outputs JSON with filter flags", func() {

@@ -182,6 +182,10 @@ func resolveProject(cmd *cobra.Command, connection *Connection) (string, error) 
 
 	if cmd.Flags().Changed("project") {
 		project, _ := cmd.Flags().GetString("project")
+		if project == "" {
+			return "", errors.New("project name cannot be empty (omit -p to use the default)")
+		}
+
 		logger.Info("using project", "project", project, "source", "flag")
 
 		return project, nil

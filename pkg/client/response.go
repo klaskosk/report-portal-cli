@@ -12,9 +12,9 @@ type apiResponse interface {
 	StatusCode() int
 }
 
-// handleResponse checks the error response body and returns the success value.
-// It handles the "check JSONDefault, then return success" pattern that every
-// scope method uses.
+// handleResponse checks the error response body and returns the success value. It handles the "check JSONDefault, then
+// return success" pattern that every scope method uses. If the status code is outside 2xx and there is no parsed JSON
+// error body (e.g. a proxy returning HTML), it returns an UnexpectedStatusError.
 func handleResponse[R apiResponse, T any](
 	response R,
 	operation string,
@@ -25,6 +25,13 @@ func handleResponse[R apiResponse, T any](
 		var zero T
 
 		return zero, newAPIError(operation, response.StatusCode(), jsonDefault)
+	}
+
+	code := response.StatusCode()
+	if code < 200 || code >= 300 {
+		var zero T
+
+		return zero, newUnexpectedStatusError(operation, code)
 	}
 
 	return success, nil

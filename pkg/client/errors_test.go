@@ -23,6 +23,21 @@ func TestAPIError_Error(t *testing.T) {
 	assert.Equal(t, "get launch by id: HTTP 404: [40410] Launch '999' not found.", err.Error())
 }
 
+func TestAPIError_NilResponse(t *testing.T) {
+	t.Parallel()
+
+	err := client.NewTestAPIError("get launch by id", http.StatusNotFound, nil)
+
+	var apiErr *client.APIError
+	require.ErrorAs(t, err, &apiErr)
+
+	assert.Equal(t, "get launch by id: HTTP 404", apiErr.Error())
+	assert.Equal(t, 0, apiErr.ErrorCode())
+	assert.Empty(t, apiErr.Message())
+	assert.Equal(t, http.StatusNotFound, apiErr.StatusCode())
+	assert.Equal(t, "get launch by id", apiErr.Operation())
+}
+
 func TestAPIError_Accessors(t *testing.T) {
 	t.Parallel()
 
@@ -111,4 +126,68 @@ func TestPredicates_WrappedError(t *testing.T) {
 	assert.True(t, client.IsNotFound(wrapped))
 	assert.True(t, client.HasStatusCode(wrapped, http.StatusNotFound))
 	assert.True(t, client.HasErrorCode(wrapped, 40410))
+}
+
+func TestUnexpectedStatusError_Error(t *testing.T) {
+	t.Parallel()
+
+	err := client.NewTestUnexpectedStatusError("list launches", http.StatusBadGateway)
+
+	assert.Equal(t, "list launches: unexpected HTTP 502 (no JSON error body)", err.Error())
+}
+
+func TestUnexpectedStatusError_Accessors(t *testing.T) {
+	t.Parallel()
+
+	err := client.NewTestUnexpectedStatusError("get launch by id", http.StatusNotFound)
+
+	var unexpectedErr *client.UnexpectedStatusError
+	require.ErrorAs(t, err, &unexpectedErr)
+
+	assert.Equal(t, http.StatusNotFound, unexpectedErr.StatusCode())
+	assert.Equal(t, "get launch by id", unexpectedErr.Operation())
+}
+
+func TestHasStatusCode_MatchesUnexpectedStatusError(t *testing.T) {
+	t.Parallel()
+
+	err := client.NewTestUnexpectedStatusError("op", http.StatusBadGateway)
+
+	assert.True(t, client.HasStatusCode(err, http.StatusBadGateway))
+	assert.False(t, client.HasStatusCode(err, http.StatusNotFound))
+}
+
+func TestPredicates_MatchUnexpectedStatusError(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		predicate  func(error) bool
+	}{
+		{"IsNotFound", http.StatusNotFound, client.IsNotFound},
+		{"IsUnauthorized", http.StatusUnauthorized, client.IsUnauthorized},
+		{"IsForbidden", http.StatusForbidden, client.IsForbidden},
+		{"IsBadRequest", http.StatusBadRequest, client.IsBadRequest},
+		{"IsConflict", http.StatusConflict, client.IsConflict},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := client.NewTestUnexpectedStatusError("op", testCase.statusCode)
+			assert.True(t, testCase.predicate(err))
+		})
+	}
+}
+
+func TestPredicates_WrappedUnexpectedStatusError(t *testing.T) {
+	t.Parallel()
+
+	err := client.NewTestUnexpectedStatusError("op", http.StatusNotFound)
+	wrapped := fmt.Errorf("context: %w", err)
+
+	assert.True(t, client.IsNotFound(wrapped))
+	assert.True(t, client.HasStatusCode(wrapped, http.StatusNotFound))
 }

@@ -8,6 +8,8 @@ import (
 	"strings"
 	"text/tabwriter"
 	"text/template"
+
+	"github.com/spf13/cobra"
 )
 
 // Printer formats command output according to the chosen output mode.
@@ -93,6 +95,33 @@ func (p *Printer) PrintError(err error) {
 	}
 
 	_, _ = fmt.Fprintf(p.errOut, "Error: %s\n", err)
+}
+
+// printedError wraps an error that has already been displayed to the user.
+// Execute uses this to avoid double-printing command handler errors while still
+// printing Cobra-level failures (unknown commands, argument validation, etc.).
+type printedError struct {
+	err error
+}
+
+func (e *printedError) Error() string { return e.err.Error() }
+func (e *printedError) Unwrap() error { return e.err }
+
+// withPrintedErrors wraps a RunE function so that any returned error is marked
+// as already printed. Command handlers are responsible for calling
+// printer.PrintError before returning; this wrapper lets Execute distinguish
+// handler errors from Cobra-framework errors.
+func withPrintedErrors(
+	fn func(*cobra.Command, []string) error,
+) func(*cobra.Command, []string) error {
+	return func(cmd *cobra.Command, args []string) error {
+		err := fn(cmd, args)
+		if err != nil {
+			return &printedError{err: err}
+		}
+
+		return nil
+	}
 }
 
 // Print dispatches to the appropriate output method based on the configured format.

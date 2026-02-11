@@ -40,13 +40,17 @@ If you want the fastest path to a customer-ready MVP while still building toward
 - [x] **PR: expand test-item read surface**
   - Client: get/list/search test item endpoints (including hierarchy/navigation support where available).
   - CLI: `rp get item` for list/get workflows aligned with launch navigation patterns.
-- [ ] **PR: add log + attachment read flows**
-  - Client: list/get logs, resolve/download attachments/files where API supports it.
-  - CLI: `rp get log` and attachment download command shape (`rp download` / `rp file get`).
-- [ ] **PR: lock naming + stabilize end-to-end read flow**
+- [ ] **PR: add log read surface** → [`prompts/01-log-read-surface.md`](prompts/01-log-read-surface.md)
+  - Client: `LogScope` with list/get logs (by item, launch, level).
+  - CLI: `rp get log` for list/get workflows.
+- [ ] **PR: add attachment download** → [`prompts/02-attachment-download.md`](prompts/02-attachment-download.md)
+  - Client: `DownloadFile` for binary content retrieval.
+  - CLI: `rp download` command for fetching attachments.
+- [ ] **PR: lock naming + stabilize end-to-end read flow** → [`prompts/03-stabilize-read-workflow.md`](prompts/03-stabilize-read-workflow.md)
   - Decide and document canonical resource names (`item` as canonical; optional aliases only for compatibility).
   - Add one full integration workflow: launch get/list -> item get/list -> log get/list -> attachment download.
-- [ ] **PR: add identity + discovery follow-up**
+  - Lock JSON output contracts with integration test assertions.
+- [ ] **PR: add identity + discovery follow-up** → [`prompts/04-identity-discovery.md`](prompts/04-identity-discovery.md)
   - Client: `UsersScope.GetMyself` + `ProjectsScope.List/Get`.
   - CLI: `rp whoami` + `rp get project`.
 

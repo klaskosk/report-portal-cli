@@ -56,3 +56,46 @@ func TestHandleResponse_NilSuccess(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, got)
 }
+
+func TestHandleResponse_NonJSONError(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+	}{
+		{"404 without JSON body", 404},
+		{"500 without JSON body", 500},
+		{"502 without JSON body", 502},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			resp := fakeResponse{statusCode: testCase.statusCode, JSONDefault: nil}
+
+			got, err := handleResponse(resp, "test op", resp.JSONDefault, resp.JSON200)
+			require.Error(t, err)
+			assert.Nil(t, got)
+			assert.True(t, HasStatusCode(err, testCase.statusCode))
+
+			var unexpectedErr *UnexpectedStatusError
+			require.ErrorAs(t, err, &unexpectedErr)
+			assert.Equal(t, testCase.statusCode, unexpectedErr.StatusCode())
+			assert.Equal(t, "test op", unexpectedErr.Operation())
+			assert.Contains(t, err.Error(), "unexpected HTTP")
+		})
+	}
+}
+
+func TestHandleResponse_2xxWithNilJSON(t *testing.T) {
+	t.Parallel()
+
+	// 204 No Content is a valid 2xx with nil success body
+	resp := fakeResponse{statusCode: 204, JSON200: nil}
+
+	got, err := handleResponse(resp, "test op", resp.JSONDefault, resp.JSON200)
+	require.NoError(t, err)
+	assert.Nil(t, got)
+}

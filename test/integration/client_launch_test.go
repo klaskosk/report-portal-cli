@@ -71,29 +71,29 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 		})
 
 		It("paginates results", func(ctx SpecContext) {
-			page1, err := c.Project(projectName).Launches().List(ctx,
+			firstPage, err := c.Project(projectName).Launches().List(ctx,
+				client.WithPageSize(1),
+				client.WithPageNumber(0),
+				client.WithSort("id,asc"),
+			)
+			Expect(err).NotTo(HaveOccurred(),
+				"listing launches (first page) should not fail")
+			Expect(firstPage.Content).To(HaveLen(1),
+				"first page with page size 1 should return exactly 1 launch")
+
+			secondPage, err := c.Project(projectName).Launches().List(ctx,
 				client.WithPageSize(1),
 				client.WithPageNumber(1),
 				client.WithSort("id,asc"),
 			)
 			Expect(err).NotTo(HaveOccurred(),
-				"listing launches page 1 should not fail")
-			Expect(page1.Content).To(HaveLen(1),
-				"page 1 with page size 1 should return exactly 1 launch")
+				"listing launches (second page) should not fail")
 
-			page2, err := c.Project(projectName).Launches().List(ctx,
-				client.WithPageSize(1),
-				client.WithPageNumber(2),
-				client.WithSort("id,asc"),
-			)
-			Expect(err).NotTo(HaveOccurred(),
-				"listing launches page 2 should not fail")
-
-			if page2.Page.TotalPages > 1 {
-				Expect(page2.Content).To(HaveLen(1),
-					"page 2 with page size 1 should return exactly 1 launch")
-				Expect(page2.Content[0].Id).NotTo(Equal(page1.Content[0].Id),
-					"page 2 launch should differ from page 1 launch")
+			if secondPage.Page.TotalPages > 1 {
+				Expect(secondPage.Content).To(HaveLen(1),
+					"second page with page size 1 should return exactly 1 launch")
+				Expect(secondPage.Content[0].Id).NotTo(Equal(firstPage.Content[0].Id),
+					"second page launch should differ from first page launch")
 			}
 		})
 

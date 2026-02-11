@@ -6,3 +6,8 @@ import "github.com/klaskosk/report-portal-cli/pkg/types"
 var NewTestAPIError = func(operation string, statusCode int, resp *types.ErrorRS) error {
 	return newAPIError(operation, statusCode, resp)
 }
+
+// NewTestUnexpectedStatusError exposes newUnexpectedStatusError for external test packages.
+var NewTestUnexpectedStatusError = func(operation string, statusCode int) error {
+	return newUnexpectedStatusError(operation, statusCode)
+}

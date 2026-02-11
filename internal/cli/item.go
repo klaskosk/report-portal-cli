@@ -25,7 +25,7 @@ Examples:
   rp get item --launch 101 --suites                List suite items for launch 101
   rp get item --parent 2001                        List child items under suite item 2001`,
 		Args: cobra.MaximumNArgs(1),
-		RunE: runGetItem,
+		RunE: withPrintedErrors(runGetItem),
 	}
 
 	cmd.Flags().StringP("project", "p", "", "project name (overrides profile default)")
@@ -114,6 +114,8 @@ func listItems(
 
 	flags, err := resolveListFlags(cmd)
 	if err != nil {
+		printer.PrintError(err)
+
 		return fmt.Errorf("invalid list flags: %w", err)
 	}
 
