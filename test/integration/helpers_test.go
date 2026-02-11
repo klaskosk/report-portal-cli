@@ -184,6 +184,291 @@ func seedTestLaunches(ctx context.Context, rpBaseURL, token, projectName string,
 	return nil
 }
 
+type seededTestItems struct {
+	LaunchID   int64
+	LaunchUUID string
+	SuiteID    int64
+	SuiteUUID  string
+	SuiteName  string
+	TestID     int64
+	TestUUID   string
+	TestName   string
+}
+
+// seedTestItems creates one launch with one SUITE and one TEST child item and
+// returns their resolved IDs/UUIDs for use in integration tests.
+func seedTestItems(ctx context.Context, rpBaseURL, token, projectName string) (seededTestItems, error) {
+	apiBase := rpBaseURL
+	if !strings.HasSuffix(apiBase, "/api") {
+		apiBase = strings.TrimSuffix(apiBase, "/") + "/api"
+	}
+
+	now := time.Now()
+	launchName := fmt.Sprintf("integration-item-launch-%d", now.UnixNano())
+	suiteName := fmt.Sprintf("integration-suite-%d", now.UnixNano())
+	testName := fmt.Sprintf("integration-test-%d", now.UnixNano())
+
+	startLaunchPayload := fmt.Sprintf(`{"name":%q,"startTime":%d}`, launchName, now.UnixMilli())
+	startLaunchURL := fmt.Sprintf("%s/v1/%s/launch", apiBase, projectName)
+
+	startLaunchReq, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		startLaunchURL,
+		strings.NewReader(startLaunchPayload),
+	)
+	if err != nil {
+		return seededTestItems{}, fmt.Errorf("creating start launch request: %w", err)
+	}
+	startLaunchReq.Header.Set("Content-Type", "application/json")
+	startLaunchReq.Header.Set("Authorization", "Bearer "+token)
+
+	startLaunchResp, err := httpClient.Do(startLaunchReq)
+	if err != nil {
+		return seededTestItems{}, fmt.Errorf("starting launch for item seeding: %w", err)
+	}
+	startLaunchBody, _ := io.ReadAll(startLaunchResp.Body)
+	startLaunchResp.Body.Close()
+
+	if startLaunchResp.StatusCode != http.StatusCreated && startLaunchResp.StatusCode != http.StatusOK {
+		return seededTestItems{}, fmt.Errorf(
+			"start launch for item seeding failed with status %d: %s",
+			startLaunchResp.StatusCode,
+			string(startLaunchBody),
+		)
+	}
+
+	var startLaunchResult struct {
+		ID string `json:"id"`
+	}
+	if err := json.Unmarshal(startLaunchBody, &startLaunchResult); err != nil {
+		return seededTestItems{}, fmt.Errorf("parsing start launch response: %w", err)
+	}
+	if startLaunchResult.ID == "" {
+		return seededTestItems{}, fmt.Errorf("start launch returned empty id")
+	}
+
+	var (
+		launchID   int64
+		launchUUID = startLaunchResult.ID
+	)
+	if launchUUID == "" {
+		return seededTestItems{}, fmt.Errorf("could not resolve seeded launch %q", launchName)
+	}
+
+	startItem := func(itemURL string, payload string) (string, error) {
+		req, reqErr := http.NewRequestWithContext(
+			ctx,
+			http.MethodPost,
+			itemURL,
+			strings.NewReader(payload),
+		)
+		if reqErr != nil {
+			return "", fmt.Errorf("creating start item request: %w", reqErr)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		resp, doErr := httpClient.Do(req)
+		if doErr != nil {
+			return "", fmt.Errorf("starting item: %w", doErr)
+		}
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
+			return "", fmt.Errorf("start item failed with status %d: %s", resp.StatusCode, string(body))
+		}
+
+		var startResp struct {
+			ID string `json:"id"`
+		}
+		if decodeErr := json.Unmarshal(body, &startResp); decodeErr != nil {
+			return "", fmt.Errorf("parsing start item response: %w", decodeErr)
+		}
+		if startResp.ID == "" {
+			return "", fmt.Errorf("start item returned empty id")
+		}
+
+		return startResp.ID, nil
+	}
+
+	suitePayload := fmt.Sprintf(
+		`{"launchUuid":%q,"name":%q,"startTime":"%s","type":"SUITE","hasStats":true}`,
+		launchUUID,
+		suiteName,
+		now.UTC().Format(time.RFC3339Nano),
+	)
+	suiteURL := fmt.Sprintf("%s/v1/%s/item", apiBase, projectName)
+	suiteRef, err := startItem(suiteURL, suitePayload)
+	if err != nil {
+		return seededTestItems{}, fmt.Errorf("starting suite item: %w", err)
+	}
+
+	testPayload := fmt.Sprintf(
+		`{"launchUuid":%q,"name":%q,"startTime":"%s","type":"TEST","hasStats":true}`,
+		launchUUID,
+		testName,
+		now.Add(1*time.Second).UTC().Format(time.RFC3339Nano),
+	)
+	testURL := fmt.Sprintf("%s/v1/%s/item/%s", apiBase, projectName, url.PathEscape(suiteRef))
+	testRef, err := startItem(testURL, testPayload)
+	if err != nil {
+		return seededTestItems{}, fmt.Errorf("starting child test item: %w", err)
+	}
+
+	finishItem := func(itemRef string, status string, endTime time.Time) error {
+		finishPayload := fmt.Sprintf(
+			`{"launchUuid":%q,"endTime":"%s","status":%q}`,
+			launchUUID,
+			endTime.UTC().Format(time.RFC3339Nano),
+			status,
+		)
+		finishURL := fmt.Sprintf("%s/v1/%s/item/%s", apiBase, projectName, url.PathEscape(itemRef))
+
+		req, reqErr := http.NewRequestWithContext(
+			ctx,
+			http.MethodPut,
+			finishURL,
+			strings.NewReader(finishPayload),
+		)
+		if reqErr != nil {
+			return fmt.Errorf("creating finish item request: %w", reqErr)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		resp, doErr := httpClient.Do(req)
+		if doErr != nil {
+			return fmt.Errorf("finishing item %q: %w", itemRef, doErr)
+		}
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("finish item %q failed with status %d: %s", itemRef, resp.StatusCode, string(body))
+		}
+
+		return nil
+	}
+
+	if err := finishItem(testRef, "PASSED", now.Add(5*time.Second)); err != nil {
+		return seededTestItems{}, err
+	}
+	if err := finishItem(suiteRef, "PASSED", now.Add(6*time.Second)); err != nil {
+		return seededTestItems{}, err
+	}
+
+	finishLaunchPayload := fmt.Sprintf(`{"endTime":%d,"status":"PASSED"}`, now.Add(7*time.Second).UnixMilli())
+	finishLaunchURL := fmt.Sprintf("%s/v1/%s/launch/%s/finish", apiBase, projectName, startLaunchResult.ID)
+
+	finishLaunchReq, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPut,
+		finishLaunchURL,
+		strings.NewReader(finishLaunchPayload),
+	)
+	if err != nil {
+		return seededTestItems{}, fmt.Errorf("creating finish launch request: %w", err)
+	}
+	finishLaunchReq.Header.Set("Content-Type", "application/json")
+	finishLaunchReq.Header.Set("Authorization", "Bearer "+token)
+
+	finishLaunchResp, err := httpClient.Do(finishLaunchReq)
+	if err != nil {
+		return seededTestItems{}, fmt.Errorf("finishing launch for item seeding: %w", err)
+	}
+	finishLaunchBody, _ := io.ReadAll(finishLaunchResp.Body)
+	finishLaunchResp.Body.Close()
+
+	if finishLaunchResp.StatusCode != http.StatusOK {
+		return seededTestItems{}, fmt.Errorf(
+			"finish launch for item seeding failed with status %d: %s",
+			finishLaunchResp.StatusCode,
+			string(finishLaunchBody),
+		)
+	}
+
+	resolveItemByUUID := func(itemUUID string) (int64, string, int64, error) {
+		itemURL := fmt.Sprintf("%s/v1/%s/item/uuid/%s", apiBase, projectName, url.PathEscape(itemUUID))
+		for range 20 {
+			req, reqErr := http.NewRequestWithContext(ctx, http.MethodGet, itemURL, nil)
+			if reqErr != nil {
+				return 0, "", 0, fmt.Errorf("creating get item request: %w", reqErr)
+			}
+			req.Header.Set("Authorization", "Bearer "+token)
+
+			resp, doErr := httpClient.Do(req)
+			if doErr != nil {
+				return 0, "", 0, fmt.Errorf("getting item by uuid %q: %w", itemUUID, doErr)
+			}
+			body, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+
+			if resp.StatusCode == http.StatusOK {
+				var item struct {
+					ID   int64  `json:"id"`
+					UUID string `json:"uuid"`
+					LaunchID int64 `json:"launchId"`
+				}
+				if decodeErr := json.Unmarshal(body, &item); decodeErr != nil {
+					return 0, "", 0, fmt.Errorf("parsing get item response: %w", decodeErr)
+				}
+				if item.ID != 0 && item.UUID != "" {
+					return item.ID, item.UUID, item.LaunchID, nil
+				}
+			}
+
+			time.Sleep(250 * time.Millisecond)
+		}
+
+		return 0, "", 0, fmt.Errorf("could not resolve item by uuid %q", itemUUID)
+	}
+
+	suiteID, suiteUUID, _, err := resolveItemByUUID(suiteRef)
+	if err != nil {
+		return seededTestItems{}, fmt.Errorf("resolving suite item identifiers: %w", err)
+	}
+	testID, testUUID, _, err := resolveItemByUUID(testRef)
+	if err != nil {
+		return seededTestItems{}, fmt.Errorf("resolving child test item identifiers: %w", err)
+	}
+
+	launchClient := newClient()
+	for range 20 {
+		launchList, listErr := launchClient.Project(projectName).Launches().List(
+			ctx,
+			client.WithName(launchName),
+			client.WithPageSize(1),
+			client.WithSort("startTime,desc"),
+		)
+		if listErr == nil && len(launchList.Content) > 0 && launchList.Content[0].Id != 0 {
+			launchID = launchList.Content[0].Id
+			if launchList.Content[0].Uuid != "" {
+				launchUUID = launchList.Content[0].Uuid
+			}
+
+			break
+		}
+
+		time.Sleep(250 * time.Millisecond)
+	}
+	if launchID == 0 {
+		return seededTestItems{}, fmt.Errorf("could not resolve launch ID for seeded test items")
+	}
+
+	return seededTestItems{
+		LaunchID:   launchID,
+		LaunchUUID: launchUUID,
+		SuiteID:    suiteID,
+		SuiteUUID:  suiteUUID,
+		SuiteName:  suiteName,
+		TestID:     testID,
+		TestUUID:   testUUID,
+		TestName:   testName,
+	}, nil
+}
+
 // createProject creates a new Report Portal project with the given name.
 // It returns the project name for convenience.
 func createProject(ctx context.Context, rpBaseURL, token, projectName string) error {

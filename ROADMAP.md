@@ -37,7 +37,7 @@ If you want the fastest path to a customer-ready MVP while still building toward
 - [x] **PR: expand launch read surface**
   - Client: list/get/search launch endpoints + report/export retrieval where relevant.
   - CLI: strengthen `rp get launch` for list/get/filter/report workflows and stable machine-readable output.
-- [ ] **PR: expand test-item read surface**
+- [x] **PR: expand test-item read surface**
   - Client: get/list/search test item endpoints (including hierarchy/navigation support where available).
   - CLI: `rp get item` for list/get workflows aligned with launch navigation patterns.
 - [ ] **PR: add log + attachment read flows**

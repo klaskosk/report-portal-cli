@@ -1,7 +1,6 @@
 package client_test
 
 import (
-	"context"
 	"net/http"
 	"testing"
 
@@ -31,7 +30,7 @@ func TestLaunchScope_GetByID_Success(t *testing.T) {
 		}`))
 	}))
 
-	launch, err := c.Project("my_project").Launches().GetByID(context.Background(), "42")
+	launch, err := c.Project("my_project").Launches().GetByID(t.Context(), "42")
 	require.NoError(t, err)
 
 	assert.Equal(t, int64(42), launch.Id)
@@ -39,26 +38,43 @@ func TestLaunchScope_GetByID_Success(t *testing.T) {
 	assert.Equal(t, "PASSED", launch.Status)
 }
 
-func TestLaunchScope_GetByID_NotFound(t *testing.T) {
+func TestLaunchScope_GetByID_Errors(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, jsonResponse(http.StatusNotFound,
-		`{"errorCode": 40410, "message": "Launch '999' not found."}`))
+	tests := []struct {
+		name      string
+		status    int
+		body      string
+		id        string
+		assertErr func(error) bool
+	}{
+		{
+			name:      "NotFound",
+			status:    http.StatusNotFound,
+			body:      `{"errorCode": 40410, "message": "Launch '999' not found."}`,
+			id:        "999",
+			assertErr: client.IsNotFound,
+		},
+		{
+			name:      "Unauthorized",
+			status:    http.StatusUnauthorized,
+			body:      `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			id:        "42",
+			assertErr: client.IsUnauthorized,
+		},
+	}
 
-	_, err := c.Project("my_project").Launches().GetByID(context.Background(), "999")
-	require.Error(t, err)
-	assert.True(t, client.IsNotFound(err))
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-func TestLaunchScope_GetByID_Unauthorized(t *testing.T) {
-	t.Parallel()
+			c := newTestClient(t, jsonResponse(tt.status, tt.body))
 
-	c := newTestClient(t, jsonResponse(http.StatusUnauthorized,
-		`{"errorCode": 4001, "message": "Full authentication is required."}`))
-
-	_, err := c.Project("my_project").Launches().GetByID(context.Background(), "42")
-	require.Error(t, err)
-	assert.True(t, client.IsUnauthorized(err))
+			_, err := c.Project("my_project").Launches().GetByID(t.Context(), tt.id)
+			require.Error(t, err)
+			assert.True(t, tt.assertErr(err))
+		})
+	}
 }
 
 func TestLaunchScope_GetByUUID_Success(t *testing.T) {
@@ -82,7 +98,7 @@ func TestLaunchScope_GetByUUID_Success(t *testing.T) {
 		}`))
 	}))
 
-	launch, err := c.Project("my_project").Launches().GetByUUID(context.Background(), "abc-def-123")
+	launch, err := c.Project("my_project").Launches().GetByUUID(t.Context(), "abc-def-123")
 	require.NoError(t, err)
 
 	assert.Equal(t, "abc-def-123", launch.Uuid)
@@ -95,7 +111,7 @@ func TestLaunchScope_GetByUUID_NotFound(t *testing.T) {
 	c := newTestClient(t, jsonResponse(http.StatusNotFound,
 		`{"errorCode": 40410, "message": "Launch not found."}`))
 
-	_, err := c.Project("my_project").Launches().GetByUUID(context.Background(), "nonexistent")
+	_, err := c.Project("my_project").Launches().GetByUUID(t.Context(), "nonexistent")
 	require.Error(t, err)
 	assert.True(t, client.IsNotFound(err))
 }
@@ -119,7 +135,7 @@ func TestLaunchScope_List_Success(t *testing.T) {
 		}`))
 	}))
 
-	result, err := c.Project("my_project").Launches().List(context.Background())
+	result, err := c.Project("my_project").Launches().List(t.Context())
 	require.NoError(t, err)
 	require.Len(t, result.Content, 2)
 
@@ -147,7 +163,7 @@ func TestLaunchScope_List_WithFilterOptions(t *testing.T) {
 		}`))
 	}))
 
-	_, err := c.Project("my_project").Launches().List(context.Background(),
+	_, err := c.Project("my_project").Launches().List(t.Context(),
 		client.WithName("My Launch"),
 		client.WithStatus("PASSED"),
 		client.WithPageNumber(2),
@@ -162,7 +178,7 @@ func TestLaunchScope_List_Forbidden(t *testing.T) {
 	c := newTestClient(t, jsonResponse(http.StatusForbidden,
 		`{"errorCode": 4003, "message": "Access denied."}`))
 
-	_, err := c.Project("my_project").Launches().List(context.Background())
+	_, err := c.Project("my_project").Launches().List(t.Context())
 	require.Error(t, err)
 	assert.True(t, client.IsForbidden(err))
 }
@@ -182,7 +198,7 @@ func TestLaunchScope_AuthorizationHeader(t *testing.T) {
 		}`))
 	}))
 
-	_, err := c.Project("test").Launches().List(context.Background())
+	_, err := c.Project("test").Launches().List(t.Context())
 	require.NoError(t, err)
 }
 
@@ -205,7 +221,7 @@ func TestLaunchScope_GetLatest_Success(t *testing.T) {
 		}`))
 	}))
 
-	result, err := c.Project("my_project").Launches().GetLatest(context.Background())
+	result, err := c.Project("my_project").Launches().GetLatest(t.Context())
 	require.NoError(t, err)
 	require.Len(t, result.Content, 1)
 
@@ -231,7 +247,7 @@ func TestLaunchScope_GetLatest_WithOptions(t *testing.T) {
 		}`))
 	}))
 
-	_, err := c.Project("my_project").Launches().GetLatest(context.Background(),
+	_, err := c.Project("my_project").Launches().GetLatest(t.Context(),
 		client.WithName("My Launch"),
 		client.WithPageSize(10),
 	)
@@ -257,7 +273,7 @@ func TestLaunchScope_GetDebug_Success(t *testing.T) {
 		}`))
 	}))
 
-	result, err := c.Project("my_project").Launches().GetDebug(context.Background())
+	result, err := c.Project("my_project").Launches().GetDebug(t.Context())
 	require.NoError(t, err)
 	require.Len(t, result.Content, 1)
 
@@ -283,13 +299,12 @@ func TestLaunchScope_GetDebug_WithOptions(t *testing.T) {
 		}`))
 	}))
 
-	_, err := c.Project("my_project").Launches().GetDebug(context.Background(),
+	_, err := c.Project("my_project").Launches().GetDebug(t.Context(),
 		client.WithName("Debug Test"),
 		client.WithPageSize(5),
 	)
 	require.NoError(t, err)
 }
-
 
 func TestLaunchScope_WithUserFilters(t *testing.T) {
 	t.Parallel()
@@ -323,7 +338,12 @@ func TestLaunchScope_WithUserFilters(t *testing.T) {
 				query := r.URL.Query()
 
 				for key, expectedValue := range tt.expected {
-					assert.Equal(t, expectedValue, query.Get(key), "query parameter mismatch for "+key)
+					assert.Equal(
+						t,
+						expectedValue,
+						query.Get(key),
+						"query parameter mismatch for "+key,
+					)
 				}
 
 				w.Header().Set("Content-Type", "application/json")
@@ -335,7 +355,7 @@ func TestLaunchScope_WithUserFilters(t *testing.T) {
 				}`))
 			}))
 
-			_, err := c.Project("my_project").Launches().List(context.Background(), tt.option)
+			_, err := c.Project("my_project").Launches().List(t.Context(), tt.option)
 			require.NoError(t, err)
 		})
 	}
@@ -358,7 +378,7 @@ func TestLaunchScope_WithMode(t *testing.T) {
 		}`))
 	}))
 
-	_, err := c.Project("my_project").Launches().List(context.Background(),
+	_, err := c.Project("my_project").Launches().List(t.Context(),
 		client.WithMode("DEBUG"),
 	)
 	require.NoError(t, err)
@@ -396,7 +416,12 @@ func TestLaunchScope_WithAttributeFilters(t *testing.T) {
 				query := r.URL.Query()
 
 				for key, expectedValue := range tt.expected {
-					assert.Equal(t, expectedValue, query.Get(key), "query parameter mismatch for "+key)
+					assert.Equal(
+						t,
+						expectedValue,
+						query.Get(key),
+						"query parameter mismatch for "+key,
+					)
 				}
 
 				w.Header().Set("Content-Type", "application/json")
@@ -408,7 +433,7 @@ func TestLaunchScope_WithAttributeFilters(t *testing.T) {
 				}`))
 			}))
 
-			_, err := c.Project("my_project").Launches().List(context.Background(), tt.option)
+			_, err := c.Project("my_project").Launches().List(t.Context(), tt.option)
 			require.NoError(t, err)
 		})
 	}
@@ -453,7 +478,12 @@ func TestLaunchScope_WithOtherFilters(t *testing.T) {
 				query := r.URL.Query()
 
 				for key, expectedValue := range tt.expected {
-					assert.Equal(t, expectedValue, query.Get(key), "query parameter mismatch for "+key)
+					assert.Equal(
+						t,
+						expectedValue,
+						query.Get(key),
+						"query parameter mismatch for "+key,
+					)
 				}
 
 				w.Header().Set("Content-Type", "application/json")
@@ -465,7 +495,7 @@ func TestLaunchScope_WithOtherFilters(t *testing.T) {
 				}`))
 			}))
 
-			_, err := c.Project("my_project").Launches().List(context.Background(), tt.option)
+			_, err := c.Project("my_project").Launches().List(t.Context(), tt.option)
 			require.NoError(t, err)
 		})
 	}
@@ -488,7 +518,7 @@ func TestLaunchScope_GetNames_Success(t *testing.T) {
 		_, _ = w.Write([]byte(`["Smoke Tests", "Smoke Suite", "Smoke Regression"]`))
 	}))
 
-	names, err := c.Project("my_project").Launches().GetNames(context.Background(), "smoke")
+	names, err := c.Project("my_project").Launches().GetNames(t.Context(), "smoke")
 	require.NoError(t, err)
 	require.Len(t, names, 3)
 
@@ -497,38 +527,58 @@ func TestLaunchScope_GetNames_Success(t *testing.T) {
 	assert.Equal(t, "Smoke Regression", names[2])
 }
 
-func TestLaunchScope_GetNames_Empty(t *testing.T) {
+func TestLaunchScope_GetNames_EdgeCases(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/launch/names")
+	tests := []struct {
+		name           string
+		filter         string
+		responseBody   string
+		expectedLength int
+		assertFilter   func(*testing.T, *http.Request)
+	}{
+		{
+			name:           "Empty",
+			filter:         "nonexistent",
+			responseBody:   `[]`,
+			expectedLength: 0,
+			assertFilter:   nil,
+		},
+		{
+			name:           "NoFilter",
+			filter:         "",
+			responseBody:   `["Launch 1", "Launch 2"]`,
+			expectedLength: 2,
+			assertFilter: func(t *testing.T, r *http.Request) {
+				t.Helper()
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+				query := r.URL.Query()
+				assert.Empty(t, query.Get("filter.cnt.name"))
+			},
+		},
+	}
 
-		_, _ = w.Write([]byte(`[]`))
-	}))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	names, err := c.Project("my_project").Launches().GetNames(context.Background(), "nonexistent")
-	require.NoError(t, err)
-	require.Len(t, names, 0)
-}
+			c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				assertBearerToken(t, r, "test-token")
+				assertPath(t, r, "/api/v1/my_project/launch/names")
 
-func TestLaunchScope_GetNames_NoFilter(t *testing.T) {
-	t.Parallel()
+				if tt.assertFilter != nil {
+					tt.assertFilter(t, r)
+				}
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		query := r.URL.Query()
-		assert.Equal(t, "", query.Get("filter.cnt.name"))
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(tt.responseBody))
+			}))
 
-		_, _ = w.Write([]byte(`["Launch 1", "Launch 2"]`))
-	}))
-
-	names, err := c.Project("my_project").Launches().GetNames(context.Background(), "")
-	require.NoError(t, err)
-	require.Len(t, names, 2)
+			names, err := c.Project("my_project").Launches().GetNames(t.Context(), tt.filter)
+			require.NoError(t, err)
+			require.Len(t, names, tt.expectedLength)
+		})
+	}
 }

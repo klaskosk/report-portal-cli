@@ -18,6 +18,11 @@ func (p *ProjectScope) Launches() *LaunchScope {
 	return &LaunchScope{project: p}
 }
 
+// Items returns a TestItemScope for querying test items in this project.
+func (p *ProjectScope) Items() *TestItemScope {
+	return &TestItemScope{project: p}
+}
+
 func (p *ProjectScope) logger() *slog.Logger {
 	return p.client.logger.With("project", p.projectName)
 }

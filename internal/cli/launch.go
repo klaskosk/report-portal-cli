@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -220,7 +221,7 @@ func resolveLaunchFilterFlags(cmd *cobra.Command) (launchFilterFlags, error) {
 	debug, _ := cmd.Flags().GetBool("debug")
 
 	if latest && debug {
-		return launchFilterFlags{}, fmt.Errorf("cannot use both --latest and --debug flags")
+		return launchFilterFlags{}, errors.New("cannot use both --latest and --debug flags")
 	}
 
 	return launchFilterFlags{
@@ -265,8 +266,8 @@ func applyLaunchFilterOptions(filters launchFilterFlags) []client.ListLaunchesOp
 }
 
 // parseAttribute parses an attribute string in "key:value" format.
-func parseAttribute(attr string) (key, value string, ok bool) {
-	for i := 0; i < len(attr); i++ {
+func parseAttribute(attr string) (string, string, bool) {
+	for i := range len(attr) {
 		if attr[i] == ':' {
 			return attr[:i], attr[i+1:], true
 		}

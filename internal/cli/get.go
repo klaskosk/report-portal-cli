@@ -9,6 +9,7 @@ func newGetCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(newGetLaunchCmd())
+	cmd.AddCommand(newGetItemCmd())
 
 	return cmd
 }

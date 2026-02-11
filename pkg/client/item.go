@@ -1,0 +1,203 @@
+package client
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+
+	"github.com/klaskosk/report-portal-cli/pkg/internal/api"
+	"github.com/klaskosk/report-portal-cli/pkg/types"
+)
+
+// TestItemScope provides read operations on test items within a project.
+type TestItemScope struct {
+	project *ProjectScope
+}
+
+// GetByID returns a single test item by its numeric ID.
+func (i *TestItemScope) GetByID(
+	ctx context.Context,
+	id string,
+) (*types.TestItemResource, error) {
+	logger := i.project.operationLogger("GetTestItemByID", slog.String("id", id))
+	logger.InfoContext(ctx, "API request")
+
+	response, err := i.project.client.raw.GetTestItemUsingGETWithResponse(
+		ctx,
+		i.project.projectName,
+		id,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get test item by id: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "get test item by id", response.JSONDefault, response.JSON200)
+}
+
+// GetByUUID returns a single test item by its UUID.
+func (i *TestItemScope) GetByUUID(
+	ctx context.Context,
+	uuid string,
+) (*types.TestItemResource, error) {
+	logger := i.project.operationLogger("GetTestItemByUUID", slog.String("uuid", uuid))
+	logger.InfoContext(ctx, "API request")
+
+	response, err := i.project.client.raw.GetTestItemByUuidUsingGETWithResponse(
+		ctx,
+		i.project.projectName,
+		uuid,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get test item by uuid: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "get test item by uuid", response.JSONDefault, response.JSON200)
+}
+
+// ListTestItemsOption configures filter and pagination parameters for listing test items.
+type ListTestItemsOption func(*api.GetTestItemsUsingGET2Params)
+
+// List returns a paginated list of test items matching the given filter options.
+func (i *TestItemScope) List(
+	ctx context.Context,
+	options ...ListTestItemsOption,
+) (*types.IterableTestItemResource, error) {
+	logger := i.project.operationLogger("ListTestItems")
+
+	params := &api.GetTestItemsUsingGET2Params{}
+	for _, option := range options {
+		option(params)
+	}
+
+	logger.InfoContext(ctx, "API request")
+
+	response, err := i.project.client.raw.GetTestItemsUsingGET2WithResponse(
+		ctx,
+		i.project.projectName,
+		params,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list test items: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "list test items", response.JSONDefault, response.JSON200)
+}
+
+// GetByIDs returns test items for the given numeric IDs.
+func (i *TestItemScope) GetByIDs(
+	ctx context.Context,
+	ids ...int64,
+) ([]types.TestItemResource, error) {
+	logger := i.project.operationLogger("GetTestItemsByIDs")
+
+	if len(ids) == 0 {
+		return []types.TestItemResource{}, nil
+	}
+
+	params := &api.GetTestItemsUsingGETParams{Ids: ids}
+
+	logger.InfoContext(ctx, "API request")
+
+	response, err := i.project.client.raw.GetTestItemsUsingGETWithResponse(
+		ctx,
+		i.project.projectName,
+		params,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get test items by ids: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	items, err := handleResponse(
+		response,
+		"get test items by ids",
+		response.JSONDefault,
+		response.JSON200,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if items == nil {
+		return []types.TestItemResource{}, nil
+	}
+
+	return *items, nil
+}
+
+// WithItemPageNumber sets the page number (0-based).
+func WithItemPageNumber(n int32) ListTestItemsOption {
+	return func(params *api.GetTestItemsUsingGET2Params) {
+		params.PagePage = &n
+	}
+}
+
+// WithItemPageSize sets the number of results per page.
+func WithItemPageSize(size int32) ListTestItemsOption {
+	return func(params *api.GetTestItemsUsingGET2Params) {
+		params.PageSize = &size
+	}
+}
+
+// WithItemSort sets the sorting criteria (e.g. "startTime,desc").
+func WithItemSort(fields ...string) ListTestItemsOption {
+	return func(params *api.GetTestItemsUsingGET2Params) {
+		params.PageSort = &fields
+	}
+}
+
+// WithItemLaunchID filters test items by launch ID.
+func WithItemLaunchID(launchID int64) ListTestItemsOption {
+	return func(params *api.GetTestItemsUsingGET2Params) {
+		params.FilterEqLaunchId = &launchID
+	}
+}
+
+// WithItemParentID filters test items by parent item ID.
+func WithItemParentID(parentID int64) ListTestItemsOption {
+	return func(params *api.GetTestItemsUsingGET2Params) {
+		params.FilterEqParentId = &parentID
+	}
+}
+
+// WithItemType filters test items by type (e.g. "SUITE", "TEST", "STEP").
+func WithItemType(itemType string) ListTestItemsOption {
+	return func(params *api.GetTestItemsUsingGET2Params) {
+		params.FilterEqType = &itemType
+	}
+}
+
+// WithItemName filters test items by name.
+func WithItemName(name string) ListTestItemsOption {
+	return func(params *api.GetTestItemsUsingGET2Params) {
+		params.FilterEqName = &name
+	}
+}
+
+// WithItemStatus filters test items by status.
+func WithItemStatus(status string) ListTestItemsOption {
+	return func(params *api.GetTestItemsUsingGET2Params) {
+		params.FilterEqStatus = &status
+	}
+}
+
+// WithItemHasChildren filters test items by whether they have children.
+func WithItemHasChildren(hasChildren bool) ListTestItemsOption {
+	return func(params *api.GetTestItemsUsingGET2Params) {
+		params.FilterEqHasChildren = &hasChildren
+	}
+}
+
+// WithItemPath filters test items by path identifier.
+func WithItemPath(path int64) ListTestItemsOption {
+	return func(params *api.GetTestItemsUsingGET2Params) {
+		params.FilterEqPath = &path
+	}
+}

@@ -250,7 +250,9 @@ func (l *LaunchScope) GetDebug(
 }
 
 // convertToLatestParams converts GetProjectLaunchesUsingGETParams to GetLatestLaunchesUsingGETParams.
-func convertToLatestParams(src *api.GetProjectLaunchesUsingGETParams) *api.GetLatestLaunchesUsingGETParams {
+func convertToLatestParams(
+	src *api.GetProjectLaunchesUsingGETParams,
+) *api.GetLatestLaunchesUsingGETParams {
 	return &api.GetLatestLaunchesUsingGETParams{
 		FilterEqAttributeKey:       src.FilterEqAttributeKey,
 		FilterEqAttributeValue:     src.FilterEqAttributeValue,
@@ -276,7 +278,9 @@ func convertToLatestParams(src *api.GetProjectLaunchesUsingGETParams) *api.GetLa
 }
 
 // convertToDebugParams converts GetProjectLaunchesUsingGETParams to GetDebugLaunchesUsingGETParams.
-func convertToDebugParams(src *api.GetProjectLaunchesUsingGETParams) *api.GetDebugLaunchesUsingGETParams {
+func convertToDebugParams(
+	src *api.GetProjectLaunchesUsingGETParams,
+) *api.GetDebugLaunchesUsingGETParams {
 	return &api.GetDebugLaunchesUsingGETParams{
 		FilterEqAttributeKey:       src.FilterEqAttributeKey,
 		FilterEqAttributeValue:     src.FilterEqAttributeValue,
@@ -326,7 +330,12 @@ func (l *LaunchScope) GetNames(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	names, err := handleResponse(response, "get launch names", response.JSONDefault, response.JSON200)
+	names, err := handleResponse(
+		response,
+		"get launch names",
+		response.JSONDefault,
+		response.JSON200,
+	)
 	if err != nil {
 		return nil, err
 	}
