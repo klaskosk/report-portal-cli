@@ -32,6 +32,7 @@ func newLogger(verbosity int) *slog.Logger {
 	return slog.New(handler)
 }
 
+// verbosityToLevel converts a kubectl-style verbosity (0-3+) to an slog.Level.
 func verbosityToLevel(verbosity int) slog.Level {
 	switch {
 	case verbosity <= 0:
@@ -63,10 +64,12 @@ func replaceLevel(_ []string, attr slog.Attr) slog.Attr {
 	return attr
 }
 
+// loggerFromCmd extracts the logger stored in the command's context.
 func loggerFromCmd(cmd *cobra.Command) *slog.Logger {
 	return loggerFromContext(cmd.Context())
 }
 
+// loggerFromContext extracts the logger from ctx, returning a discard logger if none is set.
 func loggerFromContext(ctx context.Context) *slog.Logger {
 	if logger, ok := ctx.Value(loggerKey{}).(*slog.Logger); ok {
 		return logger

@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// newTestCmdWithProjectFlag creates a test Cobra command wired to the root with a -p flag and discard logger.
 func newTestCmdWithProjectFlag(t *testing.T) *cobra.Command {
 	t.Helper()
 

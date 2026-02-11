@@ -29,6 +29,7 @@ func Execute() error {
 	return fmt.Errorf("executing command: %w", err)
 }
 
+// newRootCmd builds the root "rp" command with global flags and subcommands.
 func newRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "rp",
@@ -58,6 +59,8 @@ func newRootCmd() *cobra.Command {
 	flags.IntP("verbosity", "v", 0, "log verbosity level (0=off, 1=info, 2=debug, 3+=trace)")
 
 	cmd.AddCommand(newGetCmd())
+	cmd.AddCommand(newDownloadCmd())
+	cmd.AddCommand(newWhoamiCmd())
 
 	return cmd
 }

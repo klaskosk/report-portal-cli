@@ -23,6 +23,12 @@ func (p *ProjectScope) Items() *TestItemScope {
 	return &TestItemScope{project: p}
 }
 
+// Logs returns a LogScope for querying log entries in this project.
+func (p *ProjectScope) Logs() *LogScope {
+	return &LogScope{project: p}
+}
+
+// logger returns a logger scoped to this project.
 func (p *ProjectScope) logger() *slog.Logger {
 	return p.client.logger.With("project", p.projectName)
 }

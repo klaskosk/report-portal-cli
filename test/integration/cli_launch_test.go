@@ -15,9 +15,14 @@ import (
 )
 
 type launchListEntry struct {
-	ID   int64  `json:"id"`
-	UUID string `json:"uuid"`
-	Name string `json:"name"`
+	ID          int64   `json:"id"`
+	UUID        string  `json:"uuid"`
+	Name        string  `json:"name"`
+	Status      string  `json:"status"`
+	StartTime   int64   `json:"startTime"`
+	EndTime     *int64  `json:"endTime"`
+	Number      int64   `json:"number"`
+	Description *string `json:"description"`
 }
 
 var _ = Describe("CLI: get launch", Label("cli", "launches"), func() {
@@ -66,7 +71,20 @@ var _ = Describe("CLI: get launch", Label("cli", "launches"), func() {
 				[]string{"-o", "json"},
 				"rp get launch -o json",
 				func(result cliResult) {
-					requireLaunchList(result)
+					expectJSONArrayObjectsHaveKeys(
+						result.Stdout,
+						"id", "uuid", "name", "status",
+						"startTime", "endTime", "number", "description",
+					)
+					launches := requireLaunchList(result)
+					for _, l := range launches {
+						Expect(l.ID).NotTo(BeZero(), "launch should have a non-zero id")
+						Expect(l.UUID).NotTo(BeEmpty(), "launch should have a non-empty uuid")
+						Expect(l.Name).NotTo(BeEmpty(), "launch should have a non-empty name")
+						Expect(l.Status).NotTo(BeEmpty(), "launch should have a non-empty status")
+						Expect(l.StartTime).NotTo(BeZero(), "launch should have a non-zero startTime")
+						Expect(l.Number).NotTo(BeZero(), "launch should have a non-zero number")
+					}
 				},
 			),
 			Entry("go-template output", []string{"-o", `go-template={{range .}}{{.Name}} {{end}}`},
@@ -94,6 +112,22 @@ var _ = Describe("CLI: get launch", Label("cli", "launches"), func() {
 			expectCLISuccess(result, fmt.Sprintf("rp get launch %s", launch.UUID))
 			Expect(result.Stdout).To(ContainSubstring(launch.UUID),
 				"single launch output should contain the requested UUID %q", launch.UUID)
+		})
+
+		It("returns json output with expected contract fields", func() {
+			launch := requireFirstLaunch(projectName)
+			result := runProjectLaunch(projectName, strconv.FormatInt(launch.ID, 10), "-o", "json")
+			expectCLISuccess(result, "rp get launch <id> -o json")
+			expectJSONObjectHasKeys(
+				result.Stdout,
+				"id", "uuid", "name", "status",
+				"startTime", "endTime", "number", "description",
+			)
+
+			var single launchListEntry
+			Expect(json.Unmarshal([]byte(result.Stdout), &single)).To(Succeed())
+			Expect(single.ID).To(Equal(launch.ID))
+			Expect(single.UUID).To(Equal(launch.UUID))
 		})
 
 		It("exits non-zero for a missing launch", func() {
@@ -305,7 +339,7 @@ profiles:
 		result := runProjectLaunch(projectName, "-o", "json", "999999")
 		expectCLIError(result, "rp get launch 999999 -o json")
 		expectJSONError(result, "not found")
-		Expect(result.Stderr).To(BeEmpty(), "stderr should be empty in JSON mode")
+		Expect(result.Stdout).To(BeEmpty(), "stdout should be empty when JSON error goes to stderr")
 	})
 
 	Context("filter flags", func() {
@@ -374,6 +408,7 @@ profiles:
 	})
 })
 
+// runProjectLaunch runs the CLI with "get launch" for the given project and extra args.
 func runProjectLaunch(projectName string, args ...string) cliResult {
 	GinkgoHelper()
 
@@ -383,18 +418,7 @@ func runProjectLaunch(projectName string, args ...string) cliResult {
 	return runCLI(fullArgs...)
 }
 
-func expectCLISuccess(result cliResult, description string) {
-	GinkgoHelper()
-	Expect(result.ExitCode).To(Equal(0),
-		"%s should exit 0; stderr: %s", description, result.Stderr)
-}
-
-func expectCLIError(result cliResult, description string) {
-	GinkgoHelper()
-	Expect(result.ExitCode).NotTo(Equal(0),
-		"%s should exit non-zero; stderr: %s", description, result.Stderr)
-}
-
+// requireLaunchList asserts the CLI succeeded and parses the JSON stdout as a launch list.
 func requireLaunchList(result cliResult) []launchListEntry {
 	GinkgoHelper()
 
@@ -409,6 +433,7 @@ func requireLaunchList(result cliResult) []launchListEntry {
 	return launches
 }
 
+// requireFirstLaunch lists launches for the project and returns the first entry.
 func requireFirstLaunch(projectName string) launchListEntry {
 	GinkgoHelper()
 

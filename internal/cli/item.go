@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newGetItemCmd builds the "get item" subcommand for listing or retrieving test items.
 func newGetItemCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "item [id-or-uuid]",
@@ -35,6 +36,7 @@ Examples:
 	return cmd
 }
 
+// runGetItem executes the get item command, dispatching to single-get or list mode.
 func runGetItem(cmd *cobra.Command, args []string) error {
 	logger := loggerFromCmd(cmd)
 	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
@@ -72,6 +74,7 @@ func runGetItem(cmd *cobra.Command, args []string) error {
 	return listItems(cmd, clientInstance, project, printer)
 }
 
+// getSingleItem retrieves and prints a single test item by numeric ID or UUID.
 func getSingleItem(
 	cmd *cobra.Command,
 	clientInstance *client.Client,
@@ -100,9 +103,10 @@ func getSingleItem(
 
 	headers, row := itemRow(item)
 
-	return printer.Print(item, headers, [][]string{row})
+	return printSingleResource(printer, item, headers, row, itemRequiredJSONKeys, "item")
 }
 
+// listItems retrieves and prints a paginated, filtered list of test items.
 func listItems(
 	cmd *cobra.Command,
 	clientInstance *client.Client,
@@ -150,13 +154,20 @@ func listItems(
 		rows = append(rows, row)
 	}
 
-	return printer.Print(result.Content, headers, rows)
+	return printResourceList(printer, result.Content, headers, rows, itemRequiredJSONKeys, "item")
 }
 
+// itemHeaders returns the table column headers for test item output.
 func itemHeaders() []string {
 	return []string{"ID", "UUID", "NAME", "TYPE", "STATUS", "PARENT", "LAUNCH"}
 }
 
+var itemRequiredJSONKeys = []string{
+	"id", "uuid", "name", "type", "status",
+	"startTime", "endTime", "launchId", "parent",
+}
+
+// itemRow formats a test item as a table row, returning both headers and column values.
 func itemRow(item *types.TestItemResource) ([]string, []string) {
 	return itemHeaders(), []string{
 		formatInt64Ptr(item.Id),
@@ -169,6 +180,7 @@ func itemRow(item *types.TestItemResource) ([]string, []string) {
 	}
 }
 
+// formatStringPtr returns the dereferenced string or an empty string if nil.
 func formatStringPtr(value *string) string {
 	if value == nil {
 		return ""
@@ -177,6 +189,7 @@ func formatStringPtr(value *string) string {
 	return *value
 }
 
+// formatInt64Ptr returns the formatted int64 or an empty string if nil.
 func formatInt64Ptr(value *int64) string {
 	if value == nil {
 		return ""
@@ -252,6 +265,7 @@ func resolveItemFilterFlags(cmd *cobra.Command) (itemFilterFlags, error) {
 	}, nil
 }
 
+// parseOptionalInt64Flag parses value as an int64 if non-empty, returning (0, false, nil) when empty.
 func parseOptionalInt64Flag(name, value string) (int64, bool, error) {
 	if value == "" {
 		return 0, false, nil

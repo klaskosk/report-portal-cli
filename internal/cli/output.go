@@ -19,6 +19,7 @@ type Printer struct {
 	errOut io.Writer
 }
 
+// newPrinter creates a Printer that writes to stdout/stderr in the given format.
 func newPrinter(format string) *Printer {
 	return &Printer{
 		format: format,
@@ -86,10 +87,10 @@ func (p *Printer) PrintTemplate(tmpl string, value any) error {
 }
 
 // PrintError formats err according to the current output mode. JSON mode writes a JSON object
-// to stdout; other modes write plain text to stderr.
+// to stderr; other modes write plain text to stderr.
 func (p *Printer) PrintError(err error) {
 	if p.isJSON() {
-		_ = p.PrintJSON(map[string]string{"error": err.Error()})
+		_ = p.printJSONTo(p.errOut, map[string]string{"error": err.Error()})
 
 		return
 	}
@@ -97,9 +98,13 @@ func (p *Printer) PrintError(err error) {
 	_, _ = fmt.Fprintf(p.errOut, "Error: %s\n", err)
 }
 
-// printedError wraps an error that has already been displayed to the user.
-// Execute uses this to avoid double-printing command handler errors while still
-// printing Cobra-level failures (unknown commands, argument validation, etc.).
+// PrintWarning writes a human-readable warning message to stderr.
+func (p *Printer) PrintWarning(message string) {
+	_, _ = fmt.Fprintf(p.errOut, "Warning: %s\n", message)
+}
+
+// printedError wraps an error that has already been displayed to the user. Execute uses this to avoid double-printing
+// command handler errors while still printing Cobra-level failures (unknown commands, argument validation, etc.).
 type printedError struct {
 	err error
 }
@@ -142,14 +147,30 @@ func (p *Printer) Print(value any, tableHeaders []string, tableRows [][]string) 
 	return fmt.Errorf("unknown output format: %q", p.format)
 }
 
+// printJSONTo writes value as indented JSON to the given writer.
+func (p *Printer) printJSONTo(w io.Writer, value any) error {
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
+
+	err := enc.Encode(value)
+	if err != nil {
+		return fmt.Errorf("encoding json: %w", err)
+	}
+
+	return nil
+}
+
+// isJSON reports whether the output format is JSON.
 func (p *Printer) isJSON() bool {
 	return p.format == "json"
 }
 
+// isTable reports whether the output format is table (the default).
 func (p *Printer) isTable() bool {
 	return p.format == "" || p.format == "table"
 }
 
+// goTemplateString returns the template string if the format is "go-template=<tmpl>".
 func (p *Printer) goTemplateString() (string, bool) {
 	if after, ok := strings.CutPrefix(p.format, "go-template="); ok {
 		return after, true

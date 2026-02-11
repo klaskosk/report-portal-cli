@@ -486,6 +486,7 @@ type getByIDsTestCase struct {
 	expectedLastType string
 }
 
+// runGetByIDsTestCase runs a single GetByIDs table-driven test case against an httptest server.
 func runGetByIDsTestCase(t *testing.T, testCase getByIDsTestCase) {
 	t.Helper()
 

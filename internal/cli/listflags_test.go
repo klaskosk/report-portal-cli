@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// newTestCmdWithListFlags creates a test Cobra command with standard list flags registered.
 func newTestCmdWithListFlags(t *testing.T) *cobra.Command {
 	t.Helper()
 

@@ -73,7 +73,6 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 		It("paginates results", func(ctx SpecContext) {
 			firstPage, err := c.Project(projectName).Launches().List(ctx,
 				client.WithPageSize(1),
-				client.WithPageNumber(0),
 				client.WithSort("id,asc"),
 			)
 			Expect(err).NotTo(HaveOccurred(),
@@ -81,15 +80,16 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			Expect(firstPage.Content).To(HaveLen(1),
 				"first page with page size 1 should return exactly 1 launch")
 
+			nextPageNumber := int32(firstPage.Page.Number) + 1
 			secondPage, err := c.Project(projectName).Launches().List(ctx,
 				client.WithPageSize(1),
-				client.WithPageNumber(1),
+				client.WithPageNumber(nextPageNumber),
 				client.WithSort("id,asc"),
 			)
 			Expect(err).NotTo(HaveOccurred(),
 				"listing launches (second page) should not fail")
 
-			if secondPage.Page.TotalPages > 1 {
+			if firstPage.Page.TotalPages > 1 {
 				Expect(secondPage.Content).To(HaveLen(1),
 					"second page with page size 1 should return exactly 1 launch")
 				Expect(secondPage.Content[0].Id).NotTo(Equal(firstPage.Content[0].Id),

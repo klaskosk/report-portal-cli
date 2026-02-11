@@ -130,9 +130,10 @@ func seedTestLaunches(ctx context.Context, rpBaseURL, token, projectName string,
 }
 
 type seededTestItems struct {
-	LaunchID  int64
-	SuiteID   int64
-	SuiteUUID string
+	LaunchID   int64
+	LaunchUUID string
+	SuiteID    int64
+	SuiteUUID  string
 }
 
 const (
@@ -345,9 +346,10 @@ func resolveSeededItemIdentifiers(
 	}
 
 	return seededTestItems{
-		LaunchID:  launchID,
-		SuiteID:   suiteID,
-		SuiteUUID: suiteUUID,
+		LaunchID:   launchID,
+		LaunchUUID: refs.LaunchUUID,
+		SuiteID:    suiteID,
+		SuiteUUID:  suiteUUID,
 	}, nil
 }
 
@@ -646,6 +648,7 @@ func sanitizedEnv() []string {
 	return env
 }
 
+// writeTempConfig writes content to a temporary config.yaml file and returns its path.
 func writeTempConfig(content string) (string, error) {
 	dir, err := os.MkdirTemp("", "rp-config-*")
 	if err != nil {
@@ -663,14 +666,29 @@ func writeTempConfig(content string) (string, error) {
 	return path, nil
 }
 
+// expectCLISuccess asserts that the CLI exited with code 0.
+func expectCLISuccess(result cliResult, description string) {
+	GinkgoHelper()
+	Expect(result.ExitCode).To(Equal(0),
+		"%s should exit 0; stderr: %s", description, result.Stderr)
+}
+
+// expectCLIError asserts that the CLI exited with a non-zero exit code.
+func expectCLIError(result cliResult, description string) {
+	GinkgoHelper()
+	Expect(result.ExitCode).NotTo(Equal(0),
+		"%s should exit non-zero; stderr: %s", description, result.Stderr)
+}
+
+// expectJSONError asserts that stderr contains a JSON object with an "error" field matching the expected substring.
 func expectJSONError(result cliResult, expectedSubstring string) {
 	GinkgoHelper()
 
-	Expect(result.Stdout).NotTo(BeEmpty(), "stdout should contain a JSON error payload")
+	Expect(result.Stderr).NotTo(BeEmpty(), "stderr should contain a JSON error payload")
 
 	var payload map[string]string
-	err := json.Unmarshal([]byte(result.Stdout), &payload)
-	Expect(err).NotTo(HaveOccurred(), "stdout should contain valid JSON")
+	err := json.Unmarshal([]byte(result.Stderr), &payload)
+	Expect(err).NotTo(HaveOccurred(), "stderr should contain valid JSON")
 	Expect(payload).To(HaveKey("error"), "JSON error payload should include an error field")
 	if expectedSubstring != "" {
 		Expect(
@@ -679,9 +697,223 @@ func expectJSONError(result cliResult, expectedSubstring string) {
 	}
 }
 
+// expectJSONObjectHasKeys asserts that jsonText decodes to a JSON object with all required keys.
+func expectJSONObjectHasKeys(jsonText string, requiredKeys ...string) {
+	GinkgoHelper()
+
+	var object map[string]json.RawMessage
+	err := json.Unmarshal([]byte(jsonText), &object)
+	Expect(err).NotTo(HaveOccurred(), "expected a JSON object, got: %s", jsonText)
+
+	for _, key := range requiredKeys {
+		Expect(object).To(HaveKey(key), "JSON object should contain key %q", key)
+	}
+}
+
+// expectJSONArrayObjectsHaveKeys asserts that jsonText decodes to an array of JSON objects and every object contains
+// all required keys.
+func expectJSONArrayObjectsHaveKeys(jsonText string, requiredKeys ...string) {
+	GinkgoHelper()
+
+	var objects []map[string]json.RawMessage
+	err := json.Unmarshal([]byte(jsonText), &objects)
+	Expect(err).NotTo(HaveOccurred(), "expected a JSON array, got: %s", jsonText)
+	Expect(objects).NotTo(BeEmpty(), "JSON array should contain at least one object")
+
+	for index := range objects {
+		for _, key := range requiredKeys {
+			Expect(objects[index]).To(HaveKey(key), "JSON object at index %d should contain key %q", index, key)
+		}
+	}
+}
+
+// seedLogWithAttachment creates a log entry with a small text file attachment via multipart upload, then polls for the
+// log to appear and returns the binaryContent.id.
+func seedLogWithAttachment(
+	ctx context.Context,
+	rpBaseURL, token, projectName string,
+	seeded seededTestItems,
+) (string, error) {
+	logURL := fmt.Sprintf("%s/api/v1/%s/log", rpBaseURL, projectName)
+
+	jsonPart := fmt.Sprintf(
+		`[{"launchUuid":%q,"itemUuid":%q,"level":"INFO","message":"attachment test","time":%d}]`,
+		seeded.LaunchUUID, seeded.SuiteUUID, time.Now().UnixMilli(),
+	)
+
+	fileContent := "integration test attachment content"
+
+	// Build a multipart request: json_request_part + a file part.
+	var body bytes.Buffer
+	boundary := "----TestBoundary123"
+	body.WriteString("--" + boundary + "\r\n")
+	body.WriteString("Content-Disposition: form-data; name=\"json_request_part\"\r\n")
+	body.WriteString("Content-Type: application/json\r\n\r\n")
+	body.WriteString(jsonPart + "\r\n")
+	body.WriteString("--" + boundary + "\r\n")
+	body.WriteString("Content-Disposition: form-data; name=\"file\"; filename=\"test.txt\"\r\n")
+	body.WriteString("Content-Type: text/plain\r\n\r\n")
+	body.WriteString(fileContent + "\r\n")
+	body.WriteString("--" + boundary + "--\r\n")
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, logURL, &body)
+	if err != nil {
+		return "", fmt.Errorf("creating multipart log request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "multipart/form-data; boundary="+boundary)
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("posting multipart log: %w", err)
+	}
+	resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return "", fmt.Errorf("multipart log POST returned status %d", resp.StatusCode)
+	}
+
+	// Poll for the log entry to appear with binaryContent.
+	testClient, err := client.New(rpBaseURL, token)
+	if err != nil {
+		return "", fmt.Errorf("creating client for attachment resolution: %w", err)
+	}
+
+	var attachmentID string
+
+	resolved := waitForSeedResolution(
+		ctx,
+		seedResolutionAttempts*2,
+		seedResolutionInterval,
+		func() bool {
+			result, listErr := testClient.Project(projectName).Logs().List(
+				ctx,
+				client.WithLogItemID(seeded.SuiteID),
+				client.WithLogPageSize(50),
+			)
+			if listErr != nil || result == nil {
+				return false
+			}
+
+			for _, entry := range result.Content {
+				if entry.BinaryContent != nil && entry.BinaryContent.Id != "" {
+					attachmentID = entry.BinaryContent.Id
+
+					return true
+				}
+			}
+
+			return false
+		},
+	)
+	if !resolved {
+		return "", fmt.Errorf("attachment log entry did not become visible after polling")
+	}
+
+	return attachmentID, nil
+}
+
+// expectLogLevel asserts that stderr contains log output at the given level.
 func expectLogLevel(result cliResult, level string, description string) {
 	GinkgoHelper()
 
 	Expect(result.Stderr).To(ContainSubstring("level="+level),
 		"%s should emit %s logs; stderr: %s", description, level, result.Stderr)
+}
+
+type seededLogEntries struct {
+	LogIDs []int64
+}
+
+// seedTestLogEntries creates log entries for a seeded item/launch via the Report Portal
+// log entry API, then waits for the entries to become visible in listing queries.
+func seedTestLogEntries(
+	ctx context.Context,
+	rpBaseURL, token, projectName string,
+	seeded seededTestItems,
+	count int,
+) (seededLogEntries, error) {
+	logURL := fmt.Sprintf("%s/api/v1/%s/log/entry", rpBaseURL, projectName)
+
+	for i := range count {
+		level := "INFO"
+		if i%2 == 1 {
+			level = "ERROR"
+		}
+
+		message := fmt.Sprintf("integration-test-log-message-%d", i+1)
+		payload := fmt.Sprintf(
+			`{"launchUuid":%q,"itemUuid":%q,"level":%q,"message":%q,"time":%d}`,
+			seeded.LaunchUUID, seeded.SuiteUUID, level, message, time.Now().UnixMilli(),
+		)
+
+		req, err := http.NewRequestWithContext(
+			ctx,
+			http.MethodPost,
+			logURL,
+			strings.NewReader(payload),
+		)
+		if err != nil {
+			return seededLogEntries{}, fmt.Errorf("creating log entry request: %w", err)
+		}
+
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		resp, err := httpClient.Do(req)
+		if err != nil {
+			return seededLogEntries{}, fmt.Errorf("posting log entry: %w", err)
+		}
+		resp.Body.Close()
+
+		if resp.StatusCode != http.StatusCreated {
+			return seededLogEntries{}, fmt.Errorf(
+				"log entry POST returned status %d",
+				resp.StatusCode,
+			)
+		}
+	}
+
+	// Wait for logs to be indexed and visible via listing.
+	testClient, err := client.New(rpBaseURL, token)
+	if err != nil {
+		return seededLogEntries{}, fmt.Errorf("creating client for log resolution: %w", err)
+	}
+
+	var logIDs []int64
+
+	resolved := waitForSeedResolution(
+		ctx,
+		seedResolutionAttempts,
+		seedResolutionInterval,
+		func() bool {
+			result, listErr := testClient.Project(projectName).Logs().List(
+				ctx,
+				client.WithLogItemID(seeded.SuiteID),
+				client.WithLogPageSize(int32(count+10)),
+			)
+			if listErr != nil || result == nil {
+				return false
+			}
+
+			if len(result.Content) < count {
+				return false
+			}
+
+			logIDs = make([]int64, 0, len(result.Content))
+			for _, entry := range result.Content {
+				logIDs = append(logIDs, entry.Id)
+			}
+
+			return true
+		},
+	)
+	if !resolved {
+		return seededLogEntries{}, fmt.Errorf(
+			"seeded log entries did not become visible after polling",
+		)
+	}
+
+	return seededLogEntries{LogIDs: logIDs}, nil
 }

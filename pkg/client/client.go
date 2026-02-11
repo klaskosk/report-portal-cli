@@ -78,6 +78,16 @@ func WithHTTPClient(doer api.HttpRequestDoer) Option {
 	}
 }
 
+// Users returns a UsersScope for instance-level user operations.
+func (c *Client) Users() *UsersScope {
+	return &UsersScope{client: c}
+}
+
+// Projects returns a ProjectsScope for instance-level project operations.
+func (c *Client) Projects() *ProjectsScope {
+	return &ProjectsScope{client: c}
+}
+
 // WithLogger configures the logger used by the client for structured diagnostic
 // output. If not set, the client defaults to discarding all log output.
 func WithLogger(logger *slog.Logger) Option {

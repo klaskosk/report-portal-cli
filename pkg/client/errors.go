@@ -33,6 +33,7 @@ func (e *APIError) Error() string {
 	)
 }
 
+// newAPIError constructs an APIError from the operation name, HTTP status, and parsed error body.
 func newAPIError(operation string, statusCode int, resp *types.ErrorRS) *APIError {
 	return &APIError{
 		operation:  operation,
@@ -124,6 +125,7 @@ func (e *UnexpectedStatusError) Error() string {
 	return fmt.Sprintf("%s: unexpected HTTP %d (no JSON error body)", e.operation, e.statusCode)
 }
 
+// newUnexpectedStatusError constructs an UnexpectedStatusError for non-2xx responses without a JSON body.
 func newUnexpectedStatusError(operation string, statusCode int) *UnexpectedStatusError {
 	return &UnexpectedStatusError{
 		operation:  operation,

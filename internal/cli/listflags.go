@@ -13,12 +13,24 @@ type listFlags struct {
 	sort     []string
 }
 
-// registerListFlags adds --page, --page-size, and --sort flags to cmd.
+// listFlagDefaults allows commands to override the default sort order.
+type listFlagDefaults struct {
+	sort []string
+}
+
+// registerListFlags adds --page, --page-size, and --sort flags to cmd
+// with the standard default sort of startTime,desc.
 func registerListFlags(cmd *cobra.Command) {
+	registerListFlagsWithDefaults(cmd, listFlagDefaults{sort: []string{"startTime,desc"}})
+}
+
+// registerListFlagsWithDefaults adds --page, --page-size, and --sort flags to cmd
+// with configurable defaults.
+func registerListFlagsWithDefaults(cmd *cobra.Command, defaults listFlagDefaults) {
 	cmd.Flags().Int32("page-size", 10, "number of results per page")
 	cmd.Flags().Int32("page", 1, "page number (1-based, must be >= 1)")
 	cmd.Flags().
-		StringArray("sort", []string{"startTime,desc"}, `sort criteria (e.g. "startTime,desc")`)
+		StringArray("sort", defaults.sort, `sort criteria (e.g. "startTime,desc")`)
 }
 
 // resolveListFlags reads the standard list flags from cmd and returns them.

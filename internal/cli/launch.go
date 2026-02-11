@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newGetLaunchCmd builds the "get launch" subcommand for listing or retrieving launches.
 func newGetLaunchCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "launch [id-or-uuid]",
@@ -37,6 +38,7 @@ Examples:
 	return cmd
 }
 
+// runGetLaunch executes the get launch command, dispatching to single-get or list mode.
 func runGetLaunch(cmd *cobra.Command, args []string) error {
 	logger := loggerFromCmd(cmd)
 	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
@@ -74,6 +76,7 @@ func runGetLaunch(cmd *cobra.Command, args []string) error {
 	return listLaunches(cmd, clientInstance, project, printer)
 }
 
+// getSingleLaunch retrieves and prints a single launch by numeric ID or UUID.
 func getSingleLaunch(
 	cmd *cobra.Command,
 	clientInstance *client.Client,
@@ -102,9 +105,10 @@ func getSingleLaunch(
 
 	headers, row := launchRow(launch)
 
-	return printer.Print(launch, headers, [][]string{row})
+	return printSingleResource(printer, launch, headers, row, launchRequiredJSONKeys, "launch")
 }
 
+// listLaunches retrieves and prints a paginated, filtered list of launches.
 func listLaunches(
 	cmd *cobra.Command,
 	clientInstance *client.Client,
@@ -144,7 +148,14 @@ func listLaunches(
 		rows = append(rows, row)
 	}
 
-	return printer.Print(result.Content, headers, rows)
+	return printResourceList(
+		printer,
+		result.Content,
+		headers,
+		rows,
+		launchRequiredJSONKeys,
+		"launch",
+	)
 }
 
 // resolveLaunchOptions builds the full set of list options from pagination and filter flags.
@@ -184,10 +195,17 @@ func resolveLaunchOptions(
 	return options, filterFlags, nil
 }
 
+// launchHeaders returns the table column headers for launch output.
 func launchHeaders() []string {
 	return []string{"ID", "UUID", "NAME", "STATUS", "START TIME", "NUMBER"}
 }
 
+var launchRequiredJSONKeys = []string{
+	"id", "uuid", "name", "status",
+	"startTime", "endTime", "number", "description",
+}
+
+// launchRow formats a launch resource as a table row, returning both headers and column values.
 func launchRow(launch *types.LaunchResource) ([]string, []string) {
 	startTime := time.Time(launch.StartTime).UTC().Format(time.DateTime)
 
@@ -201,6 +219,7 @@ func launchRow(launch *types.LaunchResource) ([]string, []string) {
 	}
 }
 
+// isNumericID reports whether s is a parseable base-10 integer.
 func isNumericID(s string) bool {
 	_, err := strconv.ParseInt(s, 10, 64)
 

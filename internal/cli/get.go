@@ -2,6 +2,7 @@ package cli
 
 import "github.com/spf13/cobra"
 
+// newGetCmd builds the parent "get" subcommand that groups resource-listing commands.
 func newGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "get",
@@ -10,6 +11,8 @@ func newGetCmd() *cobra.Command {
 
 	cmd.AddCommand(newGetLaunchCmd())
 	cmd.AddCommand(newGetItemCmd())
+	cmd.AddCommand(newGetLogCmd())
+	cmd.AddCommand(newGetProjectCmd())
 
 	return cmd
 }

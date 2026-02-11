@@ -76,6 +76,7 @@ func initConfig(cmd *cobra.Command) error {
 	return nil
 }
 
+// configDir returns the XDG-compatible configuration directory for rp (~/.config/rp).
 func configDir() (string, error) {
 	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
 		return filepath.Join(xdg, "rp"), nil
@@ -130,6 +131,7 @@ func resolveConnection(cmd *cobra.Command) (*Connection, error) {
 	return connection, nil
 }
 
+// connectionFromProfile creates a Connection from a Profile. If profile is nil, an empty Connection is returned.
 func connectionFromProfile(profile *Profile) *Connection {
 	connection := &Connection{}
 	if profile != nil {
@@ -142,6 +144,7 @@ func connectionFromProfile(profile *Profile) *Connection {
 	return connection
 }
 
+// applyEnvOverrides overwrites Connection fields with any RP_* environment variables that are set.
 func applyEnvOverrides(connection *Connection) {
 	if value := viper.GetString("URL"); value != "" {
 		connection.URL = value
@@ -160,6 +163,7 @@ func applyEnvOverrides(connection *Connection) {
 	}
 }
 
+// applyFlagOverrides overwrites Connection fields with any explicitly set CLI flags.
 func applyFlagOverrides(cmd *cobra.Command, connection *Connection) {
 	root := cmd.Root()
 
@@ -229,6 +233,7 @@ func newClient(connection *Connection, logger *slog.Logger) (*client.Client, err
 	return clientInstance, nil
 }
 
+// activeProfile resolves the active profile from the --profile flag or the config's default-profile.
 func activeProfile(cmd *cobra.Command, config *Config) (*Profile, error) {
 	logger := loggerFromCmd(cmd)
 	name := config.DefaultProfile

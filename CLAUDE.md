@@ -20,6 +20,7 @@ The API client wraps a generated OpenAPI client (`pkg/internal/api/`) with a sco
 - **Test style**: Black-box (`package client_test`), `t.Parallel()` everywhere, httptest for unit tests. `export_test.go` exposes test-only constructors.
 - **Integration tests**: Ginkgo/Gomega, `//go:build integration`, testcontainers-compose for a real Report Portal stack.
 - **Table testing**: In Ginkgo, use `DescribeTable` with `Entry` to test table-driven scenarios. In unit tests, use a `[]struct{}{}` with `t.Run` to test table-driven scenarios.
+- **CLI UX**: This project attempts to achieve a CLI experience similar to `kubectl`. Use it as an example for planning and designing the CLI.
 
 ## Commands
 
@@ -34,6 +35,14 @@ make tidy          # go mod tidy across all three modules
 ## Code generation
 
 OpenAPI specs live in `pkg/internal/openapi/`. Overlays add error responses, typed iterables, and `EpochMillis` mappings. Regenerate with `make generate`. Don't hand-edit `*.gen.go` files.
+
+## Naming conventions
+
+- **CLI nouns**: `launch`, `item` (alias `test-item`), `log`, `project`. These are the resource names used in CLI commands (e.g., `rp get launch`, `rp get item`).
+- **Client scopes**: `LaunchScope`, `TestItemScope`, `LogScope` (project-scoped); `UsersScope`, `ProjectsScope` (instance-scoped). Access via `Client.Project(name).Launches()`, `.Items()`, `.Logs()` or `Client.Users()`, `Client.Projects()`.
+- **JSON output is a machine contract**: Field names in JSON output come directly from the API types and must not be renamed. Consumers may depend on field names like `id`, `uuid`, `name`, `status`, `launchId`, `itemId`, `binaryContent`, etc.
+- **Table columns**: Use uppercase for column headers (e.g., `ID`, `UUID`, `NAME`, `STATUS`, `LEVEL`).
+- **Error messages**: Use lowercase, no trailing punctuation. Wrap with `fmt.Errorf("doing thing: %w", err)`.
 
 ## Test driven development
 
