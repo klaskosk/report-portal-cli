@@ -12,47 +12,58 @@ This document is a high-level, shippable roadmap broken into small, independentl
 
 ---
 
-## Current baseline (what exists today)
+## Current baseline (implemented)
 
-- **Client**: `Client → ProjectScope → LaunchScope`
-  - Launches: `List`, `GetByID`, `GetByUUID`
+- **Client**:
+  - Project-scoped reads: `LaunchScope`, `TestItemScope`, `LogScope`
+  - Project-scoped file retrieval: `ProjectScope.DownloadFile`
+  - Instance-scoped discovery: `UsersScope` (`GetMyself`, `GetByLogin`, `ListProjects`), `ProjectsScope` (`Get`, `ListNames`)
   - Error handling: `*client.APIError` + predicates (`IsNotFound`, etc.)
 - **CLI**:
-  - `rp get launch [id-or-uuid]`
+  - Read commands: `rp get launch`, `rp get item`, `rp get log`, `rp get project`
+  - Utility/action commands: `rp download`, `rp whoami`
   - Config resolution: flags > env > config profiles
-  - Output modes: `table`, `json`, `go-template=...`
+  - Output modes: `table`, `json`, `go-template=...` with JSON contract stabilization for required keys
 - **Testing**:
   - Client: black-box unit tests (`pkg/client/*_test.go`) using `httptest`
   - CLI + client integration tests (Ginkgo) in `test/integration/`
+  - End-to-end read workflow integration coverage: launch -> item -> log -> download
 
 ---
 
-## Suggested next steps (next 4–6 PRs)
-
-If you want the fastest path to a customer-ready MVP while still building toward broad API coverage:
+## Recently completed slices
 
 - [x] **PR: reduce wrapper boilerplate + baseline CLI consistency**
-  - Add shared helpers for logging + `JSONDefault` checking, then refactor `LaunchScope` to use them.
-  - Normalize common list/pagination/sorting behavior in both client options and CLI flags.
+  - Added shared response/error helpers and normalized list/pagination behavior.
 - [x] **PR: expand launch read surface**
-  - Client: list/get/search launch endpoints + report/export retrieval where relevant.
-  - CLI: strengthen `rp get launch` for list/get/filter/report workflows and stable machine-readable output.
+  - Client + CLI launch read/list/filter/report workflows.
 - [x] **PR: expand test-item read surface**
-  - Client: get/list/search test item endpoints (including hierarchy/navigation support where available).
-  - CLI: `rp get item` for list/get workflows aligned with launch navigation patterns.
-- [ ] **PR: add log read surface** → [`prompts/01-log-read-surface.md`](prompts/01-log-read-surface.md)
-  - Client: `LogScope` with list/get logs (by item, launch, level).
-  - CLI: `rp get log` for list/get workflows.
-- [ ] **PR: add attachment download** → [`prompts/02-attachment-download.md`](prompts/02-attachment-download.md)
-  - Client: `DownloadFile` for binary content retrieval.
-  - CLI: `rp download` command for fetching attachments.
-- [ ] **PR: lock naming + stabilize end-to-end read flow** → [`prompts/03-stabilize-read-workflow.md`](prompts/03-stabilize-read-workflow.md)
-  - Decide and document canonical resource names (`item` as canonical; optional aliases only for compatibility).
-  - Add one full integration workflow: launch get/list -> item get/list -> log get/list -> attachment download.
-  - Lock JSON output contracts with integration test assertions.
-- [ ] **PR: add identity + discovery follow-up** → [`prompts/04-identity-discovery.md`](prompts/04-identity-discovery.md)
-  - Client: `UsersScope.GetMyself` + `ProjectsScope.List/Get`.
-  - CLI: `rp whoami` + `rp get project`.
+  - Client + CLI test-item read/list workflows aligned to launch navigation.
+- [x] **PR: add log read surface** → [`prompts/01-log-read-surface.md`](prompts/01-log-read-surface.md)
+  - `LogScope` + `rp get log` with filtering and JSON/table coverage.
+- [x] **PR: add attachment download** → [`prompts/02-attachment-download.md`](prompts/02-attachment-download.md)
+  - `DownloadFile` + `rp download` for attachment retrieval.
+- [x] **PR: lock naming + stabilize end-to-end read flow** → [`prompts/03-stabilize-read-workflow.md`](prompts/03-stabilize-read-workflow.md)
+  - Naming conventions documented and workflow integration coverage added.
+- [x] **PR: add identity + discovery follow-up** → [`prompts/04-identity-discovery.md`](prompts/04-identity-discovery.md)
+  - `UsersScope`/`ProjectsScope` + `rp whoami`/`rp get project`.
+
+## Suggested next steps (next 4–6 PRs)
+
+If you want the fastest path from read-complete MVP to broader parity:
+
+- [ ] **PR: write workflows for launches/items/logs (Milestone 6)**
+  - Add lifecycle/mutation commands (`start`, `finish`, `update`, `delete`) where UX is clear.
+- [ ] **PR: finish identity/discovery depth**
+  - Add `ProjectSettingsScope` read summaries and decide CLI exposure (`rp get project-settings` vs client-only).
+- [ ] **PR: dashboards/widgets/filters read-first**
+  - Add client scopes and pragmatic `rp get dashboard|widget|filter` commands.
+- [ ] **PR: integrations + BTS introspection**
+  - Start with list/get/validate flows before mutation-heavy commands.
+- [ ] **PR: activity/audit search**
+  - Add read filters (`--since`, `--until`, `--user`, `--type`) for operator debugging workflows.
+- [ ] **PR: release readiness hardening**
+  - Expand compatibility notes and lock automation-facing JSON/error contracts.
 
 ---
 
@@ -91,7 +102,7 @@ This keeps the CLI predictable while allowing the Go client to remain the “eve
 
 ## Roadmap milestones (incremental and shippable, MVP-first order)
 
-### Milestone 1: Foundations (reduce future effort per endpoint)
+### Milestone 1: Foundations (reduce future effort per endpoint) — completed
 
 - **Client boilerplate reduction**
   - Add shared helpers for: logging, error wrapping, and “check JSONDefault then return”
@@ -110,7 +121,7 @@ Deliverable slice examples:
 
 ---
 
-### Milestone 2: Launch read model (core MVP workflow, part 1)
+### Milestone 2: Launch read model (core MVP workflow, part 1) — completed
 
 **Client**
 
@@ -132,7 +143,7 @@ Notes:
 
 ---
 
-### Milestone 3: Test items read model (core MVP workflow, part 2)
+### Milestone 3: Test items read model (core MVP workflow, part 2) — completed
 
 **Client (`TestItemScope`)**
 
@@ -152,9 +163,9 @@ Notes:
 
 ---
 
-### Milestone 4: Logs + attachments (retrieval/downloads)
+### Milestone 4: Logs + attachments (retrieval/downloads) — completed
 
-**Client (`LogScope`, `FileStorageScope`)**
+**Client (`LogScope` + `ProjectScope.DownloadFile`)**
 
 - List/get logs for item/launch (with practical filtering)
 - Download files where API supports it
@@ -163,7 +174,7 @@ Notes:
 **CLI**
 
 - `rp get log` (scoped to item/launch)
-- `rp download` (or `rp file get`) for attachments
+- `rp download` for attachments
 
 Notes:
 
@@ -171,7 +182,7 @@ Notes:
 
 ---
 
-### Milestone 5: Workflow parity + operator UX (definition of practical completion)
+### Milestone 5: Workflow parity + operator UX (definition of practical completion) — completed
 
 **Goal**
 
@@ -205,7 +216,7 @@ Notes:
 
 ---
 
-### Milestone 7: Project discovery + identity (post-MVP usability)
+### Milestone 7: Project discovery + identity (post-MVP usability) — partially complete
 
 **Client**
 
@@ -217,11 +228,13 @@ Notes:
 
 **CLI**
 
-- `rp whoami` (or `rp get me`)
+- `rp whoami`
 - `rp get project` (list/get)
 
 Notes:
 
+- Current slice delivered: `UsersScope`, `ProjectsScope`, `rp whoami`, and `rp get project`.
+- Remaining depth: optional project-settings/admin-oriented discovery surfaces.
 - Admin-only operations (create/delete users, some project operations) should exist in the client, and may be gated behind `rp admin ...` if exposed.
 
 ---
