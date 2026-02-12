@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/klaskosk/report-portal-cli/pkg/client"
 	"github.com/spf13/cobra"
@@ -144,22 +145,27 @@ func connectionFromProfile(profile *Profile) *Connection {
 	return connection
 }
 
-// applyEnvOverrides overwrites Connection fields with any RP_* environment variables that are set.
+// applyEnvOverrides overwrites Connection fields with any RP_* environment variables that are set. Uses os.LookupEnv
+// directly so the override is explicit and independent of Viper's AutomaticEnv binding. Boolean values are parsed with
+// strconv.ParseBool, allowing both "true" and "false" to override a profile value symmetrically.
 func applyEnvOverrides(connection *Connection) {
-	if value := viper.GetString("URL"); value != "" {
+	if value, ok := os.LookupEnv("RP_URL"); ok && value != "" {
 		connection.URL = value
 	}
 
-	if value := viper.GetString("TOKEN"); value != "" {
+	if value, ok := os.LookupEnv("RP_TOKEN"); ok && value != "" {
 		connection.Token = value
 	}
 
-	if value := viper.GetString("PROJECT"); value != "" {
+	if value, ok := os.LookupEnv("RP_PROJECT"); ok && value != "" {
 		connection.Project = value
 	}
 
-	if viper.GetBool("INSECURE_SKIP_VERIFY") {
-		connection.InsecureSkipVerify = true
+	if value, ok := os.LookupEnv("RP_INSECURE_SKIP_VERIFY"); ok {
+		parsed, err := strconv.ParseBool(value)
+		if err == nil {
+			connection.InsecureSkipVerify = parsed
+		}
 	}
 }
 

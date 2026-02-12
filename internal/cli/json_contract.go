@@ -6,14 +6,15 @@ import (
 )
 
 // ensureJSONObjectKeys converts value to a JSON object map and ensures required keys exist. Missing keys are added with
-// null values to stabilize machine-readable JSON contracts.
-func ensureJSONObjectKeys(value any, requiredKeys ...string) (map[string]any, error) {
+// null values to stabilize machine-readable JSON contracts. Values are preserved as raw JSON bytes to avoid numeric
+// precision loss from float64 round-tripping.
+func ensureJSONObjectKeys(value any, requiredKeys ...string) (map[string]json.RawMessage, error) {
 	payload, err := json.Marshal(value)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling json object: %w", err)
 	}
 
-	var object map[string]any
+	var object map[string]json.RawMessage
 
 	err = json.Unmarshal(payload, &object)
 	if err != nil {
@@ -22,7 +23,7 @@ func ensureJSONObjectKeys(value any, requiredKeys ...string) (map[string]any, er
 
 	for _, key := range requiredKeys {
 		if _, exists := object[key]; !exists {
-			object[key] = nil
+			object[key] = json.RawMessage("null")
 		}
 	}
 
@@ -30,14 +31,18 @@ func ensureJSONObjectKeys(value any, requiredKeys ...string) (map[string]any, er
 }
 
 // ensureJSONArrayObjectKeys converts values to a JSON array of object maps and ensures required keys exist in each
-// object. Missing keys are added with null values.
-func ensureJSONArrayObjectKeys(values any, requiredKeys ...string) ([]map[string]any, error) {
+// object. Missing keys are added with null values. Values are preserved as raw JSON bytes to avoid numeric precision
+// loss from float64 round-tripping.
+func ensureJSONArrayObjectKeys(
+	values any,
+	requiredKeys ...string,
+) ([]map[string]json.RawMessage, error) {
 	payload, err := json.Marshal(values)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling json array: %w", err)
 	}
 
-	var objects []map[string]any
+	var objects []map[string]json.RawMessage
 
 	err = json.Unmarshal(payload, &objects)
 	if err != nil {
@@ -47,7 +52,7 @@ func ensureJSONArrayObjectKeys(values any, requiredKeys ...string) ([]map[string
 	for index := range objects {
 		for _, key := range requiredKeys {
 			if _, exists := objects[index][key]; !exists {
-				objects[index][key] = nil
+				objects[index][key] = json.RawMessage("null")
 			}
 		}
 	}

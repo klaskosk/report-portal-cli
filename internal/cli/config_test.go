@@ -88,3 +88,89 @@ func TestResolveProject_NoProjectSpecified(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "no project specified")
 }
+
+// clearRPEnv sets all RP_* environment variables to empty, ensuring a clean baseline for env override tests. Uses
+// t.Setenv so the test framework knows env vars are in play and restores them after the test.
+func clearRPEnv(t *testing.T) {
+	t.Helper()
+
+	for _, key := range []string{"RP_URL", "RP_TOKEN", "RP_PROJECT", "RP_INSECURE_SKIP_VERIFY"} {
+		t.Setenv(key, "")
+	}
+}
+
+func TestApplyEnvOverrides_StringOverrides(t *testing.T) {
+	clearRPEnv(t)
+
+	t.Setenv("RP_URL", "https://env.example.com")
+	t.Setenv("RP_TOKEN", "env-token")
+	t.Setenv("RP_PROJECT", "env-project")
+
+	connection := &Connection{
+		URL:     "https://profile.example.com",
+		Token:   "profile-token",
+		Project: "profile-project",
+	}
+
+	applyEnvOverrides(connection)
+
+	assert.Equal(t, "https://env.example.com", connection.URL)
+	assert.Equal(t, "env-token", connection.Token)
+	assert.Equal(t, "env-project", connection.Project)
+}
+
+func TestApplyEnvOverrides_EmptyEnvDoesNotOverride(t *testing.T) {
+	t.Setenv("RP_URL", "")
+	t.Setenv("RP_TOKEN", "")
+	t.Setenv("RP_PROJECT", "")
+	t.Setenv("RP_INSECURE_SKIP_VERIFY", "")
+
+	connection := &Connection{
+		URL:                "https://profile.example.com",
+		Token:              "profile-token",
+		Project:            "profile-project",
+		InsecureSkipVerify: true,
+	}
+
+	applyEnvOverrides(connection)
+
+	assert.Equal(t, "https://profile.example.com", connection.URL)
+	assert.Equal(t, "profile-token", connection.Token)
+	assert.Equal(t, "profile-project", connection.Project)
+	assert.True(t, connection.InsecureSkipVerify)
+}
+
+func TestApplyEnvOverrides_InsecureSkipVerify_TrueOverridesProfile(t *testing.T) {
+	clearRPEnv(t)
+
+	t.Setenv("RP_INSECURE_SKIP_VERIFY", "true")
+
+	connection := &Connection{InsecureSkipVerify: false}
+	applyEnvOverrides(connection)
+
+	assert.True(t, connection.InsecureSkipVerify)
+}
+
+func TestApplyEnvOverrides_InsecureSkipVerify_FalseOverridesProfile(t *testing.T) {
+	clearRPEnv(t)
+
+	t.Setenv("RP_INSECURE_SKIP_VERIFY", "false")
+
+	connection := &Connection{InsecureSkipVerify: true}
+	applyEnvOverrides(connection)
+
+	assert.False(t, connection.InsecureSkipVerify,
+		"RP_INSECURE_SKIP_VERIFY=false should override a profile value of true")
+}
+
+func TestApplyEnvOverrides_InsecureSkipVerify_InvalidValue(t *testing.T) {
+	clearRPEnv(t)
+
+	t.Setenv("RP_INSECURE_SKIP_VERIFY", "not-a-bool")
+
+	connection := &Connection{InsecureSkipVerify: true}
+	applyEnvOverrides(connection)
+
+	assert.True(t, connection.InsecureSkipVerify,
+		"invalid RP_INSECURE_SKIP_VERIFY should leave connection unchanged")
+}
