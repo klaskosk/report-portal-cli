@@ -69,11 +69,7 @@ var _ = Describe("CLI: get item", Label("cli", "items"), func() {
 				"--launch", strconv.FormatInt(seededTestData.LaunchID, 10),
 			)
 			expectCLISuccess(result, "rp get item -o json --launch")
-			expectJSONArrayObjectsHaveKeys(
-				result.Stdout,
-				"id", "uuid", "name", "type", "status",
-				"startTime", "endTime", "launchId", "parent",
-			)
+			expectJSONArrayObjects(result.Stdout)
 			items := requireItemList(result)
 			for _, item := range items {
 				Expect(item.ID).NotTo(BeNil(), "item should have an id")
@@ -118,11 +114,7 @@ var _ = Describe("CLI: get item", Label("cli", "items"), func() {
 		It("returns json output with expected contract fields", func() {
 			result := runProjectItem(projectName, strconv.FormatInt(seededTestData.SuiteID, 10), "-o", "json")
 			expectCLISuccess(result, "rp get item <id> -o json")
-			expectJSONObjectHasKeys(
-				result.Stdout,
-				"id", "uuid", "name", "type", "status",
-				"startTime", "endTime", "launchId", "parent",
-			)
+			expectJSONObject(result.Stdout)
 
 			var item itemListEntry
 			Expect(json.Unmarshal([]byte(result.Stdout), &item)).To(Succeed())

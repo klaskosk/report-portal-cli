@@ -105,7 +105,7 @@ func getSingleLaunch(
 
 	headers, row := launchRow(launch)
 
-	return printSingleResource(printer, launch, headers, row, launchRequiredJSONKeys, "launch")
+	return printer.Print(launch, headers, [][]string{row})
 }
 
 // listLaunches retrieves and prints a paginated, filtered list of launches.
@@ -148,14 +148,7 @@ func listLaunches(
 		rows = append(rows, row)
 	}
 
-	return printResourceList(
-		printer,
-		result.Content,
-		headers,
-		rows,
-		launchRequiredJSONKeys,
-		"launch",
-	)
+	return printer.Print(result.Content, headers, rows)
 }
 
 // resolveLaunchOptions builds the full set of list options from pagination and filter flags.
@@ -198,11 +191,6 @@ func resolveLaunchOptions(
 // launchHeaders returns the table column headers for launch output.
 func launchHeaders() []string {
 	return []string{"ID", "UUID", "NAME", "STATUS", "START TIME", "NUMBER"}
-}
-
-var launchRequiredJSONKeys = []string{
-	"id", "uuid", "name", "status",
-	"startTime", "endTime", "number", "description",
 }
 
 // launchRow formats a launch resource as a table row, returning both headers and column values.

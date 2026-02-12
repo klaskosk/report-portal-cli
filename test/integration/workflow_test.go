@@ -93,11 +93,7 @@ var _ = Describe("End-to-end read workflow", Label("workflow"), Ordered, func() 
 	It("step 1: list launches in JSON", func() {
 		result := runCLI("get", "launch", "-p", projectName, "-o", "json")
 		expectCLISuccess(result, "rp get launch -o json")
-		expectJSONArrayObjectsHaveKeys(
-			result.Stdout,
-			"id", "uuid", "name", "status",
-			"startTime", "endTime", "number", "description",
-		)
+		expectJSONArrayObjects(result.Stdout)
 
 		var launches []workflowLaunch
 		Expect(json.Unmarshal([]byte(result.Stdout), &launches)).To(Succeed(),
@@ -121,11 +117,7 @@ var _ = Describe("End-to-end read workflow", Label("workflow"), Ordered, func() 
 
 		result := runCLI("get", "launch", discoveredLaunchID, "-p", projectName, "-o", "json")
 		expectCLISuccess(result, "rp get launch <id> -o json")
-		expectJSONObjectHasKeys(
-			result.Stdout,
-			"id", "uuid", "name", "status",
-			"startTime", "endTime", "number", "description",
-		)
+		expectJSONObject(result.Stdout)
 
 		var launch workflowLaunch
 		Expect(json.Unmarshal([]byte(result.Stdout), &launch)).To(Succeed(),
@@ -142,11 +134,7 @@ var _ = Describe("End-to-end read workflow", Label("workflow"), Ordered, func() 
 
 		result := runCLI("get", "item", "--launch", discoveredLaunchID, "-p", projectName, "-o", "json")
 		expectCLISuccess(result, "rp get item --launch <id> -o json")
-		expectJSONArrayObjectsHaveKeys(
-			result.Stdout,
-			"id", "uuid", "name", "type", "status",
-			"startTime", "endTime", "launchId", "parent",
-		)
+		expectJSONArrayObjects(result.Stdout)
 
 		var items []workflowItem
 		Expect(json.Unmarshal([]byte(result.Stdout), &items)).To(Succeed(),
@@ -184,11 +172,7 @@ var _ = Describe("End-to-end read workflow", Label("workflow"), Ordered, func() 
 
 		result := runCLI("get", "item", discoveredItemID, "-p", projectName, "-o", "json")
 		expectCLISuccess(result, "rp get item <id> -o json")
-		expectJSONObjectHasKeys(
-			result.Stdout,
-			"id", "uuid", "name", "type", "status",
-			"startTime", "endTime", "launchId", "parent",
-		)
+		expectJSONObject(result.Stdout)
 
 		var item workflowItem
 		Expect(json.Unmarshal([]byte(result.Stdout), &item)).To(Succeed(),
@@ -207,10 +191,7 @@ var _ = Describe("End-to-end read workflow", Label("workflow"), Ordered, func() 
 
 		result := runCLI("get", "log", "--item", discoveredItemID, "-p", projectName, "-o", "json")
 		expectCLISuccess(result, "rp get log --item <id> -o json")
-		expectJSONArrayObjectsHaveKeys(
-			result.Stdout,
-			"id", "uuid", "level", "message", "itemId", "launchId",
-		)
+		expectJSONArrayObjects(result.Stdout)
 
 		var logs []workflowLog
 		Expect(json.Unmarshal([]byte(result.Stdout), &logs)).To(Succeed(),
@@ -231,7 +212,7 @@ var _ = Describe("End-to-end read workflow", Label("workflow"), Ordered, func() 
 
 		result := runCLI("get", "log", discoveredLogID, "-p", projectName, "-o", "json")
 		expectCLISuccess(result, "rp get log <id> -o json")
-		expectJSONObjectHasKeys(result.Stdout, "id", "uuid", "level", "message", "itemId", "launchId")
+		expectJSONObject(result.Stdout)
 
 		var log workflowLog
 		Expect(json.Unmarshal([]byte(result.Stdout), &log)).To(Succeed(),

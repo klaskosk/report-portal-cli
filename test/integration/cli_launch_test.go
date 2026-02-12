@@ -71,11 +71,7 @@ var _ = Describe("CLI: get launch", Label("cli", "launches"), func() {
 				[]string{"-o", "json"},
 				"rp get launch -o json",
 				func(result cliResult) {
-					expectJSONArrayObjectsHaveKeys(
-						result.Stdout,
-						"id", "uuid", "name", "status",
-						"startTime", "endTime", "number", "description",
-					)
+					expectJSONArrayObjects(result.Stdout)
 					launches := requireLaunchList(result)
 					for _, l := range launches {
 						Expect(l.ID).NotTo(BeZero(), "launch should have a non-zero id")
@@ -118,11 +114,7 @@ var _ = Describe("CLI: get launch", Label("cli", "launches"), func() {
 			launch := requireFirstLaunch(projectName)
 			result := runProjectLaunch(projectName, strconv.FormatInt(launch.ID, 10), "-o", "json")
 			expectCLISuccess(result, "rp get launch <id> -o json")
-			expectJSONObjectHasKeys(
-				result.Stdout,
-				"id", "uuid", "name", "status",
-				"startTime", "endTime", "number", "description",
-			)
+			expectJSONObject(result.Stdout)
 
 			var single launchListEntry
 			Expect(json.Unmarshal([]byte(result.Stdout), &single)).To(Succeed())

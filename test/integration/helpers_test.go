@@ -697,34 +697,23 @@ func expectJSONError(result cliResult, expectedSubstring string) {
 	}
 }
 
-// expectJSONObjectHasKeys asserts that jsonText decodes to a JSON object with all required keys.
-func expectJSONObjectHasKeys(jsonText string, requiredKeys ...string) {
+// expectJSONObject asserts that jsonText decodes to a JSON object.
+func expectJSONObject(jsonText string) {
 	GinkgoHelper()
 
 	var object map[string]json.RawMessage
 	err := json.Unmarshal([]byte(jsonText), &object)
 	Expect(err).NotTo(HaveOccurred(), "expected a JSON object, got: %s", jsonText)
-
-	for _, key := range requiredKeys {
-		Expect(object).To(HaveKey(key), "JSON object should contain key %q", key)
-	}
 }
 
-// expectJSONArrayObjectsHaveKeys asserts that jsonText decodes to an array of JSON objects and every object contains
-// all required keys.
-func expectJSONArrayObjectsHaveKeys(jsonText string, requiredKeys ...string) {
+// expectJSONArrayObjects asserts that jsonText decodes to a JSON array containing at least one object.
+func expectJSONArrayObjects(jsonText string) {
 	GinkgoHelper()
 
 	var objects []map[string]json.RawMessage
 	err := json.Unmarshal([]byte(jsonText), &objects)
 	Expect(err).NotTo(HaveOccurred(), "expected a JSON array, got: %s", jsonText)
 	Expect(objects).NotTo(BeEmpty(), "JSON array should contain at least one object")
-
-	for index := range objects {
-		for _, key := range requiredKeys {
-			Expect(objects[index]).To(HaveKey(key), "JSON object at index %d should contain key %q", index, key)
-		}
-	}
 }
 
 // seedLogWithAttachment creates a log entry with a small text file attachment via multipart upload, then polls for the

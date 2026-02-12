@@ -103,7 +103,7 @@ func getSingleItem(
 
 	headers, row := itemRow(item)
 
-	return printSingleResource(printer, item, headers, row, itemRequiredJSONKeys, "item")
+	return printer.Print(item, headers, [][]string{row})
 }
 
 // listItems retrieves and prints a paginated, filtered list of test items.
@@ -154,17 +154,12 @@ func listItems(
 		rows = append(rows, row)
 	}
 
-	return printResourceList(printer, result.Content, headers, rows, itemRequiredJSONKeys, "item")
+	return printer.Print(result.Content, headers, rows)
 }
 
 // itemHeaders returns the table column headers for test item output.
 func itemHeaders() []string {
 	return []string{"ID", "UUID", "NAME", "TYPE", "STATUS", "PARENT", "LAUNCH"}
-}
-
-var itemRequiredJSONKeys = []string{
-	"id", "uuid", "name", "type", "status",
-	"startTime", "endTime", "launchId", "parent",
 }
 
 // itemRow formats a test item as a table row, returning both headers and column values.

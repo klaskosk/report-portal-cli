@@ -104,7 +104,7 @@ func getSingleLog(
 
 	headers, row := logRow(logEntry)
 
-	return printSingleResource(printer, logEntry, headers, row, logRequiredJSONKeys, "log")
+	return printer.Print(logEntry, headers, [][]string{row})
 }
 
 // listLogs retrieves and prints a paginated, filtered list of log entries.
@@ -162,15 +162,13 @@ func listLogs(
 		rows = append(rows, row)
 	}
 
-	return printResourceList(printer, result.Content, headers, rows, logRequiredJSONKeys, "log")
+	return printer.Print(result.Content, headers, rows)
 }
 
 // logHeaders returns the table column headers for log output.
 func logHeaders() []string {
 	return []string{"ID", "LEVEL", "ITEM ID", "LAUNCH ID", "MESSAGE", "HAS ATTACHMENT"}
 }
-
-var logRequiredJSONKeys = []string{"id", "uuid", "level", "message", "itemId", "launchId"}
 
 // logRow formats a log entry as a table row, returning both headers and column values. The message is truncated to 80
 // characters for readability.

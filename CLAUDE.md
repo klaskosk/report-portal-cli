@@ -40,7 +40,7 @@ OpenAPI specs live in `pkg/internal/openapi/`. Overlays add error responses, typ
 
 - **CLI nouns**: `launch`, `item` (alias `test-item`), `log`, `project`. These are the resource names used in CLI commands (e.g., `rp get launch`, `rp get item`).
 - **Client scopes**: `LaunchScope`, `TestItemScope`, `LogScope` (project-scoped); `UsersScope`, `ProjectsScope` (instance-scoped). Access via `Client.Project(name).Launches()`, `.Items()`, `.Logs()` or `Client.Users()`, `Client.Projects()`.
-- **JSON output is a machine contract**: Field names in JSON output come directly from the API types and must not be renamed. Consumers may depend on field names like `id`, `uuid`, `name`, `status`, `launchId`, `itemId`, `binaryContent`, etc.
+- **JSON output is a machine contract**: Field names in JSON output come directly from the API types and must not be renamed. `omitempty` behavior is preserved, so optional fields may be omitted rather than emitted as `null`.
 - **Table columns**: Use uppercase for column headers (e.g., `ID`, `UUID`, `NAME`, `STATUS`, `LEVEL`).
 - **Error messages**: Use lowercase, no trailing punctuation. Wrap with `fmt.Errorf("doing thing: %w", err)`.
 

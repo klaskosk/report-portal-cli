@@ -70,10 +70,7 @@ var _ = Describe("CLI: get log", Label("cli", "logs"), func() {
 				"--item", strconv.FormatInt(seededTestData.SuiteID, 10),
 			)
 			expectCLISuccess(result, "rp get log -o json --item")
-			expectJSONArrayObjectsHaveKeys(
-				result.Stdout,
-				"id", "uuid", "level", "message", "itemId", "launchId",
-			)
+			expectJSONArrayObjects(result.Stdout)
 			logs := requireLogList(result)
 			for _, l := range logs {
 				Expect(l.ID).NotTo(BeZero(), "log should have a non-zero id")
@@ -104,7 +101,7 @@ var _ = Describe("CLI: get log", Label("cli", "logs"), func() {
 			logID := strconv.FormatInt(seededLogs.LogIDs[0], 10)
 			result := runProjectLog(projectName, logID, "-o", "json")
 			expectCLISuccess(result, "rp get log <id> -o json")
-			expectJSONObjectHasKeys(result.Stdout, "id", "uuid", "level", "message", "itemId", "launchId")
+			expectJSONObject(result.Stdout)
 
 			var single logListEntry
 			Expect(json.Unmarshal([]byte(result.Stdout), &single)).To(Succeed())
