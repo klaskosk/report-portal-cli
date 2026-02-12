@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/klaskosk/report-portal-cli/pkg/client"
+	"github.com/klaskosk/report-portal-cli/pkg/types"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -123,6 +124,50 @@ var _ = Describe("Client: Test Items", Label("client", "items"), func() {
 			Expect(err).To(HaveOccurred(), "getting item by invalid uuid should fail")
 			Expect(client.IsNotFound(err)).To(BeTrue(),
 				"error for invalid item uuid should be not-found, got: %v", err)
+		})
+	})
+
+	Context("Write Operations", func() {
+		It("updates a test item description", func(ctx SpecContext) {
+			newDescription := "updated by integration test"
+			result, err := c.Project(projectName).Items().Update(
+				ctx,
+				seeded.SuiteID,
+				types.UpdateTestItemRQ{
+					Description: &newDescription,
+				},
+			)
+			Expect(err).NotTo(HaveOccurred(), "updating test item should not fail")
+			Expect(result).NotTo(BeNil())
+
+			// Verify the change.
+			item, err := c.Project(projectName).Items().GetByID(
+				ctx,
+				strconv.FormatInt(seeded.SuiteID, 10),
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(item).NotTo(BeNil())
+			Expect(item.Description).NotTo(BeNil())
+			Expect(*item.Description).To(Equal("updated by integration test"))
+		})
+
+		It("deletes a test item", func(ctx SpecContext) {
+			// Seed a new launch with items specifically for deletion.
+			deleteSeeded, err := seedTestItems(ctx, baseURL, bearerToken, projectName)
+			Expect(err).To(Succeed(), "seeding items for delete test should not fail")
+
+			// Delete the suite item.
+			_, err = c.Project(projectName).Items().Delete(ctx, deleteSeeded.SuiteID)
+			Expect(err).NotTo(HaveOccurred(), "deleting test item should not fail")
+
+			// Verify it's gone.
+			_, err = c.Project(projectName).Items().GetByID(
+				ctx,
+				strconv.FormatInt(deleteSeeded.SuiteID, 10),
+			)
+			Expect(err).To(HaveOccurred())
+			Expect(client.IsNotFound(err)).To(BeTrue(),
+				"deleted test item should return not-found, got: %v", err)
 		})
 	})
 })

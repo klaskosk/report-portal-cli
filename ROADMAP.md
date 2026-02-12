@@ -54,21 +54,23 @@ This document is a high-level, shippable roadmap broken into small, independentl
 - [x] **PR: add identity + discovery follow-up** → [`prompts/04-identity-discovery.md`](prompts/04-identity-discovery.md)
   - `UsersScope`/`ProjectsScope` + `rp whoami`/`rp get project`.
 
-## Suggested next steps (client-first, next 4–6 PRs)
+## Suggested next steps (client-first, next 5–7 PRs)
 
 If you want the fastest path from the read-only MVP to a **client-complete** library (and to unblock future CLI work):
 
-- [ ] **PR: client write workflows for launches/items/logs (Milestone 6)**
+- [ ] **PR: client write workflows for launches/items/logs (Milestone 6)** → [`prompts/05-client-write-workflows.md`](prompts/05-client-write-workflows.md)
   - Add lifecycle/mutation endpoints in `pkg/client` with unit tests; defer new CLI verbs to a follow-up slice.
-- [ ] **PR: client discovery + identity depth (Milestone 7)**
+- [ ] **PR: client discovery + identity depth (Milestone 7)** → [`prompts/06-project-settings-scope.md`](prompts/06-project-settings-scope.md)
   - Add `ProjectSettingsScope` read summaries and any validation/capability helpers needed for safe feature detection.
-- [ ] **PR: dashboards/widgets/filters scopes (Milestone 8)**
+- [ ] **PR: write endpoint completion pass (Milestone 6 follow-up)** → [`prompts/07-write-endpoints-completion.md`](prompts/07-write-endpoints-completion.md)
+  - Finish deferred optional write endpoints (bulk mutations, multipart batch logs, and project-settings writes).
+- [ ] **PR: dashboards/widgets/filters scopes (Milestone 8)** → [`prompts/08-dashboards-widgets-filters.md`](prompts/08-dashboards-widgets-filters.md)
   - Implement CRUD scopes in the client; keep CLI exposure as a separate read-first follow-up PR if it’s ergonomic.
-- [ ] **PR: integrations + BTS scopes (Milestone 9)**
+- [ ] **PR: integrations + BTS scopes (Milestone 9)** → [`prompts/09-integrations-bts.md`](prompts/09-integrations-bts.md)
   - Start with list/get/validate flows before configuration and mutation-heavy endpoints.
-- [ ] **PR: activity/audit search scopes (Milestone 10)**
+- [ ] **PR: activity/audit search scopes (Milestone 10)** → [`prompts/10-activity-audit-scopes.md`](prompts/10-activity-audit-scopes.md)
   - Add list/search filters (`--since`, `--until`, `--user`, `--type`) for operator debugging workflows.
-- [ ] **PR: system/admin/internal controllers (Milestone 12)**
+- [ ] **PR: system/admin/internal controllers (Milestone 12)** → [`prompts/11-system-admin-controllers.md`](prompts/11-system-admin-controllers.md)
   - Round out remaining client-only tags; keep CLI exposure selective.
 
 Once the client surface is broadly in place, do **release readiness hardening (Milestone 11)** to lock automation-facing JSON/error contracts and document compatibility expectations.

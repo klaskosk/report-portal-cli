@@ -1,10 +1,14 @@
 package client_test
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/klaskosk/report-portal-cli/pkg/client"
+	"github.com/klaskosk/report-portal-cli/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -211,4 +215,140 @@ func TestLogScope_List_EmptyResults(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	assert.Empty(t, result.Content)
+}
+
+func TestLogScope_Create_Success(t *testing.T) {
+	t.Parallel()
+
+	message := "Test log message"
+	level := types.SaveLogRQLevel("INFO")
+	itemUUID := "item-uuid-1"
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/log/entry")
+		assertMethod(t, r, http.MethodPost)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		assert.Equal(t, "launch-uuid-1", payload["launchUuid"])
+		assert.Equal(t, "item-uuid-1", payload["itemUuid"])
+		assert.Equal(t, "Test log message", payload["message"])
+		assert.Equal(t, "INFO", payload["level"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"id":"log-entry-uuid-1"}`))
+	}))
+
+	result, err := c.Project("my_project").Logs().Create(
+		t.Context(),
+		types.SaveLogRQ{
+			LaunchUuid: "launch-uuid-1",
+			ItemUuid:   &itemUUID,
+			Message:    &message,
+			Level:      &level,
+			Time:       types.EpochMillis(time.UnixMilli(1700000000000)),
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Id)
+	assert.Equal(t, "log-entry-uuid-1", *result.Id)
+}
+
+func TestLogScope_Create_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "BadRequest",
+			statusCode: http.StatusBadRequest,
+			body:       `{"errorCode": 4001, "message": "Missing required fields."}`,
+			check:      client.IsBadRequest,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Logs().Create(
+				t.Context(),
+				types.SaveLogRQ{
+					LaunchUuid: "launch-uuid-1",
+					Time:       types.EpochMillis(time.Now()),
+				},
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestLogScope_Delete_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/log/42")
+		assertMethod(t, r, http.MethodDelete)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"Log entry successfully deleted."}`))
+	}))
+
+	result, err := c.Project("my_project").Logs().Delete(t.Context(), 42)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Message)
+	assert.Equal(t, "Log entry successfully deleted.", *result.Message)
+}
+
+func TestLogScope_Delete_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "NotFound",
+			statusCode: http.StatusNotFound,
+			body:       `{"errorCode": 40440, "message": "Log '999' not found."}`,
+			check:      client.IsNotFound,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Logs().Delete(t.Context(), 999)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
 }

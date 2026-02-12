@@ -376,6 +376,142 @@ func convertToDebugParams(
 	}
 }
 
+// Update modifies a single launch's attributes, description, or mode.
+func (l *LaunchScope) Update(
+	ctx context.Context,
+	launchID int64,
+	request types.UpdateLaunchRQ,
+) (*types.OperationCompletionRS, error) {
+	logger := l.project.operationLogger("UpdateLaunch", slog.Int64("launchId", launchID))
+	logger.InfoContext(ctx, "API request")
+
+	response, err := l.project.client.raw.UpdateLaunchUsingPUTWithResponse(
+		ctx,
+		l.project.projectName,
+		launchID,
+		request,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("update launch: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "update launch", response.JSONDefault, response.JSON200)
+}
+
+// Delete removes a single launch by its numeric ID.
+func (l *LaunchScope) Delete(
+	ctx context.Context,
+	launchID int64,
+) (*types.OperationCompletionRS, error) {
+	logger := l.project.operationLogger("DeleteLaunch", slog.Int64("launchId", launchID))
+	logger.InfoContext(ctx, "API request")
+
+	response, err := l.project.client.raw.DeleteLaunchUsingDELETEWithResponse(
+		ctx,
+		l.project.projectName,
+		launchID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("delete launch: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "delete launch", response.JSONDefault, response.JSON200)
+}
+
+// DeleteBulk removes multiple launches by their numeric IDs.
+func (l *LaunchScope) DeleteBulk(
+	ctx context.Context,
+	ids []int64,
+) (*types.DeleteBulkRS, error) {
+	logger := l.project.operationLogger("DeleteLaunchesBulk")
+	logger.InfoContext(ctx, "API request")
+
+	response, err := l.project.client.raw.DeleteLaunchesUsingDELETEWithResponse(
+		ctx,
+		l.project.projectName,
+		types.DeleteBulkRQ{Ids: &ids},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("delete launches bulk: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "delete launches bulk", response.JSONDefault, response.JSON200)
+}
+
+// ForceFinish stops a stuck launch that cannot be finished normally.
+func (l *LaunchScope) ForceFinish(
+	ctx context.Context,
+	launchID int64,
+	request types.FinishExecutionRQ,
+) (*types.OperationCompletionRS, error) {
+	logger := l.project.operationLogger("ForceFinishLaunch", slog.Int64("launchId", launchID))
+	logger.InfoContext(ctx, "API request")
+
+	response, err := l.project.client.raw.ForceFinishLaunchUsingPUTWithResponse(
+		ctx,
+		l.project.projectName,
+		launchID,
+		request,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("force finish launch: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "force finish launch", response.JSONDefault, response.JSON200)
+}
+
+// Merge combines multiple launches into a single launch.
+func (l *LaunchScope) Merge(
+	ctx context.Context,
+	request types.MergeLaunchesRQ,
+) (*types.LaunchResource, error) {
+	logger := l.project.operationLogger("MergeLaunches")
+	logger.InfoContext(ctx, "API request")
+
+	response, err := l.project.client.raw.MergeLaunchesUsingPOST1WithResponse(
+		ctx,
+		l.project.projectName,
+		request,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("merge launches: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "merge launches", response.JSONDefault, response.JSON200)
+}
+
+// Analyze triggers auto-analysis on a launch.
+func (l *LaunchScope) Analyze(
+	ctx context.Context,
+	request types.AnalyzeLaunchRQ,
+) (*types.OperationCompletionRS, error) {
+	logger := l.project.operationLogger("AnalyzeLaunch")
+	logger.InfoContext(ctx, "API request")
+
+	response, err := l.project.client.raw.StartLaunchAnalyzerUsingPOSTWithResponse(
+		ctx,
+		l.project.projectName,
+		request,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("analyze launch: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "analyze launch", response.JSONDefault, response.JSON200)
+}
+
 // GetNames returns unique launch names matching the filter (for autocomplete).
 func (l *LaunchScope) GetNames(
 	ctx context.Context,

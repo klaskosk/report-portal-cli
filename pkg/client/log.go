@@ -89,6 +89,50 @@ func (l *LogScope) List(
 	return handleResponse(response, "list logs", response.JSONDefault, response.JSON200)
 }
 
+// Create creates a single log entry (JSON body, no file attachment).
+func (l *LogScope) Create(
+	ctx context.Context,
+	request types.SaveLogRQ,
+) (*types.EntryCreatedAsyncRS, error) {
+	logger := l.project.operationLogger("CreateLogEntry")
+	logger.InfoContext(ctx, "API request")
+
+	response, err := l.project.client.raw.CreateLogEntryUsingPOST1WithResponse(
+		ctx,
+		l.project.projectName,
+		request,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("create log entry: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "create log entry", response.JSONDefault, response.JSON201)
+}
+
+// Delete removes a single log entry by its numeric ID.
+func (l *LogScope) Delete(
+	ctx context.Context,
+	logID int64,
+) (*types.OperationCompletionRS, error) {
+	logger := l.project.operationLogger("DeleteLog", slog.Int64("logId", logID))
+	logger.InfoContext(ctx, "API request")
+
+	response, err := l.project.client.raw.DeleteLogUsingDELETEWithResponse(
+		ctx,
+		l.project.projectName,
+		logID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("delete log: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "delete log", response.JSONDefault, response.JSON200)
+}
+
 // WithLogItemID filters logs by test item ID.
 func WithLogItemID(itemID int64) ListLogsOption {
 	return func(params *api.GetLogsUsingGETParams) {

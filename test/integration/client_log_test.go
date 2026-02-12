@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/klaskosk/report-portal-cli/pkg/client"
+	"github.com/klaskosk/report-portal-cli/pkg/types"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -85,6 +86,60 @@ var _ = Describe("Client: Logs", Label("client", "logs"), func() {
 			Expect(err).To(HaveOccurred(), "getting log by invalid id should fail")
 			Expect(client.IsNotFound(err)).To(BeTrue(),
 				"error for invalid log id should be not-found, got: %v", err)
+		})
+	})
+
+	Context("Write Operations", func() {
+		It("creates a log entry via client", func(ctx SpecContext) {
+			message := "client-created log entry"
+			level := types.SaveLogRQLevel("INFO")
+
+			result, err := c.Project(projectName).Logs().Create(ctx, types.SaveLogRQ{
+				LaunchUuid: seeded.LaunchUUID,
+				ItemUuid:   &seeded.SuiteUUID,
+				Message:    &message,
+				Level:      &level,
+				Time:       types.EpochMillis(time.Now()),
+			})
+			Expect(err).NotTo(HaveOccurred(), "creating log entry should not fail")
+			Expect(result).NotTo(BeNil())
+			Expect(result.Id).NotTo(BeNil())
+
+			// Wait for the log to appear in listing.
+			var found bool
+			waitForSeedResolution(ctx, seedResolutionAttempts, seedResolutionInterval, func() bool {
+				logs, listErr := c.Project(projectName).Logs().List(ctx,
+					client.WithLogItemID(seeded.SuiteID),
+					client.WithLogPageSize(50),
+				)
+				if listErr != nil || logs == nil {
+					return false
+				}
+
+				for _, entry := range logs.Content {
+					if entry.Message != nil && *entry.Message == "client-created log entry" {
+						found = true
+						return true
+					}
+				}
+
+				return false
+			})
+			Expect(found).To(BeTrue(), "created log entry should appear in listing")
+		})
+
+		It("deletes a log entry", func(ctx SpecContext) {
+			Expect(seededLogs.LogIDs).NotTo(BeEmpty(), "expected seeded log IDs for deletion")
+
+			logID := seededLogs.LogIDs[len(seededLogs.LogIDs)-1]
+			_, err := c.Project(projectName).Logs().Delete(ctx, logID)
+			Expect(err).NotTo(HaveOccurred(), "deleting log entry should not fail")
+
+			// Verify it's gone.
+			_, err = c.Project(projectName).Logs().GetByID(ctx, strconv.FormatInt(logID, 10))
+			Expect(err).To(HaveOccurred())
+			Expect(client.IsNotFound(err)).To(BeTrue(),
+				"deleted log should return not-found, got: %v", err)
 		})
 	})
 })

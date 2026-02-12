@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/klaskosk/report-portal-cli/pkg/client"
+	"github.com/klaskosk/report-portal-cli/pkg/types"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -305,6 +306,146 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			Expect(err).NotTo(HaveOccurred(),
 				"getting launch names with non-matching filter should not fail")
 			Expect(names).NotTo(BeNil())
+		})
+	})
+
+	Context("Write Operations", func() {
+		It("updates a launch description", func(ctx SpecContext) {
+			// Start and finish a launch for update.
+			startedLaunch, err := c.Project(projectName).Launches().Start(ctx, types.StartLaunchRQ{
+				Name:      fmt.Sprintf("update-test-%d", time.Now().UnixNano()),
+				StartTime: types.EpochMillis(time.Now()),
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(startedLaunch.Id).NotTo(BeNil())
+
+			finishedStatus := types.FinishExecutionRQStatusPASSED
+			_, err = c.Project(projectName).Launches().Finish(ctx, *startedLaunch.Id, types.FinishExecutionRQ{
+				EndTime: types.EpochMillis(time.Now()),
+				Status:  &finishedStatus,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			// Resolve the numeric ID.
+			launchID, err := resolveLaunchIDByUUID(ctx, c.Project(projectName).Launches(), *startedLaunch.Id)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Update the launch.
+			newDescription := "updated by integration test"
+			result, err := c.Project(projectName).Launches().Update(ctx, launchID, types.UpdateLaunchRQ{
+				Description: &newDescription,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).NotTo(BeNil())
+
+			// Verify the change.
+			launch, err := c.Project(projectName).Launches().GetByID(ctx, strconv.FormatInt(launchID, 10))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(launch.Description).NotTo(BeNil())
+			Expect(*launch.Description).To(Equal("updated by integration test"))
+		})
+
+		It("deletes a launch", func(ctx SpecContext) {
+			// Start and finish a launch for deletion.
+			startedLaunch, err := c.Project(projectName).Launches().Start(ctx, types.StartLaunchRQ{
+				Name:      fmt.Sprintf("delete-test-%d", time.Now().UnixNano()),
+				StartTime: types.EpochMillis(time.Now()),
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(startedLaunch.Id).NotTo(BeNil())
+
+			finishedStatus := types.FinishExecutionRQStatusPASSED
+			_, err = c.Project(projectName).Launches().Finish(ctx, *startedLaunch.Id, types.FinishExecutionRQ{
+				EndTime: types.EpochMillis(time.Now()),
+				Status:  &finishedStatus,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			// Resolve the numeric ID.
+			launchID, err := resolveLaunchIDByUUID(ctx, c.Project(projectName).Launches(), *startedLaunch.Id)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Delete the launch.
+			_, err = c.Project(projectName).Launches().Delete(ctx, launchID)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Verify it's gone.
+			_, err = c.Project(projectName).Launches().GetByID(ctx, strconv.FormatInt(launchID, 10))
+			Expect(err).To(HaveOccurred())
+			Expect(client.IsNotFound(err)).To(BeTrue())
+		})
+
+		It("force-finishes a stuck launch", func(ctx SpecContext) {
+			// Start a launch but do NOT finish it normally.
+			startedLaunch, err := c.Project(projectName).Launches().Start(ctx, types.StartLaunchRQ{
+				Name:      fmt.Sprintf("force-finish-test-%d", time.Now().UnixNano()),
+				StartTime: types.EpochMillis(time.Now()),
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(startedLaunch.Id).NotTo(BeNil())
+
+			// Resolve numeric ID.
+			launchID, err := resolveLaunchIDByUUID(ctx, c.Project(projectName).Launches(), *startedLaunch.Id)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Force-finish it.
+			_, err = c.Project(projectName).Launches().ForceFinish(ctx, launchID, types.FinishExecutionRQ{
+				EndTime: types.EpochMillis(time.Now()),
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			// Verify it is finished.
+			var finished bool
+			waitForSeedResolution(ctx, seedResolutionAttempts, seedResolutionInterval, func() bool {
+				launch, getErr := c.Project(projectName).Launches().GetByID(ctx, strconv.FormatInt(launchID, 10))
+				if getErr == nil && launch != nil && launch.Status != "" {
+					if launch.Status == "STOPPED" || launch.Status == "FAILED" || launch.Status == "PASSED" || launch.Status == "INTERRUPTED" {
+						finished = true
+						return true
+					}
+				}
+				return false
+			})
+			Expect(finished).To(BeTrue(), "launch should have a terminal status after force-finish")
+		})
+
+		It("merges two launches", func(ctx SpecContext) {
+			// Start and finish two launches.
+			var launchIDs []int64
+			for i := range 2 {
+				started, err := c.Project(projectName).Launches().Start(ctx, types.StartLaunchRQ{
+					Name:      fmt.Sprintf("merge-test-%d-%d", time.Now().UnixNano(), i),
+					StartTime: types.EpochMillis(time.Now()),
+				})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(started.Id).NotTo(BeNil())
+
+				finishedStatus := types.FinishExecutionRQStatusPASSED
+				_, err = c.Project(projectName).Launches().Finish(ctx, *started.Id, types.FinishExecutionRQ{
+					EndTime: types.EpochMillis(time.Now()),
+					Status:  &finishedStatus,
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				resolvedID, err := resolveLaunchIDByUUID(ctx, c.Project(projectName).Launches(), *started.Id)
+				Expect(err).NotTo(HaveOccurred())
+
+				launchIDs = append(launchIDs, resolvedID)
+			}
+
+			// Merge the two launches.
+			mergedName := fmt.Sprintf("merged-launch-%d", time.Now().UnixNano())
+			startTime := types.EpochMillis(time.Now().Add(-time.Minute))
+			endTime := types.EpochMillis(time.Now())
+			merged, err := c.Project(projectName).Launches().Merge(ctx, types.MergeLaunchesRQ{
+				Name:      mergedName,
+				Launches:  launchIDs,
+				StartTime: &startTime,
+				EndTime:   &endTime,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(merged).NotTo(BeNil())
+			Expect(merged.Name).To(Equal(mergedName))
 		})
 	})
 

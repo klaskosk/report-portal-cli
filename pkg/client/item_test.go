@@ -575,3 +575,204 @@ func TestTestItemScope_GetByIDs_EmptyInput(t *testing.T) {
 	assert.False(t, called)
 	assert.Empty(t, items)
 }
+
+func TestTestItemScope_Update_Success(t *testing.T) {
+	t.Parallel()
+
+	description := "Updated item description"
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/item/42/update")
+		assertMethod(t, r, http.MethodPut)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		assert.Equal(t, "Updated item description", payload["description"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"Test item successfully updated."}`))
+	}))
+
+	result, err := c.Project("my_project").Items().Update(
+		t.Context(),
+		42,
+		types.UpdateTestItemRQ{
+			Description: &description,
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Message)
+	assert.Equal(t, "Test item successfully updated.", *result.Message)
+}
+
+func TestTestItemScope_Update_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "NotFound",
+			statusCode: http.StatusNotFound,
+			body:       `{"errorCode": 40440, "message": "Test item '999' not found."}`,
+			check:      client.IsNotFound,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Items().Update(
+				t.Context(),
+				999,
+				types.UpdateTestItemRQ{},
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestTestItemScope_Delete_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/item/42")
+		assertMethod(t, r, http.MethodDelete)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"Test item successfully deleted."}`))
+	}))
+
+	result, err := c.Project("my_project").Items().Delete(t.Context(), 42)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Message)
+	assert.Equal(t, "Test item successfully deleted.", *result.Message)
+}
+
+func TestTestItemScope_Delete_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "NotFound",
+			statusCode: http.StatusNotFound,
+			body:       `{"errorCode": 40440, "message": "Test item '999' not found."}`,
+			check:      client.IsNotFound,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Items().Delete(t.Context(), 999)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestTestItemScope_DefineIssueType_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/item")
+		assertMethod(t, r, http.MethodPut)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		issues := payload["issues"].([]any)
+		assert.Len(t, issues, 1)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`[{"issueType":"pb001","comment":"Product bug"}]`))
+	}))
+
+	issues, err := c.Project("my_project").Items().DefineIssueType(
+		t.Context(),
+		types.DefineIssueRQ{
+			Issues: []types.IssueDefinition{
+				{
+					TestItemId: 42,
+					Issue: types.Issue{
+						IssueType: "pb001",
+					},
+				},
+			},
+		},
+	)
+	require.NoError(t, err)
+	require.Len(t, issues, 1)
+	assert.Equal(t, "pb001", issues[0].IssueType)
+}
+
+func TestTestItemScope_DefineIssueType_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "BadRequest",
+			statusCode: http.StatusBadRequest,
+			body:       `{"errorCode": 4001, "message": "Invalid issue definition."}`,
+			check:      client.IsBadRequest,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Items().DefineIssueType(
+				t.Context(),
+				types.DefineIssueRQ{
+					Issues: []types.IssueDefinition{},
+				},
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}

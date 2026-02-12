@@ -756,3 +756,400 @@ func TestLaunchScope_GetNames_EdgeCases(t *testing.T) {
 		})
 	}
 }
+
+func TestLaunchScope_Update_Success(t *testing.T) {
+	t.Parallel()
+
+	description := "Updated description"
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/launch/42/update")
+		assertMethod(t, r, http.MethodPut)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		assert.Equal(t, "Updated description", payload["description"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"Launch successfully updated."}`))
+	}))
+
+	result, err := c.Project("my_project").Launches().Update(
+		t.Context(),
+		42,
+		types.UpdateLaunchRQ{
+			Description: &description,
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Message)
+	assert.Equal(t, "Launch successfully updated.", *result.Message)
+}
+
+func TestLaunchScope_Update_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "NotFound",
+			statusCode: http.StatusNotFound,
+			body:       `{"errorCode": 40410, "message": "Launch '999' not found."}`,
+			check:      client.IsNotFound,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Launches().Update(
+				t.Context(),
+				999,
+				types.UpdateLaunchRQ{},
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestLaunchScope_Delete_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/launch/42")
+		assertMethod(t, r, http.MethodDelete)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"Launch successfully deleted."}`))
+	}))
+
+	result, err := c.Project("my_project").Launches().Delete(t.Context(), 42)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Message)
+	assert.Equal(t, "Launch successfully deleted.", *result.Message)
+}
+
+func TestLaunchScope_Delete_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "NotFound",
+			statusCode: http.StatusNotFound,
+			body:       `{"errorCode": 40410, "message": "Launch '999' not found."}`,
+			check:      client.IsNotFound,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Launches().Delete(t.Context(), 999)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestLaunchScope_DeleteBulk_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/launch")
+		assertMethod(t, r, http.MethodDelete)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		ids := payload["ids"].([]any)
+		assert.Len(t, ids, 2)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"successfullyDeleted":[1,2],"notFound":[],"errors":[]}`))
+	}))
+
+	result, err := c.Project("my_project").Launches().DeleteBulk(t.Context(), []int64{1, 2})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.SuccessfullyDeleted)
+	assert.Equal(t, []int64{1, 2}, *result.SuccessfullyDeleted)
+}
+
+func TestLaunchScope_DeleteBulk_Unauthorized(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusUnauthorized,
+		`{"errorCode": 4001, "message": "Full authentication is required."}`))
+
+	_, err := c.Project("my_project").Launches().DeleteBulk(t.Context(), []int64{1, 2})
+	require.Error(t, err)
+	assert.True(t, client.IsUnauthorized(err))
+}
+
+func TestLaunchScope_ForceFinish_Success(t *testing.T) {
+	t.Parallel()
+
+	endTime := time.UnixMilli(1700000007000)
+	status := types.FinishExecutionRQStatusFAILED
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/launch/42/stop")
+		assertMethod(t, r, http.MethodPut)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		assert.Equal(t, float64(endTime.UnixMilli()), payload["endTime"])
+		assert.Equal(t, string(status), payload["status"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"Launch force finished."}`))
+	}))
+
+	result, err := c.Project("my_project").Launches().ForceFinish(
+		t.Context(),
+		42,
+		types.FinishExecutionRQ{
+			EndTime: types.EpochMillis(endTime),
+			Status:  &status,
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Message)
+	assert.Equal(t, "Launch force finished.", *result.Message)
+}
+
+func TestLaunchScope_ForceFinish_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "NotFound",
+			statusCode: http.StatusNotFound,
+			body:       `{"errorCode": 40410, "message": "Launch '999' not found."}`,
+			check:      client.IsNotFound,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Launches().ForceFinish(
+				t.Context(),
+				999,
+				types.FinishExecutionRQ{
+					EndTime: types.EpochMillis(time.Now()),
+				},
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestLaunchScope_Merge_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/launch/merge")
+		assertMethod(t, r, http.MethodPost)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		assert.Equal(t, "Merged Launch", payload["name"])
+
+		launches := payload["launches"].([]any)
+		assert.Len(t, launches, 2)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{
+			"id": 100,
+			"uuid": "merged-uuid",
+			"name": "Merged Launch",
+			"status": "PASSED",
+			"startTime": 1700000000000,
+			"number": 10
+		}`))
+	}))
+
+	result, err := c.Project("my_project").Launches().Merge(
+		t.Context(),
+		types.MergeLaunchesRQ{
+			Name:     "Merged Launch",
+			Launches: []int64{1, 2},
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, "Merged Launch", result.Name)
+	assert.Equal(t, int64(100), result.Id)
+}
+
+func TestLaunchScope_Merge_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "BadRequest",
+			statusCode: http.StatusBadRequest,
+			body:       `{"errorCode": 4001, "message": "Invalid merge configuration."}`,
+			check:      client.IsBadRequest,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Launches().Merge(
+				t.Context(),
+				types.MergeLaunchesRQ{
+					Name:     "Bad Merge",
+					Launches: []int64{1, 2},
+				},
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestLaunchScope_Analyze_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/launch/analyze")
+		assertMethod(t, r, http.MethodPost)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		assert.Equal(t, float64(42), payload["launchId"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"Analysis started."}`))
+	}))
+
+	launchID := int64(42)
+	result, err := c.Project("my_project").Launches().Analyze(
+		t.Context(),
+		types.AnalyzeLaunchRQ{
+			LaunchId: &launchID,
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Message)
+	assert.Equal(t, "Analysis started.", *result.Message)
+}
+
+func TestLaunchScope_Analyze_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "NotFound",
+			statusCode: http.StatusNotFound,
+			body:       `{"errorCode": 40410, "message": "Launch '999' not found."}`,
+			check:      client.IsNotFound,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			launchID := int64(999)
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Launches().Analyze(
+				t.Context(),
+				types.AnalyzeLaunchRQ{
+					LaunchId: &launchID,
+				},
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
