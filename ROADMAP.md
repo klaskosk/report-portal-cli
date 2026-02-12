@@ -1,14 +1,20 @@
-# Report Portal CLI + Go Client Roadmap
+# Report Portal Go Client Roadmap (CLI follows)
 
 **Target**: Report Portal **24.1** / API **v5.11** (OpenAPI in `pkg/internal/openapi/`)
 
 **End state**:
 
-- **Go client (`pkg/client`)**: ergonomic, scope-based wrapper covering all high-value and automation-critical API areas needed for practical usage.
-- **CLI (`rp`)**: supports most day-to-day workflows end-to-end; some API areas remain client-only (admin/system/internal/UI-only).
+- **Go client (`pkg/client`)**: ergonomic, scope-based wrapper covering all high-value and automation-critical API areas needed for practical usage (and eventually broad controller coverage, including admin/system where it makes sense).
+- **CLI (`rp`)**: curated day-to-day workflows built on the client; command surface expands after the underlying client areas are stable and well-tested.
 - **Long-tail parity track**: remaining low-value/deprecated/admin endpoints can be added incrementally after practical completion.
 
-This document is a high-level, shippable roadmap broken into small, independently completable slices (typically one endpoint group or one command family per PR).
+This document is a high-level, shippable roadmap broken into small, independently completable slices (typically one API tag/controller or endpoint group per PR; CLI follow-ups are separate slices).
+
+## Strategy: client-first execution
+
+- **Ship `pkg/client` first**: all new API surface lands in the wrapper (scopes + options + error handling) with unit tests.
+- **CLI is a follow-up**: add/expand `internal/cli` commands only after the underlying client area is solid (usually in a separate PR), so CLI UX doesn’t constrain client API shape.
+- **CLI remains curated**: the CLI exposes workflows; the client is where broad API coverage lives.
 
 ---
 
@@ -48,22 +54,24 @@ This document is a high-level, shippable roadmap broken into small, independentl
 - [x] **PR: add identity + discovery follow-up** → [`prompts/04-identity-discovery.md`](prompts/04-identity-discovery.md)
   - `UsersScope`/`ProjectsScope` + `rp whoami`/`rp get project`.
 
-## Suggested next steps (next 4–6 PRs)
+## Suggested next steps (client-first, next 4–6 PRs)
 
-If you want the fastest path from read-complete MVP to broader parity:
+If you want the fastest path from the read-only MVP to a **client-complete** library (and to unblock future CLI work):
 
-- [ ] **PR: write workflows for launches/items/logs (Milestone 6)**
-  - Add lifecycle/mutation commands (`start`, `finish`, `update`, `delete`) where UX is clear.
-- [ ] **PR: finish identity/discovery depth**
-  - Add `ProjectSettingsScope` read summaries and decide CLI exposure (`rp get project-settings` vs client-only).
-- [ ] **PR: dashboards/widgets/filters read-first**
-  - Add client scopes and pragmatic `rp get dashboard|widget|filter` commands.
-- [ ] **PR: integrations + BTS introspection**
-  - Start with list/get/validate flows before mutation-heavy commands.
-- [ ] **PR: activity/audit search**
-  - Add read filters (`--since`, `--until`, `--user`, `--type`) for operator debugging workflows.
-- [ ] **PR: release readiness hardening**
-  - Expand compatibility notes and lock automation-facing JSON/error contracts.
+- [ ] **PR: client write workflows for launches/items/logs (Milestone 6)**
+  - Add lifecycle/mutation endpoints in `pkg/client` with unit tests; defer new CLI verbs to a follow-up slice.
+- [ ] **PR: client discovery + identity depth (Milestone 7)**
+  - Add `ProjectSettingsScope` read summaries and any validation/capability helpers needed for safe feature detection.
+- [ ] **PR: dashboards/widgets/filters scopes (Milestone 8)**
+  - Implement CRUD scopes in the client; keep CLI exposure as a separate read-first follow-up PR if it’s ergonomic.
+- [ ] **PR: integrations + BTS scopes (Milestone 9)**
+  - Start with list/get/validate flows before configuration and mutation-heavy endpoints.
+- [ ] **PR: activity/audit search scopes (Milestone 10)**
+  - Add list/search filters (`--since`, `--until`, `--user`, `--type`) for operator debugging workflows.
+- [ ] **PR: system/admin/internal controllers (Milestone 12)**
+  - Round out remaining client-only tags; keep CLI exposure selective.
+
+Once the client surface is broadly in place, do **release readiness hardening (Milestone 11)** to lock automation-facing JSON/error contracts and document compatibility expectations.
 
 ---
 
@@ -76,6 +84,7 @@ If you want the fastest path from read-complete MVP to broader parity:
 - **Consistent response handling**: always check `response.JSONDefault` before success fields.
 - **Options > param sprawl**: list/search endpoints use functional options; provide a few convenience helpers + allow raw param mutation.
 - **TDD default**: add/extend unit tests first; add/extend integration tests for high-value workflows.
+- **Client-first sequencing**: new API surface lands in `pkg/client` first; CLI additions are follow-up slices once the client API is proven and stable.
 - **CLI is opinionated**: CLI focuses on workflows; the Go client is where “everything” lives.
 
 ---
@@ -100,7 +109,9 @@ This keeps the CLI predictable while allowing the Go client to remain the “eve
 
 ---
 
-## Roadmap milestones (incremental and shippable, MVP-first order)
+## Roadmap milestones (client-first, shippable slices)
+
+Milestones 1–5 delivered the read-only MVP (client + minimal CLI). From Milestone 6 onward, the roadmap is **API-client first**: finish `pkg/client` coverage and correctness, then add CLI commands as separate follow-up slices where they’re a clear workflow win.
 
 ### Milestone 1: Foundations (reduce future effort per endpoint) — completed
 
@@ -202,23 +213,29 @@ Notes:
 
 ---
 
-### Milestone 6: Write workflows (post-MVP action parity)
+### Milestone 6: Client write workflows (post-MVP action parity)
 
-**Client + CLI**
+**Client (primary)**
 
 - Launch lifecycle actions: start/finish/update/delete
 - Test item lifecycle actions: start/finish/update and related mutation flows
 - Log mutation flows: add logs, upload/attach files, and bulk/async variants
 
+**CLI (follow-up slices)**
+
+- `rp start launch` / `rp finish launch` (and related update/delete workflows where UX is clear)
+- `rp start item` / `rp finish item`
+- `rp log add`
+
 Notes:
 
-- Implement mutation endpoints after the read-first MVP is stable and customer-ready.
+- Implement and stabilize mutation endpoints in the client first; add CLI verbs only after the underlying client area is solid and tested.
 
 ---
 
-### Milestone 7: Project discovery + identity (post-MVP usability) — partially complete
+### Milestone 7: Client discovery + identity depth (post-MVP usability) — partially complete
 
-**Client**
+**Client (primary)**
 
 - Instance-level:
   - `UsersScope`: `GetMyself` (whoami), (optional) admin CRUD
@@ -226,10 +243,10 @@ Notes:
 - Project-level:
   - `ProjectSettingsScope`: read settings summary (useful for validation/debug)
 
-**CLI**
+**CLI (stable baseline, optional follow-up)**
 
-- `rp whoami`
-- `rp get project` (list/get)
+- Already delivered: `rp whoami`, `rp get project` (list/get)
+- Optional follow-up: `rp get project-settings` (read-only) if it materially helps troubleshooting
 
 Notes:
 
@@ -241,13 +258,13 @@ Notes:
 
 ### Milestone 8: Dashboards, widgets, and filters (reporting UX)
 
-**Client**
+**Client (primary)**
 
 - `DashboardScope`: list/get/create/update/delete
 - `WidgetScope`: list/get/create/update/delete
 - `UserFilterScope`: list/get/create/update/delete (saved filters)
 
-**CLI**
+**CLI (follow-up slices)**
 
 - Likely **read-heavy** first:
   - `rp get dashboard`, `rp get widget`, `rp get filter`
@@ -261,12 +278,12 @@ Notes:
 
 ### Milestone 9: Integrations + Bug Tracking Systems (BTS)
 
-**Client**
+**Client (primary)**
 
 - `IntegrationScope`: list available integrations, configure for project, validate connection
 - `BugTrackingSystemScope`: create/update BTS settings, link/unlink issues, query defects
 
-**CLI**
+**CLI (follow-up slices)**
 
 - Start with operational introspection:
   - `rp get integration`, `rp get bts`
@@ -280,11 +297,11 @@ Notes:
 
 ### Milestone 10: Activity / audit events + search
 
-**Client**
+**Client (primary)**
 
 - `ActivityScope` / `ActivityEventScope`: list events, filter by time/object/user
 
-**CLI**
+**CLI (follow-up slices)**
 
 - `rp activity list` with filters like `--since`, `--until`, `--user`, `--type`
 
@@ -296,7 +313,7 @@ Notes:
 
 ### Milestone 11: Release readiness + compatibility
 
-**Client + CLI**
+**Client + CLI (client-first)**
 
 - Add lightweight capability checks/version notes for known Report Portal differences where they affect command behavior
 - Define JSON output stability expectations for automation-facing commands and test them in integration coverage
@@ -327,6 +344,24 @@ Notes:
   - plugin marketplace style endpoints
   - low-level/system settings that aren’t safe/pleasant in CLI
 - Optional `rp admin ...` commands only if you want to explicitly support admin workflows.
+
+---
+
+### Milestone 13: CLI expansion (after client completion; curated workflows)
+
+**CLI**
+
+- Write workflows on top of Milestone 6:
+  - `rp start|finish launch`, `rp start|finish item`, `rp log add`
+- Reporting UX (read-first):
+  - `rp get dashboard|widget|filter` (prefer file-driven create/update only if ergonomic)
+- Operator introspection:
+  - `rp get integration|bts` and “validate” style commands where useful
+  - `rp activity list` for audit/debug with time filters
+
+Notes:
+
+- Keep the CLI workflow-focused; avoid turning complex payloads into dozens of flags.
 
 ---
 
@@ -366,14 +401,14 @@ The OpenAPI spec in `pkg/internal/openapi/openapi.yaml` is tagged by controller.
 
 For each API area (tag/controller), treat the work as a small sequence you can repeat:
 
-Prefer endpoint-group or vertical-slice PRs when a full controller is too large (for example, launch list/get as one slice, export as another, lifecycle actions later).
+Prefer endpoint-group or vertical-slice PRs when a full controller is too large (for example, launch list/get as one slice, export as another, lifecycle actions later). Default order is **client-first**: land `pkg/client` + tests, then add CLI commands (if any) as a follow-up slice.
 
-- **Client**
+- **Client (primary)**
   - Add a new scope type (instance-scoped or project-scoped)
   - Implement a thin wrapper per endpoint (logging + `JSONDefault` handling + typed returns)
   - Add black-box unit tests for success + common errors (401/403/404) + query param wiring
   - Add integration tests for 1–3 “happy path” workflows (only where it’s worth the runtime)
-- **CLI (if applicable)**
+- **CLI (optional follow-up, only for clear workflows)**
   - Add `rp get ...` (read-only) first
   - Add action commands next (`start`, `finish`, `delete`, `update`) only when UX is good
   - Add integration tests per command family, covering JSON output + error cases
