@@ -4,7 +4,6 @@ package integration_test
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/klaskosk/report-portal-cli/pkg/client"
@@ -138,7 +137,7 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 		It("returns the launch", func(ctx SpecContext) {
 			launch, err := c.Project(projectName).Launches().GetByID(
 				ctx,
-				strconv.FormatInt(knownID, 10),
+				knownID,
 			)
 			Expect(err).NotTo(HaveOccurred(),
 				"getting launch by ID %d should not fail", knownID)
@@ -151,7 +150,7 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 		It("returns not found for an invalid ID", func(ctx SpecContext) {
 			_, err := c.Project(projectName).Launches().GetByID(
 				ctx,
-				"999999",
+				999999,
 			)
 			Expect(err).To(HaveOccurred(),
 				"getting launch by non-existent ID 999999 should fail")
@@ -339,7 +338,7 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			Expect(result).NotTo(BeNil())
 
 			// Verify the change.
-			launch, err := c.Project(projectName).Launches().GetByID(ctx, strconv.FormatInt(launchID, 10))
+			launch, err := c.Project(projectName).Launches().GetByID(ctx, launchID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(launch.Description).NotTo(BeNil())
 			Expect(*launch.Description).To(Equal("updated by integration test"))
@@ -370,7 +369,7 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Verify it's gone.
-			_, err = c.Project(projectName).Launches().GetByID(ctx, strconv.FormatInt(launchID, 10))
+			_, err = c.Project(projectName).Launches().GetByID(ctx, launchID)
 			Expect(err).To(HaveOccurred())
 			Expect(client.IsNotFound(err)).To(BeTrue())
 		})
@@ -397,7 +396,7 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			// Verify it is finished.
 			var finished bool
 			waitForSeedResolution(ctx, seedResolutionAttempts, seedResolutionInterval, func() bool {
-				launch, getErr := c.Project(projectName).Launches().GetByID(ctx, strconv.FormatInt(launchID, 10))
+				launch, getErr := c.Project(projectName).Launches().GetByID(ctx, launchID)
 				if getErr == nil && launch != nil && launch.Status != "" {
 					if launch.Status == "STOPPED" || launch.Status == "FAILED" || launch.Status == "PASSED" || launch.Status == "INTERRUPTED" {
 						finished = true

@@ -14,7 +14,7 @@ func ExampleLaunchScope_GetByID() { //nolint:testableexamples // Output depends 
 		log.Fatal(err)
 	}
 
-	launch, err := c.Project("my_project").Launches().GetByID(context.Background(), "42")
+	launch, err := c.Project("my_project").Launches().GetByID(context.Background(), 42)
 	if err != nil {
 		log.Fatal(err)
 	}

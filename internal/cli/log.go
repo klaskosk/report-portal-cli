@@ -90,8 +90,9 @@ func getSingleLog(
 		err      error
 	)
 
-	if isNumericID(idOrUUID) {
-		logEntry, err = scope.GetByID(ctx, idOrUUID)
+	numericID, parseErr := strconv.ParseInt(idOrUUID, 10, 64)
+	if parseErr == nil {
+		logEntry, err = scope.GetByID(ctx, numericID)
 	} else {
 		logEntry, err = scope.GetByUUID(ctx, idOrUUID)
 	}

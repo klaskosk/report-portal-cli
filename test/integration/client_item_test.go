@@ -4,7 +4,6 @@ package integration_test
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/klaskosk/report-portal-cli/pkg/client"
@@ -91,7 +90,7 @@ var _ = Describe("Client: Test Items", Label("client", "items"), func() {
 		It("returns the seeded suite item", func(ctx SpecContext) {
 			item, err := c.Project(projectName).Items().GetByID(
 				ctx,
-				strconv.FormatInt(seeded.SuiteID, 10),
+				seeded.SuiteID,
 			)
 			Expect(err).NotTo(HaveOccurred(), "getting suite by id should not fail")
 			Expect(item).NotTo(BeNil())
@@ -100,7 +99,7 @@ var _ = Describe("Client: Test Items", Label("client", "items"), func() {
 		})
 
 		It("returns not found for an invalid id", func(ctx SpecContext) {
-			_, err := c.Project(projectName).Items().GetByID(ctx, "999999")
+			_, err := c.Project(projectName).Items().GetByID(ctx, int64(999999))
 			Expect(err).To(HaveOccurred(), "getting item by invalid id should fail")
 			Expect(client.IsNotFound(err)).To(BeTrue(),
 				"error for invalid item id should be not-found, got: %v", err)
@@ -143,7 +142,7 @@ var _ = Describe("Client: Test Items", Label("client", "items"), func() {
 			// Verify the change.
 			item, err := c.Project(projectName).Items().GetByID(
 				ctx,
-				strconv.FormatInt(seeded.SuiteID, 10),
+				seeded.SuiteID,
 			)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(item).NotTo(BeNil())
@@ -163,7 +162,7 @@ var _ = Describe("Client: Test Items", Label("client", "items"), func() {
 			// Verify it's gone.
 			_, err = c.Project(projectName).Items().GetByID(
 				ctx,
-				strconv.FormatInt(deleteSeeded.SuiteID, 10),
+				deleteSeeded.SuiteID,
 			)
 			Expect(err).To(HaveOccurred())
 			Expect(client.IsNotFound(err)).To(BeTrue(),

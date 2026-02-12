@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strconv"
 
 	"github.com/klaskosk/report-portal-cli/pkg/client"
 	"github.com/spf13/cobra"
@@ -79,7 +80,12 @@ func resolveDataIDFromLog(
 	project, logID string,
 	printer *Printer,
 ) (string, error) {
-	logEntry, err := clientInstance.Project(project).Logs().GetByID(cmd.Context(), logID)
+	numericID, parseErr := strconv.ParseInt(logID, 10, 64)
+	if parseErr != nil {
+		return "", fmt.Errorf("invalid log id %q: %w", logID, parseErr)
+	}
+
+	logEntry, err := clientInstance.Project(project).Logs().GetByID(cmd.Context(), numericID)
 	if err != nil {
 		printer.PrintError(err)
 

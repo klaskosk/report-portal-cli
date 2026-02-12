@@ -34,7 +34,7 @@ func TestLogScope_GetByID_Success(t *testing.T) {
 		}`))
 	}))
 
-	log, err := c.Project("my_project").Logs().GetByID(t.Context(), "42")
+	log, err := c.Project("my_project").Logs().GetByID(t.Context(), 42)
 	require.NoError(t, err)
 	require.NotNil(t, log)
 
@@ -49,21 +49,21 @@ func TestLogScope_GetByID_Errors(t *testing.T) {
 
 	testCases := []struct {
 		name       string
-		logID      string
+		logID      int64
 		statusCode int
 		body       string
 		check      func(error) bool
 	}{
 		{
 			name:       "NotFound",
-			logID:      "999",
+			logID:      999,
 			statusCode: http.StatusNotFound,
 			body:       `{"errorCode": 40440, "message": "Log '999' not found."}`,
 			check:      client.IsNotFound,
 		},
 		{
 			name:       "Unauthorized",
-			logID:      "42",
+			logID:      42,
 			statusCode: http.StatusUnauthorized,
 			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
 			check:      client.IsUnauthorized,

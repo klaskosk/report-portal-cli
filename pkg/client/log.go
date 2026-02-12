@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strconv"
 
 	"github.com/klaskosk/report-portal-cli/pkg/internal/api"
 	"github.com/klaskosk/report-portal-cli/pkg/types"
@@ -17,15 +18,15 @@ type LogScope struct {
 // GetByID returns a single log entry by its numeric ID.
 func (l *LogScope) GetByID(
 	ctx context.Context,
-	id string,
+	id int64,
 ) (*types.LogResource, error) {
-	logger := l.project.operationLogger("GetLogByID", slog.String("id", id))
+	logger := l.project.operationLogger("GetLogByID", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
 	response, err := l.project.client.raw.GetLogUsingGETWithResponse(
 		ctx,
 		l.project.projectName,
-		id,
+		strconv.FormatInt(id, 10),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("get log by id: %w", err)

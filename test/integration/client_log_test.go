@@ -4,7 +4,6 @@ package integration_test
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/klaskosk/report-portal-cli/pkg/client"
@@ -74,7 +73,7 @@ var _ = Describe("Client: Logs", Label("client", "logs"), func() {
 
 			logEntry, err := c.Project(projectName).Logs().GetByID(
 				ctx,
-				strconv.FormatInt(seededLogs.LogIDs[0], 10),
+				seededLogs.LogIDs[0],
 			)
 			Expect(err).NotTo(HaveOccurred(), "getting log by id should not fail")
 			Expect(logEntry).NotTo(BeNil())
@@ -82,7 +81,7 @@ var _ = Describe("Client: Logs", Label("client", "logs"), func() {
 		})
 
 		It("returns not found for an invalid id", func(ctx SpecContext) {
-			_, err := c.Project(projectName).Logs().GetByID(ctx, "999999")
+			_, err := c.Project(projectName).Logs().GetByID(ctx, int64(999999))
 			Expect(err).To(HaveOccurred(), "getting log by invalid id should fail")
 			Expect(client.IsNotFound(err)).To(BeTrue(),
 				"error for invalid log id should be not-found, got: %v", err)
@@ -136,7 +135,7 @@ var _ = Describe("Client: Logs", Label("client", "logs"), func() {
 			Expect(err).NotTo(HaveOccurred(), "deleting log entry should not fail")
 
 			// Verify it's gone.
-			_, err = c.Project(projectName).Logs().GetByID(ctx, strconv.FormatInt(logID, 10))
+			_, err = c.Project(projectName).Logs().GetByID(ctx, logID)
 			Expect(err).To(HaveOccurred())
 			Expect(client.IsNotFound(err)).To(BeTrue(),
 				"deleted log should return not-found, got: %v", err)

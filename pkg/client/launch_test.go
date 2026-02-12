@@ -34,7 +34,7 @@ func TestLaunchScope_GetByID_Success(t *testing.T) {
 		}`))
 	}))
 
-	launch, err := c.Project("my_project").Launches().GetByID(t.Context(), "42")
+	launch, err := c.Project("my_project").Launches().GetByID(t.Context(), 42)
 	require.NoError(t, err)
 
 	assert.Equal(t, int64(42), launch.Id)
@@ -49,21 +49,21 @@ func TestLaunchScope_GetByID_Errors(t *testing.T) {
 		name      string
 		status    int
 		body      string
-		id        string
+		id        int64
 		assertErr func(error) bool
 	}{
 		{
 			name:      "NotFound",
 			status:    http.StatusNotFound,
 			body:      `{"errorCode": 40410, "message": "Launch '999' not found."}`,
-			id:        "999",
+			id:        999,
 			assertErr: client.IsNotFound,
 		},
 		{
 			name:      "Unauthorized",
 			status:    http.StatusUnauthorized,
 			body:      `{"errorCode": 4001, "message": "Full authentication is required."}`,
-			id:        "42",
+			id:        42,
 			assertErr: client.IsUnauthorized,
 		},
 	}

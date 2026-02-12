@@ -89,8 +89,9 @@ func getSingleItem(
 		err  error
 	)
 
-	if isNumericID(idOrUUID) {
-		item, err = scope.GetByID(ctx, idOrUUID)
+	numericID, parseErr := strconv.ParseInt(idOrUUID, 10, 64)
+	if parseErr == nil {
+		item, err = scope.GetByID(ctx, numericID)
 	} else {
 		item, err = scope.GetByUUID(ctx, idOrUUID)
 	}

@@ -12,7 +12,7 @@ import (
 
 // fieldNames returns the exported field names of a struct type.
 func fieldNames(t reflect.Type) map[string]bool {
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 
@@ -28,9 +28,9 @@ func fieldNames(t reflect.Type) map[string]bool {
 func TestLaunchParamStructs_HaveIdenticalFields(t *testing.T) {
 	t.Parallel()
 
-	sourceFields := fieldNames(reflect.TypeOf(api.GetProjectLaunchesUsingGETParams{}))
-	latestFields := fieldNames(reflect.TypeOf(api.GetLatestLaunchesUsingGETParams{}))
-	debugFields := fieldNames(reflect.TypeOf(api.GetDebugLaunchesUsingGETParams{}))
+	sourceFields := fieldNames(reflect.TypeFor[api.GetProjectLaunchesUsingGETParams]())
+	latestFields := fieldNames(reflect.TypeFor[api.GetLatestLaunchesUsingGETParams]())
+	debugFields := fieldNames(reflect.TypeFor[api.GetDebugLaunchesUsingGETParams]())
 
 	require.NotEmpty(t, sourceFields, "source params should have fields")
 

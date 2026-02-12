@@ -91,8 +91,9 @@ func getSingleLaunch(
 		err    error
 	)
 
-	if isNumericID(idOrUUID) {
-		launch, err = scope.GetByID(ctx, idOrUUID)
+	numericID, parseErr := strconv.ParseInt(idOrUUID, 10, 64)
+	if parseErr == nil {
+		launch, err = scope.GetByID(ctx, numericID)
 	} else {
 		launch, err = scope.GetByUUID(ctx, idOrUUID)
 	}
@@ -205,13 +206,6 @@ func launchRow(launch *types.LaunchResource) ([]string, []string) {
 		startTime,
 		strconv.FormatInt(launch.Number, 10),
 	}
-}
-
-// isNumericID reports whether s is a parseable base-10 integer.
-func isNumericID(s string) bool {
-	_, err := strconv.ParseInt(s, 10, 64)
-
-	return err == nil
 }
 
 // launchFilterFlags holds the resolved filter flags for launch queries.

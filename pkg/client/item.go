@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strconv"
 
 	"github.com/klaskosk/report-portal-cli/pkg/internal/api"
 	"github.com/klaskosk/report-portal-cli/pkg/types"
@@ -91,15 +92,15 @@ func (i *TestItemScope) Finish(
 // GetByID returns a single test item by its numeric ID.
 func (i *TestItemScope) GetByID(
 	ctx context.Context,
-	id string,
+	id int64,
 ) (*types.TestItemResource, error) {
-	logger := i.project.operationLogger("GetTestItemByID", slog.String("id", id))
+	logger := i.project.operationLogger("GetTestItemByID", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
 	response, err := i.project.client.raw.GetTestItemUsingGETWithResponse(
 		ctx,
 		i.project.projectName,
-		id,
+		strconv.FormatInt(id, 10),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("get test item by id: %w", err)

@@ -132,7 +132,7 @@ func main() {
         }
 
         // Get a launch by numeric ID
-        launch, err := c.Project("my_project").Launches().GetByID(context.Background(), "42")
+        launch, err := c.Project("my_project").Launches().GetByID(context.Background(), 42)
         if err != nil {
                 if client.IsNotFound(err) {
                         log.Fatal("launch not found")

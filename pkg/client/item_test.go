@@ -37,7 +37,7 @@ func TestTestItemScope_GetByID_Success(t *testing.T) {
 		}`))
 	}))
 
-	item, err := c.Project("my_project").Items().GetByID(t.Context(), "42")
+	item, err := c.Project("my_project").Items().GetByID(t.Context(), 42)
 	require.NoError(t, err)
 	require.NotNil(t, item)
 	require.NotNil(t, item.Id)
@@ -56,14 +56,14 @@ func TestTestItemScope_GetByID_Errors(t *testing.T) {
 
 	testCases := []struct {
 		name       string
-		itemID     string
+		itemID     int64
 		statusCode int
 		body       string
 		check      func(*testing.T, error)
 	}{
 		{
 			name:       "NotFound",
-			itemID:     "999",
+			itemID:     999,
 			statusCode: http.StatusNotFound,
 			body:       `{"errorCode": 40440, "message": "Test item '999' not found."}`,
 			check: func(t *testing.T, err error) {
@@ -74,7 +74,7 @@ func TestTestItemScope_GetByID_Errors(t *testing.T) {
 		},
 		{
 			name:       "Unauthorized",
-			itemID:     "42",
+			itemID:     42,
 			statusCode: http.StatusUnauthorized,
 			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
 			check: func(t *testing.T, err error) {

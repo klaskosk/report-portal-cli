@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strconv"
 
 	"github.com/klaskosk/report-portal-cli/pkg/internal/api"
 	"github.com/klaskosk/report-portal-cli/pkg/types"
@@ -85,15 +86,15 @@ func (l *LaunchScope) GetByUUID(
 // GetByID returns a single launch by its numeric ID.
 func (l *LaunchScope) GetByID(
 	ctx context.Context,
-	id string,
+	id int64,
 ) (*types.LaunchResource, error) {
-	logger := l.project.operationLogger("GetLaunchByID", slog.String("id", id))
+	logger := l.project.operationLogger("GetLaunchByID", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
 	response, err := l.project.client.raw.GetLaunchUsingGETWithResponse(
 		ctx,
 		l.project.projectName,
-		id,
+		strconv.FormatInt(id, 10),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("get launch by id: %w", err)
