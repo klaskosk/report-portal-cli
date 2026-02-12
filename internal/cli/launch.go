@@ -275,7 +275,7 @@ func resolveLaunchFilterFlags(cmd *cobra.Command) (launchFilterFlags, error) {
 
 // applyLaunchFilterOptions converts launchFilterFlags to client options.
 func applyLaunchFilterOptions(filters launchFilterFlags) ([]client.ListLaunchesOption, error) {
-	var options []client.ListLaunchesOption
+	options := make([]client.ListLaunchesOption, 0, 4+len(filters.attributes))
 
 	if filters.user != "" {
 		options = append(options, client.WithUser(filters.user))

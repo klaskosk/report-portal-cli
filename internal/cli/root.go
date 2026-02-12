@@ -41,10 +41,6 @@ func newRootCmd() *cobra.Command {
 			logger := newLogger(verbosity)
 			cmd.SetContext(context.WithValue(cmd.Context(), loggerKey{}, logger))
 
-			if verbosity >= 3 {
-				logger.Log(cmd.Context(), LevelTrace, "trace logging enabled")
-			}
-
 			return initConfig(cmd)
 		},
 	}
@@ -56,7 +52,7 @@ func newRootCmd() *cobra.Command {
 	flags.String("token", "", "API bearer token (overrides profile)")
 	flags.Bool("insecure-skip-verify", false, "skip TLS certificate verification")
 	flags.StringP("output", "o", "table", "output format: table, json, go-template=<tmpl>")
-	flags.IntP("verbosity", "v", 0, "log verbosity level (0=off, 1=info, 2=debug, 3+=trace)")
+	flags.IntP("verbosity", "v", 0, "log verbosity level (0=off, 1=info, 2+=debug)")
 
 	cmd.AddCommand(newGetCmd())
 	cmd.AddCommand(newDownloadCmd())

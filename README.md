@@ -42,7 +42,7 @@ make build        # produces ./rp
 | `--token` | | API bearer token (overrides profile) |
 | `--insecure-skip-verify` | | Skip TLS certificate verification |
 | `--output` | `-o` | Output format: `table`, `json`, `go-template=<tmpl>` |
-| `--verbosity` | `-v` | Log verbosity (0=off, 1=info, 2=debug, 3+=trace) |
+| `--verbosity` | `-v` | Log verbosity (0=off, 1=info, 2+=debug) |
 
 ### Examples
 

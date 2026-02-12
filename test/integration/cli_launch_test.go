@@ -215,7 +215,7 @@ var _ = Describe("CLI: get launch", Label("cli", "launches"), func() {
 			},
 			Entry("info logs at verbosity 1", "1", "INFO"),
 			Entry("debug logs at verbosity 2", "2", "DEBUG"),
-			Entry("trace logs at verbosity 3", "3", "TRACE"),
+			Entry("debug logs at verbosity 3", "3", "DEBUG"),
 		)
 	})
 

@@ -213,13 +213,13 @@ type logFilterFlags struct {
 func registerLogFilterFlags(cmd *cobra.Command) {
 	cmd.Flags().String("item", "", "filter by test item ID")
 	cmd.Flags().String("launch", "", "filter by launch ID")
-	cmd.Flags().String("level", "", "filter by log level (error, warn, info, debug, trace, fatal)")
+	cmd.Flags().String("level", "", "filter by log level (error, warn, info, debug, fatal)")
 }
 
 // validLogLevels is the set of log levels accepted by the --level flag.
 var validLogLevels = map[string]bool{
 	"ERROR": true, "WARN": true, "INFO": true,
-	"DEBUG": true, "TRACE": true, "FATAL": true,
+	"DEBUG": true, "FATAL": true,
 }
 
 // resolveLogFilterFlags reads the log filter flags from cmd and returns them.
@@ -242,7 +242,7 @@ func resolveLogFilterFlags(cmd *cobra.Command) (logFilterFlags, error) {
 
 	if level != "" && !validLogLevels[level] {
 		return logFilterFlags{}, fmt.Errorf(
-			"invalid log level %q: must be one of error, warn, info, debug, trace, fatal", level)
+			"invalid log level %q: must be one of error, warn, info, debug, fatal", level)
 	}
 
 	return logFilterFlags{

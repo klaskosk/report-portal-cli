@@ -9,9 +9,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// LevelTrace is a custom slog level for high-verbosity tracing (V=3+).
-const LevelTrace = slog.LevelDebug - 4
-
 type loggerKey struct{}
 
 // newLogger creates a *slog.Logger that writes to stderr at the level implied
@@ -19,49 +16,29 @@ type loggerKey struct{}
 //
 //	0 → effectively off (only CLI output)
 //	1 → Info
-//	2 → Debug
-//	3+→ Trace (custom level below Debug)
+//	2+→ Debug
 func newLogger(verbosity int) *slog.Logger {
 	level := verbosityToLevel(verbosity)
 
 	handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		Level:       level,
-		ReplaceAttr: replaceLevel,
+		Level: level,
 	})
 
 	return slog.New(handler)
 }
 
-// verbosityToLevel converts a kubectl-style verbosity (0-3+) to an slog.Level.
+// verbosityToLevel converts a kubectl-style verbosity (0-2+) to an slog.Level.
 func verbosityToLevel(verbosity int) slog.Level {
 	switch {
 	case verbosity <= 0:
+		// Disable all logging when not explicitly enabled. Errors will still be reported as part of the CLI,
+		// just not through the logger.
 		return slog.Level(math.MaxInt)
 	case verbosity == 1:
 		return slog.LevelInfo
-	case verbosity == 2:
-		return slog.LevelDebug
 	default:
-		return LevelTrace
+		return slog.LevelDebug
 	}
-}
-
-// replaceLevel renders the custom LevelTrace as "TRACE" in text output.
-func replaceLevel(_ []string, attr slog.Attr) slog.Attr {
-	if attr.Key != slog.LevelKey {
-		return attr
-	}
-
-	level, ok := attr.Value.Any().(slog.Level)
-	if !ok {
-		return attr
-	}
-
-	if level <= LevelTrace {
-		attr.Value = slog.StringValue("TRACE")
-	}
-
-	return attr
 }
 
 // loggerFromCmd extracts the logger stored in the command's context.
