@@ -10,7 +10,8 @@
       "Bash(golangci-lint-v2 run:*)",
       "Bash(go vet:*)",
       "Bash(make vet:*)",
-      "Bash(make test-integration:*)"
+      "Bash(make test-integration:*)",
+      "Bash(gh pr view:*)"
     ]
   }
 }
