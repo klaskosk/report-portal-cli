@@ -776,3 +776,144 @@ func TestTestItemScope_DefineIssueType_Errors(t *testing.T) {
 		})
 	}
 }
+
+func TestTestItemScope_DeleteBulk_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/item")
+		assertMethod(t, r, http.MethodDelete)
+
+		query := r.URL.Query()["ids"]
+		assert.Equal(t, []string{"101", "202"}, query)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`[{"message":"Items successfully deleted."}]`))
+	}))
+
+	result, err := c.Project("my_project").Items().DeleteBulk(t.Context(), []int64{101, 202})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Len(t, result, 1)
+	require.NotNil(t, result[0].Message)
+	assert.Equal(t, "Items successfully deleted.", *result[0].Message)
+}
+
+func TestTestItemScope_DeleteBulk_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "NotFound",
+			statusCode: http.StatusNotFound,
+			body:       `{"errorCode": 40440, "message": "Test items not found."}`,
+			check:      client.IsNotFound,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Items().DeleteBulk(
+				t.Context(),
+				[]int64{101, 202},
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestTestItemScope_BulkUpdate_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/item/info")
+		assertMethod(t, r, http.MethodPut)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		ids := payload["ids"].([]any)
+		assert.Len(t, ids, 2)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"Items successfully updated."}`))
+	}))
+
+	comment := "Updated via bulk"
+	description := types.Description{Comment: &comment}
+	result, err := c.Project("my_project").Items().BulkUpdate(
+		t.Context(),
+		types.BulkInfoUpdateRQ{
+			Ids:         &[]int64{101, 202},
+			Description: &description,
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Message)
+	assert.Equal(t, "Items successfully updated.", *result.Message)
+}
+
+func TestTestItemScope_BulkUpdate_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "BadRequest",
+			statusCode: http.StatusBadRequest,
+			body:       `{"errorCode": 4001, "message": "Invalid bulk update payload."}`,
+			check:      client.IsBadRequest,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Items().BulkUpdate(
+				t.Context(),
+				types.BulkInfoUpdateRQ{
+					Ids: &[]int64{101, 202},
+				},
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}

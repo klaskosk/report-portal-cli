@@ -519,6 +519,59 @@ func (l *LaunchScope) Analyze(
 	return handleResponse(response, "analyze launch", response.JSONDefault, response.JSON200)
 }
 
+// BulkUpdate modifies attributes and/or description for multiple launches at once.
+func (l *LaunchScope) BulkUpdate(
+	ctx context.Context,
+	request types.BulkInfoUpdateRQ,
+) (*types.OperationCompletionRS, error) {
+	logger := l.project.operationLogger("BulkUpdateLaunches")
+	logger.InfoContext(ctx, "API request")
+
+	response, err := l.project.client.raw.BulkUpdateUsingPUTWithResponse(
+		ctx,
+		l.project.projectName,
+		request,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("bulk update launches: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "bulk update launches", response.JSONDefault, response.JSON200)
+}
+
+// BulkForceFinish stops multiple stuck launches that cannot be finished normally.
+func (l *LaunchScope) BulkForceFinish(
+	ctx context.Context,
+	request types.BulkRQLongFinishExecutionRQ,
+) ([]types.OperationCompletionRS, error) {
+	logger := l.project.operationLogger("BulkForceFinishLaunches")
+	logger.InfoContext(ctx, "API request")
+
+	response, err := l.project.client.raw.BulkForceFinishUsingPUTWithResponse(
+		ctx,
+		l.project.projectName,
+		request,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("bulk force finish launches: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	results, err := handleResponse(response, "bulk force finish launches", response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, err
+	}
+
+	if results == nil {
+		return []types.OperationCompletionRS{}, nil
+	}
+
+	return *results, nil
+}
+
 // GetNames returns unique launch names matching the filter (for autocomplete).
 func (l *LaunchScope) GetNames(
 	ctx context.Context,

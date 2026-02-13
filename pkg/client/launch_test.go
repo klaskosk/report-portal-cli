@@ -1154,3 +1154,165 @@ func TestLaunchScope_Analyze_Errors(t *testing.T) {
 		})
 	}
 }
+
+func TestLaunchScope_BulkUpdate_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/launch/info")
+		assertMethod(t, r, http.MethodPut)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		ids := payload["ids"].([]any)
+		assert.Len(t, ids, 2)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"Launches successfully updated."}`))
+	}))
+
+	comment := "Updated via bulk"
+	description := types.Description{Comment: &comment}
+	result, err := c.Project("my_project").Launches().BulkUpdate(
+		t.Context(),
+		types.BulkInfoUpdateRQ{
+			Ids:         &[]int64{1, 2},
+			Description: &description,
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Message)
+	assert.Equal(t, "Launches successfully updated.", *result.Message)
+}
+
+func TestLaunchScope_BulkUpdate_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "BadRequest",
+			statusCode: http.StatusBadRequest,
+			body:       `{"errorCode": 4001, "message": "Invalid bulk update payload."}`,
+			check:      client.IsBadRequest,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Launches().BulkUpdate(
+				t.Context(),
+				types.BulkInfoUpdateRQ{
+					Ids: &[]int64{1, 2},
+				},
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestLaunchScope_BulkForceFinish_Success(t *testing.T) {
+	t.Parallel()
+
+	endTime := time.UnixMilli(1700000007000)
+	status := types.FinishExecutionRQStatusFAILED
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/launch/stop")
+		assertMethod(t, r, http.MethodPut)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		entities := payload["entities"].(map[string]any)
+		assert.Len(t, entities, 1)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`[{"message":"Launch force finished."}]`))
+	}))
+
+	result, err := c.Project("my_project").Launches().BulkForceFinish(
+		t.Context(),
+		types.BulkRQLongFinishExecutionRQ{
+			Entities: map[string]types.FinishExecutionRQ{
+				"42": {
+					EndTime: types.EpochMillis(endTime),
+					Status:  &status,
+				},
+			},
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Len(t, result, 1)
+	require.NotNil(t, result[0].Message)
+	assert.Equal(t, "Launch force finished.", *result[0].Message)
+}
+
+func TestLaunchScope_BulkForceFinish_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "BadRequest",
+			statusCode: http.StatusBadRequest,
+			body:       `{"errorCode": 4001, "message": "Invalid bulk force finish payload."}`,
+			check:      client.IsBadRequest,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Launches().BulkForceFinish(
+				t.Context(),
+				types.BulkRQLongFinishExecutionRQ{
+					Entities: map[string]types.FinishExecutionRQ{},
+				},
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}

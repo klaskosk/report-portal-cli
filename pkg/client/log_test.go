@@ -352,3 +352,143 @@ func TestLogScope_Delete_Errors(t *testing.T) {
 		})
 	}
 }
+
+func TestLogScope_CreateBatch_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/log")
+		assertMethod(t, r, http.MethodPost)
+
+		contentType := r.Header.Get("Content-Type")
+		assert.Contains(t, contentType, "multipart/form-data")
+		assert.Contains(t, contentType, "boundary=")
+
+		err := r.ParseMultipartForm(10 << 20)
+		require.NoError(t, err)
+
+		jsonPart := r.FormValue("json_request_part")
+		assert.NotEmpty(t, jsonPart)
+
+		var entries []map[string]any
+		require.NoError(t, json.Unmarshal([]byte(jsonPart), &entries))
+		assert.Len(t, entries, 1)
+		assert.Equal(t, "launch-uuid-1", entries[0]["launchUuid"])
+		assert.Equal(t, "item-uuid-1", entries[0]["itemUuid"])
+		assert.Equal(t, "Test log message", entries[0]["message"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"responses":[{"id":"log-batch-1"}]}`))
+	}))
+
+	result, err := c.Project("my_project").Logs().CreateBatch(
+		t.Context(),
+		client.BatchLogEntry{
+			LaunchUUID: "launch-uuid-1",
+			ItemUUID:   "item-uuid-1",
+			Level:      "INFO",
+			Message:    "Test log message",
+			Time:       types.EpochMillis(time.UnixMilli(1700000000000)),
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Responses)
+	require.Len(t, *result.Responses, 1)
+	assert.Equal(t, "log-batch-1", *(*result.Responses)[0].Id)
+}
+
+func TestLogScope_CreateBatch_WithAttachment(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/log")
+		assertMethod(t, r, http.MethodPost)
+
+		err := r.ParseMultipartForm(10 << 20)
+		require.NoError(t, err)
+
+		jsonPart := r.FormValue("json_request_part")
+		assert.NotEmpty(t, jsonPart)
+
+		var entries []map[string]any
+		require.NoError(t, json.Unmarshal([]byte(jsonPart), &entries))
+		assert.Len(t, entries, 1)
+
+		file, ok := entries[0]["file"].(map[string]any)
+		require.True(t, ok, "entry should have a file field")
+		assert.Equal(t, "test.txt", file["name"])
+
+		_, header, err := r.FormFile("file")
+		require.NoError(t, err)
+		assert.Equal(t, "test.txt", header.Filename)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"responses":[{"id":"log-batch-attachment"}]}`))
+	}))
+
+	result, err := c.Project("my_project").Logs().CreateBatch(
+		t.Context(),
+		client.BatchLogEntry{
+			LaunchUUID:     "launch-uuid-1",
+			ItemUUID:       "item-uuid-1",
+			Level:          "INFO",
+			Message:        "Log with attachment",
+			Time:           types.EpochMillis(time.UnixMilli(1700000000000)),
+			AttachmentName: "test.txt",
+			AttachmentData: []byte("file content here"),
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Responses)
+	require.Len(t, *result.Responses, 1)
+}
+
+func TestLogScope_CreateBatch_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "BadRequest",
+			statusCode: http.StatusBadRequest,
+			body:       `{"errorCode": 4001, "message": "Invalid log entry."}`,
+			check:      client.IsBadRequest,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Logs().CreateBatch(
+				t.Context(),
+				client.BatchLogEntry{
+					LaunchUUID: "launch-uuid-1",
+					Level:      "INFO",
+					Message:    "Test",
+					Time:       types.EpochMillis(time.Now()),
+				},
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}

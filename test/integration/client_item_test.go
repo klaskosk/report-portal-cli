@@ -126,6 +126,40 @@ var _ = Describe("Client: Test Items", Label("client", "items"), func() {
 		})
 	})
 
+	Context("Bulk Write Operations", func() {
+		It("bulk deletes test items", func(ctx SpecContext) {
+			// Seed a new launch with items specifically for bulk deletion.
+			deleteSeeded, err := seedTestItems(ctx, baseURL, bearerToken, projectName)
+			Expect(err).To(Succeed(), "seeding items for bulk delete test should not fail")
+
+			// Delete the suite item via bulk.
+			results, err := c.Project(projectName).Items().DeleteBulk(ctx, []int64{deleteSeeded.SuiteID})
+			Expect(err).NotTo(HaveOccurred(), "bulk deleting test items should not fail")
+			Expect(results).NotTo(BeEmpty())
+
+			// Verify the suite is gone.
+			_, err = c.Project(projectName).Items().GetByID(ctx, deleteSeeded.SuiteID)
+			Expect(err).To(HaveOccurred())
+			Expect(client.IsNotFound(err)).To(BeTrue(),
+				"deleted test item should return not-found, got: %v", err)
+		})
+
+		It("bulk updates test items", func(ctx SpecContext) {
+			comment := "bulk updated by integration test"
+			action := types.DescriptionActionUPDATE
+			attributes := []types.UpdateItemAttributeRQ{}
+			description := types.Description{Action: &action, Comment: &comment}
+
+			result, err := c.Project(projectName).Items().BulkUpdate(ctx, types.BulkInfoUpdateRQ{
+				Attributes:  &attributes,
+				Ids:         &[]int64{seeded.SuiteID},
+				Description: &description,
+			})
+			Expect(err).NotTo(HaveOccurred(), "bulk updating test items should not fail")
+			Expect(result).NotTo(BeNil())
+		})
+	})
+
 	Context("Write Operations", func() {
 		It("updates a test item description", func(ctx SpecContext) {
 			newDescription := "updated by integration test"

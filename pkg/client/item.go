@@ -289,6 +289,59 @@ func (i *TestItemScope) DefineIssueType(
 	return *issues, nil
 }
 
+// DeleteBulk removes multiple test items by their numeric IDs.
+func (i *TestItemScope) DeleteBulk(
+	ctx context.Context,
+	ids []int64,
+) ([]types.OperationCompletionRS, error) {
+	logger := i.project.operationLogger("DeleteTestItemsBulk")
+	logger.InfoContext(ctx, "API request")
+
+	response, err := i.project.client.raw.DeleteTestItemsUsingDELETEWithResponse(
+		ctx,
+		i.project.projectName,
+		&api.DeleteTestItemsUsingDELETEParams{Ids: ids},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("delete test items bulk: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	results, err := handleResponse(response, "delete test items bulk", response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, err
+	}
+
+	if results == nil {
+		return []types.OperationCompletionRS{}, nil
+	}
+
+	return *results, nil
+}
+
+// BulkUpdate modifies attributes and/or description for multiple test items at once.
+func (i *TestItemScope) BulkUpdate(
+	ctx context.Context,
+	request types.BulkInfoUpdateRQ,
+) (*types.OperationCompletionRS, error) {
+	logger := i.project.operationLogger("BulkUpdateTestItems")
+	logger.InfoContext(ctx, "API request")
+
+	response, err := i.project.client.raw.BulkUpdateUsingPUT1WithResponse(
+		ctx,
+		i.project.projectName,
+		request,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("bulk update test items: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "bulk update test items", response.JSONDefault, response.JSON200)
+}
+
 // WithItemPageNumber sets the page number (0-based).
 func WithItemPageNumber(n int32) ListTestItemsOption {
 	return func(params *api.GetTestItemsUsingGET2Params) {

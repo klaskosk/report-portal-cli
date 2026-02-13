@@ -88,6 +88,49 @@ var _ = Describe("Client: Logs", Label("client", "logs"), func() {
 		})
 	})
 
+	Context("Batch Write Operations", func() {
+		It("creates batch log entries without attachment", func(ctx SpecContext) {
+			result, err := c.Project(projectName).Logs().CreateBatch(ctx,
+				client.BatchLogEntry{
+					LaunchUUID: seeded.LaunchUUID,
+					ItemUUID:   seeded.SuiteUUID,
+					Level:      "INFO",
+					Message:    "batch-log-entry-1",
+					Time:       types.EpochMillis(time.Now()),
+				},
+				client.BatchLogEntry{
+					LaunchUUID: seeded.LaunchUUID,
+					ItemUUID:   seeded.SuiteUUID,
+					Level:      "ERROR",
+					Message:    "batch-log-entry-2",
+					Time:       types.EpochMillis(time.Now()),
+				},
+			)
+			Expect(err).NotTo(HaveOccurred(), "batch creating log entries should not fail")
+			Expect(result).NotTo(BeNil())
+			Expect(result.Responses).NotTo(BeNil())
+			Expect(*result.Responses).NotTo(BeEmpty(), "batch response should contain entries")
+		})
+
+		It("creates batch log entry with attachment", func(ctx SpecContext) {
+			result, err := c.Project(projectName).Logs().CreateBatch(ctx,
+				client.BatchLogEntry{
+					LaunchUUID:     seeded.LaunchUUID,
+					ItemUUID:       seeded.SuiteUUID,
+					Level:          "INFO",
+					Message:        "log with attachment",
+					Time:           types.EpochMillis(time.Now()),
+					AttachmentName: "test.txt",
+					AttachmentData: []byte("integration test attachment content"),
+				},
+			)
+			Expect(err).NotTo(HaveOccurred(), "batch creating log with attachment should not fail")
+			Expect(result).NotTo(BeNil())
+			Expect(result.Responses).NotTo(BeNil())
+			Expect(*result.Responses).NotTo(BeEmpty())
+		})
+	})
+
 	Context("Write Operations", func() {
 		It("creates a log entry via client", func(ctx SpecContext) {
 			message := "client-created log entry"
