@@ -1,0 +1,219 @@
+package client
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+
+	"github.com/klaskosk/report-portal-cli/pkg/types"
+)
+
+// IntegrationsScope provides operations on global integrations at the instance level.
+type IntegrationsScope struct {
+	client *Client
+}
+
+// ListGlobal returns all global integrations.
+func (s *IntegrationsScope) ListGlobal(ctx context.Context) ([]types.IntegrationResource, error) {
+	logger := s.client.logger.With(slog.String("operation", "ListGlobalIntegrations"))
+	logger.InfoContext(ctx, "API request")
+
+	response, err := s.client.raw.GetGlobalIntegrationsUsingGET1WithResponse(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list global integrations: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, "list global integrations", response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, err
+	}
+
+	if result == nil {
+		return []types.IntegrationResource{}, nil
+	}
+
+	return *result, nil
+}
+
+// ListGlobalByPlugin returns global integrations filtered by plugin name.
+func (s *IntegrationsScope) ListGlobalByPlugin(ctx context.Context, pluginName string) ([]types.IntegrationResource, error) {
+	logger := s.client.logger.With(
+		slog.String("operation", "ListGlobalIntegrationsByPlugin"),
+		slog.String("pluginName", pluginName),
+	)
+	logger.InfoContext(ctx, "API request")
+
+	response, err := s.client.raw.GetGlobalIntegrationsUsingGETWithResponse(ctx, pluginName)
+	if err != nil {
+		return nil, fmt.Errorf("list global integrations by plugin: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, "list global integrations by plugin", response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, err
+	}
+
+	if result == nil {
+		return []types.IntegrationResource{}, nil
+	}
+
+	return *result, nil
+}
+
+// GetGlobal returns a single global integration by its numeric ID.
+func (s *IntegrationsScope) GetGlobal(ctx context.Context, id int64) (*types.IntegrationResource, error) {
+	logger := s.client.logger.With(
+		slog.String("operation", "GetGlobalIntegration"),
+		slog.Int64("id", id),
+	)
+	logger.InfoContext(ctx, "API request")
+
+	response, err := s.client.raw.GetGlobalIntegrationUsingGETWithResponse(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("get global integration: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "get global integration", response.JSONDefault, response.JSON200)
+}
+
+// TestGlobalConnection tests connectivity for a global integration.
+func (s *IntegrationsScope) TestGlobalConnection(ctx context.Context, id int64) (bool, error) {
+	logger := s.client.logger.With(
+		slog.String("operation", "TestGlobalIntegrationConnection"),
+		slog.Int64("id", id),
+	)
+	logger.InfoContext(ctx, "API request")
+
+	response, err := s.client.raw.TestIntegrationConnectionUsingGETWithResponse(ctx, id)
+	if err != nil {
+		return false, fmt.Errorf("test global integration connection: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, "test global integration connection", response.JSONDefault, response.JSON200)
+	if err != nil {
+		return false, err
+	}
+
+	if result == nil {
+		return false, nil
+	}
+
+	return *result, nil
+}
+
+// ProjectIntegrationsScope provides operations on integrations within a specific project.
+type ProjectIntegrationsScope struct {
+	project *ProjectScope
+}
+
+// List returns all integrations for the project.
+func (s *ProjectIntegrationsScope) List(ctx context.Context) ([]types.IntegrationResource, error) {
+	logger := s.project.operationLogger("ListProjectIntegrations")
+	logger.InfoContext(ctx, "API request")
+
+	response, err := s.project.client.raw.GetProjectIntegrationsUsingGET1WithResponse(
+		ctx,
+		s.project.projectName,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list project integrations: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, "list project integrations", response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, err
+	}
+
+	if result == nil {
+		return []types.IntegrationResource{}, nil
+	}
+
+	return *result, nil
+}
+
+// ListByPlugin returns project integrations filtered by plugin name.
+func (s *ProjectIntegrationsScope) ListByPlugin(ctx context.Context, pluginName string) ([]types.IntegrationResource, error) {
+	logger := s.project.operationLogger("ListProjectIntegrationsByPlugin",
+		slog.String("pluginName", pluginName),
+	)
+	logger.InfoContext(ctx, "API request")
+
+	response, err := s.project.client.raw.GetProjectIntegrationsUsingGETWithResponse(
+		ctx,
+		s.project.projectName,
+		pluginName,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list project integrations by plugin: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, "list project integrations by plugin", response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, err
+	}
+
+	if result == nil {
+		return []types.IntegrationResource{}, nil
+	}
+
+	return *result, nil
+}
+
+// Get returns a single project integration by its numeric ID.
+func (s *ProjectIntegrationsScope) Get(ctx context.Context, id int64) (*types.IntegrationResource, error) {
+	logger := s.project.operationLogger("GetProjectIntegration", slog.Int64("id", id))
+	logger.InfoContext(ctx, "API request")
+
+	response, err := s.project.client.raw.GetProjectIntegrationUsingGETWithResponse(
+		ctx,
+		s.project.projectName,
+		id,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get project integration: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "get project integration", response.JSONDefault, response.JSON200)
+}
+
+// TestConnection tests connectivity for a project integration.
+func (s *ProjectIntegrationsScope) TestConnection(ctx context.Context, id int64) (bool, error) {
+	logger := s.project.operationLogger("TestProjectIntegrationConnection", slog.Int64("id", id))
+	logger.InfoContext(ctx, "API request")
+
+	response, err := s.project.client.raw.TestIntegrationConnectionUsingGET1WithResponse(
+		ctx,
+		s.project.projectName,
+		id,
+	)
+	if err != nil {
+		return false, fmt.Errorf("test project integration connection: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, "test project integration connection", response.JSONDefault, response.JSON200)
+	if err != nil {
+		return false, err
+	}
+
+	if result == nil {
+		return false, nil
+	}
+
+	return *result, nil
+}
