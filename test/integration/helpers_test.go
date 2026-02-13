@@ -726,7 +726,7 @@ func seedLogWithAttachment(
 	logURL := fmt.Sprintf("%s/api/v1/%s/log", rpBaseURL, projectName)
 
 	jsonPart := fmt.Sprintf(
-		`[{"launchUuid":%q,"itemUuid":%q,"level":"INFO","message":"attachment test","time":%d}]`,
+		`[{"launchUuid":%q,"itemUuid":%q,"level":"INFO","message":"attachment test","time":%d,"file":{"name":"test.txt"}}]`,
 		seeded.LaunchUUID, seeded.SuiteUUID, time.Now().UnixMilli(),
 	)
 
@@ -757,24 +757,33 @@ func seedLogWithAttachment(
 	if err != nil {
 		return "", fmt.Errorf("posting multipart log: %w", err)
 	}
+
+	respBody, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
-		return "", fmt.Errorf("multipart log POST returned status %d", resp.StatusCode)
+		return "", fmt.Errorf("multipart log POST returned status %d: %s", resp.StatusCode, respBody)
 	}
 
 	// Poll for the log entry to appear with binaryContent.
+	// Binary content processing in Report Portal is async and can take significantly
+	// longer than regular data indexing, so we use a longer polling window.
 	testClient, err := client.New(rpBaseURL, token)
 	if err != nil {
 		return "", fmt.Errorf("creating client for attachment resolution: %w", err)
 	}
 
+	const (
+		attachmentResolutionAttempts = 60
+		attachmentResolutionInterval = 500 * time.Millisecond
+	)
+
 	var attachmentID string
 
 	resolved := waitForSeedResolution(
 		ctx,
-		seedResolutionAttempts*2,
-		seedResolutionInterval,
+		attachmentResolutionAttempts,
+		attachmentResolutionInterval,
 		func() bool {
 			result, listErr := testClient.Project(projectName).Logs().List(
 				ctx,

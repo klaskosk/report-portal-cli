@@ -469,13 +469,19 @@ func (l *LaunchScope) ForceFinish(
 	return handleResponse(response, "force finish launch", response.JSONDefault, response.JSON200)
 }
 
-// Merge combines multiple launches into a single launch.
+// Merge combines multiple launches into a single launch. If MergeType is not
+// set, it defaults to BASIC.
 func (l *LaunchScope) Merge(
 	ctx context.Context,
 	request types.MergeLaunchesRQ,
 ) (*types.LaunchResource, error) {
 	logger := l.project.operationLogger("MergeLaunches")
 	logger.InfoContext(ctx, "API request")
+
+	if request.MergeType == nil {
+		basic := types.MergeLaunchesRQMergeTypeBASIC
+		request.MergeType = &basic
+	}
 
 	response, err := l.project.client.raw.MergeLaunchesUsingPOST1WithResponse(
 		ctx,

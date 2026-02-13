@@ -1019,6 +1019,7 @@ func TestLaunchScope_Merge_Success(t *testing.T) {
 		require.NoError(t, json.Unmarshal(body, &payload))
 
 		assert.Equal(t, "Merged Launch", payload["name"])
+		assert.Equal(t, "BASIC", payload["mergeType"], "should default to BASIC merge type")
 
 		launches := payload["launches"].([]any)
 		assert.Len(t, launches, 2)
