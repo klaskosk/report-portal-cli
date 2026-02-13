@@ -93,6 +93,21 @@ func (c *Client) Integrations() *IntegrationsScope {
 	return &IntegrationsScope{client: c}
 }
 
+// Settings returns a SettingsScope for server-level settings operations.
+func (c *Client) Settings() *SettingsScope {
+	return &SettingsScope{client: c}
+}
+
+// Plugins returns a PluginScope for instance-level plugin operations.
+func (c *Client) Plugins() *PluginScope {
+	return &PluginScope{client: c}
+}
+
+// Onboarding returns an OnboardingScope for first-run onboarding operations.
+func (c *Client) Onboarding() *OnboardingScope {
+	return &OnboardingScope{client: c}
+}
+
 // WithLogger configures the logger used by the client for structured diagnostic
 // output. If not set, the client defaults to discarding all log output.
 func WithLogger(logger *slog.Logger) Option {
