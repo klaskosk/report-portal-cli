@@ -1,6 +1,6 @@
 ---
 name: code-verifier
-description: "Use this agent when a significant code change has been completed that needs verification."
+description: Use this agent when a significant code change has been completed that needs verification.
 tools: Bash
 model: haiku
 ---

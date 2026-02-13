@@ -8,7 +8,8 @@
       "Bash(go build:*)",
       "Bash(make lint:*)",
       "Bash(golangci-lint-v2 run:*)",
-      "Bash(go vet:*)"
+      "Bash(go vet:*)",
+      "Bash(make vet:*)"
     ]
   }
 }
