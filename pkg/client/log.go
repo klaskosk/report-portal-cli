@@ -1,14 +1,31 @@
 package client
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
+	"mime/multipart"
+	"net/http"
+	"net/textproto"
 	"strconv"
 
 	"github.com/klaskosk/report-portal-cli/pkg/internal/api"
 	"github.com/klaskosk/report-portal-cli/pkg/types"
 )
+
+// BatchLogEntry represents a single log entry for batch creation. It holds the
+// log payload fields and an optional file attachment.
+type BatchLogEntry struct {
+	LaunchUUID     string
+	ItemUUID       string
+	Level          string
+	Message        string
+	Time           types.EpochMillis
+	AttachmentName string
+	AttachmentData []byte
+}
 
 // LogScope provides read operations on logs within a project.
 type LogScope struct {
@@ -132,6 +149,119 @@ func (l *LogScope) Delete(
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
 	return handleResponse(response, "delete log", response.JSONDefault, response.JSON200)
+}
+
+// CreateBatch creates multiple log entries in a single multipart request,
+// optionally including file attachments.
+func (l *LogScope) CreateBatch(
+	ctx context.Context,
+	entries ...BatchLogEntry,
+) (*types.BatchSaveOperatingRS, error) {
+	logger := l.project.operationLogger("CreateLogBatch")
+	logger.InfoContext(ctx, "API request")
+
+	body, contentType, err := buildBatchLogMultipart(entries)
+	if err != nil {
+		return nil, fmt.Errorf("create log batch: %w", err)
+	}
+
+	response, err := l.project.client.raw.CreateLogUsingPOST1WithBodyWithResponse(
+		ctx,
+		l.project.projectName,
+		contentType,
+		body,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("create log batch: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	if response.StatusCode() == http.StatusCreated {
+		var created types.BatchSaveOperatingRS
+		if err := json.Unmarshal(response.Body, &created); err == nil {
+			return &created, nil
+		}
+	}
+
+	return handleResponse(response, "create log batch", response.JSONDefault, response.JSON200)
+}
+
+// batchLogJSON is the JSON representation of a single log entry within the
+// multipart batch payload.
+type batchLogJSON struct {
+	LaunchUUID string            `json:"launchUuid"`
+	ItemUUID   string            `json:"itemUuid,omitempty"`
+	Level      string            `json:"level"`
+	Message    string            `json:"message"`
+	Time       types.EpochMillis `json:"time"`
+	File       *batchLogFile     `json:"file,omitempty"`
+}
+
+// batchLogFile is the file metadata embedded in the JSON part of a batch log entry.
+type batchLogFile struct {
+	Name string `json:"name"`
+}
+
+// buildBatchLogMultipart assembles the multipart body for a batch log request.
+// It returns the body buffer and the full Content-Type header value including
+// the boundary.
+func buildBatchLogMultipart(entries []BatchLogEntry) (*bytes.Buffer, string, error) {
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+
+	jsonEntries := make([]batchLogJSON, len(entries))
+	for i, entry := range entries {
+		jsonEntries[i] = batchLogJSON{
+			LaunchUUID: entry.LaunchUUID,
+			ItemUUID:   entry.ItemUUID,
+			Level:      entry.Level,
+			Message:    entry.Message,
+			Time:       entry.Time,
+		}
+		if entry.AttachmentName != "" {
+			jsonEntries[i].File = &batchLogFile{Name: entry.AttachmentName}
+		}
+	}
+
+	jsonData, err := json.Marshal(jsonEntries)
+	if err != nil {
+		return nil, "", fmt.Errorf("marshaling log entries: %w", err)
+	}
+
+	jsonHeader := make(textproto.MIMEHeader)
+	jsonHeader.Set("Content-Disposition", `form-data; name="json_request_part"`)
+	jsonHeader.Set("Content-Type", "application/json")
+
+	jsonPart, err := writer.CreatePart(jsonHeader)
+	if err != nil {
+		return nil, "", fmt.Errorf("creating json part: %w", err)
+	}
+
+	if _, err := jsonPart.Write(jsonData); err != nil {
+		return nil, "", fmt.Errorf("writing json part: %w", err)
+	}
+
+	for _, entry := range entries {
+		if entry.AttachmentName == "" {
+			continue
+		}
+
+		filePart, err := writer.CreateFormFile("file", entry.AttachmentName)
+		if err != nil {
+			return nil, "", fmt.Errorf("creating file part: %w", err)
+		}
+
+		if _, err := filePart.Write(entry.AttachmentData); err != nil {
+			return nil, "", fmt.Errorf("writing file part: %w", err)
+		}
+	}
+
+	if err := writer.Close(); err != nil {
+		return nil, "", fmt.Errorf("closing multipart writer: %w", err)
+	}
+
+	return &buf, writer.FormDataContentType(), nil
 }
 
 // WithLogItemID filters logs by test item ID.

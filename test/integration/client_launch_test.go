@@ -448,6 +448,58 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 		})
 	})
 
+	Context("Bulk Write Operations", func() {
+		It("bulk updates launch descriptions", func(ctx SpecContext) {
+			// Get two existing launch IDs.
+			list, err := c.Project(projectName).Launches().List(ctx,
+				client.WithPageSize(2),
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(list.Content).To(HaveLen(2))
+
+			ids := []int64{list.Content[0].Id, list.Content[1].Id}
+			comment := "bulk updated by integration test"
+			action := types.DescriptionActionUPDATE
+			attributes := []types.UpdateItemAttributeRQ{}
+			description := types.Description{Action: &action, Comment: &comment}
+
+			result, err := c.Project(projectName).Launches().BulkUpdate(ctx, types.BulkInfoUpdateRQ{
+				Attributes:  &attributes,
+				Ids:         &ids,
+				Description: &description,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).NotTo(BeNil())
+		})
+
+		It("bulk force-finishes started launches", func(ctx SpecContext) {
+			// Start two launches but do NOT finish them.
+			entities := make(map[string]types.FinishExecutionRQ)
+			for i := range 2 {
+				started, err := c.Project(projectName).Launches().Start(ctx, types.StartLaunchRQ{
+					Name:      fmt.Sprintf("bulk-stop-test-%d-%d", time.Now().UnixNano(), i),
+					StartTime: types.EpochMillis(time.Now()),
+				})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(started.Id).NotTo(BeNil())
+
+				// Resolve numeric ID.
+				launchID, err := resolveLaunchIDByUUID(ctx, c.Project(projectName).Launches(), *started.Id)
+				Expect(err).NotTo(HaveOccurred())
+
+				entities[fmt.Sprintf("%d", launchID)] = types.FinishExecutionRQ{
+					EndTime: types.EpochMillis(time.Now()),
+				}
+			}
+
+			results, err := c.Project(projectName).Launches().BulkForceFinish(ctx, types.BulkRQLongFinishExecutionRQ{
+				Entities: entities,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(results).NotTo(BeEmpty())
+		})
+	})
+
 	Context("Filter Options", func() {
 		It("filters by user", func(ctx SpecContext) {
 			// Get a known user first
