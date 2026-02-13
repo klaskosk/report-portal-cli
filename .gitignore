@@ -36,3 +36,6 @@ rp
 
 # stored plans
 .cursor/plans/
+
+# Claude local settings
+.claude/settings.local.json
