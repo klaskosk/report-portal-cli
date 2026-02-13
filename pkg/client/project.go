@@ -53,6 +53,11 @@ func (p *ProjectScope) BugTracking() *BugTrackingScope {
 	return &BugTrackingScope{project: p}
 }
 
+// DemoData returns a DemoDataScope for generating demo data in this project.
+func (p *ProjectScope) DemoData() *DemoDataScope {
+	return &DemoDataScope{project: p}
+}
+
 // logger returns a logger scoped to this project.
 func (p *ProjectScope) logger() *slog.Logger {
 	return p.client.logger.With("project", p.projectName)
