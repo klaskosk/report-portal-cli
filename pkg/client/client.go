@@ -88,6 +88,11 @@ func (c *Client) Projects() *ProjectsScope {
 	return &ProjectsScope{client: c}
 }
 
+// Integrations returns an IntegrationsScope for instance-level global integration operations.
+func (c *Client) Integrations() *IntegrationsScope {
+	return &IntegrationsScope{client: c}
+}
+
 // WithLogger configures the logger used by the client for structured diagnostic
 // output. If not set, the client defaults to discarding all log output.
 func WithLogger(logger *slog.Logger) Option {

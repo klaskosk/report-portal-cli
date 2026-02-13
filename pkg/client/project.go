@@ -43,6 +43,16 @@ func (p *ProjectScope) Filters() *UserFilterScope {
 	return &UserFilterScope{project: p}
 }
 
+// Integrations returns a ProjectIntegrationsScope for managing integrations in this project.
+func (p *ProjectScope) Integrations() *ProjectIntegrationsScope {
+	return &ProjectIntegrationsScope{project: p}
+}
+
+// BugTracking returns a BugTrackingScope for BTS operations in this project.
+func (p *ProjectScope) BugTracking() *BugTrackingScope {
+	return &BugTrackingScope{project: p}
+}
+
 // logger returns a logger scoped to this project.
 func (p *ProjectScope) logger() *slog.Logger {
 	return p.client.logger.With("project", p.projectName)
