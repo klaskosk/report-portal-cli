@@ -58,6 +58,11 @@ func (p *ProjectScope) DemoData() *DemoDataScope {
 	return &DemoDataScope{project: p}
 }
 
+// Activities returns an ActivityScope for querying activity logs in this project.
+func (p *ProjectScope) Activities() *ActivityScope {
+	return &ActivityScope{project: p}
+}
+
 // logger returns a logger scoped to this project.
 func (p *ProjectScope) logger() *slog.Logger {
 	return p.client.logger.With("project", p.projectName)

@@ -108,6 +108,11 @@ func (c *Client) Onboarding() *OnboardingScope {
 	return &OnboardingScope{client: c}
 }
 
+// ActivityEvents returns an ActivityEventsScope for instance-level activity event queries.
+func (c *Client) ActivityEvents() *ActivityEventsScope {
+	return &ActivityEventsScope{client: c}
+}
+
 // WithLogger configures the logger used by the client for structured diagnostic
 // output. If not set, the client defaults to discarding all log output.
 func WithLogger(logger *slog.Logger) Option {
