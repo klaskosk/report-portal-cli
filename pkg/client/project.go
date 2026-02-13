@@ -28,6 +28,21 @@ func (p *ProjectScope) Logs() *LogScope {
 	return &LogScope{project: p}
 }
 
+// Dashboards returns a DashboardScope for managing dashboards in this project.
+func (p *ProjectScope) Dashboards() *DashboardScope {
+	return &DashboardScope{project: p}
+}
+
+// Widgets returns a WidgetScope for managing widgets in this project.
+func (p *ProjectScope) Widgets() *WidgetScope {
+	return &WidgetScope{project: p}
+}
+
+// Filters returns a UserFilterScope for managing user filters in this project.
+func (p *ProjectScope) Filters() *UserFilterScope {
+	return &UserFilterScope{project: p}
+}
+
 // logger returns a logger scoped to this project.
 func (p *ProjectScope) logger() *slog.Logger {
 	return p.client.logger.With("project", p.projectName)
