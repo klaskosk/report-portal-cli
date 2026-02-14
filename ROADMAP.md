@@ -45,35 +45,56 @@ This document is a high-level, shippable roadmap broken into small, independentl
   - Client + CLI launch read/list/filter/report workflows.
 - [x] **PR: expand test-item read surface**
   - Client + CLI test-item read/list workflows aligned to launch navigation.
-- [x] **PR: add log read surface** → [`prompts/01-log-read-surface.md`](prompts/01-log-read-surface.md)
+- [x] **PR: add log read surface** → [`prompts/completed/01-log-read-surface.md`](prompts/completed/01-log-read-surface.md)
   - `LogScope` + `rp get log` with filtering and JSON/table coverage.
-- [x] **PR: add attachment download** → [`prompts/02-attachment-download.md`](prompts/02-attachment-download.md)
+- [x] **PR: add attachment download** → [`prompts/completed/02-attachment-download.md`](prompts/completed/02-attachment-download.md)
   - `DownloadFile` + `rp download` for attachment retrieval.
-- [x] **PR: lock naming + stabilize end-to-end read flow** → [`prompts/03-stabilize-read-workflow.md`](prompts/03-stabilize-read-workflow.md)
+- [x] **PR: lock naming + stabilize end-to-end read flow** → [`prompts/completed/03-stabilize-read-workflow.md`](prompts/completed/03-stabilize-read-workflow.md)
   - Naming conventions documented and workflow integration coverage added.
-- [x] **PR: add identity + discovery follow-up** → [`prompts/04-identity-discovery.md`](prompts/04-identity-discovery.md)
+- [x] **PR: add identity + discovery follow-up** → [`prompts/completed/04-identity-discovery.md`](prompts/completed/04-identity-discovery.md)
   - `UsersScope`/`ProjectsScope` + `rp whoami`/`rp get project`.
+- [x] **PR: client write workflows for launches/items/logs (Milestone 6)** → [`prompts/completed/05-client-write-workflows.md`](prompts/completed/05-client-write-workflows.md)
+  - Added core launch/item/log mutation workflows in `pkg/client`.
+- [x] **PR: client discovery + identity depth (Milestone 7)** → [`prompts/completed/06-project-settings-scope.md`](prompts/completed/06-project-settings-scope.md)
+  - Added `ProjectSettingsScope` read summaries and capability-oriented discovery helpers.
+- [x] **PR: write endpoint completion pass (Milestone 6 follow-up)** → [`prompts/completed/07-write-endpoints-completion.md`](prompts/completed/07-write-endpoints-completion.md)
+  - Completed deferred write endpoints (including bulk and async-style write paths).
+- [x] **PR: dashboards/widgets/filters scopes (Milestone 8)** → [`prompts/completed/08-dashboards-widgets-filters.md`](prompts/completed/08-dashboards-widgets-filters.md)
+  - Implemented client CRUD coverage for dashboard, widget, and saved filter surfaces.
+- [x] **PR: integrations + BTS scopes (Milestone 9)** → [`prompts/completed/09-integrations-bts.md`](prompts/completed/09-integrations-bts.md)
+  - Added integration and bug-tracking-system client workflows with validation-first coverage.
+- [x] **PR: activity/audit search scopes (Milestone 10)** → [`prompts/completed/10-activity-audit-scopes.md`](prompts/completed/10-activity-audit-scopes.md)
+  - Added activity/audit event listing and practical operator filters.
+- [x] **PR: system/admin/internal controllers (Milestone 12)** → [`prompts/completed/11-system-admin-controllers.md`](prompts/completed/11-system-admin-controllers.md)
+  - Rounded out remaining system/admin/internal client-only controller coverage.
 
-## Suggested next steps (client-first, next 5–7 PRs)
+## Suggested next steps (client coverage first, then CLI)
 
-If you want the fastest path from the read-only MVP to a **client-complete** library (and to unblock future CLI work):
+With the first 11 planned prompt slices now complete, the next priority is to drive the API client to near-complete coverage for the agreed non-async, in-scope controllers before starting further CLI expansion.
 
-- [ ] **PR: client write workflows for launches/items/logs (Milestone 6)** → [`prompts/05-client-write-workflows.md`](prompts/05-client-write-workflows.md)
-  - Add lifecycle/mutation endpoints in `pkg/client` with unit tests; defer new CLI verbs to a follow-up slice.
-- [ ] **PR: client discovery + identity depth (Milestone 7)** → [`prompts/06-project-settings-scope.md`](prompts/06-project-settings-scope.md)
-  - Add `ProjectSettingsScope` read summaries and any validation/capability helpers needed for safe feature detection.
-- [ ] **PR: write endpoint completion pass (Milestone 6 follow-up)** → [`prompts/07-write-endpoints-completion.md`](prompts/07-write-endpoints-completion.md)
-  - Finish deferred optional write endpoints (bulk mutations, multipart batch logs, and project-settings writes).
-- [ ] **PR: dashboards/widgets/filters scopes (Milestone 8)** → [`prompts/08-dashboards-widgets-filters.md`](prompts/08-dashboards-widgets-filters.md)
-  - Implement CRUD scopes in the client; keep CLI exposure as a separate read-first follow-up PR if it’s ergonomic.
-- [ ] **PR: integrations + BTS scopes (Milestone 9)** → [`prompts/09-integrations-bts.md`](prompts/09-integrations-bts.md)
-  - Start with list/get/validate flows before configuration and mutation-heavy endpoints.
-- [ ] **PR: activity/audit search scopes (Milestone 10)** → [`prompts/10-activity-audit-scopes.md`](prompts/10-activity-audit-scopes.md)
-  - Add list/search filters (`--since`, `--until`, `--user`, `--type`) for operator debugging workflows.
-- [ ] **PR: system/admin/internal controllers (Milestone 12)** → [`prompts/11-system-admin-controllers.md`](prompts/11-system-admin-controllers.md)
-  - Round out remaining client-only tags; keep CLI exposure selective.
+- [ ] **PR: coverage closure for core execution controllers (`launch`/`test-item`/`log`)**
+  - Close remaining gaps in high-value operations (history/search/compare/import/export/linking/attributes) with unit tests and focused integration coverage.
+- [ ] **PR: coverage closure for integration/reporting controllers (`integration`/`bts`/`dashboard`/`widget`/`user-filter`)**
+  - Finish remaining CRUD/command/list-variant gaps needed for practical automation completeness.
+- [ ] **PR: coverage closure for project/activity surfaces (`project`/`project-settings`/`activity`/`activity-event`)**
+  - Complete the agreed project and audit/event endpoints that are useful for operator and automation workflows.
+- [ ] **PR: pre-CLI coverage audit + contract lock**
+  - Publish a tracked endpoint matrix (`covered`, `deferred`, `excluded`) and lock JSON/error behavior for covered APIs.
+- [ ] **PR: release readiness hardening**
+  - Expand compatibility notes and integration assertions for automation-facing output stability.
+- [ ] **PR: start CLI expansion (Milestone 13)**
+  - Begin CLI write/reporting/introspection slices only after the pre-CLI client coverage gate is satisfied.
 
-Once the client surface is broadly in place, do **release readiness hardening (Milestone 11)** to lock automation-facing JSON/error contracts and document compatibility expectations.
+This sequence preserves the client-first strategy and explicitly gates CLI expansion on non-async client coverage completion.
+
+## Pre-CLI coverage gate (agreed scope)
+
+Target before major CLI expansion:
+
+- **Near-100% for core controllers**: `launch-controller`, `test-item-controller`, `log-controller`
+- **High coverage for supporting controllers**: `integration-controller`, `bug-tracking-system-controller`, `project-controller`, `project-settings-controller`, `dashboard-controller`, `widget-controller`, `user-filter-controller`, `activity-controller`, `activity-event-controller`, and practical `file-storage-controller` flows.
+- **Explicitly excluded for now**: `launch-async-controller`, `test-item-async-controller`, `log-async-controller`.
+- **Default deferred unless needed**: `deprecated-user-controller`, `onboarding-controller`, `demo-data-controller`, `plugin-controller`, `plugin-public-controller`, and low-value or high-risk admin-only edges.
 
 ---
 
@@ -113,7 +134,7 @@ This keeps the CLI predictable while allowing the Go client to remain the “eve
 
 ## Roadmap milestones (client-first, shippable slices)
 
-Milestones 1–5 delivered the read-only MVP (client + minimal CLI). From Milestone 6 onward, the roadmap is **API-client first**: finish `pkg/client` coverage and correctness, then add CLI commands as separate follow-up slices where they’re a clear workflow win.
+Milestones 1–5 delivered the read-only MVP (client + minimal CLI). Milestones 6–12 expanded the client surface; the current focus is **closing non-async in-scope client coverage gaps first**, then expanding CLI workflows on top of that completed client baseline.
 
 ### Milestone 1: Foundations (reduce future effort per endpoint) — completed
 
@@ -215,7 +236,7 @@ Notes:
 
 ---
 
-### Milestone 6: Client write workflows (post-MVP action parity)
+### Milestone 6: Client write workflows (post-MVP action parity) — completed (client)
 
 **Client (primary)**
 
@@ -231,11 +252,12 @@ Notes:
 
 Notes:
 
-- Implement and stabilize mutation endpoints in the client first; add CLI verbs only after the underlying client area is solid and tested.
+- Client mutation foundations were delivered and completed through the write-workflow slices.
+- CLI verbs remain a follow-up in Milestone 13.
 
 ---
 
-### Milestone 7: Client discovery + identity depth (post-MVP usability) — partially complete
+### Milestone 7: Client discovery + identity depth (post-MVP usability) — completed
 
 **Client (primary)**
 
@@ -252,13 +274,12 @@ Notes:
 
 Notes:
 
-- Current slice delivered: `UsersScope`, `ProjectsScope`, `rp whoami`, and `rp get project`.
-- Remaining depth: optional project-settings/admin-oriented discovery surfaces.
+- Delivered slices include `UsersScope`, `ProjectsScope`, `ProjectSettingsScope`, `rp whoami`, and `rp get project`.
 - Admin-only operations (create/delete users, some project operations) should exist in the client, and may be gated behind `rp admin ...` if exposed.
 
 ---
 
-### Milestone 8: Dashboards, widgets, and filters (reporting UX)
+### Milestone 8: Dashboards, widgets, and filters (reporting UX) — completed (client)
 
 **Client (primary)**
 
@@ -274,11 +295,11 @@ Notes:
 
 Notes:
 
-- These endpoints are important for “reporting as code”, but can be painful as flags. Plan on `--from-file` workflows if implemented in CLI.
+- Client coverage is in place; CLI remains best as read-first with file-driven workflows for complex payloads.
 
 ---
 
-### Milestone 9: Integrations + Bug Tracking Systems (BTS)
+### Milestone 9: Integrations + Bug Tracking Systems (BTS) — completed (client)
 
 **Client (primary)**
 
@@ -293,11 +314,11 @@ Notes:
 
 Notes:
 
-- Many endpoints are admin-like and/or depend on external systems. Client should fully support them; CLI support should be pragmatic.
+- Client support is in place; CLI exposure should remain pragmatic due to external-system and admin-heavy complexity.
 
 ---
 
-### Milestone 10: Activity / audit events + search
+### Milestone 10: Activity / audit events + search — completed (client)
 
 **Client (primary)**
 
@@ -309,27 +330,33 @@ Notes:
 
 Notes:
 
-- This is high value for debugging “what changed” but not always a primary CLI use case; treat as optional CLI milestone if time is limited.
+- Client support is in place and remains high value for debugging “what changed”; CLI support stays optional/pragmatic.
 
 ---
 
-### Milestone 11: Release readiness + compatibility
+### Milestone 11: In-scope client coverage completion + compatibility hardening (pre-CLI gate)
 
-**Client + CLI (client-first)**
+**Client (priority)**
+
+- Close remaining non-async gaps for agreed in-scope controllers, especially `launch`, `test-item`, and `log`
+- Track endpoint-level coverage status (`covered`, `deferred`, `excluded`) in a maintained matrix
+- Ensure representative integration coverage for high-value workflows and common failure mappings
+
+**Compatibility hardening (before broad CLI expansion)**
 
 - Add lightweight capability checks/version notes for known Report Portal differences where they affect command behavior
-- Define JSON output stability expectations for automation-facing commands and test them in integration coverage
+- Define and test stable error/response expectations for automation-facing client and CLI surfaces
 - Ensure release hygiene:
   - changelog/release notes include command and output contract changes
   - shell completion/docs generation is part of release verification (if supported)
 
 Notes:
 
-- This milestone reduces breakage risk for automation users and clarifies support expectations.
+- This milestone is the gate for broad CLI expansion and reduces breakage risk for automation users.
 
 ---
 
-### Milestone 12: System / admin / internal controllers (client complete; CLI selective)
+### Milestone 12: System / admin / internal controllers (client complete; CLI selective) — completed (client)
 
 **Client (full coverage)**
 
@@ -364,38 +391,39 @@ Notes:
 Notes:
 
 - Keep the CLI workflow-focused; avoid turning complex payloads into dozens of flags.
+- Start this milestone only after Milestone 11 coverage targets are met.
 
 ---
 
-## API coverage matrix (client vs CLI)
+## API coverage matrix (pre-CLI target)
 
-The OpenAPI spec in `pkg/internal/openapi/openapi.yaml` is tagged by controller. Use this matrix to decide which areas get CLI exposure.
+The OpenAPI spec in `pkg/internal/openapi/openapi.yaml` is tagged by controller. Use this matrix to decide pre-CLI client coverage targets and what should be deferred.
 
-| OpenAPI tag / area | Go client | CLI | Notes |
+| OpenAPI tag / area | Pre-CLI client target | CLI timing | Notes |
 | --- | --- | --- | --- |
-| `launch-controller` | Yes (full) | Yes (full) | MVP focuses on read/list/export first; lifecycle actions can follow |
-| `test-item-controller` | Yes (full) | Yes (most) | MVP focuses on read/navigation/search first; mutations can follow |
-| `log-controller` | Yes (full) | Yes (most) | MVP focuses on read/log retrieval first; log add can follow |
-| `file-storage-controller` | Yes (full) | Partial | MVP favors download/read flows; avoid raw low-level file APIs unless useful |
-| `project-controller` | Yes (full) | Yes (most) | Create/delete may be admin-only; still valuable for automation |
-| `project-settings-controller` | Yes (full) | Partial | Read-only CLI is often enough |
-| `user-controller` | Yes (full) | Partial | CLI: `whoami`, maybe `users list` under admin |
-| `user-filter-controller` | Yes (full) | Partial | CLI best with `--from-file` for create/update |
-| `dashboard-controller` | Yes (full) | Partial | Same as filters/widgets: read-heavy first |
-| `widget-controller` | Yes (full) | Partial | Read-heavy first |
-| `integration-controller` | Yes (full) | Partial | List/validate are good CLI candidates |
-| `bug-tracking-system-controller` | Yes (full) | Partial | Useful but complex; keep CLI pragmatic |
-| `activity-controller` | Yes (full) | Optional | Great for audits; not required for MVP CLI |
-| `activity-event-controller` | Yes (full) | Optional | Same as above |
-| `settings-controller` | Yes (full) | Likely no | System-level, often admin-only and risky in CLI |
-| `plugin-controller` | Yes (full) | Likely no | Client-only by default; expose only if you want explicit admin tooling |
-| `plugin-public-controller` | Yes (full) | Likely no | UI/marketplace-like; client-only |
-| `launch-async-controller` | Yes (full) | No (explicitly) | CLI may use internally; no need for separate commands |
-| `test-item-async-controller` | Yes (full) | No (explicitly) | Same |
-| `log-async-controller` | Yes (full) | No (explicitly) | Same |
-| `onboarding-controller` | Yes (full) | No | Client-only |
-| `demo-data-controller` | Yes (full) | No | Client-only |
-| `deprecated-user-controller` | Yes (for completeness) | No | Client-only (and clearly labeled deprecated) |
+| `launch-controller` | Near-100% (priority) | After coverage gate | Core execution workflow controller |
+| `test-item-controller` | Near-100% (priority) | After coverage gate | Core execution workflow controller |
+| `log-controller` | Near-100% (priority) | After coverage gate | Core execution workflow controller |
+| `file-storage-controller` | High (practical flows) | Selective | Focus on attachment/file retrieval tied to logs/items |
+| `project-controller` | High (in-scope subset) | Selective | Prioritize automation-relevant project operations |
+| `project-settings-controller` | High to near-100% | Selective | Strong troubleshooting/validation value |
+| `user-controller` | Selective only | Selective | Keep mainly identity/discovery unless admin workflows are required |
+| `user-filter-controller` | High to near-100% | After coverage gate | Important for saved-filter automation |
+| `dashboard-controller` | High to near-100% | After coverage gate | Reporting workflows; read-first CLI |
+| `widget-controller` | High to near-100% | After coverage gate | Reporting workflows; read-first CLI |
+| `integration-controller` | High (priority) | After coverage gate | External-system automation and validation |
+| `bug-tracking-system-controller` | High (priority) | After coverage gate | Defect and BTS integration workflows |
+| `activity-controller` | High | Optional/after gate | Audit and operator debugging value |
+| `activity-event-controller` | High | Optional/after gate | Audit and operator debugging value |
+| `settings-controller` | Deferred by default | Likely no | System-level and frequently admin-only |
+| `plugin-controller` | Deferred by default | Likely no | Usually client-only admin/internal tooling |
+| `plugin-public-controller` | Deferred by default | Likely no | Public/plugin marketplace style surfaces |
+| `launch-async-controller` | Excluded for now | No (explicitly) | Out of current pre-CLI target |
+| `test-item-async-controller` | Excluded for now | No (explicitly) | Out of current pre-CLI target |
+| `log-async-controller` | Excluded for now | No (explicitly) | Out of current pre-CLI target |
+| `onboarding-controller` | Deferred by default | No | Low-value for primary automation workflows |
+| `demo-data-controller` | Deferred by default | No | Low-value for production automation workflows |
+| `deprecated-user-controller` | Deferred by default | No | Legacy/deprecated coverage only if required |
 
 ---
 
