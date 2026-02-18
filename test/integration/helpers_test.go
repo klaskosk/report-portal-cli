@@ -134,11 +134,17 @@ type seededTestItems struct {
 	LaunchUUID string
 	SuiteID    int64
 	SuiteUUID  string
+	TestID     int64
+	TestUUID   string
 }
 
 const (
 	seedResolutionAttempts = 20
 	seedResolutionInterval = 250 * time.Millisecond
+
+	// Activity and audit events require longer indexing time.
+	activityResolutionAttempts = 120
+	activityResolutionInterval = 500 * time.Millisecond
 )
 
 // waitForSeedResolution handles eventual consistency in Report Portal indexing
@@ -336,7 +342,8 @@ func resolveSeededItemIdentifiers(
 	}
 
 	// Ensure the child item is indexed before item-list tests execute.
-	if _, _, err := resolveItemByUUID(ctx, items, refs.TestRef); err != nil {
+	testID, testUUID, err := resolveItemByUUID(ctx, items, refs.TestRef)
+	if err != nil {
 		return seededTestItems{}, fmt.Errorf("resolving child test item identifiers: %w", err)
 	}
 
@@ -350,6 +357,8 @@ func resolveSeededItemIdentifiers(
 		LaunchUUID: refs.LaunchUUID,
 		SuiteID:    suiteID,
 		SuiteUUID:  suiteUUID,
+		TestID:     testID,
+		TestUUID:   testUUID,
 	}, nil
 }
 

@@ -1,0 +1,169 @@
+package client
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+
+	"github.com/klaskosk/report-portal-cli/pkg/internal/api"
+	"github.com/klaskosk/report-portal-cli/pkg/types"
+)
+
+// ActivityEventsScope provides read-only access to instance-level activity events.
+// Unlike ActivityScope (project-scoped test item activities), this scope searches
+// across all projects and supports structured criteria-based queries for auditing
+// and administrative purposes.
+type ActivityEventsScope struct {
+	client *Client
+}
+
+// Search queries activity events using structured search criteria and pagination.
+func (a *ActivityEventsScope) Search(
+	ctx context.Context,
+	criteria types.SearchCriteriaRQ,
+	options ...SearchActivityEventsOption,
+) (*types.PagedResponseActivityEventResource, error) {
+	logger := a.client.logger.With(slog.String("operation", "SearchActivityEvents"))
+
+	params := &api.GetActivitiesUsingPOSTParams{
+		Limit:  20,
+		Offset: 0,
+		Order:  api.GetActivitiesUsingPOSTParamsOrder(OrderDesc),
+		Sort:   "createdAt",
+	}
+	for _, option := range options {
+		option(params)
+	}
+
+	logger.InfoContext(ctx, "API request")
+
+	response, err := a.client.raw.GetActivitiesUsingPOSTWithResponse(
+		ctx,
+		params,
+		criteria,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("search activity events: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "search activity events", response.JSONDefault, response.JSON200)
+}
+
+// GetProjectSubjectNames returns the subject names (users) that have generated
+// activity events for the given project. This is useful for building search UIs
+// or autocomplete fields.
+func (a *ActivityEventsScope) GetProjectSubjectNames(
+	ctx context.Context,
+	projectName string,
+) ([]string, error) {
+	logger := a.client.logger.With(
+		slog.String("operation", "GetProjectSubjectNames"),
+		slog.String("project", projectName),
+	)
+	logger.InfoContext(ctx, "API request")
+
+	params := &api.GetProjectSubjectNameUsingGETParams{}
+
+	response, err := a.client.raw.GetProjectSubjectNameUsingGETWithResponse(
+		ctx,
+		projectName,
+		params,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get project subject names: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, "get project subject names", response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, err
+	}
+
+	if result == nil {
+		return []string{}, nil
+	}
+
+	return *result, nil
+}
+
+// SearchActivityEventsOption configures pagination parameters for searching activity events.
+type SearchActivityEventsOption func(*api.GetActivitiesUsingPOSTParams)
+
+// SortOrder defines the sort direction for activity event queries.
+type SortOrder string
+
+// WithEventLimit sets the maximum number of results to return.
+func WithEventLimit(limit int32) SearchActivityEventsOption {
+	return func(params *api.GetActivitiesUsingPOSTParams) {
+		params.Limit = limit
+	}
+}
+
+// WithEventOffset sets the offset for paginated results.
+func WithEventOffset(offset int32) SearchActivityEventsOption {
+	return func(params *api.GetActivitiesUsingPOSTParams) {
+		params.Offset = offset
+	}
+}
+
+// WithEventSort sets the field to sort results by (e.g. "createdAt").
+func WithEventSort(field string) SearchActivityEventsOption {
+	return func(params *api.GetActivitiesUsingPOSTParams) {
+		params.Sort = field
+	}
+}
+
+// WithEventOrder sets the sort direction for activity event results.
+func WithEventOrder(order SortOrder) SearchActivityEventsOption {
+	return func(params *api.GetActivitiesUsingPOSTParams) {
+		params.Order = api.GetActivitiesUsingPOSTParamsOrder(order)
+	}
+}
+
+// OrderAsc is the ascending sort order for activity event queries.
+const OrderAsc SortOrder = SortOrder(api.ASC)
+
+// OrderDesc is the descending sort order for activity event queries.
+const OrderDesc SortOrder = SortOrder(api.DESC)
+
+// NewSearchCriteria creates a SearchCriteriaRQ with the given filter conditions.
+func NewSearchCriteria(criteria ...types.SearchCriteria) types.SearchCriteriaRQ {
+	return types.SearchCriteriaRQ{
+		SearchCriterias: &criteria,
+	}
+}
+
+// FilterByUser creates a search filter matching events by subject name.
+func FilterByUser(username string) types.SearchCriteria {
+	return newEqualityFilter("subjectName", username)
+}
+
+// FilterByObjectType creates a search filter matching events by object type.
+func FilterByObjectType(objectType string) types.SearchCriteria {
+	return newEqualityFilter("objectType", objectType)
+}
+
+// FilterByEventName creates a search filter matching events by event name.
+func FilterByEventName(eventName string) types.SearchCriteria {
+	return newEqualityFilter("eventName", eventName)
+}
+
+// FilterByProjectName creates a search filter matching events by project name.
+func FilterByProjectName(projectName string) types.SearchCriteria {
+	return newEqualityFilter("projectName", projectName)
+}
+
+// newEqualityFilter creates a SearchCriteria with an equality operation.
+// This helper eliminates repetitive filter construction code.
+func newEqualityFilter(filterKey, value string) types.SearchCriteria {
+	equalityOperation := types.EQ
+
+	return types.SearchCriteria{
+		FilterKey: filterKey,
+		Operation: &equalityOperation,
+		Value:     value,
+	}
+}

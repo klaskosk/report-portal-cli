@@ -24,3 +24,13 @@ var ConvertToLatestParams = func(src *api.GetProjectLaunchesUsingGETParams) *api
 var ConvertToDebugParams = func(src *api.GetProjectLaunchesUsingGETParams) *api.GetDebugLaunchesUsingGETParams {
 	return convertToDebugParams(src)
 }
+
+// NewTestActivityScope creates an ActivityScope for testing without requiring a full Client setup.
+var NewTestActivityScope = func(c *Client, projectName string) *ActivityScope {
+	return c.Project(projectName).Activities()
+}
+
+// NewTestActivityEventsScope creates an ActivityEventsScope for testing without requiring a full Client setup.
+var NewTestActivityEventsScope = func(c *Client) *ActivityEventsScope {
+	return c.ActivityEvents()
+}
