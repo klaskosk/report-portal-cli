@@ -47,3 +47,7 @@ OpenAPI specs live in `pkg/internal/openapi/`. Overlays add error responses, typ
 ## Test driven development
 
 This project uses test-driven development (TDD) to drive the development of new features. When planning and writing new code, begin by writing tests which cover the desired functionality. Then, implement the feature and continue iterating until the tests pass.
+
+## Miscellaneous notes
+
+- Never mark tests as pending through Ginkgo. Integration tests must always pass or fail, never be skipped.
