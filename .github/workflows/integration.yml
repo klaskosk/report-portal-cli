@@ -25,4 +25,33 @@ jobs:
             pkg/go.sum
             test/integration/go.sum
 
-      - run: make test-integration
+      - name: Run integration tests and write Ginkgo report
+        run: |
+          set -euo pipefail
+          cd test/integration
+          go test -tags=integration \
+            -cover \
+            -coverpkg=github.com/klaskosk/report-portal-cli/...,github.com/klaskosk/report-portal-cli/pkg/... \
+            -v \
+            -count=1 \
+            -timeout 10m \
+            -ginkgo.json-report=integration-report.json \
+            ./...
+
+      - name: Fail if any specs are skipped or fail
+        run: |
+          set -euo pipefail
+
+          report="test/integration/integration-report.json"
+          non_passed_states=$(jq -r '
+            [
+              .[].SpecReports[]
+              | select(.State != "passed")
+              | "\(.State): \((.ContainerHierarchyTexts + [.LeafNodeText]) | join(" > "))"
+            ] | .[]
+          ' "$report")
+
+          if [[ -n "$non_passed_states" ]]; then
+            printf 'found non-passed specs:\n%s\n' "$non_passed_states"
+            exit 1
+          fi
