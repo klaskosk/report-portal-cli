@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    paths-ignore:
+      - ".claude/**"
+      - ".cursor/**"
+      - "prompts/**"
+      - "**/*.md"
 
 permissions:
   contents: read
