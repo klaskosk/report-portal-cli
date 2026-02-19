@@ -492,3 +492,168 @@ func TestLogScope_CreateBatch_Errors(t *testing.T) {
 		})
 	}
 }
+
+func TestLogScope_Search_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/log/search/100")
+		assertMethod(t, r, http.MethodPost)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var request types.SearchLogRq
+		require.NoError(t, json.Unmarshal(body, &request))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"content": [
+				{
+					"itemId": 200,
+					"itemName": "Similar Test",
+					"launchId": 10,
+					"status": "FAILED",
+					"duration": 1.5
+				}
+			],
+			"page": {
+				"number": 0,
+				"size": 20,
+				"totalElements": 1,
+				"totalPages": 1
+			}
+		}`))
+	}))
+
+	result, err := c.Project("my_project").Logs().Search(t.Context(), 100, types.SearchLogRq{})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Len(t, result.Content, 1)
+	require.NotNil(t, result.Content[0].ItemName)
+	assert.Equal(t, "Similar Test", *result.Content[0].ItemName)
+}
+
+func TestLogScope_Search_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "NotFound",
+			statusCode: http.StatusNotFound,
+			body:       `{"errorCode": 40440, "message": "Test item '100' not found."}`,
+			check:      client.IsNotFound,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Logs().Search(
+				t.Context(),
+				100,
+				types.SearchLogRq{},
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestLogScope_GetLogsUnder_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/log/under")
+		assertMethod(t, r, http.MethodPost)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var request types.GetLogsUnderRq
+		require.NoError(t, json.Unmarshal(body, &request))
+		require.NotNil(t, request.ItemIds)
+		assert.Equal(t, []int64{100, 200}, *request.ItemIds)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"100": [
+				{"id": 1, "uuid": "log-1", "message": "Step 1", "level": "INFO"},
+				{"id": 2, "uuid": "log-2", "message": "Step 2", "level": "ERROR"}
+			],
+			"200": [
+				{"id": 3, "uuid": "log-3", "message": "Step 3", "level": "INFO"}
+			]
+		}`))
+	}))
+
+	itemIDs := []int64{100, 200}
+	result, err := c.Project("my_project").Logs().GetLogsUnder(
+		t.Context(),
+		types.GetLogsUnderRq{ItemIds: &itemIDs},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Len(t, result["100"], 2)
+	assert.Len(t, result["200"], 1)
+}
+
+func TestLogScope_GetLogsUnder_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "Forbidden",
+			statusCode: http.StatusForbidden,
+			body:       `{"errorCode": 4003, "message": "Access denied."}`,
+			check:      client.IsForbidden,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			itemIDs := []int64{100}
+			_, err := testClient.Project("my_project").Logs().GetLogsUnder(
+				t.Context(),
+				types.GetLogsUnderRq{ItemIds: &itemIDs},
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}

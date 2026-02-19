@@ -184,4 +184,26 @@ var _ = Describe("Client: Logs", Label("client", "logs"), func() {
 				"deleted log should return not-found, got: %v", err)
 		})
 	})
+
+	Context("Search", func() {
+		It("searches logs for a seeded item without error", func(ctx SpecContext) {
+			result, err := c.Project(projectName).Logs().Search(ctx,
+				seeded.SuiteID,
+				types.SearchLogRq{},
+			)
+			Expect(err).NotTo(HaveOccurred(), "searching logs should not fail")
+			Expect(result).NotTo(BeNil(), "search result should not be nil")
+		})
+	})
+
+	Context("GetLogsUnder", func() {
+		It("retrieves logs grouped by item ID", func(ctx SpecContext) {
+			itemIDs := []int64{seeded.SuiteID}
+			result, err := c.Project(projectName).Logs().GetLogsUnder(ctx,
+				types.GetLogsUnderRq{ItemIds: &itemIDs},
+			)
+			Expect(err).NotTo(HaveOccurred(), "getting logs under items should not fail")
+			Expect(result).NotTo(BeNil(), "logs under result should not be nil")
+		})
+	})
 })

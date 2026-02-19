@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -1310,6 +1311,210 @@ func TestLaunchScope_BulkForceFinish_Errors(t *testing.T) {
 					Entities: map[string]types.FinishExecutionRQ{},
 				},
 			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestLaunchScope_Compare_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/launch/compare")
+		assertMethod(t, r, http.MethodGet)
+
+		assert.Contains(t, r.URL.RawQuery, "ids=1")
+		assert.Contains(t, r.URL.RawQuery, "ids=2")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"executionStatistics": [
+				{"id": 1, "name": "Launch 1", "number": 1, "values": {"passed": "10", "failed": "2"}},
+				{"id": 2, "name": "Launch 2", "number": 2, "values": {"passed": "12", "failed": "1"}}
+			]
+		}`))
+	}))
+
+	result, err := c.Project("my_project").Launches().Compare(t.Context(), []int64{1, 2})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Contains(t, result, "executionStatistics")
+	assert.Len(t, result["executionStatistics"], 2)
+}
+
+func TestLaunchScope_Compare_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "NotFound",
+			statusCode: http.StatusNotFound,
+			body:       `{"errorCode": 40410, "message": "Project 'unknown' not found."}`,
+			check:      client.IsNotFound,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Launches().Compare(t.Context(), []int64{1, 2})
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestLaunchScope_Import_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/launch/import")
+		assertMethod(t, r, http.MethodPost)
+
+		assert.Contains(t, r.Header.Get("Content-Type"), "multipart/form-data")
+
+		err := r.ParseMultipartForm(10 << 20)
+		require.NoError(t, err)
+
+		file, header, err := r.FormFile("file")
+		require.NoError(t, err)
+		defer file.Close()
+
+		assert.Equal(t, "launch-export.zip", header.Filename)
+
+		fileData, err := io.ReadAll(file)
+		require.NoError(t, err)
+		assert.Equal(t, "fake-zip-data", string(fileData))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{"message": "Launch successfully imported."}`))
+	}))
+
+	result, err := c.Project("my_project").Launches().Import(
+		t.Context(),
+		"launch-export.zip",
+		strings.NewReader("fake-zip-data"),
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Contains(t, *result.Message, "imported")
+}
+
+func TestLaunchScope_Import_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "BadRequest",
+			statusCode: http.StatusBadRequest,
+			body:       `{"errorCode": 4001, "message": "Invalid file format."}`,
+			check:      client.IsBadRequest,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Launches().Import(
+				t.Context(),
+				"bad.zip",
+				strings.NewReader("data"),
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestLaunchScope_GetReport_Success(t *testing.T) {
+	t.Parallel()
+
+	expectedBody := "<html><body>Launch Report</body></html>"
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/launch/42/report")
+		assertMethod(t, r, http.MethodGet)
+
+		w.Header().Set("Content-Type", "text/html")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(expectedBody))
+	}))
+
+	result, err := c.Project("my_project").Launches().GetReport(t.Context(), 42)
+	require.NoError(t, err)
+	assert.Equal(t, expectedBody, string(result))
+}
+
+func TestLaunchScope_GetReport_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		launchID   int64
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "NotFound",
+			launchID:   999,
+			statusCode: http.StatusNotFound,
+			body:       `{"errorCode": 40410, "message": "Launch '999' not found."}`,
+			check:      client.IsNotFound,
+		},
+		{
+			name:       "Unauthorized",
+			launchID:   42,
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Launches().GetReport(t.Context(), testCase.launchID)
 
 			require.Error(t, err)
 			assert.True(t, testCase.check(err))

@@ -203,4 +203,16 @@ var _ = Describe("Client: Test Items", Label("client", "items"), func() {
 				"deleted test item should return not-found, got: %v", err)
 		})
 	})
+
+	Context("GetHistory", func() {
+		It("returns history for seeded items", func(ctx SpecContext) {
+			result, err := c.Project(projectName).Items().GetHistory(ctx,
+				client.WithHistoryLaunchID(seeded.LaunchID),
+				client.WithHistoryDepth(5),
+				client.WithHistoryPageSize(20),
+			)
+			Expect(err).NotTo(HaveOccurred(), "getting items history should not fail")
+			Expect(result).NotTo(BeNil(), "history result should not be nil")
+		})
+	})
 })
