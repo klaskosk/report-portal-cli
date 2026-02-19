@@ -1334,8 +1334,8 @@ func TestLaunchScope_Compare_Success(t *testing.T) {
 
 		_, _ = w.Write([]byte(`{
 			"executionStatistics": [
-				{"id": 1, "name": "Launch 1", "number": 1, "values": {"passed": "10", "failed": "2"}},
-				{"id": 2, "name": "Launch 2", "number": 2, "values": {"passed": "12", "failed": "1"}}
+				{"id": 1, "name": "Launch 1", "number": 1, "startTime": 1700000000000, "values": {"passed": "10", "failed": "2"}},
+				{"id": 2, "name": "Launch 2", "number": 2, "startTime": 1700000001000, "values": {"passed": "12", "failed": "1"}}
 			]
 		}`))
 	}))
@@ -1345,6 +1345,9 @@ func TestLaunchScope_Compare_Success(t *testing.T) {
 	require.NotNil(t, result)
 	assert.Contains(t, result, "executionStatistics")
 	assert.Len(t, result["executionStatistics"], 2)
+	require.NotNil(t, result["executionStatistics"][0].StartTime)
+	require.NotNil(t, result["executionStatistics"][0].StartTime.Time)
+	assert.EqualValues(t, 1700000000000, *result["executionStatistics"][0].StartTime.Time)
 }
 
 func TestLaunchScope_Compare_Errors(t *testing.T) {

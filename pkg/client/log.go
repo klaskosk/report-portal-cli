@@ -317,6 +317,11 @@ func (l *LogScope) Search(
 	logger := l.project.operationLogger("SearchLogs", slog.Int64("itemId", itemID))
 	logger.InfoContext(ctx, "API request")
 
+	if request.SearchMode == nil {
+		defaultMode := types.CurrentLaunch
+		request.SearchMode = &defaultMode
+	}
+
 	response, err := l.project.client.raw.SearchLogsUsingPOSTWithResponse(
 		ctx,
 		l.project.projectName,
@@ -341,6 +346,11 @@ func (l *LogScope) GetLogsUnder(
 ) (map[string][]types.LogResource, error) {
 	logger := l.project.operationLogger("GetLogsUnder")
 	logger.InfoContext(ctx, "API request")
+
+	if request.LogLevel == nil {
+		defaultLevel := types.GetLogsUnderRqLogLevelInfo
+		request.LogLevel = &defaultLevel
+	}
 
 	response, err := l.project.client.raw.GetLogsUnderUsingPOSTWithResponse(
 		ctx,
