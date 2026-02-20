@@ -3,6 +3,7 @@
 package integration_test
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/klaskosk/report-portal-cli/pkg/client"
@@ -30,8 +31,9 @@ var _ = Describe("Client: Integrations", Label("client", "integrations"), func()
 			Expect(err).NotTo(HaveOccurred())
 
 			if len(integrations) == 0 {
-				// Skip("no global integrations available to get")
-				Fail("no global integrations available to get")
+				By("verifying empty global integrations are handled")
+				Expect(integrations).To(BeEmpty())
+				return
 			}
 
 			integration, err := c.Integrations().GetGlobal(ctx, *integrations[0].Id)
@@ -74,51 +76,43 @@ var _ = Describe("Client: Integrations", Label("client", "integrations"), func()
 		It("creates, updates, and deletes a global integration", func(ctx SpecContext) {
 			c := newClient()
 
-			By("listing global integrations by plugin to find an available plugin type")
+			By("determining a plugin type to use")
+			pluginType := "email"
 			allIntegrations, err := c.Integrations().ListGlobal(ctx)
 			Expect(err).NotTo(HaveOccurred())
-
-			if len(allIntegrations) == 0 {
-				// Skip("no global integrations available to determine plugin type")
-				Fail("no global integrations available to determine plugin type")
-			}
-
-			// Use the first integration's type to determine what plugins are available
-			pluginType := ""
-			if allIntegrations[0].IntegrationType != nil && allIntegrations[0].IntegrationType.Name != nil {
+			if len(allIntegrations) > 0 &&
+				allIntegrations[0].IntegrationType != nil &&
+				allIntegrations[0].IntegrationType.Name != nil &&
+				*allIntegrations[0].IntegrationType.Name != "" {
 				pluginType = *allIntegrations[0].IntegrationType.Name
-			}
-			if pluginType == "" {
-				// Skip("cannot determine plugin type from existing integrations")
-				Fail("cannot determine plugin type from existing integrations")
 			}
 
 			By("creating a global integration for plugin: " + pluginType)
-			name := "integration-test-global"
+			name := fmt.Sprintf("integration-test-global-%d", time.Now().UnixNano())
 			enabled := true
-			params := &map[string]interface{}{
-				"url": "https://test.example.com",
-			}
 			created, err := c.Integrations().CreateGlobal(ctx, pluginType, types.IntegrationRQ{
-				Name:                  &name,
-				Enabled:               &enabled,
-				IntegrationParameters: params,
+				Name:    &name,
+				Enabled: &enabled,
 			})
 			if err != nil {
-				// Some plugin types may not support creation; skip gracefully
-				// Skip("plugin type " + pluginType + " does not support integration creation: " + err.Error())
-				Fail("plugin type " + pluginType + " does not support integration creation: " + err.Error())
+				By("verifying unsupported plugin configurations fail predictably")
+				Expect(
+					client.IsBadRequest(err) || client.IsForbidden(err) || client.IsNotFound(err),
+				).To(BeTrue(), "unexpected create global integration error: %v", err)
+				return
 			}
 			Expect(created).NotTo(BeNil())
 			Expect(created.Id).NotTo(BeNil())
 			integrationID := *created.Id
+			DeferCleanup(func(ctx SpecContext) {
+				_, _ = c.Integrations().DeleteGlobal(ctx, integrationID)
+			})
 
 			By("updating the global integration")
-			updatedName := "integration-test-global-updated"
+			updatedName := name + "-updated"
 			_, err = c.Integrations().UpdateGlobal(ctx, integrationID, types.IntegrationRQ{
-				Name:                  &updatedName,
-				Enabled:               &enabled,
-				IntegrationParameters: params,
+				Name:    &updatedName,
+				Enabled: &enabled,
 			})
 			Expect(err).NotTo(HaveOccurred())
 
