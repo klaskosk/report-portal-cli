@@ -35,9 +35,10 @@ Review changes with a **correctness-first, simplicity-first** mindset. This is a
 
 ## Verification Steps
 
-1. `make lint` (fixes formatting too)
-2. `make test`
-3. `make test-integration` (skip if Docker unavailable, but note it)
+1. Use the `gh` CLI to check out the pull request branch.
+2. `make lint` (fixes formatting too)
+3. `make test`
+4. `make test-integration` (skip if Docker unavailable, but note it)
 
 ## Output Format
 
