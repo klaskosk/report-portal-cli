@@ -30,7 +30,8 @@ var _ = Describe("Client: Integrations", Label("client", "integrations"), func()
 			Expect(err).NotTo(HaveOccurred())
 
 			if len(integrations) == 0 {
-				Skip("no global integrations available to get")
+				// Skip("no global integrations available to get")
+				Fail("no global integrations available to get")
 			}
 
 			integration, err := c.Integrations().GetGlobal(ctx, *integrations[0].Id)
@@ -78,7 +79,8 @@ var _ = Describe("Client: Integrations", Label("client", "integrations"), func()
 			Expect(err).NotTo(HaveOccurred())
 
 			if len(allIntegrations) == 0 {
-				Skip("no global integrations available to determine plugin type")
+				// Skip("no global integrations available to determine plugin type")
+				Fail("no global integrations available to determine plugin type")
 			}
 
 			// Use the first integration's type to determine what plugins are available
@@ -87,7 +89,8 @@ var _ = Describe("Client: Integrations", Label("client", "integrations"), func()
 				pluginType = *allIntegrations[0].IntegrationType.Name
 			}
 			if pluginType == "" {
-				Skip("cannot determine plugin type from existing integrations")
+				// Skip("cannot determine plugin type from existing integrations")
+				Fail("cannot determine plugin type from existing integrations")
 			}
 
 			By("creating a global integration for plugin: " + pluginType)
@@ -103,7 +106,8 @@ var _ = Describe("Client: Integrations", Label("client", "integrations"), func()
 			})
 			if err != nil {
 				// Some plugin types may not support creation; skip gracefully
-				Skip("plugin type " + pluginType + " does not support integration creation: " + err.Error())
+				// Skip("plugin type " + pluginType + " does not support integration creation: " + err.Error())
+				Fail("plugin type " + pluginType + " does not support integration creation: " + err.Error())
 			}
 			Expect(created).NotTo(BeNil())
 			Expect(created.Id).NotTo(BeNil())
