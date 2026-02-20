@@ -58,7 +58,6 @@ var _ = BeforeSuite(func(ctx SpecContext) {
 
 	By("starting the Report Portal compose stack")
 
-	stackID := fmt.Sprintf("rptest-%d", time.Now().UnixNano())
 	composeFile := filepath.Join(".", "docker-compose.test.yml")
 	stack, err := compose.NewDockerComposeWith(
 		compose.WithStackFiles(composeFile),
