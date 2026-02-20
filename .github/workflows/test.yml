@@ -27,5 +27,6 @@ jobs:
           cache-dependency-path: |
             go.sum
             pkg/go.sum
+            test/integration/go.sum
 
       - run: make test
