@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/klaskosk/report-portal-cli/pkg/client"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/testcontainers/testcontainers-go/modules/compose"
@@ -47,13 +48,15 @@ func TestIntegration(t *testing.T) {
 var _ = BeforeSuite(func(ctx SpecContext) {
 	By("starting the Report Portal compose stack")
 
+	stackID := fmt.Sprintf("rptest-%d", time.Now().UnixNano())
 	composeFile := filepath.Join(".", "docker-compose.test.yml")
 	stack, err := compose.NewDockerComposeWith(
 		compose.WithStackFiles(composeFile),
-		compose.StackIdentifier("rptest"),
+		compose.StackIdentifier(stackID),
 	)
 	Expect(err).NotTo(HaveOccurred(),
 		"failed to create docker compose stack from %q", composeFile)
+	GinkgoWriter.Printf("Using compose stack identifier: %s\n", stackID)
 
 	DeferCleanup(func(ctx SpecContext) {
 		By("tearing down the compose stack")
@@ -106,6 +109,21 @@ var _ = BeforeSuite(func(ctx SpecContext) {
 	}).WithTimeout(60*time.Second).WithPolling(2*time.Second).Should(Succeed(),
 		"failed to obtain API token for user %q", testAdminUser)
 	GinkgoWriter.Println("API token obtained successfully")
+
+	By("waiting for API to accept authenticated requests")
+
+	Eventually(func() error {
+		probeClient, probeErr := client.New(baseURL, bearerToken)
+		if probeErr != nil {
+			return probeErr
+		}
+
+		_, probeErr = probeClient.Users().GetMyself(ctx)
+
+		return probeErr
+	}).WithTimeout(60*time.Second).WithPolling(2*time.Second).Should(Succeed(),
+		"failed to verify API readiness with authenticated requests")
+	GinkgoWriter.Println("API readiness probe succeeded")
 
 	By("building the rp CLI binary")
 

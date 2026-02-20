@@ -132,7 +132,7 @@ var _ = Describe("Client: Widgets", Label("client", "widgets"), func() {
 			widgetName := fmt.Sprintf("data-widget-%d", time.Now().UnixNano())
 			created, err := widgets.Create(ctx, types.WidgetRQ{
 				Name:       widgetName,
-				WidgetType: "launchStatistics",
+				WidgetType: "cumulative",
 				FilterIds:  &[]int64{filterID},
 				ContentParameters: &types.ContentParameters{
 					ContentFields: []string{"statistics$executions$total", "statistics$executions$passed"},
