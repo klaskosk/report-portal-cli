@@ -23,6 +23,7 @@ generate: ## Run go generate for all packages
 test: ## Run unit tests
 	go test ./... -count=1
 	cd pkg && go test ./... -count=1
+	cd test/integration && go test ./internal/... -count=1
 
 .PHONY: test-integration
 test-integration: ## Run integration tests (requires Docker)

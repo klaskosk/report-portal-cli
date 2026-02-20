@@ -21,7 +21,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     command:
       - --providers.docker=true
-      - --providers.docker.constraints=Label(`traefik.expose`, `true`)
+      - --providers.docker.constraints=Label(`traefik.expose`, `${RP_TEST_STACK_ID:-rptest}`)
+      - --providers.docker.network=${RP_TEST_STACK_ID:-rptest}_reportportal
       - --entrypoints.web.address=:8080
       - --api.dashboard=false
     networks:
@@ -145,7 +146,7 @@ services:
       - "traefik.http.routers.api.service=api"
       - "traefik.http.services.api.loadbalancer.server.port=8585"
       - "traefik.http.services.api.loadbalancer.server.scheme=http"
-      - "traefik.expose=true"
+      - "traefik.expose=${RP_TEST_STACK_ID:-rptest}"
     networks:
       - reportportal
 
@@ -182,7 +183,7 @@ services:
       - "traefik.http.routers.uat.service=uat"
       - "traefik.http.services.uat.loadbalancer.server.port=9999"
       - "traefik.http.services.uat.loadbalancer.server.scheme=http"
-      - "traefik.expose=true"
+      - "traefik.expose=${RP_TEST_STACK_ID:-rptest}"
     networks:
       - reportportal
 

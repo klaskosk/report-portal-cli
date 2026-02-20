@@ -16,6 +16,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/testcontainers/testcontainers-go/modules/compose"
 	"github.com/testcontainers/testcontainers-go/wait"
+
+	"github.com/klaskosk/report-portal-cli/test/integration/internal/runid"
 )
 
 const (
@@ -45,12 +47,20 @@ func TestIntegration(t *testing.T) {
 }
 
 var _ = BeforeSuite(func(ctx SpecContext) {
+	By("generating a unique stack identifier for this run")
+
+	stackID := runid.Generate()
+	GinkgoWriter.Printf("Stack identifier: %s\n", stackID)
+
+	Expect(os.Setenv("RP_TEST_STACK_ID", stackID)).To(Succeed(),
+		"failed to set RP_TEST_STACK_ID")
+
 	By("starting the Report Portal compose stack")
 
 	composeFile := filepath.Join(".", "docker-compose.test.yml")
 	stack, err := compose.NewDockerComposeWith(
 		compose.WithStackFiles(composeFile),
-		compose.StackIdentifier("rptest"),
+		compose.StackIdentifier(stackID),
 	)
 	Expect(err).NotTo(HaveOccurred(),
 		"failed to create docker compose stack from %q", composeFile)
@@ -67,6 +77,7 @@ var _ = BeforeSuite(func(ctx SpecContext) {
 	}, NodeTimeout(30*time.Second))
 
 	err = stack.
+		WithOsEnv().
 		WaitForService(
 			"api",
 			wait.ForLog("Started ReportPortalApp").WithStartupTimeout(5*time.Minute),
@@ -116,7 +127,7 @@ var _ = BeforeSuite(func(ctx SpecContext) {
 
 	DeferCleanup(func() {
 		if coverDir != "" {
-			mergeCoverage(coverDir)
+			mergeCoverage(coverDir, stackID)
 		}
 
 		os.RemoveAll(filepath.Dir(rpBinaryPath))
@@ -193,10 +204,11 @@ func buildCLIBinary() (string, error) {
 }
 
 // mergeCoverage converts the raw coverage counter files into a Go coverage
-// profile (integration.coverprofile) in the current directory and prints a
-// per-function summary. The output file can be loaded with go tool cover.
-func mergeCoverage(dataDir string) {
-	outFile := "integration.coverprofile"
+// profile in the current directory and prints a per-function summary. The
+// output filename includes the stack ID so that concurrent runs do not
+// overwrite each other. The output file can be loaded with go tool cover.
+func mergeCoverage(dataDir, stackID string) {
+	outFile := fmt.Sprintf("integration-%s.coverprofile", stackID)
 
 	textfmt := exec.Command("go", "tool", "covdata", "textfmt", "-i="+dataDir, "-o="+outFile)
 	textfmt.Stdout = GinkgoWriter
