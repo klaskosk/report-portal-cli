@@ -51,3 +51,4 @@ This project uses test-driven development (TDD) to drive the development of new 
 ## Miscellaneous notes
 
 - Never mark tests as pending through Ginkgo. Integration tests must always pass or fail, never be skipped.
+- Docker compose is not used in this project. Instead, testcontainers runs the docker compose file directly.
