@@ -148,7 +148,9 @@ func (p *ProjectsScope) SearchNames(
 
 	response, err := p.client.raw.SearchProjectNamesUsingGETWithResponse(ctx, params)
 	if err != nil {
-		return nil, fmt.Errorf("search project names: %w", err)
+		logger.DebugContext(ctx, "typed project search names decode failed; retrying raw", "error", err)
+
+		return p.searchNamesRaw(ctx, params)
 	}
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
@@ -396,6 +398,47 @@ func (p *ProjectsScope) listNamesRaw(ctx context.Context) ([]string, error) {
 	var names []string
 	if err := json.Unmarshal(body, &names); err != nil {
 		return nil, fmt.Errorf("list project names: %w", err)
+	}
+
+	return names, nil
+}
+
+// searchNamesRaw retries the project-name search call and decodes deployments that return a plain JSON string array.
+func (p *ProjectsScope) searchNamesRaw(
+	ctx context.Context,
+	params *api.SearchProjectNamesUsingGETParams,
+) ([]string, error) {
+	rawClient, ok := p.client.raw.(*api.ClientWithResponses)
+	if !ok {
+		return nil, fmt.Errorf(
+			"search project names: raw fallback unavailable for client type %T",
+			p.client.raw,
+		)
+	}
+
+	rawResponse, err := rawClient.SearchProjectNamesUsingGET(ctx, params)
+	if err != nil {
+		return nil, fmt.Errorf("search project names: %w", err)
+	}
+	defer rawResponse.Body.Close()
+
+	body, err := io.ReadAll(rawResponse.Body)
+	if err != nil {
+		return nil, fmt.Errorf("reading search project names response: %w", err)
+	}
+
+	if rawResponse.StatusCode != http.StatusOK {
+		var errorResponse types.ErrorRS
+		if json.Unmarshal(body, &errorResponse) == nil && errorResponse.ErrorCode != 0 {
+			return nil, newAPIError("search project names", rawResponse.StatusCode, &errorResponse)
+		}
+
+		return nil, newUnexpectedStatusError("search project names", rawResponse.StatusCode)
+	}
+
+	var names []string
+	if err := json.Unmarshal(body, &names); err != nil {
+		return nil, fmt.Errorf("search project names: %w", err)
 	}
 
 	return names, nil

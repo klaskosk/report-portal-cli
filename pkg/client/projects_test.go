@@ -238,6 +238,31 @@ func TestProjectsScope_SearchNames_EmptyResults(t *testing.T) {
 	assert.Empty(t, names)
 }
 
+func TestProjectsScope_SearchNames_FallsBackToRawArrayResponse(t *testing.T) {
+	t.Parallel()
+
+	callCount := 0
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertMethod(t, r, http.MethodGet)
+		assertPath(t, r, "/api/v1/project/names/search")
+		assert.Equal(t, "my", r.URL.Query().Get("term"))
+
+		callCount++
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`["my_project","my_other_project"]`))
+	}))
+
+	names, err := c.Projects().SearchNames(t.Context(), "my")
+	require.NoError(t, err)
+	require.Len(t, names, 2)
+	assert.Equal(t, "my_project", names[0])
+	assert.Equal(t, "my_other_project", names[1])
+	assert.Equal(t, 2, callCount, "expected typed call and raw fallback call")
+}
+
 func TestProjectsScope_SearchNames_Unauthorized(t *testing.T) {
 	t.Parallel()
 
