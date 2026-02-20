@@ -83,13 +83,14 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 			Expect(json.Unmarshal([]byte(result.Stdout), &launches)).To(Succeed())
 			Expect(launches).NotTo(BeEmpty())
 
-			first := launches[0]
-			expectJSONNumber(first, "id")
-			expectJSONString(first, "uuid")
-			expectJSONString(first, "name")
-			expectJSONString(first, "status")
-			expectJSONNumber(first, "startTime")
-			expectJSONNumber(first, "number")
+			for _, launch := range launches {
+				expectJSONNumber(launch, "id")
+				expectJSONString(launch, "uuid")
+				expectJSONString(launch, "name")
+				expectJSONString(launch, "status")
+				expectJSONNumber(launch, "startTime")
+				expectJSONNumber(launch, "number")
+			}
 		})
 	})
 
@@ -140,14 +141,15 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 			Expect(json.Unmarshal([]byte(result.Stdout), &items)).To(Succeed())
 			Expect(items).NotTo(BeEmpty())
 
-			first := items[0]
-			expectJSONNumber(first, "id")
-			expectJSONString(first, "uuid")
-			expectJSONString(first, "name")
-			expectJSONString(first, "type")
-			expectJSONString(first, "status")
-			expectJSONNumber(first, "startTime")
-			expectJSONNumber(first, "launchId")
+			for _, item := range items {
+				expectJSONNumber(item, "id")
+				expectJSONString(item, "uuid")
+				expectJSONString(item, "name")
+				expectJSONString(item, "type")
+				expectJSONString(item, "status")
+				expectJSONNumber(item, "startTime")
+				expectJSONNumber(item, "launchId")
+			}
 		})
 	})
 
@@ -194,9 +196,10 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 			Expect(json.Unmarshal([]byte(result.Stdout), &logs)).To(Succeed())
 			Expect(logs).NotTo(BeEmpty())
 
-			first := logs[0]
-			expectJSONNumber(first, "id")
-			expectJSONString(first, "uuid")
+			for _, log := range logs {
+				expectJSONNumber(log, "id")
+				expectJSONString(log, "uuid")
+			}
 		})
 	})
 

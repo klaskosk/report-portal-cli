@@ -3,6 +3,7 @@
 package integration_test
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -137,11 +138,16 @@ var _ = Describe("Client: Error predicates", Label("client", "errors"), func() {
 			Expect(err).To(HaveOccurred())
 
 			var apiErr *client.APIError
-			Expect(err).To(BeAssignableToTypeOf(apiErr),
-				"not-found error should be assignable to *APIError")
+			Expect(errors.As(err, &apiErr)).To(BeTrue(),
+				"not-found error should be extractable as *APIError")
 
 			Expect(client.IsNotFound(err)).To(BeTrue())
 			Expect(client.HasStatusCode(err, 404)).To(BeTrue())
+			Expect(apiErr).NotTo(BeNil())
+			Expect(apiErr.StatusCode()).To(Equal(404))
+			Expect(apiErr.Operation()).NotTo(BeEmpty())
+			Expect(apiErr.Message()).NotTo(BeEmpty())
+			Expect(apiErr.ErrorCode()).NotTo(Equal(0))
 		})
 
 		It("returns a non-nil error for not-found item", func(ctx SpecContext) {
