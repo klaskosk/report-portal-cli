@@ -195,3 +195,65 @@ func TestWidgetScope_GetNames_Empty(t *testing.T) {
 	require.NotNil(t, result)
 	require.Empty(t, result.Content)
 }
+
+func TestWidgetScope_GetData_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/widget/multilevel/42")
+		assertMethod(t, r, http.MethodGet)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"id": 42,
+			"name": "Data Widget",
+			"widgetType": "statisticTrend",
+			"contentParameters": {"contentFields": ["statistics$executions$total"], "itemsCount": 10, "widgetOptions": {}}
+		}`))
+	}))
+
+	widget, err := c.Project("my_project").Widgets().GetData(t.Context(), 42)
+	require.NoError(t, err)
+	require.NotNil(t, widget)
+
+	assert.Equal(t, int64(42), widget.Id)
+	assert.Equal(t, "Data Widget", widget.Name)
+}
+
+func TestWidgetScope_GetData_WithAttributes(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		query := r.URL.Query()
+		assert.Equal(t, []string{"attr1", "attr2"}, query["attributes"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"id": 42,
+			"name": "Data Widget",
+			"widgetType": "statisticTrend",
+			"contentParameters": {"contentFields": [], "itemsCount": 10, "widgetOptions": {}}
+		}`))
+	}))
+
+	_, err := c.Project("my_project").Widgets().GetData(t.Context(), 42,
+		client.WithWidgetAttributes("attr1", "attr2"),
+	)
+	require.NoError(t, err)
+}
+
+func TestWidgetScope_GetData_NotFound(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusNotFound,
+		`{"errorCode": 40410, "message": "Widget '999' not found."}`))
+
+	_, err := c.Project("my_project").Widgets().GetData(t.Context(), 999)
+	require.Error(t, err)
+	assert.True(t, client.IsNotFound(err))
+}

@@ -297,3 +297,72 @@ func TestFilterScope_GetNames_Empty(t *testing.T) {
 	require.NotNil(t, result)
 	require.Empty(t, result.Content)
 }
+
+func TestFilterScope_GetByIds_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/filter/filters")
+		assertMethod(t, r, http.MethodGet)
+
+		query := r.URL.Query()
+		assert.Equal(t, []string{"1", "2"}, query["ids"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`[
+			{
+				"id": 1,
+				"name": "Filter 1",
+				"type": "launch",
+				"owner": "admin",
+				"conditions": [],
+				"orders": []
+			},
+			{
+				"id": 2,
+				"name": "Filter 2",
+				"type": "launch",
+				"owner": "admin",
+				"conditions": [],
+				"orders": []
+			}
+		]`))
+	}))
+
+	filters, err := c.Project("my_project").Filters().GetByIds(t.Context(), []int64{1, 2})
+	require.NoError(t, err)
+	require.Len(t, filters, 2)
+
+	assert.Equal(t, int64(1), filters[0].Id)
+	assert.Equal(t, "Filter 1", filters[0].Name)
+	assert.Equal(t, int64(2), filters[1].Id)
+	assert.Equal(t, "Filter 2", filters[1].Name)
+}
+
+func TestFilterScope_GetByIds_Empty(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`[]`))
+	}))
+
+	filters, err := c.Project("my_project").Filters().GetByIds(t.Context(), []int64{999})
+	require.NoError(t, err)
+	assert.Empty(t, filters)
+}
+
+func TestFilterScope_GetByIds_Unauthorized(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusUnauthorized,
+		`{"errorCode": 4001, "message": "Full authentication is required."}`))
+
+	_, err := c.Project("my_project").Filters().GetByIds(t.Context(), []int64{1})
+	require.Error(t, err)
+	assert.True(t, client.IsUnauthorized(err))
+}

@@ -98,6 +98,50 @@ var _ = Describe("Client: Filters", Label("client", "filters"), func() {
 		})
 	})
 
+	Context("GetByIds", func() {
+		It("returns multiple filters by their IDs", func(ctx SpecContext) {
+			filters := c.Project(projectName).Filters()
+
+			By("creating two filters")
+			filter1Name := fmt.Sprintf("ids-filter-1-%d", time.Now().UnixNano())
+			created1, err := filters.Create(ctx, types.UpdateUserFilterRQ{
+				Name: filter1Name,
+				Type: types.UpdateUserFilterRQTypeLaunch,
+				Conditions: []types.UserFilterCondition{
+					{FilteringField: "name", Condition: "cnt", Value: "test1"},
+				},
+				Orders: []types.Order{
+					{SortingColumn: "startTime", IsAsc: false},
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(created1.Id).NotTo(BeNil())
+
+			filter2Name := fmt.Sprintf("ids-filter-2-%d", time.Now().UnixNano())
+			created2, err := filters.Create(ctx, types.UpdateUserFilterRQ{
+				Name: filter2Name,
+				Type: types.UpdateUserFilterRQTypeLaunch,
+				Conditions: []types.UserFilterCondition{
+					{FilteringField: "name", Condition: "cnt", Value: "test2"},
+				},
+				Orders: []types.Order{
+					{SortingColumn: "startTime", IsAsc: false},
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(created2.Id).NotTo(BeNil())
+
+			By("getting both filters by IDs")
+			result, err := filters.GetByIds(ctx, []int64{*created1.Id, *created2.Id})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(HaveLen(2))
+
+			names := []string{result[0].Name, result[1].Name}
+			Expect(names).To(ContainElement(filter1Name))
+			Expect(names).To(ContainElement(filter2Name))
+		})
+	})
+
 	Context("List", func() {
 		It("lists filters including the created one", func(ctx SpecContext) {
 			filters := c.Project(projectName).Filters()

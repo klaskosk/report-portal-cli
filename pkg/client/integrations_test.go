@@ -1,10 +1,13 @@
 package client_test
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
 	"testing"
 
 	"github.com/klaskosk/report-portal-cli/pkg/client"
+	"github.com/klaskosk/report-portal-cli/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -299,6 +302,284 @@ func TestProjectIntegrationsScope_TestConnection_NotFound(t *testing.T) {
 		`{"errorCode": 40410, "message": "Integration '999' not found."}`))
 
 	_, err := c.Project("my_project").Integrations().TestConnection(t.Context(), 999)
+	require.Error(t, err)
+	assert.True(t, client.IsNotFound(err))
+}
+
+func TestIntegrationsScope_CreateGlobal_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/integration/email")
+		assertMethod(t, r, http.MethodPost)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		assert.Equal(t, "my-email", payload["name"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"id":5}`))
+	}))
+
+	name := "my-email"
+	result, err := c.Integrations().CreateGlobal(t.Context(), "email", types.IntegrationRQ{
+		Name: &name,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Id)
+	assert.Equal(t, int64(5), *result.Id)
+}
+
+func TestIntegrationsScope_CreateGlobal_BadRequest(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusBadRequest,
+		`{"errorCode": 4001, "message": "Incorrect request."}`))
+
+	_, err := c.Integrations().CreateGlobal(t.Context(), "email", types.IntegrationRQ{})
+	require.Error(t, err)
+	assert.True(t, client.IsBadRequest(err))
+}
+
+func TestIntegrationsScope_UpdateGlobal_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/integration/1")
+		assertMethod(t, r, http.MethodPut)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		assert.Equal(t, "updated-email", payload["name"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"Integration successfully updated."}`))
+	}))
+
+	name := "updated-email"
+	result, err := c.Integrations().UpdateGlobal(t.Context(), 1, types.IntegrationRQ{
+		Name: &name,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Message)
+	assert.Equal(t, "Integration successfully updated.", *result.Message)
+}
+
+func TestIntegrationsScope_UpdateGlobal_NotFound(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusNotFound,
+		`{"errorCode": 40410, "message": "Integration '999' not found."}`))
+
+	_, err := c.Integrations().UpdateGlobal(t.Context(), 999, types.IntegrationRQ{})
+	require.Error(t, err)
+	assert.True(t, client.IsNotFound(err))
+}
+
+func TestIntegrationsScope_DeleteGlobal_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/integration/1")
+		assertMethod(t, r, http.MethodDelete)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"Integration successfully deleted."}`))
+	}))
+
+	result, err := c.Integrations().DeleteGlobal(t.Context(), 1)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Message)
+	assert.Equal(t, "Integration successfully deleted.", *result.Message)
+}
+
+func TestIntegrationsScope_DeleteGlobal_NotFound(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusNotFound,
+		`{"errorCode": 40410, "message": "Integration '999' not found."}`))
+
+	_, err := c.Integrations().DeleteGlobal(t.Context(), 999)
+	require.Error(t, err)
+	assert.True(t, client.IsNotFound(err))
+}
+
+func TestProjectIntegrationsScope_Create_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/integration/my_project/email")
+		assertMethod(t, r, http.MethodPost)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		assert.Equal(t, "project-email", payload["name"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"id":15}`))
+	}))
+
+	name := "project-email"
+	result, err := c.Project("my_project").Integrations().Create(t.Context(), "email", types.IntegrationRQ{
+		Name: &name,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Id)
+	assert.Equal(t, int64(15), *result.Id)
+}
+
+func TestProjectIntegrationsScope_Create_BadRequest(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusBadRequest,
+		`{"errorCode": 4001, "message": "Incorrect request."}`))
+
+	_, err := c.Project("my_project").Integrations().Create(t.Context(), "email", types.IntegrationRQ{})
+	require.Error(t, err)
+	assert.True(t, client.IsBadRequest(err))
+}
+
+func TestProjectIntegrationsScope_Update_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/integration/my_project/10")
+		assertMethod(t, r, http.MethodPut)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		assert.Equal(t, "updated-jira", payload["name"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"Integration successfully updated."}`))
+	}))
+
+	name := "updated-jira"
+	result, err := c.Project("my_project").Integrations().Update(t.Context(), 10, types.IntegrationRQ{
+		Name: &name,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Message)
+	assert.Equal(t, "Integration successfully updated.", *result.Message)
+}
+
+func TestProjectIntegrationsScope_Update_NotFound(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusNotFound,
+		`{"errorCode": 40410, "message": "Integration '999' not found."}`))
+
+	_, err := c.Project("my_project").Integrations().Update(t.Context(), 999, types.IntegrationRQ{})
+	require.Error(t, err)
+	assert.True(t, client.IsNotFound(err))
+}
+
+func TestProjectIntegrationsScope_Delete_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/integration/my_project/10")
+		assertMethod(t, r, http.MethodDelete)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"Integration successfully deleted."}`))
+	}))
+
+	result, err := c.Project("my_project").Integrations().Delete(t.Context(), 10)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Message)
+	assert.Equal(t, "Integration successfully deleted.", *result.Message)
+}
+
+func TestProjectIntegrationsScope_Delete_NotFound(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusNotFound,
+		`{"errorCode": 40410, "message": "Integration '999' not found."}`))
+
+	_, err := c.Project("my_project").Integrations().Delete(t.Context(), 999)
+	require.Error(t, err)
+	assert.True(t, client.IsNotFound(err))
+}
+
+func TestProjectIntegrationsScope_ExecuteCommand_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/integration/my_project/10/testCommand")
+		assertMethod(t, r, http.MethodPut)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		assert.Equal(t, "value1", payload["key1"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"result":"ok","data":"test"}`))
+	}))
+
+	result, err := c.Project("my_project").Integrations().ExecuteCommand(
+		t.Context(),
+		10,
+		"testCommand",
+		map[string]interface{}{"key1": "value1"},
+	)
+	require.NoError(t, err)
+	assert.Equal(t, "ok", result["result"])
+	assert.Equal(t, "test", result["data"])
+}
+
+func TestProjectIntegrationsScope_ExecuteCommand_NotFound(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusNotFound,
+		`{"errorCode": 40410, "message": "Integration '999' not found."}`))
+
+	_, err := c.Project("my_project").Integrations().ExecuteCommand(
+		t.Context(),
+		999,
+		"testCommand",
+		map[string]interface{}{},
+	)
 	require.Error(t, err)
 	assert.True(t, client.IsNotFound(err))
 }

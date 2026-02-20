@@ -85,6 +85,49 @@ func (w *WidgetScope) Update(
 	return handleResponse(response, "update widget", response.JSONDefault, response.JSON200)
 }
 
+// GetData returns a widget's computed data by its numeric ID.
+// The attributes and params arguments allow configuring how the widget data is computed.
+func (w *WidgetScope) GetData(
+	ctx context.Context,
+	id int64,
+	options ...GetWidgetDataOption,
+) (*types.WidgetResource, error) {
+	logger := w.project.operationLogger("GetWidgetData", slog.Int64("id", id))
+
+	params := &api.GetWidgetUsingGETParams{
+		Params: map[string]interface{}{},
+	}
+	for _, option := range options {
+		option(params)
+	}
+
+	logger.InfoContext(ctx, "API request")
+
+	response, err := w.project.client.raw.GetWidgetUsingGETWithResponse(
+		ctx,
+		w.project.projectName,
+		id,
+		params,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get widget data: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "get widget data", response.JSONDefault, response.JSON200)
+}
+
+// GetWidgetDataOption configures the parameters for getting widget data.
+type GetWidgetDataOption func(*api.GetWidgetUsingGETParams)
+
+// WithWidgetAttributes sets the attributes for widget data retrieval.
+func WithWidgetAttributes(attributes ...string) GetWidgetDataOption {
+	return func(params *api.GetWidgetUsingGETParams) {
+		params.Attributes = &attributes
+	}
+}
+
 // GetNames returns widget names matching the filter (for autocomplete). The returned
 // IterableObject contains maps with name/owner keys.
 func (w *WidgetScope) GetNames(

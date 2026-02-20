@@ -109,6 +109,60 @@ func (s *IntegrationsScope) TestGlobalConnection(ctx context.Context, id int64) 
 	return *result, nil
 }
 
+// CreateGlobal creates a new global integration for the given plugin.
+func (s *IntegrationsScope) CreateGlobal(ctx context.Context, pluginName string, request types.IntegrationRQ) (*types.EntryCreatedRS, error) {
+	logger := s.client.logger.With(
+		slog.String("operation", "CreateGlobalIntegration"),
+		slog.String("pluginName", pluginName),
+	)
+	logger.InfoContext(ctx, "API request")
+
+	response, err := s.client.raw.CreateGlobalIntegrationUsingPOSTWithResponse(ctx, pluginName, request)
+	if err != nil {
+		return nil, fmt.Errorf("create global integration: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "create global integration", response.JSONDefault, response.JSON201)
+}
+
+// UpdateGlobal updates an existing global integration.
+func (s *IntegrationsScope) UpdateGlobal(ctx context.Context, id int64, request types.IntegrationRQ) (*types.OperationCompletionRS, error) {
+	logger := s.client.logger.With(
+		slog.String("operation", "UpdateGlobalIntegration"),
+		slog.Int64("id", id),
+	)
+	logger.InfoContext(ctx, "API request")
+
+	response, err := s.client.raw.UpdateGlobalIntegrationUsingPUTWithResponse(ctx, id, request)
+	if err != nil {
+		return nil, fmt.Errorf("update global integration: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "update global integration", response.JSONDefault, response.JSON200)
+}
+
+// DeleteGlobal removes a global integration by its numeric ID.
+func (s *IntegrationsScope) DeleteGlobal(ctx context.Context, id int64) (*types.OperationCompletionRS, error) {
+	logger := s.client.logger.With(
+		slog.String("operation", "DeleteGlobalIntegration"),
+		slog.Int64("id", id),
+	)
+	logger.InfoContext(ctx, "API request")
+
+	response, err := s.client.raw.DeleteGlobalIntegrationUsingDELETEWithResponse(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("delete global integration: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "delete global integration", response.JSONDefault, response.JSON200)
+}
+
 // ProjectIntegrationsScope provides operations on integrations within a specific project.
 type ProjectIntegrationsScope struct {
 	project *ProjectScope
@@ -213,6 +267,105 @@ func (s *ProjectIntegrationsScope) TestConnection(ctx context.Context, id int64)
 
 	if result == nil {
 		return false, nil
+	}
+
+	return *result, nil
+}
+
+// Create creates a new project integration for the given plugin.
+func (s *ProjectIntegrationsScope) Create(ctx context.Context, pluginName string, request types.IntegrationRQ) (*types.EntryCreatedRS, error) {
+	logger := s.project.operationLogger("CreateProjectIntegration",
+		slog.String("pluginName", pluginName),
+	)
+	logger.InfoContext(ctx, "API request")
+
+	response, err := s.project.client.raw.CreateProjectIntegrationUsingPOSTWithResponse(
+		ctx,
+		s.project.projectName,
+		pluginName,
+		request,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("create project integration: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "create project integration", response.JSONDefault, response.JSON201)
+}
+
+// Update modifies an existing project integration.
+func (s *ProjectIntegrationsScope) Update(ctx context.Context, id int64, request types.IntegrationRQ) (*types.OperationCompletionRS, error) {
+	logger := s.project.operationLogger("UpdateProjectIntegration", slog.Int64("id", id))
+	logger.InfoContext(ctx, "API request")
+
+	response, err := s.project.client.raw.UpdateProjectIntegrationUsingPUTWithResponse(
+		ctx,
+		s.project.projectName,
+		id,
+		request,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("update project integration: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "update project integration", response.JSONDefault, response.JSON200)
+}
+
+// Delete removes a project integration by its numeric ID.
+func (s *ProjectIntegrationsScope) Delete(ctx context.Context, id int64) (*types.OperationCompletionRS, error) {
+	logger := s.project.operationLogger("DeleteProjectIntegration", slog.Int64("id", id))
+	logger.InfoContext(ctx, "API request")
+
+	response, err := s.project.client.raw.DeleteProjectIntegrationUsingDELETEWithResponse(
+		ctx,
+		s.project.projectName,
+		id,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("delete project integration: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "delete project integration", response.JSONDefault, response.JSON200)
+}
+
+// ExecuteCommand executes a command on a project integration.
+func (s *ProjectIntegrationsScope) ExecuteCommand(
+	ctx context.Context,
+	integrationID int64,
+	command string,
+	body map[string]interface{},
+) (map[string]interface{}, error) {
+	logger := s.project.operationLogger("ExecuteIntegrationCommand",
+		slog.Int64("integrationId", integrationID),
+		slog.String("command", command),
+	)
+	logger.InfoContext(ctx, "API request")
+
+	response, err := s.project.client.raw.ExecuteIntegrationCommandUsingPUTWithResponse(
+		ctx,
+		s.project.projectName,
+		integrationID,
+		command,
+		body,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("execute integration command: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, "execute integration command", response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, err
+	}
+
+	if result == nil {
+		return map[string]interface{}{}, nil
 	}
 
 	return *result, nil
