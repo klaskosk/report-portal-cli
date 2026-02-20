@@ -133,6 +133,39 @@ func (f *UserFilterScope) Delete(
 	return handleResponse(response, "delete filter", response.JSONDefault, response.JSON200)
 }
 
+// GetByIds returns multiple filters by their numeric IDs.
+func (f *UserFilterScope) GetByIds(
+	ctx context.Context,
+	ids []int64,
+) ([]types.UserFilterResource, error) {
+	logger := f.project.operationLogger("GetFiltersByIds")
+	logger.InfoContext(ctx, "API request")
+
+	response, err := f.project.client.raw.GetUserFiltersUsingGETWithResponse(
+		ctx,
+		f.project.projectName,
+		&api.GetUserFiltersUsingGETParams{
+			Ids: ids,
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get filters by ids: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, "get filters by ids", response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, err
+	}
+
+	if result == nil {
+		return []types.UserFilterResource{}, nil
+	}
+
+	return *result, nil
+}
+
 // GetNames returns filter names (for autocomplete). The returned IterableOwnedEntityResource
 // contains OwnedEntityResource items with name, owner, and description fields.
 func (f *UserFilterScope) GetNames(

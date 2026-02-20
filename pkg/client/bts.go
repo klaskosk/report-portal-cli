@@ -109,3 +109,100 @@ func (s *BugTrackingScope) GetTicket(
 
 	return handleResponse(response, "get bts ticket", response.JSONDefault, response.JSON200)
 }
+
+// CreateIssue creates a new issue in the BTS for the given integration.
+func (s *BugTrackingScope) CreateIssue(
+	ctx context.Context,
+	integrationID int64,
+	request types.PostTicketRQ,
+) (*types.Ticket, error) {
+	logger := s.project.operationLogger("CreateBTSIssue", slog.Int64("integrationId", integrationID))
+	logger.InfoContext(ctx, "API request")
+
+	response, err := s.project.client.raw.CreateIssueUsingPOSTWithResponse(
+		ctx,
+		s.project.projectName,
+		integrationID,
+		request,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("create bts issue: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "create bts issue", response.JSONDefault, response.JSON201)
+}
+
+// GetTicketIds returns ticket IDs matching the given term within a launch.
+func (s *BugTrackingScope) GetTicketIds(
+	ctx context.Context,
+	launchID int64,
+	term string,
+) ([]string, error) {
+	logger := s.project.operationLogger("GetBTSTicketIds",
+		slog.Int64("launchId", launchID),
+		slog.String("term", term),
+	)
+	logger.InfoContext(ctx, "API request")
+
+	response, err := s.project.client.raw.GetTicketIdsUsingGETWithResponse(
+		ctx,
+		s.project.projectName,
+		&api.GetTicketIdsUsingGETParams{
+			Launch: launchID,
+			Term:   term,
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get bts ticket ids: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, "get bts ticket ids", response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, err
+	}
+
+	if result == nil {
+		return []string{}, nil
+	}
+
+	return *result, nil
+}
+
+// GetTicketIdsForProject returns ticket IDs matching the given term across the project.
+func (s *BugTrackingScope) GetTicketIdsForProject(
+	ctx context.Context,
+	term string,
+) ([]string, error) {
+	logger := s.project.operationLogger("GetBTSTicketIdsForProject",
+		slog.String("term", term),
+	)
+	logger.InfoContext(ctx, "API request")
+
+	response, err := s.project.client.raw.GetTicketIdsForProjectUsingGETWithResponse(
+		ctx,
+		s.project.projectName,
+		&api.GetTicketIdsForProjectUsingGETParams{
+			Term: term,
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get bts ticket ids for project: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, "get bts ticket ids for project", response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, err
+	}
+
+	if result == nil {
+		return []string{}, nil
+	}
+
+	return *result, nil
+}

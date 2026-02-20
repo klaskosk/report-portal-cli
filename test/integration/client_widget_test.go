@@ -60,7 +60,7 @@ var _ = Describe("Client: Widgets", Label("client", "widgets"), func() {
 			widgetName := fmt.Sprintf("test-widget-%d", time.Now().UnixNano())
 			created, err := widgets.Create(ctx, types.WidgetRQ{
 				Name:       widgetName,
-				WidgetType: "launchStatistics",
+				WidgetType: "statisticTrend",
 				FilterIds:  &[]int64{filterID},
 				ContentParameters: &types.ContentParameters{
 					ContentFields: []string{"statistics$executions$total", "statistics$executions$passed"},
@@ -120,6 +120,37 @@ var _ = Describe("Client: Widgets", Label("client", "widgets"), func() {
 			widget, err := widgets.GetByID(ctx, widgetID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(widget.Name).To(Equal(updatedName))
+		})
+	})
+
+	Context("GetData", func() {
+		It("retrieves widget data by ID", func(ctx SpecContext) {
+			widgets := c.Project(projectName).Widgets()
+
+			By("creating a widget")
+			widgetOpts := map[string]any{}
+			widgetName := fmt.Sprintf("data-widget-%d", time.Now().UnixNano())
+			created, err := widgets.Create(ctx, types.WidgetRQ{
+				Name:       widgetName,
+				WidgetType: "cumulative",
+				FilterIds:  &[]int64{filterID},
+				ContentParameters: &types.ContentParameters{
+					ContentFields: []string{"statistics$executions$total", "statistics$executions$passed"},
+					ItemsCount:    10,
+					WidgetOptions: &widgetOpts,
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(created).NotTo(BeNil())
+			Expect(created.Id).NotTo(BeNil())
+			widgetID := *created.Id
+
+			By("getting widget data")
+			widget, err := widgets.GetData(ctx, widgetID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(widget).NotTo(BeNil())
+			Expect(widget.Id).To(Equal(widgetID))
+			Expect(widget.Name).To(Equal(widgetName))
 		})
 	})
 
