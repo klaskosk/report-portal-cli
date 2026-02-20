@@ -74,6 +74,23 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 					"single launch JSON must include field %q", field)
 			}
 		})
+
+		It("contracted fields have stable value types", func() {
+			result := runProjectLaunch(projectName, "-o", "json")
+			expectCLISuccess(result, "rp get launch -o json")
+
+			var launches []map[string]any
+			Expect(json.Unmarshal([]byte(result.Stdout), &launches)).To(Succeed())
+			Expect(launches).NotTo(BeEmpty())
+
+			first := launches[0]
+			expectJSONNumber(first, "id")
+			expectJSONString(first, "uuid")
+			expectJSONString(first, "name")
+			expectJSONString(first, "status")
+			expectJSONNumber(first, "startTime")
+			expectJSONNumber(first, "number")
+		})
 	})
 
 	Context("item JSON output", func() {
@@ -111,6 +128,27 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 					"single item JSON must include field %q", field)
 			}
 		})
+
+		It("contracted fields have stable value types", func() {
+			result := runProjectItem(projectName,
+				"-o", "json",
+				"--launch", strconv.FormatInt(seededTestData.LaunchID, 10),
+			)
+			expectCLISuccess(result, "rp get item -o json")
+
+			var items []map[string]any
+			Expect(json.Unmarshal([]byte(result.Stdout), &items)).To(Succeed())
+			Expect(items).NotTo(BeEmpty())
+
+			first := items[0]
+			expectJSONNumber(first, "id")
+			expectJSONString(first, "uuid")
+			expectJSONString(first, "name")
+			expectJSONString(first, "type")
+			expectJSONString(first, "status")
+			expectJSONNumber(first, "startTime")
+			expectJSONNumber(first, "launchId")
+		})
 	})
 
 	Context("log JSON output", func() {
@@ -144,6 +182,22 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 			Expect(single).To(HaveKey("id"), "single log JSON must include field \"id\"")
 			Expect(single).To(HaveKey("uuid"), "single log JSON must include field \"uuid\"")
 		})
+
+		It("contracted fields have stable value types", func() {
+			result := runProjectLog(projectName,
+				"-o", "json",
+				"--item", strconv.FormatInt(seededTestData.SuiteID, 10),
+			)
+			expectCLISuccess(result, "rp get log -o json")
+
+			var logs []map[string]any
+			Expect(json.Unmarshal([]byte(result.Stdout), &logs)).To(Succeed())
+			Expect(logs).NotTo(BeEmpty())
+
+			first := logs[0]
+			expectJSONNumber(first, "id")
+			expectJSONString(first, "uuid")
+		})
 	})
 
 	Context("project JSON output", func() {
@@ -166,6 +220,15 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 			Expect(project).To(HaveKey("projectName"),
 				"project detail JSON must include field \"projectName\"")
 		})
+
+		It("contracted fields have stable value types", func() {
+			result := runCLI("get", "project", projectName, "-o", "json")
+			expectCLISuccess(result, "rp get project <name> -o json")
+
+			var project map[string]any
+			Expect(json.Unmarshal([]byte(result.Stdout), &project)).To(Succeed())
+			expectJSONString(project, "projectName")
+		})
 	})
 
 	Context("whoami JSON output", func() {
@@ -177,6 +240,16 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 			Expect(json.Unmarshal([]byte(result.Stdout), &user)).To(Succeed())
 			Expect(user).To(HaveKey("userId"), "whoami JSON must include field \"userId\"")
 			Expect(user).To(HaveKey("email"), "whoami JSON must include field \"email\"")
+		})
+
+		It("contracted fields have stable value types", func() {
+			result := runCLI("whoami", "-o", "json")
+			expectCLISuccess(result, "rp whoami -o json")
+
+			var user map[string]any
+			Expect(json.Unmarshal([]byte(result.Stdout), &user)).To(Succeed())
+			expectJSONString(user, "userId")
+			expectJSONString(user, "email")
 		})
 	})
 
@@ -220,5 +293,54 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 				},
 				"whoami auth error"),
 		)
+
+		DescribeTable("error JSON contains only the 'error' key",
+			func(args []string, description string) {
+				result := runCLIWithArgs(args...)
+				expectCLIError(result, description)
+
+				var payload map[string]any
+				Expect(json.Unmarshal([]byte(result.Stderr), &payload)).To(Succeed(),
+					"stderr must be valid JSON, got: %s", result.Stderr)
+				Expect(payload).To(HaveLen(1),
+					"JSON error payload must contain exactly one key")
+				Expect(payload).To(HaveKey("error"),
+					"the single key must be \"error\"")
+			},
+			Entry("not found error",
+				[]string{
+					"--url", baseURL, "--token", bearerToken,
+					"-o", "json",
+					"get", "launch", "999999", "-p", "default_personal",
+				},
+				"single-key error JSON (not found)"),
+			Entry("auth error",
+				[]string{
+					"--url", baseURL, "--token", "invalid-token",
+					"-o", "json",
+					"whoami",
+				},
+				"single-key error JSON (auth)"),
+		)
 	})
 })
+
+// expectJSONNumber asserts that obj[key] is a JSON number (float64 after unmarshalling).
+func expectJSONNumber(obj map[string]any, key string) {
+	GinkgoHelper()
+
+	Expect(obj).To(HaveKey(key), "expected key %q in JSON object", key)
+	_, ok := obj[key].(float64)
+	Expect(ok).To(BeTrue(),
+		"expected %q to be a JSON number, got %T: %v", key, obj[key], obj[key])
+}
+
+// expectJSONString asserts that obj[key] is a JSON string.
+func expectJSONString(obj map[string]any, key string) {
+	GinkgoHelper()
+
+	Expect(obj).To(HaveKey(key), "expected key %q in JSON object", key)
+	_, ok := obj[key].(string)
+	Expect(ok).To(BeTrue(),
+		"expected %q to be a JSON string, got %T: %v", key, obj[key], obj[key])
+}
