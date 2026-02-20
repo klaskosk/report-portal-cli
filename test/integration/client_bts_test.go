@@ -23,7 +23,7 @@ var _ = Describe("Client: Bug Tracking", Label("client", "bts"), func() {
 			defer deleteProject(ctx, baseURL, bearerToken, projectName)
 
 			By("searching for ticket IDs in the project")
-			ids, err := c.Project(projectName).BugTracking().GetTicketIdsForProject(ctx, "")
+			ids, err := c.Project(projectName).BugTracking().GetTicketIdsForProject(ctx, "test")
 			Expect(err).NotTo(HaveOccurred())
 			// A fresh project should have no tickets, but the endpoint should succeed
 			Expect(ids).NotTo(BeNil())
