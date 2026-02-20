@@ -131,3 +131,4 @@ Run before finalizing:
 - [ ] Contract tests added/extended for representative client and CLI surfaces
 - [ ] Lint and tests pass locally
 - [ ] `code-verifier` subagent says your changes are good to go
+- [ ] This file moved to the `completed` directory

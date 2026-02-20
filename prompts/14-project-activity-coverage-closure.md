@@ -143,3 +143,4 @@ Run before finalizing:
 - [ ] Integration tests added/extended for seeded project/audit workflows
 - [ ] Lint and tests pass locally
 - [ ] `code-verifier` subagent says your changes are good to go
+- [ ] This file moved to the `completed` directory
