@@ -305,3 +305,72 @@ func WithLogSort(fields ...string) ListLogsOption {
 		params.PageSort = &fields
 	}
 }
+
+// Search finds log entries related to the given test item that match similar
+// failure patterns. This is useful for triage workflows where an operator
+// needs to find analogous failures across the project.
+func (l *LogScope) Search(
+	ctx context.Context,
+	itemID int64,
+	request types.SearchLogRq,
+) (*types.IterableSearchLogRs, error) {
+	logger := l.project.operationLogger("SearchLogs", slog.Int64("itemId", itemID))
+	logger.InfoContext(ctx, "API request")
+
+	if request.SearchMode == nil {
+		defaultMode := types.CurrentLaunch
+		request.SearchMode = &defaultMode
+	}
+
+	response, err := l.project.client.raw.SearchLogsUsingPOSTWithResponse(
+		ctx,
+		l.project.projectName,
+		itemID,
+		request,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("search logs: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "search logs", response.JSONDefault, response.JSON200)
+}
+
+// GetLogsUnder retrieves log entries grouped by item ID for the specified
+// items and optional log level filter. The returned map is keyed by item ID
+// (as a string) with each value containing that item's log entries.
+func (l *LogScope) GetLogsUnder(
+	ctx context.Context,
+	request types.GetLogsUnderRq,
+) (map[string][]types.LogResource, error) {
+	logger := l.project.operationLogger("GetLogsUnder")
+	logger.InfoContext(ctx, "API request")
+
+	if request.LogLevel == nil {
+		defaultLevel := types.GetLogsUnderRqLogLevelInfo
+		request.LogLevel = &defaultLevel
+	}
+
+	response, err := l.project.client.raw.GetLogsUnderUsingPOSTWithResponse(
+		ctx,
+		l.project.projectName,
+		request,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get logs under: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, "get logs under", response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, err
+	}
+
+	if result == nil {
+		return map[string][]types.LogResource{}, nil
+	}
+
+	return *result, nil
+}

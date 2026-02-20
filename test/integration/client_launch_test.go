@@ -546,4 +546,20 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			Expect(result).NotTo(BeNil())
 		})
 	})
+
+	Context("Compare", func() {
+		It("compares seeded launches by ID", func(ctx SpecContext) {
+			list, err := c.Project(projectName).Launches().List(ctx,
+				client.WithPageSize(2),
+				client.WithSort("id,asc"),
+			)
+			Expect(err).NotTo(HaveOccurred(), "listing launches for compare should not fail")
+			Expect(list.Content).To(HaveLen(2), "need at least 2 launches to compare")
+
+			ids := []int64{list.Content[0].Id, list.Content[1].Id}
+			result, err := c.Project(projectName).Launches().Compare(ctx, ids)
+			Expect(err).NotTo(HaveOccurred(), "comparing launches should not fail")
+			Expect(result).NotTo(BeNil(), "compare result should not be nil")
+		})
+	})
 })

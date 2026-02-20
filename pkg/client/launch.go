@@ -1,9 +1,12 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
+	"mime/multipart"
 	"strconv"
 
 	"github.com/klaskosk/report-portal-cli/pkg/internal/api"
@@ -612,4 +615,122 @@ func (l *LaunchScope) GetNames(
 	}
 
 	return *names, nil
+}
+
+// Compare returns statistics for the given launch IDs, keyed by metric name.
+// Each metric maps to a slice of chart data points across the compared launches.
+func (l *LaunchScope) Compare(
+	ctx context.Context,
+	ids []int64,
+) (map[string][]types.ChartStatisticsContent, error) {
+	logger := l.project.operationLogger("CompareLaunches")
+	logger.InfoContext(ctx, "API request")
+
+	params := &api.CompareLaunchesUsingGETParams{Ids: ids}
+
+	response, err := l.project.client.raw.CompareLaunchesUsingGETWithResponse(
+		ctx,
+		l.project.projectName,
+		params,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("compare launches: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, "compare launches", response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, err
+	}
+
+	if result == nil {
+		return map[string][]types.ChartStatisticsContent{}, nil
+	}
+
+	return *result, nil
+}
+
+// Import uploads a launch archive (zip) to the project. The filename is used
+// as the form field name in the multipart upload.
+func (l *LaunchScope) Import(
+	ctx context.Context,
+	filename string,
+	data io.Reader,
+) (*types.OperationCompletionRS, error) {
+	logger := l.project.operationLogger("ImportLaunch", slog.String("filename", filename))
+	logger.InfoContext(ctx, "API request")
+
+	body, contentType, err := buildImportMultipart(filename, data)
+	if err != nil {
+		return nil, fmt.Errorf("import launch: %w", err)
+	}
+
+	response, err := l.project.client.raw.ImportLaunchUsingPOSTWithBodyWithResponse(
+		ctx,
+		l.project.projectName,
+		contentType,
+		body,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("import launch: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "import launch", response.JSONDefault, response.JSON200)
+}
+
+// buildImportMultipart assembles the multipart body for a launch import request.
+func buildImportMultipart(filename string, data io.Reader) (*bytes.Buffer, string, error) {
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+
+	part, err := writer.CreateFormFile("file", filename)
+	if err != nil {
+		return nil, "", fmt.Errorf("creating file part: %w", err)
+	}
+
+	if _, err := io.Copy(part, data); err != nil {
+		return nil, "", fmt.Errorf("writing file data: %w", err)
+	}
+
+	if err := writer.Close(); err != nil {
+		return nil, "", fmt.Errorf("closing multipart writer: %w", err)
+	}
+
+	return &buf, writer.FormDataContentType(), nil
+}
+
+// GetReport retrieves the raw launch report for the given launch ID. The
+// response is typically an HTML document.
+func (l *LaunchScope) GetReport(
+	ctx context.Context,
+	launchID int64,
+) ([]byte, error) {
+	logger := l.project.operationLogger("GetLaunchReport", slog.Int64("launchId", launchID))
+	logger.InfoContext(ctx, "API request")
+
+	response, err := l.project.client.raw.GetLaunchReportUsingGETWithResponse(
+		ctx,
+		l.project.projectName,
+		launchID,
+		&api.GetLaunchReportUsingGETParams{},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get launch report: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	if response.JSONDefault != nil {
+		return nil, newAPIError("get launch report", response.StatusCode(), response.JSONDefault)
+	}
+
+	code := response.StatusCode()
+	if code < 200 || code >= 300 {
+		return nil, newUnexpectedStatusError("get launch report", code)
+	}
+
+	return response.Body, nil
 }

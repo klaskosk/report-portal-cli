@@ -917,3 +917,120 @@ func TestTestItemScope_BulkUpdate_Errors(t *testing.T) {
 		})
 	}
 }
+
+func TestTestItemScope_GetHistory_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/item/history")
+		assertMethod(t, r, http.MethodGet)
+
+		assert.Equal(t, "5", r.URL.Query().Get("historyDepth"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"content": [
+				{
+					"groupingField": "test-case-1",
+					"resources": [
+						{"id": 100, "uuid": "item-uuid-100", "name": "TestCase1", "status": "PASSED", "type": "TEST"},
+						{"id": 101, "uuid": "item-uuid-101", "name": "TestCase1", "status": "FAILED", "type": "TEST"}
+					]
+				}
+			],
+			"page": {
+				"number": 0,
+				"size": 20,
+				"totalElements": 1,
+				"totalPages": 1
+			}
+		}`))
+	}))
+
+	result, err := c.Project("my_project").Items().GetHistory(
+		t.Context(),
+		client.WithHistoryDepth(5),
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Len(t, result.Content, 1)
+	require.NotNil(t, result.Content[0].GroupingField)
+	assert.Equal(t, "test-case-1", *result.Content[0].GroupingField)
+	require.NotNil(t, result.Content[0].Resources)
+	assert.Len(t, *result.Content[0].Resources, 2)
+}
+
+func TestTestItemScope_GetHistory_WithOptions(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/item/history")
+		assertMethod(t, r, http.MethodGet)
+
+		q := r.URL.Query()
+		assert.Equal(t, "10", q.Get("historyDepth"))
+		assert.Equal(t, "42", q.Get("filter.eq.launchId"))
+		assert.Equal(t, "FAILED", q.Get("filter.eq.status"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"content": [],
+			"page": {"number": 0, "size": 20, "totalElements": 0, "totalPages": 0}
+		}`))
+	}))
+
+	result, err := c.Project("my_project").Items().GetHistory(
+		t.Context(),
+		client.WithHistoryDepth(10),
+		client.WithHistoryLaunchID(42),
+		client.WithHistoryItemStatus("FAILED"),
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Empty(t, result.Content)
+}
+
+func TestTestItemScope_GetHistory_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "NotFound",
+			statusCode: http.StatusNotFound,
+			body:       `{"errorCode": 40410, "message": "Project 'unknown' not found."}`,
+			check:      client.IsNotFound,
+		},
+		{
+			name:       "Forbidden",
+			statusCode: http.StatusForbidden,
+			body:       `{"errorCode": 4003, "message": "Access denied."}`,
+			check:      client.IsForbidden,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Items().GetHistory(
+				t.Context(),
+				client.WithHistoryDepth(5),
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}

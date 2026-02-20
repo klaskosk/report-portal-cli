@@ -411,3 +411,107 @@ func WithItemPath(path int64) ListTestItemsOption {
 		params.FilterEqPath = &path
 	}
 }
+
+// HistoryOption configures the filter and pagination parameters for retrieving
+// test item execution history.
+type HistoryOption func(*api.GetItemsHistoryUsingGETParams)
+
+// GetHistory returns the execution history for test items matching the given
+// options. Each element groups a test item's runs across launches.
+func (i *TestItemScope) GetHistory(
+	ctx context.Context,
+	options ...HistoryOption,
+) (*types.IterableTestItemHistoryElement, error) {
+	logger := i.project.operationLogger("GetItemsHistory")
+
+	params := &api.GetItemsHistoryUsingGETParams{}
+	for _, option := range options {
+		option(params)
+	}
+
+	logger.InfoContext(ctx, "API request")
+
+	response, err := i.project.client.raw.GetItemsHistoryUsingGETWithResponse(
+		ctx,
+		i.project.projectName,
+		params,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get items history: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	return handleResponse(response, "get items history", response.JSONDefault, response.JSON200)
+}
+
+// WithHistoryDepth sets the number of previous launches to include in history.
+func WithHistoryDepth(depth int32) HistoryOption {
+	return func(params *api.GetItemsHistoryUsingGETParams) {
+		params.HistoryDepth = &depth
+	}
+}
+
+// WithHistoryLaunchID filters history by launch ID.
+func WithHistoryLaunchID(launchID int64) HistoryOption {
+	return func(params *api.GetItemsHistoryUsingGETParams) {
+		params.FilterEqLaunchId = &launchID
+	}
+}
+
+// WithHistoryFilterID sets the saved filter ID to scope the history query.
+func WithHistoryFilterID(filterID int64) HistoryOption {
+	return func(params *api.GetItemsHistoryUsingGETParams) {
+		params.FilterId = &filterID
+	}
+}
+
+// WithHistoryLaunchesLimit sets the maximum number of launches to scan.
+func WithHistoryLaunchesLimit(limit int32) HistoryOption {
+	return func(params *api.GetItemsHistoryUsingGETParams) {
+		params.LaunchesLimit = &limit
+	}
+}
+
+// WithHistoryType filters history by a specific item execution type
+// (e.g. "SUITE", "TEST", "STEP").
+func WithHistoryType(historyType string) HistoryOption {
+	return func(params *api.GetItemsHistoryUsingGETParams) {
+		params.Type = &historyType
+	}
+}
+
+// WithHistoryItemName filters history entries by test item name.
+func WithHistoryItemName(name string) HistoryOption {
+	return func(params *api.GetItemsHistoryUsingGETParams) {
+		params.FilterEqName = &name
+	}
+}
+
+// WithHistoryItemStatus filters history entries by test item status.
+func WithHistoryItemStatus(status string) HistoryOption {
+	return func(params *api.GetItemsHistoryUsingGETParams) {
+		params.FilterEqStatus = &status
+	}
+}
+
+// WithHistoryPageNumber sets the page number (0-based) for history results.
+func WithHistoryPageNumber(n int32) HistoryOption {
+	return func(params *api.GetItemsHistoryUsingGETParams) {
+		params.PagePage = &n
+	}
+}
+
+// WithHistoryPageSize sets the number of results per page for history results.
+func WithHistoryPageSize(size int32) HistoryOption {
+	return func(params *api.GetItemsHistoryUsingGETParams) {
+		params.PageSize = &size
+	}
+}
+
+// WithHistoryLatest filters history to only the latest results.
+func WithHistoryLatest(isLatest bool) HistoryOption {
+	return func(params *api.GetItemsHistoryUsingGETParams) {
+		params.IsLatest = &isLatest
+	}
+}
