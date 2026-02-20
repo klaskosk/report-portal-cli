@@ -37,6 +37,8 @@ This project uses [Conventional Commits](https://www.conventionalcommits.org/en/
 [trailer]
 ```
 
+Best practice is that the first line should be only 50 characters long.
+
 Pull requests should be of the same format as the commit message. Do not include a "test plan" in the pull request description.
 
 If your task was to implement a feature from the prompts directory, mention the prompt filename in the commit message. This will add to traceability for reviews.
