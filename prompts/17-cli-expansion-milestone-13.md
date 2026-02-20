@@ -126,3 +126,4 @@ Run before finalizing:
 - [ ] README/examples updated for new command usage
 - [ ] Lint and tests pass locally
 - [ ] `code-verifier` subagent says your changes are good to go
+- [ ] This file moved to the `completed` directory
