@@ -206,4 +206,5 @@ The following test suites lock the contracts described above:
 | Project JSON output | `test/integration/cli_project_test.go` | Project name list and detail JSON structure. |
 | Whoami JSON output | `test/integration/cli_whoami_test.go` | User resource field presence. |
 | JSON error format | `test/integration/cli_*_test.go` | `{"error": "..."}` format on stderr for all commands. |
-| CLI contract stability | `test/integration/contract_test.go` | Comprehensive field set verification and error format for all CLI commands. |
+| CLI contract stability | `test/integration/contract_test.go` | Comprehensive field set verification, value type stability, and error format for all CLI commands. |
+| Client error predicates (integration) | `test/integration/client_errors_test.go` | Predicates against live server: IsNotFound, IsUnauthorized, HasStatusCode, exclusivity, wrapping. |
