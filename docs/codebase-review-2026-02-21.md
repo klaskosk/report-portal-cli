@@ -61,6 +61,8 @@ Completed through other refactors ✅
 - **Suggested fix**: Avoid overriding JSON behavior on the generated `Timestamp` type.
 - **AI Thoughts**: **Valid.** This breaks expected standard library behavior and will cause subtle bugs.
 
+Completed through overlay based on integration tests ✅
+
 **5. [Major] Fallback “raw decode” retries trigger on *any* error, even non-decoding failures (Original #28)**
 
 - **Reference**: `pkg/client/projects.go:L48-L53`, etc.

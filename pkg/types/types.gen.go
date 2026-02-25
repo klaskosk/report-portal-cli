@@ -1387,18 +1387,7 @@ type Ticket struct {
 }
 
 // Timestamp defines model for Timestamp.
-type Timestamp struct {
-	Date           *int32 `json:"date,omitempty"`
-	Day            *int32 `json:"day,omitempty"`
-	Hours          *int32 `json:"hours,omitempty"`
-	Minutes        *int32 `json:"minutes,omitempty"`
-	Month          *int32 `json:"month,omitempty"`
-	Nanos          *int32 `json:"nanos,omitempty"`
-	Seconds        *int32 `json:"seconds,omitempty"`
-	Time           *int64 `json:"time,omitempty"`
-	TimezoneOffset *int32 `json:"timezoneOffset,omitempty"`
-	Year           *int32 `json:"year,omitempty"`
-}
+type Timestamp = EpochMillis
 
 // UnassignUsersRQ defines model for UnassignUsersRQ.
 type UnassignUsersRQ struct {

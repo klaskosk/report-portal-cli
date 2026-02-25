@@ -8,6 +8,15 @@ actions:
   - target: $..[?(@.format == 'date-time')]
     update:
       x-go-type: EpochMillis
+  # /launch/compare returns startTime as a numeric epoch timestamp in practice.
+  - target: $.components.schemas.ChartStatisticsContent.properties.startTime
+    update:
+      type: integer
+      format: int64
+      x-go-type: EpochMillis
+  - target: $.components.schemas.Timestamp
+    update:
+      x-go-type: EpochMillis
   # The following targets are all to better type the generated Iterables. They use the standard Spring Boot format, but
   # the OpenAPI spec defines them as objects with no further details.
   - target: $.components.schemas

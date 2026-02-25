@@ -1346,8 +1346,11 @@ func TestLaunchScope_Compare_Success(t *testing.T) {
 	assert.Contains(t, result, "executionStatistics")
 	assert.Len(t, result["executionStatistics"], 2)
 	require.NotNil(t, result["executionStatistics"][0].StartTime)
-	require.NotNil(t, result["executionStatistics"][0].StartTime.Time)
-	assert.EqualValues(t, 1700000000000, *result["executionStatistics"][0].StartTime.Time)
+	assert.EqualValues(
+		t,
+		1700000000000,
+		time.Time(*result["executionStatistics"][0].StartTime).UnixMilli(),
+	)
 }
 
 func TestLaunchScope_Compare_Errors(t *testing.T) {
