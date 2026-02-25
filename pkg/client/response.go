@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/klaskosk/report-portal-cli/pkg/types"
@@ -19,19 +20,19 @@ func handleResponse[R apiResponse, T any](
 	response R,
 	operation string,
 	jsonDefault *types.ErrorRS,
-	success T,
-) (T, error) {
+	success *T,
+) (*T, error) {
 	if jsonDefault != nil {
-		var zero T
-
-		return zero, newAPIError(operation, response.StatusCode(), jsonDefault)
+		return nil, newAPIError(operation, response.StatusCode(), jsonDefault)
 	}
 
 	code := response.StatusCode()
 	if code < 200 || code >= 300 {
-		var zero T
+		return nil, newUnexpectedStatusError(operation, code)
+	}
 
-		return zero, newUnexpectedStatusError(operation, code)
+	if success == nil {
+		return nil, fmt.Errorf("%s: API returned success status (%d) but no valid response body was parsed", operation, code)
 	}
 
 	return success, nil

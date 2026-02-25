@@ -53,8 +53,9 @@ func TestHandleResponse_NilSuccess(t *testing.T) {
 	resp := fakeResponse{statusCode: 200, JSON200: nil}
 
 	got, err := handleResponse(resp, "test op", resp.JSONDefault, resp.JSON200)
-	require.NoError(t, err)
+	require.Error(t, err)
 	assert.Nil(t, got)
+	assert.Contains(t, err.Error(), "API returned success status (200) but no valid response body was parsed")
 }
 
 func TestHandleResponse_NonJSONError(t *testing.T) {
@@ -92,10 +93,12 @@ func TestHandleResponse_NonJSONError(t *testing.T) {
 func TestHandleResponse_2xxWithNilJSON(t *testing.T) {
 	t.Parallel()
 
-	// 204 No Content is a valid 2xx with nil success body
+	// 204 No Content still falls under the nil check in this client, because
+	// Report Portal doesn't actually return 204s in any supported endpoints.
 	resp := fakeResponse{statusCode: 204, JSON200: nil}
 
 	got, err := handleResponse(resp, "test op", resp.JSONDefault, resp.JSON200)
-	require.NoError(t, err)
+	require.Error(t, err)
 	assert.Nil(t, got)
+	assert.Contains(t, err.Error(), "API returned success status (204) but no valid response body was parsed")
 }
