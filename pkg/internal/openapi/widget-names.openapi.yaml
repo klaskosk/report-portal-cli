@@ -1,0 +1,33 @@
+openapi: 3.0.1
+info:
+  title: Widget Names Schema
+  version: 1.0.0
+
+components:
+  schemas:
+    WidgetNamesIterable:
+      type: object
+      required:
+        - content
+        - page
+      properties:
+        content:
+          type: array
+          items:
+            type: string
+        page:
+          type: object
+          required:
+            - number
+            - size
+            - totalElements
+            - totalPages
+          properties:
+            number:
+              type: integer
+            size:
+              type: integer
+            totalElements:
+              type: integer
+            totalPages:
+              type: integer

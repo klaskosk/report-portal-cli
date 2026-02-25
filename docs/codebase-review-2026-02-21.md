@@ -70,6 +70,8 @@ Completed through overlay based on integration tests ✅
 - **Suggested fix**: Only fall back on specific decode/shape mismatches.
 - **AI Thoughts**: **Valid.** Indiscriminate retries are dangerous and make debugging connection or auth issues very frustrating.
 
+Completed through correcting OpenAPI overlay ✅
+
 **6. [Major] URL handling in `client.New` is string-based and brittle (Original #1)**
 
 - **Reference**: `pkg/client/client.go:L30-L38`
@@ -93,10 +95,12 @@ Completed through overlay based on integration tests ✅
 
 **9. [Major] Raw “fallback decode” paths type-assert the generated client and duplicate a lot of logic (Original #15)**
 
-- **Reference**: `pkg/client/projects.go:L368-L445`, `pkg/client/widget.go:L176-L245`
+- **Reference**: `pkg/client/projects.go`, `pkg/client/widget.go` (historical context; raw fallback paths removed)
 - **Why**: Breaks layering and forces repetitive low-level HTTP decoding code.
 - **Suggested fix**: Extract a single internal helper or solve via OpenAPI overlays.
 - **AI Thoughts**: **Valid.** Leaky abstractions make the wrapper less useful.
+
+Completed through OpenAPI overlays and fallback removal ✅
 
 #### Medium Priority (Architecture, API Design, and Refactoring)
 

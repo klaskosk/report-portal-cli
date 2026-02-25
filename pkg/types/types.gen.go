@@ -1513,6 +1513,12 @@ type UserResource struct {
 	UserRole         *string                     `json:"userRole,omitempty"`
 }
 
+// WidgetNamesIterable defines model for WidgetNamesIterable.
+type WidgetNamesIterable struct {
+	Content []string     `json:"content"`
+	Page    PageMetadata `json:"page"`
+}
+
 // WidgetObjectModel defines model for WidgetObjectModel.
 type WidgetObjectModel struct {
 	WidgetId       *int64                  `json:"widgetId,omitempty"`

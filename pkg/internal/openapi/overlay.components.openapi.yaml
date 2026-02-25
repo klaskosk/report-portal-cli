@@ -219,6 +219,20 @@ actions:
             type: object
         page:
           $ref: '#/components/schemas/PageMetadata'
+  - target: $.components.schemas
+    update:
+      WidgetNamesIterable:
+        type: object
+        required:
+          - content
+          - page
+        properties:
+          content:
+            type: array
+            items:
+              type: string
+          page:
+            $ref: '#/components/schemas/PageMetadata'
   # Fix ErrorRS schema to match actual API responses. The API returns integer error codes (e.g. 4041, 40011), not the
   # string enum values defined in the original spec.
   - target: $.components.schemas.ErrorRS.properties.errorCode

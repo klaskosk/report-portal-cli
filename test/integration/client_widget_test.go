@@ -3,7 +3,10 @@
 package integration_test
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"time"
 
 	"github.com/klaskosk/report-portal-cli/pkg/client"
@@ -27,8 +30,8 @@ var _ = Describe("Client: Widgets", Label("client", "widgets"), func() {
 
 		By("creating a filter for widget tests")
 		created, filterErr := c.Project(projectName).Filters().Create(ctx, types.UpdateUserFilterRQ{
-			Name:       fmt.Sprintf("widget-test-filter-%d", time.Now().UnixNano()),
-			Type:       types.UpdateUserFilterRQTypeLaunch,
+			Name: fmt.Sprintf("widget-test-filter-%d", time.Now().UnixNano()),
+			Type: types.UpdateUserFilterRQTypeLaunch,
 			Conditions: []types.UserFilterCondition{
 				{
 					FilteringField: "name",
@@ -155,6 +158,59 @@ var _ = Describe("Client: Widgets", Label("client", "widgets"), func() {
 	})
 
 	Context("GetNames", func() {
+		It("returns paged string content from the raw widget names endpoint", func(ctx SpecContext) {
+			widgets := c.Project(projectName).Widgets()
+
+			By("creating a widget")
+			widgetOpts := map[string]any{}
+			widgetName := fmt.Sprintf("raw-names-widget-%d", time.Now().UnixNano())
+			_, err := widgets.Create(ctx, types.WidgetRQ{
+				Name:       widgetName,
+				WidgetType: "launchStatistics",
+				FilterIds:  &[]int64{filterID},
+				ContentParameters: &types.ContentParameters{
+					ContentFields: []string{"statistics$executions$total"},
+					ItemsCount:    10,
+					WidgetOptions: &widgetOpts,
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("calling the raw widget names endpoint")
+			requestURL := fmt.Sprintf("%s/api/v1/%s/widget/names/all", baseURL, projectName)
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Authorization", "Bearer "+bearerToken)
+
+			resp, err := httpClient.Do(req)
+			Expect(err).NotTo(HaveOccurred())
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+			body, err := io.ReadAll(resp.Body)
+			Expect(err).NotTo(HaveOccurred())
+
+			var payload struct {
+				Content []json.RawMessage          `json:"content"`
+				Page    map[string]json.RawMessage `json:"page"`
+			}
+			err = json.Unmarshal(body, &payload)
+			Expect(err).NotTo(HaveOccurred(), "response body: %s", string(body))
+
+			Expect(payload.Content).NotTo(BeEmpty())
+			Expect(payload.Page).NotTo(BeEmpty())
+
+			for _, item := range payload.Content {
+				var name string
+				Expect(json.Unmarshal(item, &name)).To(
+					Succeed(),
+					"expected string content item, got: %s",
+					string(item),
+				)
+			}
+		})
+
 		It("returns widget names including the created widget", func(ctx SpecContext) {
 			widgets := c.Project(projectName).Widgets()
 

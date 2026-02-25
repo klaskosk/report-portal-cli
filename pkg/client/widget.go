@@ -2,11 +2,8 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"log/slog"
-	"net/http"
 
 	"github.com/klaskosk/report-portal-cli/pkg/internal/api"
 	"github.com/klaskosk/report-portal-cli/pkg/types"
@@ -148,12 +145,11 @@ func WithWidgetAttributes(attributes ...string) GetWidgetDataOption {
 	}
 }
 
-// GetNames returns widget names matching the filter (for autocomplete). The returned
-// IterableObject contains maps with name/owner keys.
+// GetNames returns widget names matching the filter (for autocomplete).
 func (w *WidgetScope) GetNames(
 	ctx context.Context,
 	filter string,
-) (*types.IterableObject, error) {
+) (*types.WidgetNamesIterable, error) {
 	logger := w.project.operationLogger("GetWidgetNames", slog.String("filter", filter))
 
 	params := &api.GetWidgetNamesUsingGETParams{}
@@ -169,9 +165,7 @@ func (w *WidgetScope) GetNames(
 		params,
 	)
 	if err != nil {
-		logger.DebugContext(ctx, "typed widget names decode failed; retrying raw", "error", err)
-
-		return w.getNamesRaw(ctx, params)
+		return nil, fmt.Errorf("get widget names: %w", err)
 	}
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
@@ -182,88 +176,10 @@ func (w *WidgetScope) GetNames(
 	}
 
 	if result == nil {
-		return &types.IterableObject{}, nil
-	}
-
-	return result, nil
-}
-
-// getNamesRaw retries widget-name lookup and normalizes deployments that return string items.
-func (w *WidgetScope) getNamesRaw(
-	ctx context.Context,
-	params *api.GetWidgetNamesUsingGETParams,
-) (*types.IterableObject, error) {
-	rawClient, ok := w.project.client.raw.(*api.ClientWithResponses)
-	if !ok {
-		return nil, fmt.Errorf(
-			"get widget names: raw fallback unavailable for client type %T",
-			w.project.client.raw,
-		)
-	}
-
-	rawResponse, err := rawClient.GetWidgetNamesUsingGET(
-		ctx,
-		w.project.projectName,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get widget names: %w", err)
-	}
-	defer rawResponse.Body.Close()
-
-	body, err := io.ReadAll(rawResponse.Body)
-	if err != nil {
-		return nil, fmt.Errorf("reading widget names response: %w", err)
-	}
-
-	if rawResponse.StatusCode != http.StatusOK {
-		var errorResponse types.ErrorRS
-		if json.Unmarshal(body, &errorResponse) == nil && errorResponse.ErrorCode != 0 {
-			return nil, fmt.Errorf(
-				"get widget names: %w",
-				newAPIError(rawResponse.StatusCode, &errorResponse),
-			)
-		}
-
-		return nil, fmt.Errorf(
-			"get widget names: %w",
-			newUnexpectedStatusError(rawResponse.StatusCode),
-		)
-	}
-
-	var rawIterable struct {
-		Content []json.RawMessage  `json:"content"`
-		Page    types.PageMetadata `json:"page"`
-	}
-	if err := json.Unmarshal(body, &rawIterable); err != nil {
-		return nil, fmt.Errorf("get widget names: %w", err)
-	}
-
-	result := &types.IterableObject{
-		Content: make([]map[string]any, 0, len(rawIterable.Content)),
-		Page:    rawIterable.Page,
-	}
-
-	for _, rawItem := range rawIterable.Content {
-		var objectItem map[string]any
-
-		err := json.Unmarshal(rawItem, &objectItem)
-		if err == nil {
-			result.Content = append(result.Content, objectItem)
-
-			continue
-		}
-
-		var stringItem string
-
-		err = json.Unmarshal(rawItem, &stringItem)
-		if err == nil {
-			result.Content = append(result.Content, map[string]any{"name": stringItem})
-
-			continue
-		}
-
-		return nil, fmt.Errorf("get widget names: unsupported content item %s", string(rawItem))
+		return &types.WidgetNamesIterable{
+			Content: []string{},
+			Page:    types.PageMetadata{},
+		}, nil
 	}
 
 	return result, nil
