@@ -73,8 +73,8 @@ func TestActivityEventsScope_Search_WithCriteria(t *testing.T) {
 		var payload map[string]any
 		require.NoError(t, json.Unmarshal(body, &payload))
 
-		criteria, ok := payload["search_criterias"].([]any)
-		require.True(t, ok, "request body should contain search_criterias array")
+		criteria, ok := payload["search_criterias"].([]any) //nolint:misspell // API field name
+		require.True(t, ok, "request body should contain search criteria array")
 		require.Len(t, criteria, 1)
 
 		first := criteria[0].(map[string]any)

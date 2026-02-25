@@ -598,7 +598,9 @@ func TestLogScope_Search_PreservesProvidedSearchMode(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"content":[],"page":{"number":0,"size":20,"totalElements":0,"totalPages":0}}`))
+		_, _ = w.Write(
+			[]byte(`{"content":[],"page":{"number":0,"size":20,"totalElements":0,"totalPages":0}}`),
+		)
 	}))
 
 	result, err := c.Project("my_project").Logs().Search(t.Context(), 100, types.SearchLogRq{

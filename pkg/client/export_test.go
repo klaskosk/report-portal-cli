@@ -6,13 +6,13 @@ import (
 )
 
 // NewTestAPIError exposes newAPIError for external test packages.
-var NewTestAPIError = func(operation string, statusCode int, resp *types.ErrorRS) error {
-	return newAPIError(operation, statusCode, resp)
+var NewTestAPIError = func(statusCode int, resp *types.ErrorRS) error {
+	return newAPIError(statusCode, resp)
 }
 
 // NewTestUnexpectedStatusError exposes newUnexpectedStatusError for external test packages.
-var NewTestUnexpectedStatusError = func(operation string, statusCode int) error {
-	return newUnexpectedStatusError(operation, statusCode)
+var NewTestUnexpectedStatusError = func(statusCode int) error {
+	return newUnexpectedStatusError(statusCode)
 }
 
 // ConvertToLatestParams exposes convertToLatestParams for external test packages.

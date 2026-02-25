@@ -35,7 +35,12 @@ func (p *ProjectsScope) Get(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "get project", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get project: %w", err)
+	}
+
+	return result, nil
 }
 
 // ListNames returns all project names in the Report Portal instance. The underlying
@@ -56,12 +61,11 @@ func (p *ProjectsScope) ListNames(ctx context.Context) ([]string, error) {
 
 	result, err := handleResponse(
 		response,
-		"list project names",
 		response.JSONDefault,
 		response.JSON200,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list project names: %w", err)
 	}
 
 	if result == nil {
@@ -130,7 +134,12 @@ func (p *ProjectsScope) List(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "list projects", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("list projects: %w", err)
+	}
+
+	return result, nil
 }
 
 // SearchNames searches for project names matching the given term.
@@ -148,16 +157,21 @@ func (p *ProjectsScope) SearchNames(
 
 	response, err := p.client.raw.SearchProjectNamesUsingGETWithResponse(ctx, params)
 	if err != nil {
-		logger.DebugContext(ctx, "typed project search names decode failed; retrying raw", "error", err)
+		logger.DebugContext(
+			ctx,
+			"typed project search names decode failed; retrying raw",
+			"error",
+			err,
+		)
 
 		return p.searchNamesRaw(ctx, params)
 	}
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, "search project names", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("search project names: %w", err)
 	}
 
 	if result == nil {
@@ -192,7 +206,12 @@ func (p *ProjectsScope) GetInfo(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "get project info", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get project info: %w", err)
+	}
+
+	return result, nil
 }
 
 // GetProjectInfoOption configures the parameters for getting project info.
@@ -223,7 +242,12 @@ func (p *ProjectsScope) Create(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "create project", response.JSONDefault, response.JSON201)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON201)
+	if err != nil {
+		return nil, fmt.Errorf("create project: %w", err)
+	}
+
+	return result, nil
 }
 
 // Delete deletes a project by its numeric ID.
@@ -244,7 +268,12 @@ func (p *ProjectsScope) Delete(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "delete project", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("delete project: %w", err)
+	}
+
+	return result, nil
 }
 
 // Update modifies the configuration of an existing project.
@@ -266,7 +295,12 @@ func (p *ProjectsScope) Update(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "update project", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("update project: %w", err)
+	}
+
+	return result, nil
 }
 
 // AssignUsers assigns users to a project with specified roles.
@@ -288,7 +322,12 @@ func (p *ProjectsScope) AssignUsers(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "assign project users", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("assign project users: %w", err)
+	}
+
+	return result, nil
 }
 
 // UnassignUsers removes users from a project.
@@ -303,14 +342,23 @@ func (p *ProjectsScope) UnassignUsers(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.UnassignProjectUsersUsingPUTWithResponse(ctx, projectName, request)
+	response, err := p.client.raw.UnassignProjectUsersUsingPUTWithResponse(
+		ctx,
+		projectName,
+		request,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("unassign project users: %w", err)
 	}
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "unassign project users", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("unassign project users: %w", err)
+	}
+
+	return result, nil
 }
 
 // ListUsers returns a paginated list of users assigned to a project.
@@ -338,7 +386,12 @@ func (p *ProjectsScope) ListUsers(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "list project users", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("list project users: %w", err)
+	}
+
+	return result, nil
 }
 
 // ListProjectUsersOption configures the filter and pagination parameters for listing project users.
@@ -389,10 +442,16 @@ func (p *ProjectsScope) listNamesRaw(ctx context.Context) ([]string, error) {
 	if rawResponse.StatusCode != http.StatusOK {
 		var errorResponse types.ErrorRS
 		if json.Unmarshal(body, &errorResponse) == nil && errorResponse.ErrorCode != 0 {
-			return nil, newAPIError("list project names", rawResponse.StatusCode, &errorResponse)
+			return nil, fmt.Errorf(
+				"list project names: %w",
+				newAPIError(rawResponse.StatusCode, &errorResponse),
+			)
 		}
 
-		return nil, newUnexpectedStatusError("list project names", rawResponse.StatusCode)
+		return nil, fmt.Errorf(
+			"list project names: %w",
+			newUnexpectedStatusError(rawResponse.StatusCode),
+		)
 	}
 
 	var names []string
@@ -430,10 +489,16 @@ func (p *ProjectsScope) searchNamesRaw(
 	if rawResponse.StatusCode != http.StatusOK {
 		var errorResponse types.ErrorRS
 		if json.Unmarshal(body, &errorResponse) == nil && errorResponse.ErrorCode != 0 {
-			return nil, newAPIError("search project names", rawResponse.StatusCode, &errorResponse)
+			return nil, fmt.Errorf(
+				"search project names: %w",
+				newAPIError(rawResponse.StatusCode, &errorResponse),
+			)
 		}
 
-		return nil, newUnexpectedStatusError("search project names", rawResponse.StatusCode)
+		return nil, fmt.Errorf(
+			"search project names: %w",
+			newUnexpectedStatusError(rawResponse.StatusCode),
+		)
 	}
 
 	var names []string

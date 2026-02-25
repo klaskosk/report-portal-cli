@@ -40,12 +40,15 @@ func (p *ProjectScope) DownloadFile(
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
 	if response.JSONDefault != nil {
-		return nil, newAPIError("download file", response.StatusCode(), response.JSONDefault)
+		return nil, fmt.Errorf(
+			"download file: %w",
+			newAPIError(response.StatusCode(), response.JSONDefault),
+		)
 	}
 
 	code := response.StatusCode()
 	if code < 200 || code >= 300 {
-		return nil, newUnexpectedStatusError("download file", code)
+		return nil, fmt.Errorf("download file: %w", newUnexpectedStatusError(code))
 	}
 
 	httpResp := response.HTTPResponse

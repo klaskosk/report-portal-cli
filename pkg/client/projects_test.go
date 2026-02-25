@@ -113,6 +113,7 @@ func TestProjectsScope_ListNames_FallsBackToRawArrayResponse(t *testing.T) {
 		assertPath(t, r, "/api/v1/project/names")
 
 		callCount++
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`["default_personal","my_project"]`))
@@ -250,6 +251,7 @@ func TestProjectsScope_SearchNames_FallsBackToRawArrayResponse(t *testing.T) {
 		assert.Equal(t, "my", r.URL.Query().Get("term"))
 
 		callCount++
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`["my_project","my_other_project"]`))

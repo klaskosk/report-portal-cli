@@ -27,9 +27,9 @@ func (s *SettingsScope) GetServerSettings(ctx context.Context) (map[string]strin
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, "get server settings", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get server settings: %w", err)
 	}
 
 	if result == nil {
@@ -41,7 +41,10 @@ func (s *SettingsScope) GetServerSettings(ctx context.Context) (map[string]strin
 
 // UpdateAnalytics updates the server analytics configuration.
 // Requires admin privileges.
-func (s *SettingsScope) UpdateAnalytics(ctx context.Context, analyticsConfig types.AnalyticsResource) (*types.OperationCompletionRS, error) {
+func (s *SettingsScope) UpdateAnalytics(
+	ctx context.Context,
+	analyticsConfig types.AnalyticsResource,
+) (*types.OperationCompletionRS, error) {
 	logger := s.client.logger.With(slog.String("operation", "UpdateAnalytics"))
 	logger.InfoContext(ctx, "API request")
 
@@ -52,5 +55,10 @@ func (s *SettingsScope) UpdateAnalytics(ctx context.Context, analyticsConfig typ
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "update analytics settings", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("update analytics settings: %w", err)
+	}
+
+	return result, nil
 }

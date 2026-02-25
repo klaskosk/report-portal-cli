@@ -34,6 +34,8 @@ I have reviewed the findings and broadly agree with almost all of them. I've reo
 - **Suggested fix**: Provide stricter helpers for common cases (`handleResponsePtr`, `handleResponseValue`).
 - **AI Thoughts**: **Valid and Critical.** This is a classic source of nil pointer dereferences. Strongly agree with separating pointer and value handling to enforce guarantees at the boundary.
 
+Completed through other refactors ✅
+
 **2. [Major] `CreateBatch` can silently return `nil, nil` when it fails to decode a 201 response (Original #13)**
 
 - **Reference**: `pkg/client/log.go:L180-L188`
@@ -41,12 +43,16 @@ I have reviewed the findings and broadly agree with almost all of them. I've reo
 - **Suggested fix**: Treat unmarshal failure as an error (wrap with `%w`).
 - **AI Thoughts**: **Valid and Critical.** Silently swallowing errors leads to impossible-to-debug issues. This should be fixed immediately.
 
+Completed through other refactors ✅
+
 **3. [Major] CLI list commands assume non-nil list responses and can panic on “2xx with empty body” (Original #35)**
 
 - **Reference**: `internal/cli/launch.go:L144-L153`, `internal/cli/item.go:L150-L159`, `internal/cli/log.go:L158-L167`
 - **Why**: Dereferencing `result.Content` without checking `result != nil` can cause panics.
 - **Suggested fix**: Defensive handling at the CLI boundary.
 - **AI Thoughts**: **Valid and Critical.** Combined with the `handleResponse` issue above, this is a real crash risk.
+
+Completed through other refactors ✅
 
 **4. [Major] `types.Timestamp.UnmarshalJSON` makes JSON `null` decode to a non-nil `*Timestamp` (Original #19)**
 
@@ -177,6 +183,8 @@ I have reviewed the findings and broadly agree with almost all of them. I've reo
 - **Reference**: `pkg/client/response.go:L9-L13`
 - **Suggested fix**: Reword to reflect reality.
 - **AI Thoughts**: **Valid.** Doc fix.
+
+Completed through other refactors ✅
 
 **24. [Minor] Multipart import comment is incorrect (Original #11)**
 

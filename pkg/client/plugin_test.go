@@ -40,9 +40,9 @@ func TestPluginScope_List_Success(t *testing.T) {
 	require.Len(t, plugins, 2)
 
 	assert.Equal(t, "emailServer", *plugins[0].Name)
-	assert.Equal(t, true, *plugins[0].Enabled)
+	assert.True(t, *plugins[0].Enabled)
 	assert.Equal(t, "jira", *plugins[1].Name)
-	assert.Equal(t, false, *plugins[1].Enabled)
+	assert.False(t, *plugins[1].Enabled)
 }
 
 func TestPluginScope_List_Unauthorized(t *testing.T) {

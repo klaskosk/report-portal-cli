@@ -341,7 +341,9 @@ func TestProjectSettingsScope_DeleteNotification_Errors(t *testing.T) {
 			t.Parallel()
 
 			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
-			_, err := testClient.Project("my_project").Settings().DeleteNotification(t.Context(), 999)
+			_, err := testClient.Project("my_project").
+				Settings().
+				DeleteNotification(t.Context(), 999)
 
 			require.Error(t, err)
 			assert.True(t, testCase.check(err))
@@ -542,7 +544,9 @@ func TestProjectSettingsScope_DeletePatternTemplate_Errors(t *testing.T) {
 			t.Parallel()
 
 			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
-			_, err := testClient.Project("my_project").Settings().DeletePatternTemplate(t.Context(), 999)
+			_, err := testClient.Project("my_project").
+				Settings().
+				DeletePatternTemplate(t.Context(), 999)
 
 			require.Error(t, err)
 			assert.True(t, testCase.check(err))
@@ -762,7 +766,9 @@ func TestProjectSettingsScope_DeleteIssueSubType_Errors(t *testing.T) {
 			t.Parallel()
 
 			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
-			_, err := testClient.Project("my_project").Settings().DeleteIssueSubType(t.Context(), 999)
+			_, err := testClient.Project("my_project").
+				Settings().
+				DeleteIssueSubType(t.Context(), 999)
 
 			require.Error(t, err)
 			assert.True(t, testCase.check(err))

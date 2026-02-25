@@ -38,7 +38,7 @@ func TestContract_PredicateCrossIsolation(t *testing.T) {
 			t.Run(fmt.Sprintf("%s_vs_%d", p.name, other.matchCode), func(t *testing.T) {
 				t.Parallel()
 
-				err := client.NewTestAPIError("op", other.matchCode, &types.ErrorRS{
+				err := client.NewTestAPIError(other.matchCode, &types.ErrorRS{
 					ErrorCode: other.matchCode * 100,
 					Message:   "test",
 				})
@@ -74,7 +74,7 @@ func TestContract_HasStatusCodeExtended(t *testing.T) {
 		t.Run(fmt.Sprintf("APIError/%d", code), func(t *testing.T) {
 			t.Parallel()
 
-			err := client.NewTestAPIError("op", code, &types.ErrorRS{
+			err := client.NewTestAPIError(code, &types.ErrorRS{
 				ErrorCode: code, Message: "test",
 			})
 			assert.True(t, client.HasStatusCode(err, code))
@@ -90,7 +90,7 @@ func TestContract_HasStatusCodeExtended(t *testing.T) {
 		t.Run(fmt.Sprintf("UnexpectedStatusError/%d", code), func(t *testing.T) {
 			t.Parallel()
 
-			err := client.NewTestUnexpectedStatusError("op", code)
+			err := client.NewTestUnexpectedStatusError(code)
 			assert.True(t, client.HasStatusCode(err, code))
 		})
 	}
@@ -104,7 +104,7 @@ func TestContract_HasErrorCodeSpecificity(t *testing.T) {
 	t.Run("matches APIError", func(t *testing.T) {
 		t.Parallel()
 
-		err := client.NewTestAPIError("op", http.StatusNotFound, &types.ErrorRS{
+		err := client.NewTestAPIError(http.StatusNotFound, &types.ErrorRS{
 			ErrorCode: 40410, Message: "not found",
 		})
 		assert.True(t, client.HasErrorCode(err, 40410))
@@ -114,7 +114,7 @@ func TestContract_HasErrorCodeSpecificity(t *testing.T) {
 	t.Run("rejects UnexpectedStatusError", func(t *testing.T) {
 		t.Parallel()
 
-		err := client.NewTestUnexpectedStatusError("op", http.StatusNotFound)
+		err := client.NewTestUnexpectedStatusError(http.StatusNotFound)
 		assert.False(t, client.HasErrorCode(err, 404))
 	})
 
@@ -135,7 +135,7 @@ func TestContract_HasErrorCodeSpecificity(t *testing.T) {
 func TestContract_DeepWrappingPreservesPredicates(t *testing.T) {
 	t.Parallel()
 
-	innerErr := client.NewTestAPIError("op", http.StatusNotFound, &types.ErrorRS{
+	innerErr := client.NewTestAPIError(http.StatusNotFound, &types.ErrorRS{
 		ErrorCode: 40410, Message: "not found",
 	})
 
@@ -149,14 +149,15 @@ func TestContract_DeepWrappingPreservesPredicates(t *testing.T) {
 	assert.False(t, client.IsUnauthorized(wrapped))
 }
 
-// Contract: APIError.Error() format is stable and contains all key information.
+// Contract: APIError.Error() format is stable and contains cause-only information
+// (no operation context — that belongs to the caller via fmt.Errorf wrapping).
 func TestContract_APIErrorMessageFormat(t *testing.T) {
 	t.Parallel()
 
 	t.Run("with response body", func(t *testing.T) {
 		t.Parallel()
 
-		err := client.NewTestAPIError("get launch by uuid", http.StatusNotFound, &types.ErrorRS{
+		err := client.NewTestAPIError(http.StatusNotFound, &types.ErrorRS{
 			ErrorCode: 40410,
 			Message:   "Launch 'abc' not found.",
 		})
@@ -165,7 +166,6 @@ func TestContract_APIErrorMessageFormat(t *testing.T) {
 		require.ErrorAs(t, err, &apiErr)
 
 		msg := apiErr.Error()
-		assert.Contains(t, msg, "get launch by uuid", "operation name")
 		assert.Contains(t, msg, "HTTP 404", "HTTP status")
 		assert.Contains(t, msg, "40410", "error code")
 		assert.Contains(t, msg, "Launch 'abc' not found.", "error message")
@@ -174,13 +174,12 @@ func TestContract_APIErrorMessageFormat(t *testing.T) {
 	t.Run("without response body", func(t *testing.T) {
 		t.Parallel()
 
-		err := client.NewTestAPIError("list launches", http.StatusNotFound, nil)
+		err := client.NewTestAPIError(http.StatusNotFound, nil)
 
 		var apiErr *client.APIError
 		require.ErrorAs(t, err, &apiErr)
 
 		msg := apiErr.Error()
-		assert.Contains(t, msg, "list launches", "operation name")
 		assert.Contains(t, msg, "HTTP 404", "HTTP status")
 		assert.NotContains(t, msg, "[0]", "should not contain zero error code bracket")
 	})
@@ -190,13 +189,12 @@ func TestContract_APIErrorMessageFormat(t *testing.T) {
 func TestContract_UnexpectedStatusErrorMessageFormat(t *testing.T) {
 	t.Parallel()
 
-	err := client.NewTestUnexpectedStatusError("list items", http.StatusBadGateway)
+	err := client.NewTestUnexpectedStatusError(http.StatusBadGateway)
 
 	var unexpectedErr *client.UnexpectedStatusError
 	require.ErrorAs(t, err, &unexpectedErr)
 
 	msg := unexpectedErr.Error()
-	assert.Contains(t, msg, "list items", "operation name")
 	assert.Contains(t, msg, "unexpected HTTP 502", "HTTP status with 'unexpected' prefix")
 	assert.Contains(t, msg, "no JSON error body", "clarification about missing body")
 }

@@ -34,7 +34,12 @@ func (a *ActivityScope) GetByID(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "get activity by id", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get activity by id: %w", err)
+	}
+
+	return result, nil
 }
 
 // ListForItem returns a paginated list of activity events for a specific test item.
@@ -64,7 +69,12 @@ func (a *ActivityScope) ListForItem(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "list activities for item", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("list activities for item: %w", err)
+	}
+
+	return result, nil
 }
 
 // ListActivitiesOption configures the filter and pagination parameters for listing item activities.

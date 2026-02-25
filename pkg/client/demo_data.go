@@ -14,7 +14,10 @@ type DemoDataScope struct {
 
 // Generate creates demo data (launches, items, dashboards) in the project.
 // Returns the IDs of the created resources.
-func (s *DemoDataScope) Generate(ctx context.Context, demoDataRequest types.DemoDataRq) (*types.DemoDataRs, error) {
+func (s *DemoDataScope) Generate(
+	ctx context.Context,
+	demoDataRequest types.DemoDataRq,
+) (*types.DemoDataRs, error) {
 	logger := s.project.operationLogger("GenerateDemoData")
 	logger.InfoContext(ctx, "API request")
 
@@ -29,5 +32,10 @@ func (s *DemoDataScope) Generate(ctx context.Context, demoDataRequest types.Demo
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "generate demo data", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("generate demo data: %w", err)
+	}
+
+	return result, nil
 }

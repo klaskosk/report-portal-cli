@@ -30,9 +30,9 @@ func (s *OnboardingScope) GetStatus(ctx context.Context, page *string) (map[stri
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, "get onboarding status", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get onboarding status: %w", err)
 	}
 
 	if result == nil {

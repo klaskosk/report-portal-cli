@@ -19,7 +19,10 @@ func (s *BugTrackingScope) GetSystemFields(
 	ctx context.Context,
 	integrationID int64,
 ) ([]types.PostFormField, error) {
-	logger := s.project.operationLogger("GetBTSSystemFields", slog.Int64("integrationId", integrationID))
+	logger := s.project.operationLogger(
+		"GetBTSSystemFields",
+		slog.Int64("integrationId", integrationID),
+	)
 	logger.InfoContext(ctx, "API request")
 
 	response, err := s.project.client.raw.GetSetOfIntegrationSystemFieldsUsingGET1WithResponse(
@@ -34,9 +37,9 @@ func (s *BugTrackingScope) GetSystemFields(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, "get bts system fields", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get bts system fields: %w", err)
 	}
 
 	if result == nil {
@@ -51,7 +54,10 @@ func (s *BugTrackingScope) GetAllowableIssueTypes(
 	ctx context.Context,
 	integrationID int64,
 ) ([]string, error) {
-	logger := s.project.operationLogger("GetBTSAllowableIssueTypes", slog.Int64("integrationId", integrationID))
+	logger := s.project.operationLogger(
+		"GetBTSAllowableIssueTypes",
+		slog.Int64("integrationId", integrationID),
+	)
 	logger.InfoContext(ctx, "API request")
 
 	response, err := s.project.client.raw.GetAllowableIssueTypesUsingGET1WithResponse(
@@ -65,9 +71,9 @@ func (s *BugTrackingScope) GetAllowableIssueTypes(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, "get bts allowable issue types", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get bts allowable issue types: %w", err)
 	}
 
 	if result == nil {
@@ -107,7 +113,12 @@ func (s *BugTrackingScope) GetTicket(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "get bts ticket", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get bts ticket: %w", err)
+	}
+
+	return result, nil
 }
 
 // CreateIssue creates a new issue in the BTS for the given integration.
@@ -116,7 +127,10 @@ func (s *BugTrackingScope) CreateIssue(
 	integrationID int64,
 	request types.PostTicketRQ,
 ) (*types.Ticket, error) {
-	logger := s.project.operationLogger("CreateBTSIssue", slog.Int64("integrationId", integrationID))
+	logger := s.project.operationLogger(
+		"CreateBTSIssue",
+		slog.Int64("integrationId", integrationID),
+	)
 	logger.InfoContext(ctx, "API request")
 
 	response, err := s.project.client.raw.CreateIssueUsingPOSTWithResponse(
@@ -131,7 +145,12 @@ func (s *BugTrackingScope) CreateIssue(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "create bts issue", response.JSONDefault, response.JSON201)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON201)
+	if err != nil {
+		return nil, fmt.Errorf("create bts issue: %w", err)
+	}
+
+	return result, nil
 }
 
 // GetTicketIds returns ticket IDs matching the given term within a launch.
@@ -160,9 +179,9 @@ func (s *BugTrackingScope) GetTicketIds(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, "get bts ticket ids", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get bts ticket ids: %w", err)
 	}
 
 	if result == nil {
@@ -195,9 +214,9 @@ func (s *BugTrackingScope) GetTicketIdsForProject(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, "get bts ticket ids for project", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get bts ticket ids for project: %w", err)
 	}
 
 	if result == nil {

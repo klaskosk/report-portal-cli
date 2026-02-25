@@ -36,7 +36,12 @@ func (w *WidgetScope) GetByID(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "get widget by id", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get widget by id: %w", err)
+	}
+
+	return result, nil
 }
 
 // Create creates a new widget in the project.
@@ -58,7 +63,12 @@ func (w *WidgetScope) Create(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "create widget", response.JSONDefault, response.JSON201)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON201)
+	if err != nil {
+		return nil, fmt.Errorf("create widget: %w", err)
+	}
+
+	return result, nil
 }
 
 // Update modifies an existing widget.
@@ -82,7 +92,12 @@ func (w *WidgetScope) Update(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "update widget", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("update widget: %w", err)
+	}
+
+	return result, nil
 }
 
 // GetData returns a widget's computed data by its numeric ID.
@@ -95,7 +110,7 @@ func (w *WidgetScope) GetData(
 	logger := w.project.operationLogger("GetWidgetData", slog.Int64("id", id))
 
 	params := &api.GetWidgetUsingGETParams{
-		Params: map[string]interface{}{},
+		Params: map[string]any{},
 	}
 	for _, option := range options {
 		option(params)
@@ -115,7 +130,12 @@ func (w *WidgetScope) GetData(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "get widget data", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get widget data: %w", err)
+	}
+
+	return result, nil
 }
 
 // GetWidgetDataOption configures the parameters for getting widget data.
@@ -156,14 +176,9 @@ func (w *WidgetScope) GetNames(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(
-		response,
-		"get widget names",
-		response.JSONDefault,
-		response.JSON200,
-	)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get widget names: %w", err)
 	}
 
 	if result == nil {
@@ -204,14 +219,20 @@ func (w *WidgetScope) getNamesRaw(
 	if rawResponse.StatusCode != http.StatusOK {
 		var errorResponse types.ErrorRS
 		if json.Unmarshal(body, &errorResponse) == nil && errorResponse.ErrorCode != 0 {
-			return nil, newAPIError("get widget names", rawResponse.StatusCode, &errorResponse)
+			return nil, fmt.Errorf(
+				"get widget names: %w",
+				newAPIError(rawResponse.StatusCode, &errorResponse),
+			)
 		}
 
-		return nil, newUnexpectedStatusError("get widget names", rawResponse.StatusCode)
+		return nil, fmt.Errorf(
+			"get widget names: %w",
+			newUnexpectedStatusError(rawResponse.StatusCode),
+		)
 	}
 
 	var rawIterable struct {
-		Content []json.RawMessage `json:"content"`
+		Content []json.RawMessage  `json:"content"`
 		Page    types.PageMetadata `json:"page"`
 	}
 	if err := json.Unmarshal(body, &rawIterable); err != nil {
@@ -219,21 +240,25 @@ func (w *WidgetScope) getNamesRaw(
 	}
 
 	result := &types.IterableObject{
-		Content: make([]map[string]interface{}, 0, len(rawIterable.Content)),
+		Content: make([]map[string]any, 0, len(rawIterable.Content)),
 		Page:    rawIterable.Page,
 	}
 
 	for _, rawItem := range rawIterable.Content {
-		var objectItem map[string]interface{}
-		if err := json.Unmarshal(rawItem, &objectItem); err == nil {
+		var objectItem map[string]any
+
+		err := json.Unmarshal(rawItem, &objectItem)
+		if err == nil {
 			result.Content = append(result.Content, objectItem)
 
 			continue
 		}
 
 		var stringItem string
-		if err := json.Unmarshal(rawItem, &stringItem); err == nil {
-			result.Content = append(result.Content, map[string]interface{}{"name": stringItem})
+
+		err = json.Unmarshal(rawItem, &stringItem)
+		if err == nil {
+			result.Content = append(result.Content, map[string]any{"name": stringItem})
 
 			continue
 		}

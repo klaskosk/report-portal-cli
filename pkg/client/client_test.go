@@ -52,16 +52,19 @@ func TestNew_URLNormalization(t *testing.T) {
 
 			var capturedPath string
 
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				capturedPath = r.URL.Path
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
+			server := httptest.NewServer(
+				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					capturedPath = r.URL.Path
 
-				_, _ = w.Write([]byte(`{
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusOK)
+
+					_, _ = w.Write([]byte(`{
 					"content": [],
 					"page": {"number": 1, "size": 10, "totalElements": 0, "totalPages": 0}
 				}`))
-			}))
+				}),
+			)
 			t.Cleanup(server.Close)
 
 			inputURL := strings.Replace(test.inputURL, "REPLACE_HOST", server.URL, 1)

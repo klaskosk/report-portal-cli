@@ -15,33 +15,32 @@ import (
 func TestAPIError_Error(t *testing.T) {
 	t.Parallel()
 
-	err := client.NewTestAPIError("get launch by id", http.StatusNotFound, &types.ErrorRS{
+	err := client.NewTestAPIError(http.StatusNotFound, &types.ErrorRS{
 		ErrorCode: 40410,
 		Message:   "Launch '999' not found.",
 	})
 
-	assert.Equal(t, "get launch by id: HTTP 404: [40410] Launch '999' not found.", err.Error())
+	assert.Equal(t, "HTTP 404: [40410] Launch '999' not found.", err.Error())
 }
 
 func TestAPIError_NilResponse(t *testing.T) {
 	t.Parallel()
 
-	err := client.NewTestAPIError("get launch by id", http.StatusNotFound, nil)
+	err := client.NewTestAPIError(http.StatusNotFound, nil)
 
 	var apiErr *client.APIError
 	require.ErrorAs(t, err, &apiErr)
 
-	assert.Equal(t, "get launch by id: HTTP 404", apiErr.Error())
+	assert.Equal(t, "HTTP 404", apiErr.Error())
 	assert.Equal(t, 0, apiErr.ErrorCode())
 	assert.Empty(t, apiErr.Message())
 	assert.Equal(t, http.StatusNotFound, apiErr.StatusCode())
-	assert.Equal(t, "get launch by id", apiErr.Operation())
 }
 
 func TestAPIError_Accessors(t *testing.T) {
 	t.Parallel()
 
-	err := client.NewTestAPIError("list launches", http.StatusForbidden, &types.ErrorRS{
+	err := client.NewTestAPIError(http.StatusForbidden, &types.ErrorRS{
 		ErrorCode: 4003,
 		Message:   "Access denied.",
 	})
@@ -52,7 +51,6 @@ func TestAPIError_Accessors(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, apiErr.StatusCode())
 	assert.Equal(t, 4003, apiErr.ErrorCode())
 	assert.Equal(t, "Access denied.", apiErr.Message())
-	assert.Equal(t, "list launches", apiErr.Operation())
 }
 
 func TestErrorPredicates(t *testing.T) {
@@ -76,7 +74,7 @@ func TestErrorPredicates(t *testing.T) {
 			t.Parallel()
 
 			apiErr := client.NewTestAPIError(
-				"op", testCase.statusCode,
+				testCase.statusCode,
 				&types.ErrorRS{ErrorCode: testCase.errorCode, Message: "test"},
 			)
 
@@ -91,7 +89,6 @@ func TestHasStatusCode(t *testing.T) {
 	t.Parallel()
 
 	apiErr := client.NewTestAPIError(
-		"op",
 		http.StatusInternalServerError,
 		&types.ErrorRS{ErrorCode: 5000, Message: "internal"},
 	)
@@ -104,7 +101,6 @@ func TestHasErrorCode(t *testing.T) {
 	t.Parallel()
 
 	apiErr := client.NewTestAPIError(
-		"op",
 		http.StatusNotFound,
 		&types.ErrorRS{ErrorCode: 40410, Message: "not found"},
 	)
@@ -117,11 +113,10 @@ func TestPredicates_WrappedError(t *testing.T) {
 	t.Parallel()
 
 	apiErr := client.NewTestAPIError(
-		"op",
 		http.StatusNotFound,
 		&types.ErrorRS{ErrorCode: 40410, Message: "not found"},
 	)
-	wrapped := fmt.Errorf("context: %w", apiErr)
+	wrapped := fmt.Errorf("get launch by id: %w", apiErr)
 
 	assert.True(t, client.IsNotFound(wrapped))
 	assert.True(t, client.HasStatusCode(wrapped, http.StatusNotFound))
@@ -131,27 +126,26 @@ func TestPredicates_WrappedError(t *testing.T) {
 func TestUnexpectedStatusError_Error(t *testing.T) {
 	t.Parallel()
 
-	err := client.NewTestUnexpectedStatusError("list launches", http.StatusBadGateway)
+	err := client.NewTestUnexpectedStatusError(http.StatusBadGateway)
 
-	assert.Equal(t, "list launches: unexpected HTTP 502 (no JSON error body)", err.Error())
+	assert.Equal(t, "unexpected HTTP 502 (no JSON error body)", err.Error())
 }
 
 func TestUnexpectedStatusError_Accessors(t *testing.T) {
 	t.Parallel()
 
-	err := client.NewTestUnexpectedStatusError("get launch by id", http.StatusNotFound)
+	err := client.NewTestUnexpectedStatusError(http.StatusNotFound)
 
 	var unexpectedErr *client.UnexpectedStatusError
 	require.ErrorAs(t, err, &unexpectedErr)
 
 	assert.Equal(t, http.StatusNotFound, unexpectedErr.StatusCode())
-	assert.Equal(t, "get launch by id", unexpectedErr.Operation())
 }
 
 func TestHasStatusCode_MatchesUnexpectedStatusError(t *testing.T) {
 	t.Parallel()
 
-	err := client.NewTestUnexpectedStatusError("op", http.StatusBadGateway)
+	err := client.NewTestUnexpectedStatusError(http.StatusBadGateway)
 
 	assert.True(t, client.HasStatusCode(err, http.StatusBadGateway))
 	assert.False(t, client.HasStatusCode(err, http.StatusNotFound))
@@ -176,7 +170,7 @@ func TestPredicates_MatchUnexpectedStatusError(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			err := client.NewTestUnexpectedStatusError("op", testCase.statusCode)
+			err := client.NewTestUnexpectedStatusError(testCase.statusCode)
 			assert.True(t, testCase.predicate(err))
 		})
 	}
@@ -185,8 +179,8 @@ func TestPredicates_MatchUnexpectedStatusError(t *testing.T) {
 func TestPredicates_WrappedUnexpectedStatusError(t *testing.T) {
 	t.Parallel()
 
-	err := client.NewTestUnexpectedStatusError("op", http.StatusNotFound)
-	wrapped := fmt.Errorf("context: %w", err)
+	err := client.NewTestUnexpectedStatusError(http.StatusNotFound)
+	wrapped := fmt.Errorf("get launch by id: %w", err)
 
 	assert.True(t, client.IsNotFound(wrapped))
 	assert.True(t, client.HasStatusCode(wrapped, http.StatusNotFound))

@@ -39,7 +39,12 @@ func (f *UserFilterScope) List(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "list filters", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("list filters: %w", err)
+	}
+
+	return result, nil
 }
 
 // GetByID returns a single filter by its numeric ID.
@@ -61,7 +66,12 @@ func (f *UserFilterScope) GetByID(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "get filter by id", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get filter by id: %w", err)
+	}
+
+	return result, nil
 }
 
 // Create creates a new filter in the project. The API uses UpdateUserFilterRQ as the
@@ -84,7 +94,12 @@ func (f *UserFilterScope) Create(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "create filter", response.JSONDefault, response.JSON201)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON201)
+	if err != nil {
+		return nil, fmt.Errorf("create filter: %w", err)
+	}
+
+	return result, nil
 }
 
 // Update modifies an existing filter.
@@ -108,7 +123,12 @@ func (f *UserFilterScope) Update(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "update filter", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("update filter: %w", err)
+	}
+
+	return result, nil
 }
 
 // Delete removes a filter by its numeric ID.
@@ -130,7 +150,12 @@ func (f *UserFilterScope) Delete(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "delete filter", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("delete filter: %w", err)
+	}
+
+	return result, nil
 }
 
 // GetByIds returns multiple filters by their numeric IDs.
@@ -154,9 +179,9 @@ func (f *UserFilterScope) GetByIds(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, "get filters by ids", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get filters by ids: %w", err)
 	}
 
 	if result == nil {
@@ -192,14 +217,9 @@ func (f *UserFilterScope) GetNames(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(
-		response,
-		"get filter names",
-		response.JSONDefault,
-		response.JSON200,
-	)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get filter names: %w", err)
 	}
 
 	if result == nil {
