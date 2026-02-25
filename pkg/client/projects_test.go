@@ -71,10 +71,7 @@ func TestProjectsScope_ListNames_Success(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
-			"content": ["default_personal", "my_project", "another_project"],
-			"page": {"number": 0, "size": 50, "totalElements": 3, "totalPages": 1}
-		}`))
+		_, _ = w.Write([]byte(`["default_personal", "my_project", "another_project"]`))
 	}))
 
 	names, err := c.Projects().ListNames(t.Context())
@@ -91,10 +88,7 @@ func TestProjectsScope_ListNames_EmptyList(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
-			"content": [],
-			"page": {"number": 0, "size": 50, "totalElements": 0, "totalPages": 0}
-		}`))
+		_, _ = w.Write([]byte(`[]`))
 	}))
 
 	names, err := c.Projects().ListNames(t.Context())
@@ -102,7 +96,7 @@ func TestProjectsScope_ListNames_EmptyList(t *testing.T) {
 	assert.Empty(t, names)
 }
 
-func TestProjectsScope_ListNames_FallsBackToRawArrayResponse(t *testing.T) {
+func TestProjectsScope_ListNames_DoesNotRetryRawArrayResponse(t *testing.T) {
 	t.Parallel()
 
 	callCount := 0
@@ -124,7 +118,7 @@ func TestProjectsScope_ListNames_FallsBackToRawArrayResponse(t *testing.T) {
 	require.Len(t, names, 2)
 	assert.Equal(t, "default_personal", names[0])
 	assert.Equal(t, "my_project", names[1])
-	assert.Equal(t, 2, callCount, "expected typed call and raw fallback call")
+	assert.Equal(t, 1, callCount, "expected a single typed call")
 }
 
 func TestProjectsScope_List_Success(t *testing.T) {
@@ -208,10 +202,7 @@ func TestProjectsScope_SearchNames_Success(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
-			"content": ["my_project", "my_other_project"],
-			"page": {"number": 0, "size": 50, "totalElements": 2, "totalPages": 1}
-		}`))
+		_, _ = w.Write([]byte(`["my_project", "my_other_project"]`))
 	}))
 
 	names, err := c.Projects().SearchNames(t.Context(), "my")
@@ -228,10 +219,7 @@ func TestProjectsScope_SearchNames_EmptyResults(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
-			"content": [],
-			"page": {"number": 0, "size": 50, "totalElements": 0, "totalPages": 0}
-		}`))
+		_, _ = w.Write([]byte(`[]`))
 	}))
 
 	names, err := c.Projects().SearchNames(t.Context(), "nonexistent")
@@ -239,7 +227,7 @@ func TestProjectsScope_SearchNames_EmptyResults(t *testing.T) {
 	assert.Empty(t, names)
 }
 
-func TestProjectsScope_SearchNames_FallsBackToRawArrayResponse(t *testing.T) {
+func TestProjectsScope_SearchNames_DoesNotRetryRawArrayResponse(t *testing.T) {
 	t.Parallel()
 
 	callCount := 0
@@ -262,7 +250,7 @@ func TestProjectsScope_SearchNames_FallsBackToRawArrayResponse(t *testing.T) {
 	require.Len(t, names, 2)
 	assert.Equal(t, "my_project", names[0])
 	assert.Equal(t, "my_other_project", names[1])
-	assert.Equal(t, 2, callCount, "expected typed call and raw fallback call")
+	assert.Equal(t, 1, callCount, "expected a single typed call")
 }
 
 func TestProjectsScope_SearchNames_Unauthorized(t *testing.T) {

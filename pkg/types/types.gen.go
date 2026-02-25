@@ -876,10 +876,7 @@ type IterableObject struct {
 }
 
 // IterableString defines model for Iterable«string».
-type IterableString struct {
-	Content []string     `json:"content"`
-	Page    PageMetadata `json:"page"`
-}
+type IterableString = []string
 
 // LaunchImportRQ defines model for LaunchImportRQ.
 type LaunchImportRQ struct {

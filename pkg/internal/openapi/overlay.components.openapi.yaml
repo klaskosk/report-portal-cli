@@ -230,16 +230,9 @@ actions:
       required:
         - errorCode
         - message
+  # /v1/project/names and /v1/project/names/search return a plain JSON string array in RP 5.11.
   - target: $.components.schemas['Iterable«string»']
     update:
-      type: object
-      required:
-        - content
-        - page
-      properties:
-        content:
-          type: array
-          items:
-            type: string
-        page:
-          $ref: '#/components/schemas/PageMetadata'
+      type: array
+      items:
+        type: string
