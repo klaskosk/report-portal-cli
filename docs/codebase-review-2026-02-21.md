@@ -79,6 +79,8 @@ Completed through correcting OpenAPI overlay ✅
 - **Suggested fix**: Parse with `url.Parse` and `ResolveReference`.
 - **AI Thoughts**: **Valid.** URL parsing should always use the `net/url` standard library to avoid edge cases.
 
+Completed ✅
+
 **7. [Major] `client.New` happily constructs an auth header even when the token is empty (Original #2)**
 
 - **Reference**: `pkg/client/client.go:L48-L53`
