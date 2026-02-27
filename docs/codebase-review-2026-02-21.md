@@ -88,6 +88,8 @@ Completed ✅
 - **Suggested fix**: Validate `bearerToken != ""` in `New`.
 - **AI Thoughts**: **Valid.** Fail fast and explicitly for configuration errors.
 
+Completed ✅
+
 **8. [Major] API client methods inconsistently accept numeric IDs as `string` vs `int64` (Original #24)**
 
 - **Reference**: `pkg/client/launch.go:L44-L65`, `pkg/client/item.go:L68-L90`, etc.

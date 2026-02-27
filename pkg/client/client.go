@@ -3,6 +3,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -27,8 +28,13 @@ type config struct {
 }
 
 // New creates a new Client for the given Report Portal instance. It is tolerant of many baseURLs and will accept with
-// or without a scheme and ensures it ends in /api. The bearerToken is sent as an Authorization header on every request.
+// or without a scheme and ensures it ends in /api. The bearerToken must be non-empty and is sent as an Authorization
+// header on every request.
 func New(baseURL, bearerToken string, opts ...Option) (*Client, error) {
+	if strings.TrimSpace(bearerToken) == "" {
+		return nil, errors.New("failed to create client: bearer token must not be empty")
+	}
+
 	normalizedBaseURL, err := normalizeBaseURL(baseURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create client: %w", err)
