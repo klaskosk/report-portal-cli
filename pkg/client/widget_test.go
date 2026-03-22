@@ -170,8 +170,8 @@ func TestWidgetScope_GetNames_Success(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Len(t, result.Content, 2)
-	assert.Equal(t, "Widget 1", result.Content[0]["name"])
-	assert.Equal(t, "Widget 2", result.Content[1]["name"])
+	assert.Equal(t, "Widget 1", result.Content[0])
+	assert.Equal(t, "Widget 2", result.Content[1])
 }
 
 func TestWidgetScope_GetNames_Empty(t *testing.T) {

@@ -48,7 +48,12 @@ func (a *ActivityEventsScope) Search(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "search activity events", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("search activity events: %w", err)
+	}
+
+	return result, nil
 }
 
 // GetProjectSubjectNames returns the subject names (users) that have generated
@@ -77,9 +82,9 @@ func (a *ActivityEventsScope) GetProjectSubjectNames(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, "get project subject names", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get project subject names: %w", err)
 	}
 
 	if result == nil {

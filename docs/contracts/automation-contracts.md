@@ -108,13 +108,18 @@ version bump.
 The client library (`pkg/client`) returns two error types:
 
 - `*APIError`: the server returned a JSON error body (`JSONDefault`). Exposes
-  `StatusCode()`, `ErrorCode()`, `Message()`, and `Operation()`.
+  `StatusCode()`, `ErrorCode()`, and `Message()`.
 - `*UnexpectedStatusError`: the server returned a non-2xx status without a
-  parseable JSON error body (e.g. proxy HTML page). Exposes `StatusCode()` and
-  `Operation()`.
+  parseable JSON error body (e.g. proxy HTML page). Exposes `StatusCode()`.
 
 Both types implement the `error` interface and the internal `statusCoder`
 interface, which allows `HasStatusCode` to match either type uniformly.
+
+These types represent the **cause** of an error (the HTTP failure itself).
+Operation context (what the caller was trying to do) is added by each API
+method via `fmt.Errorf("operation: %w", err)`. Predicates like `IsNotFound`
+use `errors.As` internally, so they work correctly through any number of
+wrapping layers.
 
 ### Error predicates
 
@@ -142,13 +147,16 @@ errors (`fmt.Errorf("context: %w", err)`).
 
 ### APIError message format
 
-`APIError.Error()` returns a string in one of two formats:
+`APIError.Error()` returns a cause-only string in one of two formats:
 
-- With response body: `"<operation>: HTTP <status>: [<errorCode>] <message>"`
-- Without response body: `"<operation>: HTTP <status>"`
+- With response body: `"HTTP <status>: [<errorCode>] <message>"`
+- Without response body: `"HTTP <status>"`
+
+When returned from an API method, the error is wrapped with operation context,
+producing strings like `"get launch by id: HTTP 404: [40410] Launch not found"`.
 
 This format is informational and should not be parsed by automation. Use the
-accessor methods instead.
+accessor methods and predicate functions instead.
 
 ## Scope accessor naming
 

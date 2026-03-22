@@ -3,7 +3,10 @@
 package integration_test
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/klaskosk/report-portal-cli/pkg/client"
@@ -548,6 +551,62 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 	})
 
 	Context("Compare", func() {
+		It("returns epoch millis startTime in raw response", func(ctx SpecContext) {
+			list, err := c.Project(projectName).Launches().List(ctx,
+				client.WithPageSize(2),
+				client.WithSort("id,asc"),
+			)
+			Expect(err).NotTo(HaveOccurred(), "listing launches for compare should not fail")
+			Expect(list.Content).To(HaveLen(2), "need at least 2 launches to compare")
+
+			query := url.Values{}
+			query.Add("ids", fmt.Sprintf("%d", list.Content[0].Id))
+			query.Add("ids", fmt.Sprintf("%d", list.Content[1].Id))
+
+			requestURL := fmt.Sprintf("%s/api/v1/%s/launch/compare?%s", baseURL, projectName, query.Encode())
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
+			Expect(err).NotTo(HaveOccurred(), "creating compare request should not fail")
+			req.Header.Set("Authorization", "bearer "+bearerToken)
+
+			resp, err := httpClient.Do(req)
+			Expect(err).NotTo(HaveOccurred(), "calling raw compare endpoint should not fail")
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusOK),
+				"raw compare endpoint should return HTTP 200")
+
+			var payload map[string]any
+			err = json.NewDecoder(resp.Body).Decode(&payload)
+			Expect(err).NotTo(HaveOccurred(),
+				"decoding raw compare response should not fail")
+
+			var startTime any
+			foundStartTime := false
+
+			for _, value := range payload {
+				entries, ok := value.([]any)
+				if !ok || len(entries) == 0 {
+					continue
+				}
+
+				entry, ok := entries[0].(map[string]any)
+				if !ok {
+					continue
+				}
+
+				startTime, ok = entry["startTime"]
+				if ok {
+					foundStartTime = true
+					break
+				}
+			}
+
+			Expect(foundStartTime).To(BeTrue(), "raw compare response should include an entry with startTime")
+			_, isNumber := startTime.(float64)
+			Expect(isNumber).To(BeTrue(),
+				"compare startTime should be a numeric epoch value, got %T", startTime)
+		})
+
 		It("compares seeded launches by ID", func(ctx SpecContext) {
 			list, err := c.Project(projectName).Launches().List(ctx,
 				client.WithPageSize(2),

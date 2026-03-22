@@ -34,11 +34,18 @@ func (s *ProjectSettingsScope) Get(ctx context.Context) (*types.ProjectSettingsR
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "get project settings", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get project settings: %w", err)
+	}
+
+	return result, nil
 }
 
 // GetNotifications returns the notification rules configured for this project.
-func (s *ProjectSettingsScope) GetNotifications(ctx context.Context) ([]types.SenderCaseDTO, error) {
+func (s *ProjectSettingsScope) GetNotifications(
+	ctx context.Context,
+) ([]types.SenderCaseDTO, error) {
 	logger := s.project.operationLogger("GetNotifications")
 	logger.InfoContext(ctx, "API request")
 
@@ -52,9 +59,9 @@ func (s *ProjectSettingsScope) GetNotifications(ctx context.Context) ([]types.Se
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, "get notifications", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get notifications: %w", err)
 	}
 
 	if result == nil {
@@ -83,7 +90,12 @@ func (s *ProjectSettingsScope) CreateNotification(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "create notification", response.JSONDefault, response.JSON201)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON201)
+	if err != nil {
+		return nil, fmt.Errorf("create notification: %w", err)
+	}
+
+	return result, nil
 }
 
 // UpdateNotification modifies an existing notification rule.
@@ -105,7 +117,12 @@ func (s *ProjectSettingsScope) UpdateNotification(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "update notification", response.JSONDefault, response.JSON201)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON201)
+	if err != nil {
+		return nil, fmt.Errorf("update notification: %w", err)
+	}
+
+	return result, nil
 }
 
 // DeleteNotification removes a notification rule by its ID.
@@ -127,7 +144,12 @@ func (s *ProjectSettingsScope) DeleteNotification(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "delete notification", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("delete notification: %w", err)
+	}
+
+	return result, nil
 }
 
 // CreatePatternTemplate creates a pattern template for this project.
@@ -149,7 +171,12 @@ func (s *ProjectSettingsScope) CreatePatternTemplate(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "create pattern template", response.JSONDefault, response.JSON201)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON201)
+	if err != nil {
+		return nil, fmt.Errorf("create pattern template: %w", err)
+	}
+
+	return result, nil
 }
 
 // UpdatePatternTemplate modifies an existing pattern template.
@@ -173,7 +200,12 @@ func (s *ProjectSettingsScope) UpdatePatternTemplate(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "update pattern template", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("update pattern template: %w", err)
+	}
+
+	return result, nil
 }
 
 // DeletePatternTemplate removes a pattern template by its ID.
@@ -195,7 +227,12 @@ func (s *ProjectSettingsScope) DeletePatternTemplate(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "delete pattern template", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("delete pattern template: %w", err)
+	}
+
+	return result, nil
 }
 
 // CreateIssueSubType creates a custom issue sub-type for this project.
@@ -217,7 +254,12 @@ func (s *ProjectSettingsScope) CreateIssueSubType(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "create issue sub-type", response.JSONDefault, response.JSON201)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON201)
+	if err != nil {
+		return nil, fmt.Errorf("create issue sub-type: %w", err)
+	}
+
+	return result, nil
 }
 
 // UpdateIssueSubType modifies an existing issue sub-type.
@@ -239,7 +281,12 @@ func (s *ProjectSettingsScope) UpdateIssueSubType(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "update issue sub-type", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("update issue sub-type: %w", err)
+	}
+
+	return result, nil
 }
 
 // DeleteIssueSubType removes a custom issue sub-type by its ID.
@@ -261,5 +308,10 @@ func (s *ProjectSettingsScope) DeleteIssueSubType(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "delete issue sub-type", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("delete issue sub-type: %w", err)
+	}
+
+	return result, nil
 }

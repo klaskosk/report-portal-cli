@@ -14,29 +14,26 @@ import (
 // asserting on this type directly. For cases not covered by a predicate, use errors.As to extract the APIError and
 // call its accessor methods.
 type APIError struct {
-	operation  string
 	statusCode int
 	response   *types.ErrorRS
 }
 
 func (e *APIError) Error() string {
 	if e.response == nil {
-		return fmt.Sprintf("%s: HTTP %d", e.operation, e.statusCode)
+		return fmt.Sprintf("HTTP %d", e.statusCode)
 	}
 
 	return fmt.Sprintf(
-		"%s: HTTP %d: [%d] %s",
-		e.operation,
+		"HTTP %d: [%d] %s",
 		e.statusCode,
 		e.response.ErrorCode,
 		e.response.Message,
 	)
 }
 
-// newAPIError constructs an APIError from the operation name, HTTP status, and parsed error body.
-func newAPIError(operation string, statusCode int, resp *types.ErrorRS) *APIError {
+// newAPIError constructs an APIError from the HTTP status and parsed error body.
+func newAPIError(statusCode int, resp *types.ErrorRS) *APIError {
 	return &APIError{
-		operation:  operation,
 		statusCode: statusCode,
 		response:   resp,
 	}
@@ -64,9 +61,6 @@ func (e *APIError) Message() string {
 
 	return e.response.Message
 }
-
-// Operation returns a short description of the API call that failed (e.g. "get launch by uuid").
-func (e *APIError) Operation() string { return e.operation }
 
 // IsNotFound reports whether err is an API error with HTTP 404 status.
 func IsNotFound(err error) bool {
@@ -117,24 +111,19 @@ func HasErrorCode(err error, code int) bool {
 // UnexpectedStatusError represents an HTTP error response that did not contain a parseable JSON error body. This
 // typically occurs when a proxy, gateway, or infrastructure component returns an HTML or plain-text error page.
 type UnexpectedStatusError struct {
-	operation  string
 	statusCode int
 }
 
 func (e *UnexpectedStatusError) Error() string {
-	return fmt.Sprintf("%s: unexpected HTTP %d (no JSON error body)", e.operation, e.statusCode)
+	return fmt.Sprintf("unexpected HTTP %d (no JSON error body)", e.statusCode)
 }
 
 // newUnexpectedStatusError constructs an UnexpectedStatusError for non-2xx responses without a JSON body.
-func newUnexpectedStatusError(operation string, statusCode int) *UnexpectedStatusError {
+func newUnexpectedStatusError(statusCode int) *UnexpectedStatusError {
 	return &UnexpectedStatusError{
-		operation:  operation,
 		statusCode: statusCode,
 	}
 }
 
 // StatusCode returns the HTTP status code from the response.
 func (e *UnexpectedStatusError) StatusCode() int { return e.statusCode }
-
-// Operation returns a short description of the API call that failed.
-func (e *UnexpectedStatusError) Operation() string { return e.operation }

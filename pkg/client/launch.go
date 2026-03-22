@@ -37,22 +37,29 @@ func (l *LaunchScope) Start(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "start launch", response.JSONDefault, response.JSON201)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON201)
+	if err != nil {
+		return nil, fmt.Errorf("start launch: %w", err)
+	}
+
+	return result, nil
 }
 
-// Finish marks an existing launch as finished.
+// Finish marks an existing launch as finished using the launch UUID returned by
+// Start. Numeric launch IDs are handled by GetByID, Update, Delete, and
+// ForceFinish.
 func (l *LaunchScope) Finish(
 	ctx context.Context,
-	launchID string,
+	launchUUID string,
 	request types.FinishExecutionRQ,
 ) (*types.FinishLaunchRS, error) {
-	logger := l.project.operationLogger("FinishLaunch", slog.String("launchId", launchID))
+	logger := l.project.operationLogger("FinishLaunch", slog.String("launchUuid", launchUUID))
 	logger.InfoContext(ctx, "API request")
 
 	response, err := l.project.client.raw.FinishLaunchUsingPUT1WithResponse(
 		ctx,
 		l.project.projectName,
-		launchID,
+		launchUUID,
 		request,
 	)
 	if err != nil {
@@ -61,7 +68,12 @@ func (l *LaunchScope) Finish(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "finish launch", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("finish launch: %w", err)
+	}
+
+	return result, nil
 }
 
 // GetByUUID returns a single launch by its UUID.
@@ -83,7 +95,12 @@ func (l *LaunchScope) GetByUUID(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "get launch by uuid", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get launch by uuid: %w", err)
+	}
+
+	return result, nil
 }
 
 // GetByID returns a single launch by its numeric ID.
@@ -105,7 +122,12 @@ func (l *LaunchScope) GetByID(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "get launch by id", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get launch by id: %w", err)
+	}
+
+	return result, nil
 }
 
 // ListLaunchesOption configures the filter and pagination parameters for listing launches.
@@ -136,7 +158,12 @@ func (l *LaunchScope) List(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "list launches", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("list launches: %w", err)
+	}
+
+	return result, nil
 }
 
 // WithName filters launches by name.
@@ -267,7 +294,12 @@ func (l *LaunchScope) GetLatest(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "get latest launches", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get latest launches: %w", err)
+	}
+
+	return result, nil
 }
 
 // GetDebug returns debug-mode launches (uses /launch/mode endpoint).
@@ -299,7 +331,12 @@ func (l *LaunchScope) GetDebug(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "get debug launches", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get debug launches: %w", err)
+	}
+
+	return result, nil
 }
 
 // convertToLatestParams converts GetProjectLaunchesUsingGETParams to GetLatestLaunchesUsingGETParams. NOTE: This
@@ -401,7 +438,12 @@ func (l *LaunchScope) Update(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "update launch", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("update launch: %w", err)
+	}
+
+	return result, nil
 }
 
 // Delete removes a single launch by its numeric ID.
@@ -423,7 +465,12 @@ func (l *LaunchScope) Delete(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "delete launch", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("delete launch: %w", err)
+	}
+
+	return result, nil
 }
 
 // DeleteBulk removes multiple launches by their numeric IDs.
@@ -445,7 +492,12 @@ func (l *LaunchScope) DeleteBulk(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "delete launches bulk", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("delete launches bulk: %w", err)
+	}
+
+	return result, nil
 }
 
 // ForceFinish stops a stuck launch that cannot be finished normally.
@@ -469,7 +521,12 @@ func (l *LaunchScope) ForceFinish(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "force finish launch", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("force finish launch: %w", err)
+	}
+
+	return result, nil
 }
 
 // Merge combines multiple launches into a single launch. If MergeType is not
@@ -497,7 +554,12 @@ func (l *LaunchScope) Merge(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "merge launches", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("merge launches: %w", err)
+	}
+
+	return result, nil
 }
 
 // Analyze triggers auto-analysis on a launch.
@@ -519,7 +581,12 @@ func (l *LaunchScope) Analyze(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "analyze launch", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("analyze launch: %w", err)
+	}
+
+	return result, nil
 }
 
 // BulkUpdate modifies attributes and/or description for multiple launches at once.
@@ -541,7 +608,12 @@ func (l *LaunchScope) BulkUpdate(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "bulk update launches", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("bulk update launches: %w", err)
+	}
+
+	return result, nil
 }
 
 // BulkForceFinish stops multiple stuck launches that cannot be finished normally.
@@ -563,9 +635,9 @@ func (l *LaunchScope) BulkForceFinish(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	results, err := handleResponse(response, "bulk force finish launches", response.JSONDefault, response.JSON200)
+	results, err := handleResponse(response, response.JSONDefault, response.JSON200)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("bulk force finish launches: %w", err)
 	}
 
 	if results == nil {
@@ -600,14 +672,9 @@ func (l *LaunchScope) GetNames(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	names, err := handleResponse(
-		response,
-		"get launch names",
-		response.JSONDefault,
-		response.JSON200,
-	)
+	names, err := handleResponse(response, response.JSONDefault, response.JSON200)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get launch names: %w", err)
 	}
 
 	if names == nil {
@@ -639,9 +706,9 @@ func (l *LaunchScope) Compare(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, "compare launches", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("compare launches: %w", err)
 	}
 
 	if result == nil {
@@ -678,12 +745,18 @@ func (l *LaunchScope) Import(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "import launch", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("import launch: %w", err)
+	}
+
+	return result, nil
 }
 
 // buildImportMultipart assembles the multipart body for a launch import request.
 func buildImportMultipart(filename string, data io.Reader) (*bytes.Buffer, string, error) {
 	var buf bytes.Buffer
+
 	writer := multipart.NewWriter(&buf)
 
 	part, err := writer.CreateFormFile("file", filename)
@@ -724,12 +797,15 @@ func (l *LaunchScope) GetReport(
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
 	if response.JSONDefault != nil {
-		return nil, newAPIError("get launch report", response.StatusCode(), response.JSONDefault)
+		return nil, fmt.Errorf(
+			"get launch report: %w",
+			newAPIError(response.StatusCode(), response.JSONDefault),
+		)
 	}
 
 	code := response.StatusCode()
 	if code < 200 || code >= 300 {
-		return nil, newUnexpectedStatusError("get launch report", code)
+		return nil, fmt.Errorf("get launch report: %w", newUnexpectedStatusError(code))
 	}
 
 	return response.Body, nil

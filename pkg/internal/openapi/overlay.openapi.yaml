@@ -43,3 +43,6 @@ actions:
           application/json:
             schema:
               $ref: 'components.openapi.yaml#/components/schemas/ErrorRS'
+  # /v1/{projectName}/widget/names/all returns a paged object with string content items in RP 5.11.
+  - target: $.paths['/v1/{projectName}/widget/names/all'].get.responses['200'].content['application/json'].schema.$ref
+    update: 'widget-names.openapi.yaml#/components/schemas/WidgetNamesIterable'

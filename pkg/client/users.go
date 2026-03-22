@@ -25,7 +25,12 @@ func (u *UsersScope) GetMyself(ctx context.Context) (*types.UserResource, error)
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "get myself", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get myself: %w", err)
+	}
+
+	return result, nil
 }
 
 // GetByLogin returns a user by their login name. It prefers the non-deprecated user controller endpoint
@@ -45,13 +50,13 @@ func (u *UsersScope) GetByLogin(ctx context.Context, login string) (*types.UserR
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, "get user by login", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
 	if err == nil {
 		return result, nil
 	}
 
 	if !IsUnauthorized(err) && !IsForbidden(err) {
-		return nil, err
+		return nil, fmt.Errorf("get user by login: %w", err)
 	}
 
 	logger.DebugContext(
@@ -67,12 +72,16 @@ func (u *UsersScope) GetByLogin(ctx context.Context, login string) (*types.UserR
 
 	logger.DebugContext(ctx, "fallback API response", "status", fallbackResponse.StatusCode())
 
-	return handleResponse(
+	result, err = handleResponse(
 		fallbackResponse,
-		"get user by login (fallback)",
 		fallbackResponse.JSONDefault,
 		fallbackResponse.JSON200,
 	)
+	if err != nil {
+		return nil, fmt.Errorf("get user by login (fallback): %w", err)
+	}
+
+	return result, nil
 }
 
 // ListProjects returns the projects accessible to the given user.
@@ -97,12 +106,11 @@ func (u *UsersScope) ListProjects(
 
 	result, err := handleResponse(
 		response,
-		"list user projects",
 		response.JSONDefault,
 		response.JSON200,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list user projects: %w", err)
 	}
 
 	if result == nil {

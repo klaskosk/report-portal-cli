@@ -34,18 +34,24 @@ func (i *TestItemScope) StartRoot(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "start root test item", response.JSONDefault, response.JSON201)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON201)
+	if err != nil {
+		return nil, fmt.Errorf("start root test item: %w", err)
+	}
+
+	return result, nil
 }
 
-// StartChild creates a child test item under the given parent item.
+// StartChild creates a child test item under the given parent item's UUID as
+// returned by StartRoot or StartChild.
 func (i *TestItemScope) StartChild(
 	ctx context.Context,
-	parentItemID string,
+	parentItemUUID string,
 	request types.StartTestItemRQ,
 ) (*types.EntryCreatedAsyncRS, error) {
 	logger := i.project.operationLogger(
 		"StartChildTestItem",
-		slog.String("parentItemId", parentItemID),
+		slog.String("parentItemUuid", parentItemUUID),
 		slog.String("name", request.Name),
 	)
 	logger.InfoContext(ctx, "API request")
@@ -53,7 +59,7 @@ func (i *TestItemScope) StartChild(
 	response, err := i.project.client.raw.StartChildItemUsingPOST1WithResponse(
 		ctx,
 		i.project.projectName,
-		parentItemID,
+		parentItemUUID,
 		request,
 	)
 	if err != nil {
@@ -62,22 +68,28 @@ func (i *TestItemScope) StartChild(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "start child test item", response.JSONDefault, response.JSON201)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON201)
+	if err != nil {
+		return nil, fmt.Errorf("start child test item: %w", err)
+	}
+
+	return result, nil
 }
 
-// Finish marks an existing test item as finished.
+// Finish marks an existing test item as finished using the item UUID returned by
+// StartRoot or StartChild.
 func (i *TestItemScope) Finish(
 	ctx context.Context,
-	itemID string,
+	itemUUID string,
 	request types.FinishTestItemRQ,
 ) (*types.OperationCompletionRS, error) {
-	logger := i.project.operationLogger("FinishTestItem", slog.String("itemId", itemID))
+	logger := i.project.operationLogger("FinishTestItem", slog.String("itemUuid", itemUUID))
 	logger.InfoContext(ctx, "API request")
 
 	response, err := i.project.client.raw.FinishTestItemUsingPUT1WithResponse(
 		ctx,
 		i.project.projectName,
-		itemID,
+		itemUUID,
 		request,
 	)
 	if err != nil {
@@ -86,7 +98,12 @@ func (i *TestItemScope) Finish(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "finish test item", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("finish test item: %w", err)
+	}
+
+	return result, nil
 }
 
 // GetByID returns a single test item by its numeric ID.
@@ -108,7 +125,12 @@ func (i *TestItemScope) GetByID(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "get test item by id", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get test item by id: %w", err)
+	}
+
+	return result, nil
 }
 
 // GetByUUID returns a single test item by its UUID.
@@ -130,7 +152,12 @@ func (i *TestItemScope) GetByUUID(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "get test item by uuid", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get test item by uuid: %w", err)
+	}
+
+	return result, nil
 }
 
 // ListTestItemsOption configures filter and pagination parameters for listing test items.
@@ -161,7 +188,12 @@ func (i *TestItemScope) List(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "list test items", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("list test items: %w", err)
+	}
+
+	return result, nil
 }
 
 // GetByIDs returns test items for the given numeric IDs.
@@ -190,14 +222,9 @@ func (i *TestItemScope) GetByIDs(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	items, err := handleResponse(
-		response,
-		"get test items by ids",
-		response.JSONDefault,
-		response.JSON200,
-	)
+	items, err := handleResponse(response, response.JSONDefault, response.JSON200)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get test items by ids: %w", err)
 	}
 
 	if items == nil {
@@ -228,7 +255,12 @@ func (i *TestItemScope) Update(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "update test item", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("update test item: %w", err)
+	}
+
+	return result, nil
 }
 
 // Delete removes a single test item by its numeric ID.
@@ -250,7 +282,12 @@ func (i *TestItemScope) Delete(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "delete test item", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("delete test item: %w", err)
+	}
+
+	return result, nil
 }
 
 // DefineIssueType bulk-updates the defect classification on multiple test items.
@@ -272,14 +309,9 @@ func (i *TestItemScope) DefineIssueType(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	issues, err := handleResponse(
-		response,
-		"define test item issue type",
-		response.JSONDefault,
-		response.JSON200,
-	)
+	issues, err := handleResponse(response, response.JSONDefault, response.JSON200)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("define test item issue type: %w", err)
 	}
 
 	if issues == nil {
@@ -308,9 +340,9 @@ func (i *TestItemScope) DeleteBulk(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	results, err := handleResponse(response, "delete test items bulk", response.JSONDefault, response.JSON200)
+	results, err := handleResponse(response, response.JSONDefault, response.JSON200)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("delete test items bulk: %w", err)
 	}
 
 	if results == nil {
@@ -339,7 +371,12 @@ func (i *TestItemScope) BulkUpdate(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "bulk update test items", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("bulk update test items: %w", err)
+	}
+
+	return result, nil
 }
 
 // WithItemPageNumber sets the page number (0-based).
@@ -442,7 +479,12 @@ func (i *TestItemScope) GetHistory(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "get items history", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get items history: %w", err)
+	}
+
+	return result, nil
 }
 
 // WithHistoryDepth sets the number of previous launches to include in history.

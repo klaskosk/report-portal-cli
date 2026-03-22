@@ -63,7 +63,7 @@ func TestLaunchParamStructs_HaveIdenticalFields(t *testing.T) {
 func TestConvertToLatestParams_CopiesAllFields(t *testing.T) {
 	t.Parallel()
 
-	src := populateAllFields(reflect.TypeOf(api.GetProjectLaunchesUsingGETParams{})).
+	src := populateAllFields(reflect.TypeFor[api.GetProjectLaunchesUsingGETParams]()).
 		Interface().(api.GetProjectLaunchesUsingGETParams)
 
 	result := client.ConvertToLatestParams(&src)
@@ -84,7 +84,7 @@ func TestConvertToLatestParams_CopiesAllFields(t *testing.T) {
 func TestConvertToDebugParams_CopiesAllFields(t *testing.T) {
 	t.Parallel()
 
-	src := populateAllFields(reflect.TypeOf(api.GetProjectLaunchesUsingGETParams{})).
+	src := populateAllFields(reflect.TypeFor[api.GetProjectLaunchesUsingGETParams]()).
 		Interface().(api.GetProjectLaunchesUsingGETParams)
 
 	result := client.ConvertToDebugParams(&src)

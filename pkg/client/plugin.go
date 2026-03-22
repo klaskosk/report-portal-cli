@@ -26,9 +26,9 @@ func (s *PluginScope) List(ctx context.Context) ([]types.IntegrationTypeResource
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, "list plugins", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list plugins: %w", err)
 	}
 
 	if result == nil {
@@ -51,9 +51,9 @@ func (s *PluginScope) ListPublic(ctx context.Context) ([]types.IntegrationTypeRe
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, "list public plugins", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list public plugins: %w", err)
 	}
 
 	if result == nil {
@@ -64,7 +64,11 @@ func (s *PluginScope) ListPublic(ctx context.Context) ([]types.IntegrationTypeRe
 }
 
 // UpdateState enables or disables a plugin. Requires admin privileges.
-func (s *PluginScope) UpdateState(ctx context.Context, pluginID int64, stateUpdate types.UpdatePluginStateRQ) (*types.OperationCompletionRS, error) {
+func (s *PluginScope) UpdateState(
+	ctx context.Context,
+	pluginID int64,
+	stateUpdate types.UpdatePluginStateRQ,
+) (*types.OperationCompletionRS, error) {
 	logger := s.client.logger.With(
 		slog.String("operation", "UpdatePluginState"),
 		slog.Int64("pluginId", pluginID),
@@ -78,11 +82,19 @@ func (s *PluginScope) UpdateState(ctx context.Context, pluginID int64, stateUpda
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "update plugin state", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("update plugin state: %w", err)
+	}
+
+	return result, nil
 }
 
 // Delete removes a plugin. Requires admin privileges.
-func (s *PluginScope) Delete(ctx context.Context, pluginID int64) (*types.OperationCompletionRS, error) {
+func (s *PluginScope) Delete(
+	ctx context.Context,
+	pluginID int64,
+) (*types.OperationCompletionRS, error) {
 	logger := s.client.logger.With(
 		slog.String("operation", "DeletePlugin"),
 		slog.Int64("pluginId", pluginID),
@@ -96,12 +108,20 @@ func (s *PluginScope) Delete(ctx context.Context, pluginID int64) (*types.Operat
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "delete plugin", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("delete plugin: %w", err)
+	}
+
+	return result, nil
 }
 
 // GetPublicFile downloads a public file from a plugin (e.g., plugin icon).
 // Returns the raw file bytes. Some deployments allow this without authentication.
-func (s *PluginScope) GetPublicFile(ctx context.Context, pluginName, fileName string) ([]byte, error) {
+func (s *PluginScope) GetPublicFile(
+	ctx context.Context,
+	pluginName, fileName string,
+) ([]byte, error) {
 	logger := s.client.logger.With(
 		slog.String("operation", "GetPublicPluginFile"),
 		slog.String("pluginName", pluginName),
@@ -117,12 +137,15 @@ func (s *PluginScope) GetPublicFile(ctx context.Context, pluginName, fileName st
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
 	if response.JSONDefault != nil {
-		return nil, newAPIError("get public plugin file", response.StatusCode(), response.JSONDefault)
+		return nil, fmt.Errorf(
+			"get public plugin file: %w",
+			newAPIError(response.StatusCode(), response.JSONDefault),
+		)
 	}
 
 	code := response.StatusCode()
 	if code < 200 || code >= 300 {
-		return nil, newUnexpectedStatusError("get public plugin file", code)
+		return nil, fmt.Errorf("get public plugin file: %w", newUnexpectedStatusError(code))
 	}
 
 	return response.Body, nil

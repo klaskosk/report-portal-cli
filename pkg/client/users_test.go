@@ -91,11 +91,13 @@ func TestUsersScope_GetByLogin_FallsBackToDeprecatedEndpoint(t *testing.T) {
 		switch r.URL.Path {
 		case "/api/v1/user/testuser":
 			primaryCalls++
+
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusForbidden)
 			_, _ = w.Write([]byte(`{"errorCode": 4031, "message": "forbidden"}`))
 		case "/api/users/testuser":
 			fallbackCalls++
+
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{

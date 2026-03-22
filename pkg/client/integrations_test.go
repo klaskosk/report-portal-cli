@@ -45,7 +45,7 @@ func TestIntegrationsScope_ListGlobal_Success(t *testing.T) {
 
 	assert.Equal(t, int64(1), *integrations[0].Id)
 	assert.Equal(t, "email", *integrations[0].Name)
-	assert.Equal(t, true, *integrations[0].Enabled)
+	assert.True(t, *integrations[0].Enabled)
 }
 
 func TestIntegrationsScope_ListGlobal_Unauthorized(t *testing.T) {
@@ -443,9 +443,11 @@ func TestProjectIntegrationsScope_Create_Success(t *testing.T) {
 	}))
 
 	name := "project-email"
-	result, err := c.Project("my_project").Integrations().Create(t.Context(), "email", types.IntegrationRQ{
-		Name: &name,
-	})
+	result, err := c.Project("my_project").
+		Integrations().
+		Create(t.Context(), "email", types.IntegrationRQ{
+			Name: &name,
+		})
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.Id)
@@ -458,7 +460,9 @@ func TestProjectIntegrationsScope_Create_BadRequest(t *testing.T) {
 	c := newTestClient(t, jsonResponse(http.StatusBadRequest,
 		`{"errorCode": 4001, "message": "Incorrect request."}`))
 
-	_, err := c.Project("my_project").Integrations().Create(t.Context(), "email", types.IntegrationRQ{})
+	_, err := c.Project("my_project").
+		Integrations().
+		Create(t.Context(), "email", types.IntegrationRQ{})
 	require.Error(t, err)
 	assert.True(t, client.IsBadRequest(err))
 }
@@ -485,9 +489,11 @@ func TestProjectIntegrationsScope_Update_Success(t *testing.T) {
 	}))
 
 	name := "updated-jira"
-	result, err := c.Project("my_project").Integrations().Update(t.Context(), 10, types.IntegrationRQ{
-		Name: &name,
-	})
+	result, err := c.Project("my_project").
+		Integrations().
+		Update(t.Context(), 10, types.IntegrationRQ{
+			Name: &name,
+		})
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.Message)
@@ -561,7 +567,7 @@ func TestProjectIntegrationsScope_ExecuteCommand_Success(t *testing.T) {
 		t.Context(),
 		10,
 		"testCommand",
-		map[string]interface{}{"key1": "value1"},
+		map[string]any{"key1": "value1"},
 	)
 	require.NoError(t, err)
 	assert.Equal(t, "ok", result["result"])
@@ -578,7 +584,7 @@ func TestProjectIntegrationsScope_ExecuteCommand_NotFound(t *testing.T) {
 		t.Context(),
 		999,
 		"testCommand",
-		map[string]interface{}{},
+		map[string]any{},
 	)
 	require.Error(t, err)
 	assert.True(t, client.IsNotFound(err))

@@ -876,10 +876,7 @@ type IterableObject struct {
 }
 
 // IterableString defines model for Iterable«string».
-type IterableString struct {
-	Content []string     `json:"content"`
-	Page    PageMetadata `json:"page"`
-}
+type IterableString = []string
 
 // LaunchImportRQ defines model for LaunchImportRQ.
 type LaunchImportRQ struct {
@@ -1387,18 +1384,7 @@ type Ticket struct {
 }
 
 // Timestamp defines model for Timestamp.
-type Timestamp struct {
-	Date           *int32 `json:"date,omitempty"`
-	Day            *int32 `json:"day,omitempty"`
-	Hours          *int32 `json:"hours,omitempty"`
-	Minutes        *int32 `json:"minutes,omitempty"`
-	Month          *int32 `json:"month,omitempty"`
-	Nanos          *int32 `json:"nanos,omitempty"`
-	Seconds        *int32 `json:"seconds,omitempty"`
-	Time           *int64 `json:"time,omitempty"`
-	TimezoneOffset *int32 `json:"timezoneOffset,omitempty"`
-	Year           *int32 `json:"year,omitempty"`
-}
+type Timestamp = EpochMillis
 
 // UnassignUsersRQ defines model for UnassignUsersRQ.
 type UnassignUsersRQ struct {
@@ -1525,6 +1511,12 @@ type UserResource struct {
 	PhotoLoaded      *bool                       `json:"photoLoaded,omitempty"`
 	UserId           string                      `json:"userId"`
 	UserRole         *string                     `json:"userRole,omitempty"`
+}
+
+// WidgetNamesIterable defines model for WidgetNamesIterable.
+type WidgetNamesIterable struct {
+	Content []string     `json:"content"`
+	Page    PageMetadata `json:"page"`
 }
 
 // WidgetObjectModel defines model for WidgetObjectModel.

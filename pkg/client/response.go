@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/klaskosk/report-portal-cli/pkg/types"
@@ -14,24 +15,27 @@ type apiResponse interface {
 
 // handleResponse checks the error response body and returns the success value. It handles the "check JSONDefault, then
 // return success" pattern that every scope method uses. If the status code is outside 2xx and there is no parsed JSON
-// error body (e.g. a proxy returning HTML), it returns an UnexpectedStatusError.
+// error body (e.g. a proxy returning HTML), it returns an UnexpectedStatusError. Callers are responsible for wrapping
+// the returned error with operation context via fmt.Errorf.
 func handleResponse[R apiResponse, T any](
 	response R,
-	operation string,
 	jsonDefault *types.ErrorRS,
-	success T,
-) (T, error) {
+	success *T,
+) (*T, error) {
 	if jsonDefault != nil {
-		var zero T
-
-		return zero, newAPIError(operation, response.StatusCode(), jsonDefault)
+		return nil, newAPIError(response.StatusCode(), jsonDefault)
 	}
 
 	code := response.StatusCode()
 	if code < 200 || code >= 300 {
-		var zero T
+		return nil, newUnexpectedStatusError(code)
+	}
 
-		return zero, newUnexpectedStatusError(operation, code)
+	if success == nil {
+		return nil, fmt.Errorf(
+			"API returned success status (%d) but no valid response body was parsed",
+			code,
+		)
 	}
 
 	return success, nil

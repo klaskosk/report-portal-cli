@@ -1346,8 +1346,11 @@ func TestLaunchScope_Compare_Success(t *testing.T) {
 	assert.Contains(t, result, "executionStatistics")
 	assert.Len(t, result["executionStatistics"], 2)
 	require.NotNil(t, result["executionStatistics"][0].StartTime)
-	require.NotNil(t, result["executionStatistics"][0].StartTime.Time)
-	assert.EqualValues(t, 1700000000000, *result["executionStatistics"][0].StartTime.Time)
+	assert.EqualValues(
+		t,
+		1700000000000,
+		time.Time(*result["executionStatistics"][0].StartTime).UnixMilli(),
+	)
 }
 
 func TestLaunchScope_Compare_Errors(t *testing.T) {
@@ -1378,7 +1381,9 @@ func TestLaunchScope_Compare_Errors(t *testing.T) {
 			t.Parallel()
 
 			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
-			_, err := testClient.Project("my_project").Launches().Compare(t.Context(), []int64{1, 2})
+			_, err := testClient.Project("my_project").
+				Launches().
+				Compare(t.Context(), []int64{1, 2})
 
 			require.Error(t, err)
 			assert.True(t, testCase.check(err))
@@ -1401,6 +1406,7 @@ func TestLaunchScope_Import_Success(t *testing.T) {
 
 		file, header, err := r.FormFile("file")
 		require.NoError(t, err)
+
 		defer file.Close()
 
 		assert.Equal(t, "launch-export.zip", header.Filename)
@@ -1517,7 +1523,9 @@ func TestLaunchScope_GetReport_Errors(t *testing.T) {
 			t.Parallel()
 
 			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
-			_, err := testClient.Project("my_project").Launches().GetReport(t.Context(), testCase.launchID)
+			_, err := testClient.Project("my_project").
+				Launches().
+				GetReport(t.Context(), testCase.launchID)
 
 			require.Error(t, err)
 			assert.True(t, testCase.check(err))

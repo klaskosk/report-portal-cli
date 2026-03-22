@@ -51,7 +51,12 @@ func (l *LogScope) GetByID(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "get log by id", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get log by id: %w", err)
+	}
+
+	return result, nil
 }
 
 // GetByUUID returns a single log entry by its UUID.
@@ -73,7 +78,12 @@ func (l *LogScope) GetByUUID(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "get log by uuid", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get log by uuid: %w", err)
+	}
+
+	return result, nil
 }
 
 // ListLogsOption configures filter and pagination parameters for listing logs.
@@ -104,7 +114,12 @@ func (l *LogScope) List(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "list logs", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("list logs: %w", err)
+	}
+
+	return result, nil
 }
 
 // Create creates a single log entry (JSON body, no file attachment).
@@ -126,7 +141,12 @@ func (l *LogScope) Create(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "create log entry", response.JSONDefault, response.JSON201)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON201)
+	if err != nil {
+		return nil, fmt.Errorf("create log entry: %w", err)
+	}
+
+	return result, nil
 }
 
 // Delete removes a single log entry by its numeric ID.
@@ -148,7 +168,12 @@ func (l *LogScope) Delete(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "delete log", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("delete log: %w", err)
+	}
+
+	return result, nil
 }
 
 // CreateBatch creates multiple log entries in a single multipart request,
@@ -179,12 +204,19 @@ func (l *LogScope) CreateBatch(
 
 	if response.StatusCode() == http.StatusCreated {
 		var created types.BatchSaveOperatingRS
-		if err := json.Unmarshal(response.Body, &created); err == nil {
+
+		err := json.Unmarshal(response.Body, &created)
+		if err == nil {
 			return &created, nil
 		}
 	}
 
-	return handleResponse(response, "create log batch", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("create log batch: %w", err)
+	}
+
+	return result, nil
 }
 
 // batchLogJSON is the JSON representation of a single log entry within the
@@ -208,6 +240,7 @@ type batchLogFile struct {
 // the boundary.
 func buildBatchLogMultipart(entries []BatchLogEntry) (*bytes.Buffer, string, error) {
 	var buf bytes.Buffer
+
 	writer := multipart.NewWriter(&buf)
 
 	jsonEntries := make([]batchLogJSON, len(entries))
@@ -334,7 +367,12 @@ func (l *LogScope) Search(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "search logs", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("search logs: %w", err)
+	}
+
+	return result, nil
 }
 
 // GetLogsUnder retrieves log entries grouped by item ID for the specified
@@ -363,9 +401,9 @@ func (l *LogScope) GetLogsUnder(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, "get logs under", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get logs under: %w", err)
 	}
 
 	if result == nil {

@@ -2,11 +2,8 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"log/slog"
-	"net/http"
 
 	"github.com/klaskosk/report-portal-cli/pkg/internal/api"
 	"github.com/klaskosk/report-portal-cli/pkg/types"
@@ -36,7 +33,12 @@ func (w *WidgetScope) GetByID(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "get widget by id", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get widget by id: %w", err)
+	}
+
+	return result, nil
 }
 
 // Create creates a new widget in the project.
@@ -58,7 +60,12 @@ func (w *WidgetScope) Create(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "create widget", response.JSONDefault, response.JSON201)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON201)
+	if err != nil {
+		return nil, fmt.Errorf("create widget: %w", err)
+	}
+
+	return result, nil
 }
 
 // Update modifies an existing widget.
@@ -82,7 +89,12 @@ func (w *WidgetScope) Update(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "update widget", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("update widget: %w", err)
+	}
+
+	return result, nil
 }
 
 // GetData returns a widget's computed data by its numeric ID.
@@ -95,7 +107,7 @@ func (w *WidgetScope) GetData(
 	logger := w.project.operationLogger("GetWidgetData", slog.Int64("id", id))
 
 	params := &api.GetWidgetUsingGETParams{
-		Params: map[string]interface{}{},
+		Params: map[string]any{},
 	}
 	for _, option := range options {
 		option(params)
@@ -115,7 +127,12 @@ func (w *WidgetScope) GetData(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "get widget data", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get widget data: %w", err)
+	}
+
+	return result, nil
 }
 
 // GetWidgetDataOption configures the parameters for getting widget data.
@@ -128,12 +145,11 @@ func WithWidgetAttributes(attributes ...string) GetWidgetDataOption {
 	}
 }
 
-// GetNames returns widget names matching the filter (for autocomplete). The returned
-// IterableObject contains maps with name/owner keys.
+// GetNames returns widget names matching the filter (for autocomplete).
 func (w *WidgetScope) GetNames(
 	ctx context.Context,
 	filter string,
-) (*types.IterableObject, error) {
+) (*types.WidgetNamesIterable, error) {
 	logger := w.project.operationLogger("GetWidgetNames", slog.String("filter", filter))
 
 	params := &api.GetWidgetNamesUsingGETParams{}
@@ -149,96 +165,21 @@ func (w *WidgetScope) GetNames(
 		params,
 	)
 	if err != nil {
-		logger.DebugContext(ctx, "typed widget names decode failed; retrying raw", "error", err)
-
-		return w.getNamesRaw(ctx, params)
+		return nil, fmt.Errorf("get widget names: %w", err)
 	}
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(
-		response,
-		"get widget names",
-		response.JSONDefault,
-		response.JSON200,
-	)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get widget names: %w", err)
 	}
 
 	if result == nil {
-		return &types.IterableObject{}, nil
-	}
-
-	return result, nil
-}
-
-// getNamesRaw retries widget-name lookup and normalizes deployments that return string items.
-func (w *WidgetScope) getNamesRaw(
-	ctx context.Context,
-	params *api.GetWidgetNamesUsingGETParams,
-) (*types.IterableObject, error) {
-	rawClient, ok := w.project.client.raw.(*api.ClientWithResponses)
-	if !ok {
-		return nil, fmt.Errorf(
-			"get widget names: raw fallback unavailable for client type %T",
-			w.project.client.raw,
-		)
-	}
-
-	rawResponse, err := rawClient.GetWidgetNamesUsingGET(
-		ctx,
-		w.project.projectName,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get widget names: %w", err)
-	}
-	defer rawResponse.Body.Close()
-
-	body, err := io.ReadAll(rawResponse.Body)
-	if err != nil {
-		return nil, fmt.Errorf("reading widget names response: %w", err)
-	}
-
-	if rawResponse.StatusCode != http.StatusOK {
-		var errorResponse types.ErrorRS
-		if json.Unmarshal(body, &errorResponse) == nil && errorResponse.ErrorCode != 0 {
-			return nil, newAPIError("get widget names", rawResponse.StatusCode, &errorResponse)
-		}
-
-		return nil, newUnexpectedStatusError("get widget names", rawResponse.StatusCode)
-	}
-
-	var rawIterable struct {
-		Content []json.RawMessage `json:"content"`
-		Page    types.PageMetadata `json:"page"`
-	}
-	if err := json.Unmarshal(body, &rawIterable); err != nil {
-		return nil, fmt.Errorf("get widget names: %w", err)
-	}
-
-	result := &types.IterableObject{
-		Content: make([]map[string]interface{}, 0, len(rawIterable.Content)),
-		Page:    rawIterable.Page,
-	}
-
-	for _, rawItem := range rawIterable.Content {
-		var objectItem map[string]interface{}
-		if err := json.Unmarshal(rawItem, &objectItem); err == nil {
-			result.Content = append(result.Content, objectItem)
-
-			continue
-		}
-
-		var stringItem string
-		if err := json.Unmarshal(rawItem, &stringItem); err == nil {
-			result.Content = append(result.Content, map[string]interface{}{"name": stringItem})
-
-			continue
-		}
-
-		return nil, fmt.Errorf("get widget names: unsupported content item %s", string(rawItem))
+		return &types.WidgetNamesIterable{
+			Content: []string{},
+			Page:    types.PageMetadata{},
+		}, nil
 	}
 
 	return result, nil

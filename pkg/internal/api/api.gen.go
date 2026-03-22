@@ -30902,7 +30902,7 @@ func (r GetWidgetUsingGETResponse) StatusCode() int {
 type GetWidgetNamesUsingGETResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef0.IterableObject
+	JSON200      *externalRef0.WidgetNamesIterable
 	JSONDefault  *externalRef0.ErrorRS
 }
 
@@ -40550,7 +40550,7 @@ func ParseGetWidgetNamesUsingGETResponse(rsp *http.Response) (*GetWidgetNamesUsi
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef0.IterableObject
+		var dest externalRef0.WidgetNamesIterable
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

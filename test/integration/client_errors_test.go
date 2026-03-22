@@ -145,7 +145,6 @@ var _ = Describe("Client: Error predicates", Label("client", "errors"), func() {
 			Expect(client.HasStatusCode(err, 404)).To(BeTrue())
 			Expect(apiErr).NotTo(BeNil())
 			Expect(apiErr.StatusCode()).To(Equal(404))
-			Expect(apiErr.Operation()).NotTo(BeEmpty())
 			Expect(apiErr.Message()).NotTo(BeEmpty())
 			Expect(apiErr.ErrorCode()).NotTo(Equal(0))
 		})

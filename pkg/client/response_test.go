@@ -24,7 +24,7 @@ func TestHandleResponse_Success(t *testing.T) {
 	want := "ok"
 	resp := fakeResponse{statusCode: 200, JSON200: &want}
 
-	got, err := handleResponse(resp, "test op", resp.JSONDefault, resp.JSON200)
+	got, err := handleResponse(resp, resp.JSONDefault, resp.JSON200)
 	require.NoError(t, err)
 	assert.Equal(t, &want, got)
 }
@@ -35,7 +35,7 @@ func TestHandleResponse_Error(t *testing.T) {
 	errBody := &types.ErrorRS{ErrorCode: 40410, Message: "Not found"}
 	resp := fakeResponse{statusCode: 404, JSONDefault: errBody}
 
-	got, err := handleResponse(resp, "test op", resp.JSONDefault, resp.JSON200)
+	got, err := handleResponse(resp, resp.JSONDefault, resp.JSON200)
 	require.Error(t, err)
 	assert.Nil(t, got)
 	assert.True(t, IsNotFound(err))
@@ -43,7 +43,6 @@ func TestHandleResponse_Error(t *testing.T) {
 	var apiErr *APIError
 	require.ErrorAs(t, err, &apiErr)
 	assert.Equal(t, 404, apiErr.StatusCode())
-	assert.Equal(t, "test op", apiErr.Operation())
 	assert.Equal(t, 40410, apiErr.ErrorCode())
 }
 
@@ -52,9 +51,14 @@ func TestHandleResponse_NilSuccess(t *testing.T) {
 
 	resp := fakeResponse{statusCode: 200, JSON200: nil}
 
-	got, err := handleResponse(resp, "test op", resp.JSONDefault, resp.JSON200)
-	require.NoError(t, err)
+	got, err := handleResponse(resp, resp.JSONDefault, resp.JSON200)
+	require.Error(t, err)
 	assert.Nil(t, got)
+	assert.Contains(
+		t,
+		err.Error(),
+		"API returned success status (200) but no valid response body was parsed",
+	)
 }
 
 func TestHandleResponse_NonJSONError(t *testing.T) {
@@ -75,7 +79,7 @@ func TestHandleResponse_NonJSONError(t *testing.T) {
 
 			resp := fakeResponse{statusCode: testCase.statusCode, JSONDefault: nil}
 
-			got, err := handleResponse(resp, "test op", resp.JSONDefault, resp.JSON200)
+			got, err := handleResponse(resp, resp.JSONDefault, resp.JSON200)
 			require.Error(t, err)
 			assert.Nil(t, got)
 			assert.True(t, HasStatusCode(err, testCase.statusCode))
@@ -83,7 +87,6 @@ func TestHandleResponse_NonJSONError(t *testing.T) {
 			var unexpectedErr *UnexpectedStatusError
 			require.ErrorAs(t, err, &unexpectedErr)
 			assert.Equal(t, testCase.statusCode, unexpectedErr.StatusCode())
-			assert.Equal(t, "test op", unexpectedErr.Operation())
 			assert.Contains(t, err.Error(), "unexpected HTTP")
 		})
 	}
@@ -92,10 +95,16 @@ func TestHandleResponse_NonJSONError(t *testing.T) {
 func TestHandleResponse_2xxWithNilJSON(t *testing.T) {
 	t.Parallel()
 
-	// 204 No Content is a valid 2xx with nil success body
+	// 204 No Content still falls under the nil check in this client, because
+	// Report Portal doesn't actually return 204s in any supported endpoints.
 	resp := fakeResponse{statusCode: 204, JSON200: nil}
 
-	got, err := handleResponse(resp, "test op", resp.JSONDefault, resp.JSON200)
-	require.NoError(t, err)
+	got, err := handleResponse(resp, resp.JSONDefault, resp.JSON200)
+	require.Error(t, err)
 	assert.Nil(t, got)
+	assert.Contains(
+		t,
+		err.Error(),
+		"API returned success status (204) but no valid response body was parsed",
+	)
 }

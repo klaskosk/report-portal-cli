@@ -221,12 +221,12 @@ func seedTestItems(
 
 type seededItemRefs struct {
 	LaunchUUID string
-	SuiteRef   string
-	TestRef    string
+	SuiteUUID  string
+	TestUUID   string
 }
 
-// startSeededItemHierarchy creates a launch with one SUITE root and one TEST child. It returns async references that
-// are later finished and resolved to numeric IDs.
+// startSeededItemHierarchy creates a launch with one SUITE root and one TEST child. It returns the launch and item
+// UUIDs produced by the async creation APIs, which are later finished and resolved to numeric IDs.
 func startSeededItemHierarchy(
 	ctx context.Context,
 	launches *client.LaunchScope,
@@ -263,9 +263,9 @@ func startSeededItemHierarchy(
 		return seededItemRefs{}, fmt.Errorf("starting suite item returned empty id")
 	}
 
-	suiteRef := *startedSuite.Id
+	suiteUUID := *startedSuite.Id
 	testType := types.StartTestItemRQType("TEST")
-	startedTest, err := items.StartChild(ctx, suiteRef, types.StartTestItemRQ{
+	startedTest, err := items.StartChild(ctx, suiteUUID, types.StartTestItemRQ{
 		LaunchUuid: launchUUID,
 		Name:       testName,
 		StartTime:  types.EpochMillis(now.Add(1 * time.Second)),
@@ -281,8 +281,8 @@ func startSeededItemHierarchy(
 
 	return seededItemRefs{
 		LaunchUUID: launchUUID,
-		SuiteRef:   suiteRef,
-		TestRef:    *startedTest.Id,
+		SuiteUUID:  suiteUUID,
+		TestUUID:   *startedTest.Id,
 	}, nil
 }
 
@@ -296,23 +296,23 @@ func finishSeededItemHierarchy(
 	refs seededItemRefs,
 ) error {
 	finishedItemStatus := types.FinishTestItemRQStatusPASSED
-	finishItem := func(itemRef string, endTime time.Time) error {
-		_, finishErr := items.Finish(ctx, itemRef, types.FinishTestItemRQ{
+	finishItem := func(itemUUID string, endTime time.Time) error {
+		_, finishErr := items.Finish(ctx, itemUUID, types.FinishTestItemRQ{
 			LaunchUuid: refs.LaunchUUID,
 			EndTime:    types.EpochMillis(endTime),
 			Status:     &finishedItemStatus,
 		})
 		if finishErr != nil {
-			return fmt.Errorf("finishing item %q: %w", itemRef, finishErr)
+			return fmt.Errorf("finishing item %q: %w", itemUUID, finishErr)
 		}
 
 		return nil
 	}
 
-	if err := finishItem(refs.TestRef, now.Add(5*time.Second)); err != nil {
+	if err := finishItem(refs.TestUUID, now.Add(5*time.Second)); err != nil {
 		return err
 	}
-	if err := finishItem(refs.SuiteRef, now.Add(6*time.Second)); err != nil {
+	if err := finishItem(refs.SuiteUUID, now.Add(6*time.Second)); err != nil {
 		return err
 	}
 
@@ -336,13 +336,13 @@ func resolveSeededItemIdentifiers(
 	items *client.TestItemScope,
 	refs seededItemRefs,
 ) (seededTestItems, error) {
-	suiteID, suiteUUID, err := resolveItemByUUID(ctx, items, refs.SuiteRef)
+	suiteID, suiteUUID, err := resolveItemByUUID(ctx, items, refs.SuiteUUID)
 	if err != nil {
 		return seededTestItems{}, fmt.Errorf("resolving suite item identifiers: %w", err)
 	}
 
 	// Ensure the child item is indexed before item-list tests execute.
-	testID, testUUID, err := resolveItemByUUID(ctx, items, refs.TestRef)
+	testID, testUUID, err := resolveItemByUUID(ctx, items, refs.TestUUID)
 	if err != nil {
 		return seededTestItems{}, fmt.Errorf("resolving child test item identifiers: %w", err)
 	}

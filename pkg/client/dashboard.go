@@ -39,7 +39,12 @@ func (d *DashboardScope) List(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "list dashboards", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("list dashboards: %w", err)
+	}
+
+	return result, nil
 }
 
 // GetByID returns a single dashboard by its numeric ID.
@@ -61,7 +66,12 @@ func (d *DashboardScope) GetByID(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "get dashboard by id", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get dashboard by id: %w", err)
+	}
+
+	return result, nil
 }
 
 // Create creates a new dashboard in the project.
@@ -83,7 +93,12 @@ func (d *DashboardScope) Create(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "create dashboard", response.JSONDefault, response.JSON201)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON201)
+	if err != nil {
+		return nil, fmt.Errorf("create dashboard: %w", err)
+	}
+
+	return result, nil
 }
 
 // Update modifies an existing dashboard.
@@ -107,7 +122,12 @@ func (d *DashboardScope) Update(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "update dashboard", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("update dashboard: %w", err)
+	}
+
+	return result, nil
 }
 
 // Delete removes a dashboard by its numeric ID.
@@ -129,7 +149,12 @@ func (d *DashboardScope) Delete(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "delete dashboard", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("delete dashboard: %w", err)
+	}
+
+	return result, nil
 }
 
 // AddWidget adds a widget to a dashboard.
@@ -138,7 +163,10 @@ func (d *DashboardScope) AddWidget(
 	dashboardID int64,
 	request types.AddWidgetRq,
 ) (*types.OperationCompletionRS, error) {
-	logger := d.project.operationLogger("AddWidgetToDashboard", slog.Int64("dashboardId", dashboardID))
+	logger := d.project.operationLogger(
+		"AddWidgetToDashboard",
+		slog.Int64("dashboardId", dashboardID),
+	)
 	logger.InfoContext(ctx, "API request")
 
 	response, err := d.project.client.raw.AddWidgetUsingPUTWithResponse(
@@ -153,7 +181,12 @@ func (d *DashboardScope) AddWidget(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "add widget to dashboard", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("add widget to dashboard: %w", err)
+	}
+
+	return result, nil
 }
 
 // RemoveWidget removes a widget from a dashboard.
@@ -180,7 +213,12 @@ func (d *DashboardScope) RemoveWidget(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return handleResponse(response, "remove widget from dashboard", response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("remove widget from dashboard: %w", err)
+	}
+
+	return result, nil
 }
 
 // ListDashboardsOption configures the filter and pagination parameters for listing dashboards.
