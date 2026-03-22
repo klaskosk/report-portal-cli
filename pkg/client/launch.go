@@ -45,19 +45,21 @@ func (l *LaunchScope) Start(
 	return result, nil
 }
 
-// Finish marks an existing launch as finished.
+// Finish marks an existing launch as finished using the launch UUID returned by
+// Start. Numeric launch IDs are handled by GetByID, Update, Delete, and
+// ForceFinish.
 func (l *LaunchScope) Finish(
 	ctx context.Context,
-	launchID string,
+	launchUUID string,
 	request types.FinishExecutionRQ,
 ) (*types.FinishLaunchRS, error) {
-	logger := l.project.operationLogger("FinishLaunch", slog.String("launchId", launchID))
+	logger := l.project.operationLogger("FinishLaunch", slog.String("launchUuid", launchUUID))
 	logger.InfoContext(ctx, "API request")
 
 	response, err := l.project.client.raw.FinishLaunchUsingPUT1WithResponse(
 		ctx,
 		l.project.projectName,
-		launchID,
+		launchUUID,
 		request,
 	)
 	if err != nil {

@@ -97,6 +97,8 @@ Completed ✅
 - **Suggested fix**: Prefer `int64` for numeric IDs across the client API.
 - **AI Thoughts**: **Valid.** A consistent domain model is crucial for a public API.
 
+Partially addressed through API naming cleanup: UUID-based methods and integration helpers now use `launchUUID`, `itemUUID`, `SuiteUUID`, and `TestUUID`, which removes some ambiguity between async UUID references and resolved numeric IDs. The broader public API inconsistency still remains.
+
 **9. [Major] Raw “fallback decode” paths type-assert the generated client and duplicate a lot of logic (Original #15)**
 
 - **Reference**: `pkg/client/projects.go`, `pkg/client/widget.go` (historical context; raw fallback paths removed)

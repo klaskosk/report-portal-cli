@@ -42,15 +42,16 @@ func (i *TestItemScope) StartRoot(
 	return result, nil
 }
 
-// StartChild creates a child test item under the given parent item.
+// StartChild creates a child test item under the given parent item's UUID as
+// returned by StartRoot or StartChild.
 func (i *TestItemScope) StartChild(
 	ctx context.Context,
-	parentItemID string,
+	parentItemUUID string,
 	request types.StartTestItemRQ,
 ) (*types.EntryCreatedAsyncRS, error) {
 	logger := i.project.operationLogger(
 		"StartChildTestItem",
-		slog.String("parentItemId", parentItemID),
+		slog.String("parentItemUuid", parentItemUUID),
 		slog.String("name", request.Name),
 	)
 	logger.InfoContext(ctx, "API request")
@@ -58,7 +59,7 @@ func (i *TestItemScope) StartChild(
 	response, err := i.project.client.raw.StartChildItemUsingPOST1WithResponse(
 		ctx,
 		i.project.projectName,
-		parentItemID,
+		parentItemUUID,
 		request,
 	)
 	if err != nil {
@@ -75,19 +76,20 @@ func (i *TestItemScope) StartChild(
 	return result, nil
 }
 
-// Finish marks an existing test item as finished.
+// Finish marks an existing test item as finished using the item UUID returned by
+// StartRoot or StartChild.
 func (i *TestItemScope) Finish(
 	ctx context.Context,
-	itemID string,
+	itemUUID string,
 	request types.FinishTestItemRQ,
 ) (*types.OperationCompletionRS, error) {
-	logger := i.project.operationLogger("FinishTestItem", slog.String("itemId", itemID))
+	logger := i.project.operationLogger("FinishTestItem", slog.String("itemUuid", itemUUID))
 	logger.InfoContext(ctx, "API request")
 
 	response, err := i.project.client.raw.FinishTestItemUsingPUT1WithResponse(
 		ctx,
 		i.project.projectName,
-		itemID,
+		itemUUID,
 		request,
 	)
 	if err != nil {
