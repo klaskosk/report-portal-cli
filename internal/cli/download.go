@@ -53,11 +53,20 @@ func runDownload(cmd *cobra.Command, args []string) error {
 	argumentValue := args[0]
 	shouldResolveFromLog, _ := cmd.Flags().GetBool("log")
 
-	dataID := argumentValue
+	var dataID int64
+
 	if shouldResolveFromLog {
 		dataID, err = resolveDataIDFromLog(cmd, clientInstance, project, argumentValue, printer)
 		if err != nil {
 			return err
+		}
+	} else {
+		dataID, err = strconv.ParseInt(argumentValue, 10, 64)
+		if err != nil {
+			parseErr := fmt.Errorf("invalid data ID %q: %w", argumentValue, err)
+			printer.PrintError(parseErr)
+
+			return parseErr
 		}
 	}
 
@@ -67,7 +76,7 @@ func runDownload(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		printer.PrintError(err)
 
-		return fmt.Errorf("downloading file %s: %w", dataID, err)
+		return fmt.Errorf("downloading file %d: %w", dataID, err)
 	}
 
 	return writeDownloadedContent(cmd, content)
@@ -79,27 +88,43 @@ func resolveDataIDFromLog(
 	clientInstance *client.Client,
 	project, logID string,
 	printer *Printer,
-) (string, error) {
+) (int64, error) {
 	numericID, parseErr := strconv.ParseInt(logID, 10, 64)
 	if parseErr != nil {
-		return "", fmt.Errorf("invalid log id %q: %w", logID, parseErr)
+		return 0, fmt.Errorf("invalid log id %q: %w", logID, parseErr)
 	}
 
 	logEntry, err := clientInstance.Project(project).Logs().GetByID(cmd.Context(), numericID)
 	if err != nil {
 		printer.PrintError(err)
 
-		return "", fmt.Errorf("getting log %s: %w", logID, err)
+		return 0, fmt.Errorf("getting log %s: %w", logID, err)
 	}
 
 	if logEntry.BinaryContent == nil {
 		noAttachErr := fmt.Errorf("log %s has no attachment", logID)
 		printer.PrintError(noAttachErr)
 
-		return "", noAttachErr
+		return 0, noAttachErr
 	}
 
-	return logEntry.BinaryContent.Id, nil
+	rawID := logEntry.BinaryContent.Id
+	if rawID == "" {
+		emptyErr := fmt.Errorf("log %s has empty binaryContent.id", logID)
+		printer.PrintError(emptyErr)
+
+		return 0, emptyErr
+	}
+
+	dataID, convErr := strconv.ParseInt(rawID, 10, 64)
+	if convErr != nil {
+		convErr = fmt.Errorf("parsing binaryContent.id for log %s: %w", logID, convErr)
+		printer.PrintError(convErr)
+
+		return 0, convErr
+	}
+
+	return dataID, nil
 }
 
 // resolveDownloadOutputPath returns the destination path from --output-file.

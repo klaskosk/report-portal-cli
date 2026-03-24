@@ -1,6 +1,6 @@
 overlay: 1.0.0
 info:
-  title: Patch timestamps and error responses
+  title: Patch timestamps, error responses, and ID types
   version: 1.0.0
 actions:
   - target: $..[?(@.format == 'date-time')]
@@ -8,6 +8,19 @@ actions:
       x-go-type: types.EpochMillis
       x-go-type-import:
         path: github.com/klaskosk/report-portal-cli/pkg/types
+  # Fix numeric ID path parameters that are incorrectly typed as strings.
+  - target: $.paths['/v1/{projectName}/launch/{launchId}'].get.parameters[?(@.name == 'launchId')].schema
+    update:
+      type: integer
+      format: int64
+  - target: $.paths['/v1/{projectName}/item/{itemId}'].get.parameters[?(@.name == 'itemId')].schema
+    update:
+      type: integer
+      format: int64
+  - target: $.paths['/v1/{projectName}/log/{logId}'].get.parameters[?(@.name == 'logId')].schema
+    update:
+      type: integer
+      format: int64
   # Add default error response to all API operations. The RP API returns ErrorRS for all error cases (400, 401, 403,
   # 404, 500, etc.). Using 'default' generates a single JSONDefault field on each response struct that captures any
   # non-success status code.

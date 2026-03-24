@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -16,7 +17,7 @@ var _ = Describe("CLI: download", Label("cli", "download"), func() {
 	var (
 		projectName      string
 		seededTestData   seededTestItems
-		attachmentDataID string
+		attachmentDataID int64
 	)
 
 	BeforeEach(func(ctx SpecContext) {
@@ -52,23 +53,25 @@ var _ = Describe("CLI: download", Label("cli", "download"), func() {
 	}, NodeTimeout(15*time.Second))
 
 	It("writes file to stdout", func() {
-		Expect(attachmentDataID).NotTo(BeEmpty(), "expected seeded attachment ID")
+		Expect(attachmentDataID).NotTo(BeZero(), "expected seeded attachment ID")
 
-		result := runCLI("download", attachmentDataID, "-p", projectName)
+		dataIDStr := strconv.FormatInt(attachmentDataID, 10)
+		result := runCLI("download", dataIDStr, "-p", projectName)
 		expectCLISuccess(result, "rp download <data-id>")
 		Expect(result.Stdout).NotTo(BeEmpty(), "stdout should contain file content")
 	})
 
 	It("writes file to disk with --output-file", func() {
-		Expect(attachmentDataID).NotTo(BeEmpty(), "expected seeded attachment ID")
+		Expect(attachmentDataID).NotTo(BeZero(), "expected seeded attachment ID")
 
 		tmpDir, err := os.MkdirTemp("", "rp-download-test-*")
 		Expect(err).NotTo(HaveOccurred())
 
 		defer os.RemoveAll(tmpDir)
 
+		dataIDStr := strconv.FormatInt(attachmentDataID, 10)
 		outPath := filepath.Join(tmpDir, "downloaded.txt")
-		result := runCLI("download", attachmentDataID, "-p", projectName, "--output-file", outPath)
+		result := runCLI("download", dataIDStr, "-p", projectName, "--output-file", outPath)
 		expectCLISuccess(result, "rp download --output-file")
 
 		data, err := os.ReadFile(outPath)

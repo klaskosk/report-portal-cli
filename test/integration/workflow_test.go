@@ -52,7 +52,7 @@ var _ = Describe("End-to-end read workflow", Label("workflow"), Ordered, func() 
 	var (
 		projectName         string
 		seededTestData      seededTestItems
-		attachmentDataID    string
+		attachmentDataID    int64
 
 		// Identifiers discovered during the workflow steps and passed to subsequent steps.
 		discoveredLaunchID string
@@ -221,11 +221,11 @@ var _ = Describe("End-to-end read workflow", Label("workflow"), Ordered, func() 
 	})
 
 	It("step 7: download attachment", func() {
-		if attachmentDataID == "" {
+		if attachmentDataID == 0 {
 			Skip("attachment seeding was not successful")
 		}
 
-		result := runCLI("download", attachmentDataID, "-p", projectName)
+		result := runCLI("download", strconv.FormatInt(attachmentDataID, 10), "-p", projectName)
 		expectCLISuccess(result, "rp download <data-id>")
 		Expect(result.Stdout).NotTo(BeEmpty(), "downloaded content should not be empty")
 	})

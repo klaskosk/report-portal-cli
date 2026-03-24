@@ -1,8 +1,13 @@
 overlay: 1.0.0
 info:
-  title: Patch timestamps to Epoch
+  title: Patch timestamps, ID types, and response fields
   version: 1.0.0
 actions:
+  # StartLaunchRS, EntryCreatedAsyncRS, FinishLaunchRS, and BatchElementCreatedRS expose the new entity UUID in JSON as
+  # "id" (string). Do not rename to "uuid" in the schema: the wire format stays "id", and mismatched json tags break
+  # clients at runtime.
+  # BinaryContent.id and thumbnailId are numeric in the data model but Report Portal often serializes them as JSON
+  # strings (especially in nested log list payloads). Keep the spec as string so decoding matches the wire format.
   # Timestamp fields are actually returned as integers with millisecond (or in the future, microsecond) precision. We
   # use a custom type in Go to handle this automatically.
   - target: $..[?(@.format == 'date-time')]

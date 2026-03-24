@@ -7,7 +7,6 @@ import (
 	"io"
 	"log/slog"
 	"mime/multipart"
-	"strconv"
 
 	"github.com/klaskosk/report-portal-cli/pkg/internal/api"
 	"github.com/klaskosk/report-portal-cli/pkg/types"
@@ -114,7 +113,7 @@ func (l *LaunchScope) GetByID(
 	response, err := l.project.client.raw.GetLaunchUsingGETWithResponse(
 		ctx,
 		l.project.projectName,
-		strconv.FormatInt(id, 10),
+		id,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("get launch by id: %w", err)
