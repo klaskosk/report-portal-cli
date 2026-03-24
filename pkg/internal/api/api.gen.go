@@ -2997,7 +2997,7 @@ type ClientInterface interface {
 	DeleteTestItemUsingDELETE(ctx context.Context, projectName string, itemId int64, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetTestItemUsingGET request
-	GetTestItemUsingGET(ctx context.Context, projectName string, itemId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	GetTestItemUsingGET(ctx context.Context, projectName string, itemId int64, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// UpdateTestItemUsingPUTWithBody request with any body
 	UpdateTestItemUsingPUTWithBody(ctx context.Context, projectName string, itemId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -3094,7 +3094,7 @@ type ClientInterface interface {
 	DeleteLaunchUsingDELETE(ctx context.Context, projectName string, launchId int64, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetLaunchUsingGET request
-	GetLaunchUsingGET(ctx context.Context, projectName string, launchId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	GetLaunchUsingGET(ctx context.Context, projectName string, launchId int64, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// FinishLaunchUsingPUT1WithBody request with any body
 	FinishLaunchUsingPUT1WithBody(ctx context.Context, projectName string, launchId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -3148,7 +3148,7 @@ type ClientInterface interface {
 	DeleteLogUsingDELETE(ctx context.Context, projectName string, logId int64, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetLogUsingGET request
-	GetLogUsingGET(ctx context.Context, projectName string, logId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	GetLogUsingGET(ctx context.Context, projectName string, logId int64, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetPageNumberUsingGET request
 	GetPageNumberUsingGET(ctx context.Context, projectName string, logId int64, params *GetPageNumberUsingGETParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -5673,7 +5673,7 @@ func (c *Client) DeleteTestItemUsingDELETE(ctx context.Context, projectName stri
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetTestItemUsingGET(ctx context.Context, projectName string, itemId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) GetTestItemUsingGET(ctx context.Context, projectName string, itemId int64, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetTestItemUsingGETRequest(c.Server, projectName, itemId)
 	if err != nil {
 		return nil, err
@@ -6105,7 +6105,7 @@ func (c *Client) DeleteLaunchUsingDELETE(ctx context.Context, projectName string
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetLaunchUsingGET(ctx context.Context, projectName string, launchId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) GetLaunchUsingGET(ctx context.Context, projectName string, launchId int64, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetLaunchUsingGETRequest(c.Server, projectName, launchId)
 	if err != nil {
 		return nil, err
@@ -6345,7 +6345,7 @@ func (c *Client) DeleteLogUsingDELETE(ctx context.Context, projectName string, l
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetLogUsingGET(ctx context.Context, projectName string, logId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) GetLogUsingGET(ctx context.Context, projectName string, logId int64, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetLogUsingGETRequest(c.Server, projectName, logId)
 	if err != nil {
 		return nil, err
@@ -19348,7 +19348,7 @@ func NewDeleteTestItemUsingDELETERequest(server string, projectName string, item
 }
 
 // NewGetTestItemUsingGETRequest generates requests for GetTestItemUsingGET
-func NewGetTestItemUsingGETRequest(server string, projectName string, itemId string) (*http.Request, error) {
+func NewGetTestItemUsingGETRequest(server string, projectName string, itemId int64) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -22000,7 +22000,7 @@ func NewDeleteLaunchUsingDELETERequest(server string, projectName string, launch
 }
 
 // NewGetLaunchUsingGETRequest generates requests for GetLaunchUsingGET
-func NewGetLaunchUsingGETRequest(server string, projectName string, launchId string) (*http.Request, error) {
+func NewGetLaunchUsingGETRequest(server string, projectName string, launchId int64) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -23618,7 +23618,7 @@ func NewDeleteLogUsingDELETERequest(server string, projectName string, logId int
 }
 
 // NewGetLogUsingGETRequest generates requests for GetLogUsingGET
-func NewGetLogUsingGETRequest(server string, projectName string, logId string) (*http.Request, error) {
+func NewGetLogUsingGETRequest(server string, projectName string, logId int64) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -25905,7 +25905,7 @@ type ClientWithResponsesInterface interface {
 	DeleteTestItemUsingDELETEWithResponse(ctx context.Context, projectName string, itemId int64, reqEditors ...RequestEditorFn) (*DeleteTestItemUsingDELETEResponse, error)
 
 	// GetTestItemUsingGETWithResponse request
-	GetTestItemUsingGETWithResponse(ctx context.Context, projectName string, itemId string, reqEditors ...RequestEditorFn) (*GetTestItemUsingGETResponse, error)
+	GetTestItemUsingGETWithResponse(ctx context.Context, projectName string, itemId int64, reqEditors ...RequestEditorFn) (*GetTestItemUsingGETResponse, error)
 
 	// UpdateTestItemUsingPUTWithBodyWithResponse request with any body
 	UpdateTestItemUsingPUTWithBodyWithResponse(ctx context.Context, projectName string, itemId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateTestItemUsingPUTResponse, error)
@@ -26002,7 +26002,7 @@ type ClientWithResponsesInterface interface {
 	DeleteLaunchUsingDELETEWithResponse(ctx context.Context, projectName string, launchId int64, reqEditors ...RequestEditorFn) (*DeleteLaunchUsingDELETEResponse, error)
 
 	// GetLaunchUsingGETWithResponse request
-	GetLaunchUsingGETWithResponse(ctx context.Context, projectName string, launchId string, reqEditors ...RequestEditorFn) (*GetLaunchUsingGETResponse, error)
+	GetLaunchUsingGETWithResponse(ctx context.Context, projectName string, launchId int64, reqEditors ...RequestEditorFn) (*GetLaunchUsingGETResponse, error)
 
 	// FinishLaunchUsingPUT1WithBodyWithResponse request with any body
 	FinishLaunchUsingPUT1WithBodyWithResponse(ctx context.Context, projectName string, launchId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FinishLaunchUsingPUT1Response, error)
@@ -26056,7 +26056,7 @@ type ClientWithResponsesInterface interface {
 	DeleteLogUsingDELETEWithResponse(ctx context.Context, projectName string, logId int64, reqEditors ...RequestEditorFn) (*DeleteLogUsingDELETEResponse, error)
 
 	// GetLogUsingGETWithResponse request
-	GetLogUsingGETWithResponse(ctx context.Context, projectName string, logId string, reqEditors ...RequestEditorFn) (*GetLogUsingGETResponse, error)
+	GetLogUsingGETWithResponse(ctx context.Context, projectName string, logId int64, reqEditors ...RequestEditorFn) (*GetLogUsingGETResponse, error)
 
 	// GetPageNumberUsingGETWithResponse request
 	GetPageNumberUsingGETWithResponse(ctx context.Context, projectName string, logId int64, params *GetPageNumberUsingGETParams, reqEditors ...RequestEditorFn) (*GetPageNumberUsingGETResponse, error)
@@ -32936,7 +32936,7 @@ func (c *ClientWithResponses) DeleteTestItemUsingDELETEWithResponse(ctx context.
 }
 
 // GetTestItemUsingGETWithResponse request returning *GetTestItemUsingGETResponse
-func (c *ClientWithResponses) GetTestItemUsingGETWithResponse(ctx context.Context, projectName string, itemId string, reqEditors ...RequestEditorFn) (*GetTestItemUsingGETResponse, error) {
+func (c *ClientWithResponses) GetTestItemUsingGETWithResponse(ctx context.Context, projectName string, itemId int64, reqEditors ...RequestEditorFn) (*GetTestItemUsingGETResponse, error) {
 	rsp, err := c.GetTestItemUsingGET(ctx, projectName, itemId, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -33249,7 +33249,7 @@ func (c *ClientWithResponses) DeleteLaunchUsingDELETEWithResponse(ctx context.Co
 }
 
 // GetLaunchUsingGETWithResponse request returning *GetLaunchUsingGETResponse
-func (c *ClientWithResponses) GetLaunchUsingGETWithResponse(ctx context.Context, projectName string, launchId string, reqEditors ...RequestEditorFn) (*GetLaunchUsingGETResponse, error) {
+func (c *ClientWithResponses) GetLaunchUsingGETWithResponse(ctx context.Context, projectName string, launchId int64, reqEditors ...RequestEditorFn) (*GetLaunchUsingGETResponse, error) {
 	rsp, err := c.GetLaunchUsingGET(ctx, projectName, launchId, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -33423,7 +33423,7 @@ func (c *ClientWithResponses) DeleteLogUsingDELETEWithResponse(ctx context.Conte
 }
 
 // GetLogUsingGETWithResponse request returning *GetLogUsingGETResponse
-func (c *ClientWithResponses) GetLogUsingGETWithResponse(ctx context.Context, projectName string, logId string, reqEditors ...RequestEditorFn) (*GetLogUsingGETResponse, error) {
+func (c *ClientWithResponses) GetLogUsingGETWithResponse(ctx context.Context, projectName string, logId int64, reqEditors ...RequestEditorFn) (*GetLogUsingGETResponse, error) {
 	rsp, err := c.GetLogUsingGET(ctx, projectName, logId, reqEditors...)
 	if err != nil {
 		return nil, err

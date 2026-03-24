@@ -16,7 +16,7 @@ var _ = Describe("Client: File Download", Label("client", "file"), func() {
 		c           *client.Client
 		projectName string
 		seeded      seededTestItems
-		attachID    string
+		attachID    int64
 	)
 
 	BeforeEach(func(ctx SpecContext) {
@@ -46,7 +46,7 @@ var _ = Describe("Client: File Download", Label("client", "file"), func() {
 
 	Context("DownloadFile", func() {
 		It("downloads a known attachment", func(ctx SpecContext) {
-			Expect(attachID).NotTo(BeEmpty(), "expected seeded attachment ID")
+			Expect(attachID).NotTo(BeZero(), "expected seeded attachment ID")
 
 			content, err := c.Project(projectName).DownloadFile(ctx, attachID)
 			Expect(err).NotTo(HaveOccurred(), "downloading file should not fail")
@@ -55,7 +55,7 @@ var _ = Describe("Client: File Download", Label("client", "file"), func() {
 		})
 
 		It("returns not found for a non-existent data ID", func(ctx SpecContext) {
-			_, err := c.Project(projectName).DownloadFile(ctx, "999999")
+			_, err := c.Project(projectName).DownloadFile(ctx, 999999)
 			Expect(err).To(HaveOccurred(), "downloading non-existent file should fail")
 			Expect(client.IsNotFound(err)).To(BeTrue(),
 				"error for non-existent file should be not-found, got: %v", err)

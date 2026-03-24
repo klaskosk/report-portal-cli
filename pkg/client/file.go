@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"strconv"
 )
 
 // FileContent holds the raw bytes and metadata of a downloaded file.
@@ -14,24 +13,19 @@ type FileContent struct {
 	ContentLength int64
 }
 
-// DownloadFile downloads a file attachment by its data store ID.
-// The dataID is a string representation of a numeric ID from a log entry's binaryContent.id field.
+// DownloadFile downloads a file attachment by its numeric data store ID
+// (from a log entry's binaryContent.Id field).
 func (p *ProjectScope) DownloadFile(
 	ctx context.Context,
-	dataID string,
+	dataID int64,
 ) (*FileContent, error) {
-	logger := p.operationLogger("DownloadFile", slog.String("dataId", dataID))
+	logger := p.operationLogger("DownloadFile", slog.Int64("dataId", dataID))
 	logger.InfoContext(ctx, "API request")
-
-	numericID, err := strconv.ParseInt(dataID, 10, 64)
-	if err != nil {
-		return nil, fmt.Errorf("invalid data ID %q: must be numeric: %w", dataID, err)
-	}
 
 	response, err := p.client.raw.GetFileUsingGETWithResponse(
 		ctx,
 		p.projectName,
-		numericID,
+		dataID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("download file: %w", err)

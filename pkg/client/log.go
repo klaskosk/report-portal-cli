@@ -9,7 +9,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
-	"strconv"
 
 	"github.com/klaskosk/report-portal-cli/pkg/internal/api"
 	"github.com/klaskosk/report-portal-cli/pkg/types"
@@ -43,7 +42,7 @@ func (l *LogScope) GetByID(
 	response, err := l.project.client.raw.GetLogUsingGETWithResponse(
 		ctx,
 		l.project.projectName,
-		strconv.FormatInt(id, 10),
+		id,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("get log by id: %w", err)

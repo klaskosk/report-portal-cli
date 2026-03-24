@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"strconv"
 
 	"github.com/klaskosk/report-portal-cli/pkg/internal/api"
 	"github.com/klaskosk/report-portal-cli/pkg/types"
@@ -117,7 +116,7 @@ func (i *TestItemScope) GetByID(
 	response, err := i.project.client.raw.GetTestItemUsingGETWithResponse(
 		ctx,
 		i.project.projectName,
-		strconv.FormatInt(id, 10),
+		id,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("get test item by id: %w", err)

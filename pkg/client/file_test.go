@@ -25,7 +25,7 @@ func TestProjectScope_DownloadFile_Success(t *testing.T) {
 		_, _ = w.Write(fileContent)
 	}))
 
-	result, err := c.Project("my_project").DownloadFile(t.Context(), "42")
+	result, err := c.Project("my_project").DownloadFile(t.Context(), 42)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
@@ -39,7 +39,7 @@ func TestProjectScope_DownloadFile_NotFound(t *testing.T) {
 	c := newTestClient(t, jsonResponse(http.StatusNotFound,
 		`{"errorCode": 40440, "message": "File not found."}`))
 
-	_, err := c.Project("my_project").DownloadFile(t.Context(), "999")
+	_, err := c.Project("my_project").DownloadFile(t.Context(), 999)
 	require.Error(t, err)
 	assert.True(t, client.IsNotFound(err))
 }
@@ -50,21 +50,9 @@ func TestProjectScope_DownloadFile_Unauthorized(t *testing.T) {
 	c := newTestClient(t, jsonResponse(http.StatusUnauthorized,
 		`{"errorCode": 4001, "message": "Full authentication is required."}`))
 
-	_, err := c.Project("my_project").DownloadFile(t.Context(), "42")
+	_, err := c.Project("my_project").DownloadFile(t.Context(), 42)
 	require.Error(t, err)
 	assert.True(t, client.IsUnauthorized(err))
-}
-
-func TestProjectScope_DownloadFile_InvalidDataID(t *testing.T) {
-	t.Parallel()
-
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
-
-	_, err := c.Project("my_project").DownloadFile(t.Context(), "not-a-number")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid data ID")
 }
 
 func TestProjectScope_DownloadFile_ImageContent(t *testing.T) {
@@ -79,7 +67,7 @@ func TestProjectScope_DownloadFile_ImageContent(t *testing.T) {
 		_, _ = w.Write(pngHeader)
 	}))
 
-	result, err := c.Project("my_project").DownloadFile(t.Context(), "123")
+	result, err := c.Project("my_project").DownloadFile(t.Context(), 123)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 

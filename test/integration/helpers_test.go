@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -114,7 +115,7 @@ func seedTestLaunches(ctx context.Context, rpBaseURL, token, projectName string,
 			return fmt.Errorf("starting launch %q: %w", launchName, err)
 		}
 		if startedLaunch == nil || startedLaunch.Id == nil || *startedLaunch.Id == "" {
-			return fmt.Errorf("start launch %q returned empty id", launchName)
+			return fmt.Errorf("start launch %q returned empty uuid", launchName)
 		}
 
 		_, err = launches.Finish(ctx, *startedLaunch.Id, types.FinishExecutionRQ{
@@ -242,7 +243,7 @@ func startSeededItemHierarchy(
 		return seededItemRefs{}, fmt.Errorf("starting launch for item seeding: %w", err)
 	}
 	if startedLaunch == nil || startedLaunch.Id == nil || *startedLaunch.Id == "" {
-		return seededItemRefs{}, fmt.Errorf("start launch returned empty id")
+		return seededItemRefs{}, fmt.Errorf("start launch returned empty uuid")
 	}
 
 	launchUUID := *startedLaunch.Id
@@ -260,7 +261,7 @@ func startSeededItemHierarchy(
 		return seededItemRefs{}, fmt.Errorf("starting suite item: %w", err)
 	}
 	if startedSuite == nil || startedSuite.Id == nil || *startedSuite.Id == "" {
-		return seededItemRefs{}, fmt.Errorf("starting suite item returned empty id")
+		return seededItemRefs{}, fmt.Errorf("starting suite item returned empty uuid")
 	}
 
 	suiteUUID := *startedSuite.Id
@@ -276,7 +277,7 @@ func startSeededItemHierarchy(
 		return seededItemRefs{}, fmt.Errorf("starting child test item: %w", err)
 	}
 	if startedTest == nil || startedTest.Id == nil || *startedTest.Id == "" {
-		return seededItemRefs{}, fmt.Errorf("starting child test item returned empty id")
+		return seededItemRefs{}, fmt.Errorf("starting child test item returned empty uuid")
 	}
 
 	return seededItemRefs{
@@ -731,7 +732,7 @@ func seedLogWithAttachment(
 	ctx context.Context,
 	rpBaseURL, token, projectName string,
 	seeded seededTestItems,
-) (string, error) {
+) (int64, error) {
 	logURL := fmt.Sprintf("%s/api/v1/%s/log", rpBaseURL, projectName)
 
 	jsonPart := fmt.Sprintf(
@@ -756,7 +757,7 @@ func seedLogWithAttachment(
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, logURL, &body)
 	if err != nil {
-		return "", fmt.Errorf("creating multipart log request: %w", err)
+		return 0, fmt.Errorf("creating multipart log request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "multipart/form-data; boundary="+boundary)
@@ -764,22 +765,19 @@ func seedLogWithAttachment(
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("posting multipart log: %w", err)
+		return 0, fmt.Errorf("posting multipart log: %w", err)
 	}
 
 	respBody, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
-		return "", fmt.Errorf("multipart log POST returned status %d: %s", resp.StatusCode, respBody)
+		return 0, fmt.Errorf("multipart log POST returned status %d: %s", resp.StatusCode, respBody)
 	}
 
-	// Poll for the log entry to appear with binaryContent.
-	// Binary content processing in Report Portal is async and can take significantly
-	// longer than regular data indexing, so we use a longer polling window.
 	testClient, err := client.New(rpBaseURL, token)
 	if err != nil {
-		return "", fmt.Errorf("creating client for attachment resolution: %w", err)
+		return 0, fmt.Errorf("creating client for attachment resolution: %w", err)
 	}
 
 	const (
@@ -787,7 +785,7 @@ func seedLogWithAttachment(
 		attachmentResolutionInterval = 500 * time.Millisecond
 	)
 
-	var attachmentID string
+	var attachmentID int64
 
 	resolved := waitForSeedResolution(
 		ctx,
@@ -804,18 +802,25 @@ func seedLogWithAttachment(
 			}
 
 			for _, entry := range result.Content {
-				if entry.BinaryContent != nil && entry.BinaryContent.Id != "" {
-					attachmentID = entry.BinaryContent.Id
-
-					return true
+				if entry.BinaryContent == nil || entry.BinaryContent.Id == "" {
+					continue
 				}
+
+				parsed, parseErr := strconv.ParseInt(entry.BinaryContent.Id, 10, 64)
+				if parseErr != nil {
+					continue
+				}
+
+				attachmentID = parsed
+
+				return true
 			}
 
 			return false
 		},
 	)
 	if !resolved {
-		return "", fmt.Errorf("attachment log entry did not become visible after polling")
+		return 0, fmt.Errorf("attachment log entry did not become visible after polling")
 	}
 
 	return attachmentID, nil
