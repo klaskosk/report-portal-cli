@@ -1,7 +1,7 @@
 ## Thorough codebase review (simplicity + readability)
 
 Date: 2026-02-21
-Updated: 2026-03-24
+Updated: 2026-03-26
 
 ### Scope
 
@@ -26,9 +26,9 @@ substantially since the original review.
 
 ### Current status summary
 
-- **Completed**: `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `23`, `25`
+- **Completed**: `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `11`, `12`, `13`, `15`, `18`, `23`, `25`
 - **Stale / no longer compelling as written**: `17`, `28`, `39`
-- **Still TODO**: `10`, `11`, `12`, `13`, `14`, `15`, `16`, `18`, `19`, `20`, `21`, `22`, `24`, `26`, `27`, `29`, `30`, `31`, `32`, `33`, `34`, `35`, `36`, `37`, `38`, `40`
+- **Still TODO**: `10`, `14`, `16`, `19`, `20`, `21`, `22`, `24`, `26`, `27`, `29`, `30`, `31`, `32`, `33`, `34`, `35`, `36`, `37`, `38`, `40`
 
 ### Completed items
 
@@ -86,6 +86,36 @@ substantially since the original review.
 - **Status**: Completed.
 - **Current note**: The raw fallback paths have been removed, so the wrapper no longer leaks through to this low-level escape hatch.
 
+**11. [Major] List-option constructors are still inconsistently named (Original #8)**
+
+- **Reference**: `pkg/client/launch.go`, `pkg/client/item.go`, `pkg/client/log.go`, `pkg/client/projects.go`
+- **Status**: Completed.
+- **Current note**: All launch option constructors now use the `WithLaunch*` prefix (for example `WithLaunchName`, `WithLaunchPageSize`, `WithLaunchSort`), matching `WithItem*`, `WithLog*`, and `WithProject*` in the other resource files.
+
+**12. [Major] `GetLatest`/`GetDebug` rely on large manual param struct conversions (Original #9)**
+
+- **Reference**: `pkg/client/launch.go`, `GetLatest`, `GetDebug`
+- **Status**: Completed.
+- **Current note**: The manual field-by-field conversion helpers are gone. Both methods now use direct Go type conversion from `api.GetProjectLaunchesUsingGETParams`, which is shorter and compiler-enforced.
+
+**13. [Major] Reflection-heavy tests exist solely to protect the brittle manual param conversions (Original #10)**
+
+- **Reference**: `pkg/client/launch_converter_test.go`
+- **Status**: Completed.
+- **Current note**: The reflection-heavy tests were replaced with compile-time conversion guards. If the generated param structs ever diverge, the package will stop compiling rather than relying on runtime reflection checks.
+
+**15. [Major] Activity events filter helpers are exported but not clearly namespaced (Original #34)**
+
+- **Reference**: `pkg/client/activity_events.go`, `EventFilterByUser`, `EventFilterByObjectType`, `EventFilterByEventName`, `EventFilterByProjectName`
+- **Status**: Completed.
+- **Current note**: Activity-event filter helpers, the search criteria constructor, the sort order type, and the sort constants are now all explicitly namespaced with an `Event*` prefix, consistent with the existing `WithEvent*` options.
+
+**18. [Minor] “Autocomplete” helpers return inconsistent “empty” values (Original #26)**
+
+- **Reference**: `pkg/client/filter.go`, `pkg/client/widget.go`, `pkg/client/activity_events.go`
+- **Status**: Completed.
+- **Current note**: Autocomplete helpers now return stable empty values for their concrete result types: slice-returning helpers use empty slices, and iterable-returning helpers initialize empty `Content`/`Page` values instead of leaving them nil.
+
 **23. [Nit] `apiResponse` comment implies JSON error-body presence, but the interface only requires `StatusCode()` (Original #6)**
 
 - **Reference**: `pkg/client/response.go`, `apiResponse`
@@ -126,47 +156,17 @@ No remaining high-priority items at the moment. The original high-priority set i
 
 #### Medium priority
 
-**11. [Major] List-option constructors are still inconsistently named (Original #8)**
-
-- **Reference**: `pkg/client/launch.go`, `pkg/client/item.go`, `pkg/client/log.go`, `pkg/client/projects.go`
-- **Status**: DONE.
-- **Current note**: All launch option constructors now use the `WithLaunch*` prefix (e.g. `WithLaunchName`, `WithLaunchPageSize`, `WithLaunchSort`), consistent with `WithItem*`, `WithLog*`, and `WithProject*` in the other resource files.
-
-**12. [Major] `GetLatest`/`GetDebug` rely on large manual param struct conversions (Original #9)**
-
-- **Reference**: `pkg/client/launch.go`, `GetLatest`, `GetDebug`, `convertToLatestParams`, `convertToDebugParams`
-- **Status**: Done.
-- **Current note**: Replaced manual field-by-field conversion functions with inline Go type conversions. The three generated param structs are structurally identical, so direct type conversion (`api.GetLatestLaunchesUsingGETParams(*baseParams)`) works and is enforced at compile time.
-
-**13. [Major] Reflection-heavy tests exist solely to protect the brittle manual param conversions (Original #10)**
-
-- **Reference**: `pkg/client/launch_converter_test.go`
-- **Status**: Done.
-- **Current note**: Replaced ~145 lines of reflection-based tests with compile-time conversion guards that verify structural identity of the param types. If the generated types ever diverge, the code won't compile.
-
 **14. [Major] CLI commands repeat the same “resolve connection → resolve project → new client” ceremony (Original #23)**
 
 - **Reference**: `internal/cli/launch.go`, `internal/cli/item.go`, `internal/cli/log.go`, `internal/cli/project.go`, `internal/cli/whoami.go`
 - **Status**: TODO.
 - **Current note**: The ceremony is still repeated in command handlers and could be extracted into a shared helper.
 
-**15. [Major] Activity events filter helpers are exported but not clearly namespaced (Original #34)**
-
-- **Reference**: `pkg/client/activity_events.go`, `EventFilterByUser`, `EventFilterByObjectType`, `EventFilterByEventName`, `EventFilterByProjectName`
-- **Status**: Resolved.
-- **Current note**: All activity-event filter helpers, search criteria constructor, sort order type, and sort constants are now prefixed with `Event` (e.g. `EventFilterByUser`, `NewEventSearchCriteria`, `EventSortOrder`, `EventOrderDesc`), consistent with the existing `WithEvent*` option naming convention.
-
 **16. [Minor] Several client methods buffer potentially large payloads in memory (Original #40)**
 
 - **Reference**: `pkg/client/launch.go`, `Import`, `GetReport`; `pkg/client/log.go`, `CreateBatch`; `pkg/client/file.go`, `DownloadFile`
 - **Status**: TODO.
 - **Current note**: This remains a scalability concern for the reusable client, even if it is acceptable for current CLI usage.
-
-**18. [Minor] “Autocomplete” helpers return inconsistent “empty” values (Original #26)**
-
-- **Reference**: `pkg/client/widget.go`, `GetNames`; `pkg/client/filter.go`, `GetNames`; `pkg/client/activity_events.go`, `GetProjectSubjectNames`
-- **Status**: TODO.
-- **Current note**: The wrapper still mixes empty slices, empty structs, and non-nil empty iterable values.
 
 **19. [Minor] “nil → empty slice/map” normalization is inconsistent and arguably unnecessary (Original #27)**
 
@@ -262,7 +262,7 @@ No remaining high-priority items at the moment. The original high-priority set i
 
 **36. [Minor] Activity events sorting types are more complicated than needed (Original #33)**
 
-- **Reference**: `pkg/client/activity_events.go`, `SortOrder`, `WithEventOrder`, `WithEventSort`
+- **Reference**: `pkg/client/activity_events.go`, `EventSortOrder`, `WithEventOrder`, `WithEventSort`
 - **Status**: TODO, but debatable.
 - **Current note**: The extra abstraction layer is still present, though whether it is worth simplifying is a judgment call.
 
