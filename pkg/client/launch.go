@@ -165,64 +165,64 @@ func (l *LaunchScope) List(
 	return result, nil
 }
 
-// WithName filters launches by name.
-func WithName(name string) ListLaunchesOption {
+// WithLaunchName filters launches by name.
+func WithLaunchName(name string) ListLaunchesOption {
 	return func(params *api.GetProjectLaunchesUsingGETParams) {
 		params.FilterEqName = &name
 	}
 }
 
-// WithStatus filters launches by status.
-func WithStatus(status string) ListLaunchesOption {
+// WithLaunchStatus filters launches by status.
+func WithLaunchStatus(status string) ListLaunchesOption {
 	return func(params *api.GetProjectLaunchesUsingGETParams) {
 		params.FilterEqStatus = &status
 	}
 }
 
-// WithPageNumber sets the page number (0-based).
-func WithPageNumber(n int32) ListLaunchesOption {
+// WithLaunchPageNumber sets the page number (0-based).
+func WithLaunchPageNumber(n int32) ListLaunchesOption {
 	return func(params *api.GetProjectLaunchesUsingGETParams) {
 		params.PagePage = &n
 	}
 }
 
-// WithPageSize sets the number of results per page.
-func WithPageSize(size int32) ListLaunchesOption {
+// WithLaunchPageSize sets the number of results per page.
+func WithLaunchPageSize(size int32) ListLaunchesOption {
 	return func(params *api.GetProjectLaunchesUsingGETParams) {
 		params.PageSize = &size
 	}
 }
 
-// WithSort sets the sorting criteria (e.g. "startTime,desc").
-func WithSort(fields ...string) ListLaunchesOption {
+// WithLaunchSort sets the sorting criteria (e.g. "startTime,desc").
+func WithLaunchSort(fields ...string) ListLaunchesOption {
 	return func(params *api.GetProjectLaunchesUsingGETParams) {
 		params.PageSort = &fields
 	}
 }
 
-// WithUser filters launches by username.
-func WithUser(username string) ListLaunchesOption {
+// WithLaunchUser filters launches by username.
+func WithLaunchUser(username string) ListLaunchesOption {
 	return func(params *api.GetProjectLaunchesUsingGETParams) {
 		params.FilterEqUser = &username
 	}
 }
 
-// WithUserID filters launches by user ID.
-func WithUserID(userID int64) ListLaunchesOption {
+// WithLaunchUserID filters launches by user ID.
+func WithLaunchUserID(userID int64) ListLaunchesOption {
 	return func(params *api.GetProjectLaunchesUsingGETParams) {
 		params.FilterEqUserId = &userID
 	}
 }
 
-// WithMode filters launches by mode (e.g. "DEFAULT", "DEBUG").
-func WithMode(mode string) ListLaunchesOption {
+// WithLaunchMode filters launches by mode (e.g. "DEFAULT", "DEBUG").
+func WithLaunchMode(mode string) ListLaunchesOption {
 	return func(params *api.GetProjectLaunchesUsingGETParams) {
 		params.FilterEqMode = &mode
 	}
 }
 
-// WithAttribute filters launches by a composite attribute key:value pair.
-func WithAttribute(key, value string) ListLaunchesOption {
+// WithLaunchAttribute filters launches by a composite attribute key:value pair.
+func WithLaunchAttribute(key, value string) ListLaunchesOption {
 	return func(params *api.GetProjectLaunchesUsingGETParams) {
 		composite := key + ":" + value
 		if params.FilterEqCompositeAttribute == nil {
@@ -236,29 +236,29 @@ func WithAttribute(key, value string) ListLaunchesOption {
 	}
 }
 
-// WithAttributeKey filters launches by attribute key only.
-func WithAttributeKey(key string) ListLaunchesOption {
+// WithLaunchAttributeKey filters launches by attribute key only.
+func WithLaunchAttributeKey(key string) ListLaunchesOption {
 	return func(params *api.GetProjectLaunchesUsingGETParams) {
 		params.FilterEqAttributeKey = &key
 	}
 }
 
-// WithDescription filters launches by description.
-func WithDescription(description string) ListLaunchesOption {
+// WithLaunchDescription filters launches by description.
+func WithLaunchDescription(description string) ListLaunchesOption {
 	return func(params *api.GetProjectLaunchesUsingGETParams) {
 		params.FilterEqDescription = &description
 	}
 }
 
-// WithNumber filters launches by launch number.
-func WithNumber(number int32) ListLaunchesOption {
+// WithLaunchNumber filters launches by launch number.
+func WithLaunchNumber(number int32) ListLaunchesOption {
 	return func(params *api.GetProjectLaunchesUsingGETParams) {
 		params.FilterEqNumber = &number
 	}
 }
 
-// WithHasRetries filters launches by retry status.
-func WithHasRetries(hasRetries bool) ListLaunchesOption {
+// WithLaunchHasRetries filters launches by retry status.
+func WithLaunchHasRetries(hasRetries bool) ListLaunchesOption {
 	return func(params *api.GetProjectLaunchesUsingGETParams) {
 		params.FilterEqHasRetries = &hasRetries
 	}

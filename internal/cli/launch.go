@@ -180,9 +180,9 @@ func resolveLaunchOptions(
 
 	options := make([]client.ListLaunchesOption, 0, 3+len(filterOptions))
 	options = append(options,
-		client.WithPageSize(flags.pageSize),
-		client.WithPageNumber(flags.page),
-		client.WithSort(flags.sort...),
+		client.WithLaunchPageSize(flags.pageSize),
+		client.WithLaunchPageNumber(flags.page),
+		client.WithLaunchSort(flags.sort...),
 	)
 	options = append(options, filterOptions...)
 
@@ -260,11 +260,11 @@ func applyLaunchFilterOptions(filters launchFilterFlags) ([]client.ListLaunchesO
 	options := make([]client.ListLaunchesOption, 0, 4+len(filters.attributes))
 
 	if filters.user != "" {
-		options = append(options, client.WithUser(filters.user))
+		options = append(options, client.WithLaunchUser(filters.user))
 	}
 
 	if filters.mode != "" {
-		options = append(options, client.WithMode(filters.mode))
+		options = append(options, client.WithLaunchMode(filters.mode))
 	}
 
 	for _, attr := range filters.attributes {
@@ -273,15 +273,15 @@ func applyLaunchFilterOptions(filters launchFilterFlags) ([]client.ListLaunchesO
 			return nil, fmt.Errorf("invalid attribute format %q (expected key:value)", attr)
 		}
 
-		options = append(options, client.WithAttribute(key, value))
+		options = append(options, client.WithLaunchAttribute(key, value))
 	}
 
 	if filters.description != "" {
-		options = append(options, client.WithDescription(filters.description))
+		options = append(options, client.WithLaunchDescription(filters.description))
 	}
 
 	if filters.hasRetries {
-		options = append(options, client.WithHasRetries(true))
+		options = append(options, client.WithLaunchHasRetries(true))
 	}
 
 	return options, nil

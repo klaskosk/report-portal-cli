@@ -129,8 +129,8 @@ No remaining high-priority items at the moment. The original high-priority set i
 **11. [Major] List-option constructors are still inconsistently named (Original #8)**
 
 - **Reference**: `pkg/client/launch.go`, `pkg/client/item.go`, `pkg/client/log.go`, `pkg/client/projects.go`
-- **Status**: TODO.
-- **Current note**: The old “package-level collisions” framing is too strong now because several resource-specific option names already exist, but launch options still use generic names like `WithName`, `WithPageNumber`, and `WithSort`, so the public API remains inconsistent.
+- **Status**: DONE.
+- **Current note**: All launch option constructors now use the `WithLaunch*` prefix (e.g. `WithLaunchName`, `WithLaunchPageSize`, `WithLaunchSort`), consistent with `WithItem*`, `WithLog*`, and `WithProject*` in the other resource files.
 
 **12. [Major] `GetLatest`/`GetDebug` rely on large manual param struct conversions (Original #9)**
 

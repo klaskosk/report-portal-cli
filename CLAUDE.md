@@ -14,7 +14,7 @@ The API client wraps a generated OpenAPI client (`pkg/internal/api/`) with a sco
 ## Key patterns
 
 - **API errors**: Use predicate functions (`IsNotFound`, `IsUnauthorized`, etc.) rather than type assertions. Follow Dave Cheney's philosophy.
-- **List options**: Functional options pattern (`WithName`, `WithStatus`, `WithPageSize`, ...).
+- **List options**: Functional options pattern (`WithLaunchName`, `WithLaunchStatus`, `WithLaunchPageSize`, ...).
 - **Response handling**: Always check `response.JSONDefault` (error body) before using success fields.
 - **Timestamps**: Use `types.EpochMillis`, not raw ints or `time.Time`.
 - **Test style**: Black-box (`package client_test`), `t.Parallel()` everywhere, httptest for unit tests. `export_test.go` exposes test-only constructors.
