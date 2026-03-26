@@ -135,14 +135,14 @@ No remaining high-priority items at the moment. The original high-priority set i
 **12. [Major] `GetLatest`/`GetDebug` rely on large manual param struct conversions (Original #9)**
 
 - **Reference**: `pkg/client/launch.go`, `GetLatest`, `GetDebug`, `convertToLatestParams`, `convertToDebugParams`
-- **Status**: TODO.
-- **Current note**: The manual conversion functions are still large and brittle. This is still a good candidate for an overlay-driven fix.
+- **Status**: Done.
+- **Current note**: Replaced manual field-by-field conversion functions with inline Go type conversions. The three generated param structs are structurally identical, so direct type conversion (`api.GetLatestLaunchesUsingGETParams(*baseParams)`) works and is enforced at compile time.
 
 **13. [Major] Reflection-heavy tests exist solely to protect the brittle manual param conversions (Original #10)**
 
 - **Reference**: `pkg/client/launch_converter_test.go`
-- **Status**: TODO.
-- **Current note**: These tests still exist to guard the manual conversion layer rather than exercising higher-level behavior.
+- **Status**: Done.
+- **Current note**: Replaced ~145 lines of reflection-based tests with compile-time conversion guards that verify structural identity of the param types. If the generated types ever diverge, the code won't compile.
 
 **14. [Major] CLI commands repeat the same “resolve connection → resolve project → new client” ceremony (Original #23)**
 
