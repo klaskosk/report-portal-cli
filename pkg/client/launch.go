@@ -271,14 +271,13 @@ func (l *LaunchScope) GetLatest(
 ) (*types.IterableLaunchResource, error) {
 	logger := l.project.operationLogger("GetLatestLaunches")
 
-	// Create params using the same type structure as List
 	baseParams := &api.GetProjectLaunchesUsingGETParams{}
 	for _, option := range options {
 		option(baseParams)
 	}
 
-	// Convert to GetLatestLaunchesUsingGETParams
-	params := convertToLatestParams(baseParams)
+	converted := api.GetLatestLaunchesUsingGETParams(*baseParams)
+	params := &converted
 
 	logger.InfoContext(ctx, "API request")
 
@@ -308,14 +307,13 @@ func (l *LaunchScope) GetDebug(
 ) (*types.IterableLaunchResource, error) {
 	logger := l.project.operationLogger("GetDebugLaunches")
 
-	// Create params using the same type structure as List
 	baseParams := &api.GetProjectLaunchesUsingGETParams{}
 	for _, option := range options {
 		option(baseParams)
 	}
 
-	// Convert to GetDebugLaunchesUsingGETParams
-	params := convertToDebugParams(baseParams)
+	converted := api.GetDebugLaunchesUsingGETParams(*baseParams)
+	params := &converted
 
 	logger.InfoContext(ctx, "API request")
 
@@ -336,84 +334,6 @@ func (l *LaunchScope) GetDebug(
 	}
 
 	return result, nil
-}
-
-// convertToLatestParams converts GetProjectLaunchesUsingGETParams to GetLatestLaunchesUsingGETParams. NOTE: This
-// function must be kept in sync with convertToDebugParams -- they map identical field sets to structurally identical
-// (but distinct) generated param types.
-func convertToLatestParams(
-	src *api.GetProjectLaunchesUsingGETParams,
-) *api.GetLatestLaunchesUsingGETParams {
-	return &api.GetLatestLaunchesUsingGETParams{
-		FilterEqAttributeKey:       src.FilterEqAttributeKey,
-		FilterEqAttributeValue:     src.FilterEqAttributeValue,
-		FilterEqCompositeAttribute: src.FilterEqCompositeAttribute,
-		FilterEqDescription:        src.FilterEqDescription,
-		FilterEqEndTime:            src.FilterEqEndTime,
-		FilterEqHasRetries:         src.FilterEqHasRetries,
-		FilterEqId:                 src.FilterEqId,
-		FilterEqLastModified:       src.FilterEqLastModified,
-		FilterEqMode:               src.FilterEqMode,
-		FilterEqName:               src.FilterEqName,
-		FilterEqNumber:             src.FilterEqNumber,
-		FilterEqProjectId:          src.FilterEqProjectId,
-		FilterEqStartTime:          src.FilterEqStartTime,
-		FilterEqStatisticsDefectsAutomationBugAb001: src.FilterEqStatisticsDefectsAutomationBugAb001,
-		FilterEqStatisticsDefectsNoDefectNd001:      src.FilterEqStatisticsDefectsNoDefectNd001,
-		FilterEqStatisticsDefectsProductBugPb001:    src.FilterEqStatisticsDefectsProductBugPb001,
-		FilterEqStatisticsDefectsSystemIssueSi001:   src.FilterEqStatisticsDefectsSystemIssueSi001,
-		FilterEqStatisticsDefectsToInvestigateTi001: src.FilterEqStatisticsDefectsToInvestigateTi001,
-		FilterEqStatisticsExecutionsFailed:          src.FilterEqStatisticsExecutionsFailed,
-		FilterEqStatisticsExecutionsPassed:          src.FilterEqStatisticsExecutionsPassed,
-		FilterEqStatisticsExecutionsSkipped:         src.FilterEqStatisticsExecutionsSkipped,
-		FilterEqStatisticsExecutionsTotal:           src.FilterEqStatisticsExecutionsTotal,
-		FilterEqStatus:                              src.FilterEqStatus,
-		FilterEqUser:                                src.FilterEqUser,
-		FilterEqUserId:                              src.FilterEqUserId,
-		FilterEqUuid:                                src.FilterEqUuid,
-		PagePage:                                    src.PagePage,
-		PageSize:                                    src.PageSize,
-		PageSort:                                    src.PageSort,
-	}
-}
-
-// convertToDebugParams converts GetProjectLaunchesUsingGETParams to GetDebugLaunchesUsingGETParams. NOTE: This function
-// must be kept in sync with convertToLatestParams -- they map identical field sets to structurally identical (but
-// distinct) generated param types.
-func convertToDebugParams(
-	src *api.GetProjectLaunchesUsingGETParams,
-) *api.GetDebugLaunchesUsingGETParams {
-	return &api.GetDebugLaunchesUsingGETParams{
-		FilterEqAttributeKey:       src.FilterEqAttributeKey,
-		FilterEqAttributeValue:     src.FilterEqAttributeValue,
-		FilterEqCompositeAttribute: src.FilterEqCompositeAttribute,
-		FilterEqDescription:        src.FilterEqDescription,
-		FilterEqEndTime:            src.FilterEqEndTime,
-		FilterEqHasRetries:         src.FilterEqHasRetries,
-		FilterEqId:                 src.FilterEqId,
-		FilterEqLastModified:       src.FilterEqLastModified,
-		FilterEqMode:               src.FilterEqMode,
-		FilterEqName:               src.FilterEqName,
-		FilterEqNumber:             src.FilterEqNumber,
-		FilterEqProjectId:          src.FilterEqProjectId,
-		FilterEqStartTime:          src.FilterEqStartTime,
-		FilterEqStatisticsDefectsAutomationBugAb001: src.FilterEqStatisticsDefectsAutomationBugAb001,
-		FilterEqStatisticsDefectsNoDefectNd001:      src.FilterEqStatisticsDefectsNoDefectNd001,
-		FilterEqStatisticsDefectsProductBugPb001:    src.FilterEqStatisticsDefectsProductBugPb001,
-		FilterEqStatisticsDefectsSystemIssueSi001:   src.FilterEqStatisticsDefectsSystemIssueSi001,
-		FilterEqStatisticsDefectsToInvestigateTi001: src.FilterEqStatisticsDefectsToInvestigateTi001,
-		FilterEqStatisticsExecutionsFailed:          src.FilterEqStatisticsExecutionsFailed,
-		FilterEqStatisticsExecutionsPassed:          src.FilterEqStatisticsExecutionsPassed,
-		FilterEqStatisticsExecutionsSkipped:         src.FilterEqStatisticsExecutionsSkipped,
-		FilterEqStatisticsExecutionsTotal:           src.FilterEqStatisticsExecutionsTotal,
-		FilterEqStatus:                              src.FilterEqStatus,
-		FilterEqUser:                                src.FilterEqUser,
-		FilterEqUserId:                              src.FilterEqUserId,
-		FilterEqUuid:                                src.FilterEqUuid,
-		PagePage:                                    src.PagePage,
-		PageSize:                                    src.PageSize,
-		PageSort:                                    src.PageSort,
-	}
 }
 
 // Update modifies a single launch's attributes, description, or mode.

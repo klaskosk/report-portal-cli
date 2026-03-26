@@ -1,9 +1,6 @@
 package client
 
-import (
-	"github.com/klaskosk/report-portal-cli/pkg/internal/api"
-	"github.com/klaskosk/report-portal-cli/pkg/types"
-)
+import "github.com/klaskosk/report-portal-cli/pkg/types"
 
 // NewTestAPIError exposes newAPIError for external test packages.
 var NewTestAPIError = func(statusCode int, resp *types.ErrorRS) error {
@@ -13,16 +10,6 @@ var NewTestAPIError = func(statusCode int, resp *types.ErrorRS) error {
 // NewTestUnexpectedStatusError exposes newUnexpectedStatusError for external test packages.
 var NewTestUnexpectedStatusError = func(statusCode int) error {
 	return newUnexpectedStatusError(statusCode)
-}
-
-// ConvertToLatestParams exposes convertToLatestParams for external test packages.
-var ConvertToLatestParams = func(src *api.GetProjectLaunchesUsingGETParams) *api.GetLatestLaunchesUsingGETParams {
-	return convertToLatestParams(src)
-}
-
-// ConvertToDebugParams exposes convertToDebugParams for external test packages.
-var ConvertToDebugParams = func(src *api.GetProjectLaunchesUsingGETParams) *api.GetDebugLaunchesUsingGETParams {
-	return convertToDebugParams(src)
 }
 
 // NewTestActivityScope creates an ActivityScope for testing without requiring a full Client setup.
