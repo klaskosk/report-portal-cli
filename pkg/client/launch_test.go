@@ -339,10 +339,10 @@ func TestLaunchScope_List_WithFilterOptions(t *testing.T) {
 	}))
 
 	_, err := c.Project("my_project").Launches().List(t.Context(),
-		client.WithName("My Launch"),
-		client.WithStatus("PASSED"),
-		client.WithPageNumber(2),
-		client.WithPageSize(5),
+		client.WithLaunchName("My Launch"),
+		client.WithLaunchStatus("PASSED"),
+		client.WithLaunchPageNumber(2),
+		client.WithLaunchPageSize(5),
 	)
 	require.NoError(t, err)
 }
@@ -423,8 +423,8 @@ func TestLaunchScope_GetLatest_WithOptions(t *testing.T) {
 	}))
 
 	_, err := c.Project("my_project").Launches().GetLatest(t.Context(),
-		client.WithName("My Launch"),
-		client.WithPageSize(10),
+		client.WithLaunchName("My Launch"),
+		client.WithLaunchPageSize(10),
 	)
 	require.NoError(t, err)
 }
@@ -475,8 +475,8 @@ func TestLaunchScope_GetDebug_WithOptions(t *testing.T) {
 	}))
 
 	_, err := c.Project("my_project").Launches().GetDebug(t.Context(),
-		client.WithName("Debug Test"),
-		client.WithPageSize(5),
+		client.WithLaunchName("Debug Test"),
+		client.WithLaunchPageSize(5),
 	)
 	require.NoError(t, err)
 }
@@ -490,15 +490,15 @@ func TestLaunchScope_WithUserFilters(t *testing.T) {
 		expected map[string]string
 	}{
 		{
-			name:   "WithUser",
-			option: client.WithUser("testuser"),
+			name:   "WithLaunchUser",
+			option: client.WithLaunchUser("testuser"),
 			expected: map[string]string{
 				"filter.eq.user": "testuser",
 			},
 		},
 		{
-			name:   "WithUserID",
-			option: client.WithUserID(42),
+			name:   "WithLaunchUserID",
+			option: client.WithLaunchUserID(42),
 			expected: map[string]string{
 				"filter.eq.userId": "42",
 			},
@@ -554,7 +554,7 @@ func TestLaunchScope_WithMode(t *testing.T) {
 	}))
 
 	_, err := c.Project("my_project").Launches().List(t.Context(),
-		client.WithMode("DEBUG"),
+		client.WithLaunchMode("DEBUG"),
 	)
 	require.NoError(t, err)
 }
@@ -568,15 +568,15 @@ func TestLaunchScope_WithAttributeFilters(t *testing.T) {
 		expected map[string]string
 	}{
 		{
-			name:   "WithAttribute",
-			option: client.WithAttribute("env", "production"),
+			name:   "WithLaunchAttribute",
+			option: client.WithLaunchAttribute("env", "production"),
 			expected: map[string]string{
 				"filter.eq.compositeAttribute": "env:production",
 			},
 		},
 		{
-			name:   "WithAttributeKey",
-			option: client.WithAttributeKey("browser"),
+			name:   "WithLaunchAttributeKey",
+			option: client.WithLaunchAttributeKey("browser"),
 			expected: map[string]string{
 				"filter.eq.attributeKey": "browser",
 			},
@@ -623,22 +623,22 @@ func TestLaunchScope_WithOtherFilters(t *testing.T) {
 		expected map[string]string
 	}{
 		{
-			name:   "WithDescription",
-			option: client.WithDescription("Test description"),
+			name:   "WithLaunchDescription",
+			option: client.WithLaunchDescription("Test description"),
 			expected: map[string]string{
 				"filter.eq.description": "Test description",
 			},
 		},
 		{
-			name:   "WithNumber",
-			option: client.WithNumber(5),
+			name:   "WithLaunchNumber",
+			option: client.WithLaunchNumber(5),
 			expected: map[string]string{
 				"filter.eq.number": "5",
 			},
 		},
 		{
-			name:   "WithHasRetries",
-			option: client.WithHasRetries(true),
+			name:   "WithLaunchHasRetries",
+			option: client.WithLaunchHasRetries(true),
 			expected: map[string]string{
 				"filter.eq.hasRetries": "true",
 			},

@@ -52,7 +52,7 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 		It("filters by name", func(ctx SpecContext) {
 			// First, list all to discover a known name.
 			all, err := c.Project(projectName).Launches().List(ctx,
-				client.WithPageSize(1),
+				client.WithLaunchPageSize(1),
 			)
 			Expect(err).NotTo(HaveOccurred(),
 				"listing launches to discover a known name should not fail")
@@ -62,7 +62,7 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			knownName := all.Content[0].Name
 
 			filtered, err := c.Project(projectName).Launches().List(ctx,
-				client.WithName(knownName),
+				client.WithLaunchName(knownName),
 			)
 			Expect(err).NotTo(HaveOccurred(),
 				"filtering launches by name %q should not fail", knownName)
@@ -75,8 +75,8 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 
 		It("paginates results", func(ctx SpecContext) {
 			firstPage, err := c.Project(projectName).Launches().List(ctx,
-				client.WithPageSize(1),
-				client.WithSort("id,asc"),
+				client.WithLaunchPageSize(1),
+				client.WithLaunchSort("id,asc"),
 			)
 			Expect(err).NotTo(HaveOccurred(),
 				"listing launches (first page) should not fail")
@@ -85,9 +85,9 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 
 			nextPageNumber := int32(firstPage.Page.Number) + 1
 			secondPage, err := c.Project(projectName).Launches().List(ctx,
-				client.WithPageSize(1),
-				client.WithPageNumber(nextPageNumber),
-				client.WithSort("id,asc"),
+				client.WithLaunchPageSize(1),
+				client.WithLaunchPageNumber(nextPageNumber),
+				client.WithLaunchSort("id,asc"),
 			)
 			Expect(err).NotTo(HaveOccurred(),
 				"listing launches (second page) should not fail")
@@ -102,8 +102,8 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 
 		It("sorts by start time descending", func(ctx SpecContext) {
 			result, err := c.Project(projectName).Launches().List(ctx,
-				client.WithSort("startTime,desc"),
-				client.WithPageSize(10),
+				client.WithLaunchSort("startTime,desc"),
+				client.WithLaunchPageSize(10),
 			)
 			Expect(err).NotTo(HaveOccurred(),
 				"listing launches sorted by startTime desc should not fail")
@@ -127,7 +127,7 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 
 		BeforeEach(func(ctx SpecContext) {
 			list, err := c.Project(projectName).Launches().List(ctx,
-				client.WithPageSize(1),
+				client.WithLaunchPageSize(1),
 			)
 			Expect(err).NotTo(HaveOccurred(),
 				"listing launches to discover a known ID should not fail")
@@ -167,7 +167,7 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 
 		BeforeEach(func(ctx SpecContext) {
 			list, err := c.Project(projectName).Launches().List(ctx,
-				client.WithPageSize(1),
+				client.WithLaunchPageSize(1),
 			)
 			Expect(err).NotTo(HaveOccurred(),
 				"listing launches to discover a known UUID should not fail")
@@ -216,7 +216,7 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 		It("supports filtering options", func(ctx SpecContext) {
 			// Get a known launch name first
 			all, err := c.Project(projectName).Launches().List(ctx,
-				client.WithPageSize(1),
+				client.WithLaunchPageSize(1),
 			)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(all.Content).NotTo(BeEmpty())
@@ -225,7 +225,7 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 
 			// Filter latest by name
 			result, err := c.Project(projectName).Launches().GetLatest(ctx,
-				client.WithName(knownName),
+				client.WithLaunchName(knownName),
 			)
 			Expect(err).NotTo(HaveOccurred(),
 				"getting latest launches with name filter should not fail")
@@ -239,7 +239,7 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 
 		It("supports pagination", func(ctx SpecContext) {
 			result, err := c.Project(projectName).Launches().GetLatest(ctx,
-				client.WithPageSize(1),
+				client.WithLaunchPageSize(1),
 			)
 			Expect(err).NotTo(HaveOccurred(),
 				"getting latest launches with page size should not fail")
@@ -261,7 +261,7 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 
 		It("supports filtering options", func(ctx SpecContext) {
 			result, err := c.Project(projectName).Launches().GetDebug(ctx,
-				client.WithPageSize(5),
+				client.WithLaunchPageSize(5),
 			)
 			Expect(err).NotTo(HaveOccurred(),
 				"getting debug launches with page size should not fail")
@@ -455,7 +455,7 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 		It("bulk updates launch descriptions", func(ctx SpecContext) {
 			// Get two existing launch IDs.
 			list, err := c.Project(projectName).Launches().List(ctx,
-				client.WithPageSize(2),
+				client.WithLaunchPageSize(2),
 			)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(list.Content).To(HaveLen(2))
@@ -507,7 +507,7 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 		It("filters by user", func(ctx SpecContext) {
 			// Get a known user first
 			all, err := c.Project(projectName).Launches().List(ctx,
-				client.WithPageSize(1),
+				client.WithLaunchPageSize(1),
 			)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(all.Content).NotTo(BeEmpty())
@@ -516,7 +516,7 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			knownUser := *all.Content[0].Owner
 
 			result, err := c.Project(projectName).Launches().List(ctx,
-				client.WithUser(knownUser),
+				client.WithLaunchUser(knownUser),
 			)
 			Expect(err).NotTo(HaveOccurred(),
 				"filtering launches by user %q should not fail", knownUser)
@@ -533,7 +533,7 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 		It("filters by description", func(ctx SpecContext) {
 			// Note: this test may not find matches if seeded launches don't have descriptions
 			result, err := c.Project(projectName).Launches().List(ctx,
-				client.WithDescription("test"),
+				client.WithLaunchDescription("test"),
 			)
 			Expect(err).NotTo(HaveOccurred(),
 				"filtering launches by description should not fail")
@@ -542,7 +542,7 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 
 		It("filters by has retries", func(ctx SpecContext) {
 			result, err := c.Project(projectName).Launches().List(ctx,
-				client.WithHasRetries(false),
+				client.WithLaunchHasRetries(false),
 			)
 			Expect(err).NotTo(HaveOccurred(),
 				"filtering launches by hasRetries should not fail")
@@ -553,8 +553,8 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 	Context("Compare", func() {
 		It("returns epoch millis startTime in raw response", func(ctx SpecContext) {
 			list, err := c.Project(projectName).Launches().List(ctx,
-				client.WithPageSize(2),
-				client.WithSort("id,asc"),
+				client.WithLaunchPageSize(2),
+				client.WithLaunchSort("id,asc"),
 			)
 			Expect(err).NotTo(HaveOccurred(), "listing launches for compare should not fail")
 			Expect(list.Content).To(HaveLen(2), "need at least 2 launches to compare")
@@ -609,8 +609,8 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 
 		It("compares seeded launches by ID", func(ctx SpecContext) {
 			list, err := c.Project(projectName).Launches().List(ctx,
-				client.WithPageSize(2),
-				client.WithSort("id,asc"),
+				client.WithLaunchPageSize(2),
+				client.WithLaunchSort("id,asc"),
 			)
 			Expect(err).NotTo(HaveOccurred(), "listing launches for compare should not fail")
 			Expect(list.Content).To(HaveLen(2), "need at least 2 launches to compare")

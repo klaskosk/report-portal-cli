@@ -19,7 +19,7 @@ Review changes with a **correctness-first, simplicity-first** mindset. This is a
 - **Architecture**: `pkg/` (reusable client) vs `internal/cli/` (Cobra/Viper). No direct exposure of `pkg/internal/api/`.
 - **Client API**:
   - Use predicate helpers (`IsNotFound`) over type assertions.
-  - Use functional options (`WithName`) for lists.
+  - Use functional options (`WithLaunchName`) for lists.
   - Check `response.JSONDefault` before success fields.
   - Use `types.EpochMillis` for time.
 - **CLI**:

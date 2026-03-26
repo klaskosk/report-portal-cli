@@ -145,9 +145,9 @@ func main() {
         // List launches with filtering
         result, err := c.Project("my_project").Launches().List(
                 context.Background(),
-                client.WithPageSize(5),
-                client.WithSort("startTime,desc"),
-                client.WithStatus("PASSED"),
+                client.WithLaunchPageSize(5),
+                client.WithLaunchSort("startTime,desc"),
+                client.WithLaunchStatus("PASSED"),
         )
         if err != nil {
                 log.Fatal(err)
