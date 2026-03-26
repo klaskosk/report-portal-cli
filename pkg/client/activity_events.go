@@ -28,7 +28,7 @@ func (a *ActivityEventsScope) Search(
 	params := &api.GetActivitiesUsingPOSTParams{
 		Limit:  20,
 		Offset: 0,
-		Order:  api.GetActivitiesUsingPOSTParamsOrder(OrderDesc),
+		Order:  api.GetActivitiesUsingPOSTParamsOrder(EventOrderDesc),
 		Sort:   "createdAt",
 	}
 	for _, option := range options {
@@ -97,8 +97,8 @@ func (a *ActivityEventsScope) GetProjectSubjectNames(
 // SearchActivityEventsOption configures pagination parameters for searching activity events.
 type SearchActivityEventsOption func(*api.GetActivitiesUsingPOSTParams)
 
-// SortOrder defines the sort direction for activity event queries.
-type SortOrder string
+// EventSortOrder defines the sort direction for activity event queries.
+type EventSortOrder string
 
 // WithEventLimit sets the maximum number of results to return.
 func WithEventLimit(limit int32) SearchActivityEventsOption {
@@ -122,42 +122,42 @@ func WithEventSort(field string) SearchActivityEventsOption {
 }
 
 // WithEventOrder sets the sort direction for activity event results.
-func WithEventOrder(order SortOrder) SearchActivityEventsOption {
+func WithEventOrder(order EventSortOrder) SearchActivityEventsOption {
 	return func(params *api.GetActivitiesUsingPOSTParams) {
 		params.Order = api.GetActivitiesUsingPOSTParamsOrder(order)
 	}
 }
 
-// OrderAsc is the ascending sort order for activity event queries.
-const OrderAsc SortOrder = SortOrder(api.ASC)
+// EventOrderAsc is the ascending sort order for activity event queries.
+const EventOrderAsc EventSortOrder = EventSortOrder(api.ASC)
 
-// OrderDesc is the descending sort order for activity event queries.
-const OrderDesc SortOrder = SortOrder(api.DESC)
+// EventOrderDesc is the descending sort order for activity event queries.
+const EventOrderDesc EventSortOrder = EventSortOrder(api.DESC)
 
-// NewSearchCriteria creates a SearchCriteriaRQ with the given filter conditions.
-func NewSearchCriteria(criteria ...types.SearchCriteria) types.SearchCriteriaRQ {
+// NewEventSearchCriteria creates a SearchCriteriaRQ with the given filter conditions.
+func NewEventSearchCriteria(criteria ...types.SearchCriteria) types.SearchCriteriaRQ {
 	return types.SearchCriteriaRQ{
 		SearchCriterias: &criteria,
 	}
 }
 
-// FilterByUser creates a search filter matching events by subject name.
-func FilterByUser(username string) types.SearchCriteria {
+// EventFilterByUser creates a search filter matching events by subject name.
+func EventFilterByUser(username string) types.SearchCriteria {
 	return newEqualityFilter("subjectName", username)
 }
 
-// FilterByObjectType creates a search filter matching events by object type.
-func FilterByObjectType(objectType string) types.SearchCriteria {
+// EventFilterByObjectType creates a search filter matching events by object type.
+func EventFilterByObjectType(objectType string) types.SearchCriteria {
 	return newEqualityFilter("objectType", objectType)
 }
 
-// FilterByEventName creates a search filter matching events by event name.
-func FilterByEventName(eventName string) types.SearchCriteria {
+// EventFilterByEventName creates a search filter matching events by event name.
+func EventFilterByEventName(eventName string) types.SearchCriteria {
 	return newEqualityFilter("eventName", eventName)
 }
 
-// FilterByProjectName creates a search filter matching events by project name.
-func FilterByProjectName(projectName string) types.SearchCriteria {
+// EventFilterByProjectName creates a search filter matching events by project name.
+func EventFilterByProjectName(projectName string) types.SearchCriteria {
 	return newEqualityFilter("projectName", projectName)
 }
 

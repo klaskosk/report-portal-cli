@@ -49,7 +49,7 @@ var _ = Describe("Client: Activity Events", Label("client", "activity-events"), 
 					client.WithEventLimit(50),
 					client.WithEventOffset(0),
 					client.WithEventSort("createdAt"),
-					client.WithEventOrder(client.OrderDesc),
+					client.WithEventOrder(client.EventOrderDesc),
 				)
 				if lastSearchErr != nil {
 					return false
@@ -77,8 +77,8 @@ var _ = Describe("Client: Activity Events", Label("client", "activity-events"), 
 
 		It("filters events by project name", func(ctx SpecContext) {
 			activityEvents := c.ActivityEvents()
-			searchCriteria := client.NewSearchCriteria(
-				client.FilterByProjectName(projectName),
+			searchCriteria := client.NewEventSearchCriteria(
+				client.EventFilterByProjectName(projectName),
 			)
 
 			var searchResult *types.PagedResponseActivityEventResource
@@ -91,7 +91,7 @@ var _ = Describe("Client: Activity Events", Label("client", "activity-events"), 
 					client.WithEventLimit(50),
 					client.WithEventOffset(0),
 					client.WithEventSort("createdAt"),
-					client.WithEventOrder(client.OrderDesc),
+					client.WithEventOrder(client.EventOrderDesc),
 				)
 				if lastSearchErr != nil {
 					return false
@@ -115,7 +115,7 @@ var _ = Describe("Client: Activity Events", Label("client", "activity-events"), 
 
 		It("returns events matching a seeded event-name filter", func(ctx SpecContext) {
 			activityEvents := c.ActivityEvents()
-			baseCriteria := client.NewSearchCriteria(client.FilterByProjectName(projectName))
+			baseCriteria := client.NewEventSearchCriteria(client.EventFilterByProjectName(projectName))
 
 			var projectEvents *types.PagedResponseActivityEventResource
 			var lastSearchErr error
@@ -128,7 +128,7 @@ var _ = Describe("Client: Activity Events", Label("client", "activity-events"), 
 					client.WithEventLimit(50),
 					client.WithEventOffset(0),
 					client.WithEventSort("createdAt"),
-					client.WithEventOrder(client.OrderDesc),
+					client.WithEventOrder(client.EventOrderDesc),
 				)
 				if lastSearchErr != nil {
 					return false
@@ -152,9 +152,9 @@ var _ = Describe("Client: Activity Events", Label("client", "activity-events"), 
 			Expect(lastSearchErr).NotTo(HaveOccurred())
 			Expect(eventName).NotTo(BeEmpty(), "should resolve an event name from project activity data")
 
-			filteredCriteria := client.NewSearchCriteria(
-				client.FilterByProjectName(projectName),
-				client.FilterByEventName(eventName),
+			filteredCriteria := client.NewEventSearchCriteria(
+				client.EventFilterByProjectName(projectName),
+				client.EventFilterByEventName(eventName),
 			)
 			var filteredResult *types.PagedResponseActivityEventResource
 
@@ -165,7 +165,7 @@ var _ = Describe("Client: Activity Events", Label("client", "activity-events"), 
 					client.WithEventLimit(50),
 					client.WithEventOffset(0),
 					client.WithEventSort("createdAt"),
-					client.WithEventOrder(client.OrderDesc),
+					client.WithEventOrder(client.EventOrderDesc),
 				)
 				if lastSearchErr != nil {
 					return false

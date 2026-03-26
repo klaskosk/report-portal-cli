@@ -152,9 +152,9 @@ No remaining high-priority items at the moment. The original high-priority set i
 
 **15. [Major] Activity events filter helpers are exported but not clearly namespaced (Original #34)**
 
-- **Reference**: `pkg/client/activity_events.go`, `FilterByUser`, `FilterByObjectType`, `FilterByEventName`, `FilterByProjectName`
-- **Status**: TODO.
-- **Current note**: These helpers are still public and generically named in a public package.
+- **Reference**: `pkg/client/activity_events.go`, `EventFilterByUser`, `EventFilterByObjectType`, `EventFilterByEventName`, `EventFilterByProjectName`
+- **Status**: Resolved.
+- **Current note**: All activity-event filter helpers, search criteria constructor, sort order type, and sort constants are now prefixed with `Event` (e.g. `EventFilterByUser`, `NewEventSearchCriteria`, `EventSortOrder`, `EventOrderDesc`), consistent with the existing `WithEvent*` option naming convention.
 
 **16. [Minor] Several client methods buffer potentially large payloads in memory (Original #40)**
 
