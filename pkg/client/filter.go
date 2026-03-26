@@ -223,7 +223,10 @@ func (f *UserFilterScope) GetNames(
 	}
 
 	if result == nil {
-		return &types.IterableOwnedEntityResource{}, nil
+		return &types.IterableOwnedEntityResource{
+			Content: []types.OwnedEntityResource{},
+			Page:    types.PageMetadata{},
+		}, nil
 	}
 
 	return result, nil
