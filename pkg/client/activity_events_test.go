@@ -93,7 +93,7 @@ func TestActivityEventsScope_Search_WithCriteria(t *testing.T) {
 		}`))
 	}))
 
-	criteria := client.NewSearchCriteria(client.FilterByUser("admin"))
+	criteria := client.NewEventSearchCriteria(client.EventFilterByUser("admin"))
 
 	_, err := c.ActivityEvents().Search(t.Context(), criteria)
 	require.NoError(t, err)
@@ -157,7 +157,7 @@ func TestActivityEventsScope_Search_WithOptions(t *testing.T) {
 		client.WithEventLimit(50),
 		client.WithEventOffset(10),
 		client.WithEventSort("createdAt"),
-		client.WithEventOrder(client.OrderDesc),
+		client.WithEventOrder(client.EventOrderDesc),
 	)
 	require.NoError(t, err)
 }
@@ -203,29 +203,29 @@ func TestSearchCriteriaHelpers(t *testing.T) {
 		wantVal  string
 	}{
 		{
-			name:     "FilterByUser",
-			criteria: client.FilterByUser("admin"),
+			name:     "EventFilterByUser",
+			criteria: client.EventFilterByUser("admin"),
 			wantKey:  "subjectName",
 			wantOp:   types.EQ,
 			wantVal:  "admin",
 		},
 		{
-			name:     "FilterByObjectType",
-			criteria: client.FilterByObjectType("launch"),
+			name:     "EventFilterByObjectType",
+			criteria: client.EventFilterByObjectType("launch"),
 			wantKey:  "objectType",
 			wantOp:   types.EQ,
 			wantVal:  "launch",
 		},
 		{
-			name:     "FilterByEventName",
-			criteria: client.FilterByEventName("startLaunch"),
+			name:     "EventFilterByEventName",
+			criteria: client.EventFilterByEventName("startLaunch"),
 			wantKey:  "eventName",
 			wantOp:   types.EQ,
 			wantVal:  "startLaunch",
 		},
 		{
-			name:     "FilterByProjectName",
-			criteria: client.FilterByProjectName("my_project"),
+			name:     "EventFilterByProjectName",
+			criteria: client.EventFilterByProjectName("my_project"),
 			wantKey:  "projectName",
 			wantOp:   types.EQ,
 			wantVal:  "my_project",
@@ -244,12 +244,12 @@ func TestSearchCriteriaHelpers(t *testing.T) {
 	}
 }
 
-func TestNewSearchCriteria(t *testing.T) {
+func TestNewEventSearchCriteria(t *testing.T) {
 	t.Parallel()
 
-	criteria := client.NewSearchCriteria(
-		client.FilterByUser("admin"),
-		client.FilterByObjectType("launch"),
+	criteria := client.NewEventSearchCriteria(
+		client.EventFilterByUser("admin"),
+		client.EventFilterByObjectType("launch"),
 	)
 
 	require.NotNil(t, criteria.SearchCriterias)
