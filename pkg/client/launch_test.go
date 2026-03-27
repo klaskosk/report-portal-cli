@@ -1541,6 +1541,303 @@ func TestLaunchScope_Import_Errors(t *testing.T) {
 	}
 }
 
+func TestLaunchScope_GetClusters_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/launch/cluster/42")
+		assertMethod(t, r, http.MethodGet)
+
+		query := r.URL.Query()
+		assert.Equal(t, "0", query.Get("page.page"))
+		assert.Equal(t, "20", query.Get("page.size"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"content": [
+				{"id": 1, "index": 0, "launchId": 42, "message": "NullPointerException"},
+				{"id": 2, "index": 1, "launchId": 42, "message": "TimeoutException"}
+			],
+			"page": {"number": 1, "size": 20, "totalElements": 2, "totalPages": 1}
+		}`))
+	}))
+
+	page := int32(0)
+	size := int32(20)
+	result, err := c.Project("my_project").Launches().GetClusters(
+		t.Context(),
+		"42",
+		client.WithClusterPageNumber(page),
+		client.WithClusterPageSize(size),
+	)
+	require.NoError(t, err)
+	require.Len(t, result.Content, 2)
+
+	require.NotNil(t, result.Content[0].Id)
+	assert.Equal(t, int64(1), *result.Content[0].Id)
+	assert.Equal(t, "NullPointerException", *result.Content[0].Message)
+	require.NotNil(t, result.Content[0].LaunchId)
+	assert.Equal(t, int64(42), *result.Content[0].LaunchId)
+	assert.Equal(t, 2, result.Page.TotalElements)
+}
+
+func TestLaunchScope_GetClusters_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "NotFound",
+			statusCode: http.StatusNotFound,
+			body:       `{"errorCode": 40410, "message": "Launch '999' not found."}`,
+			check:      client.IsNotFound,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Launches().GetClusters(
+				t.Context(),
+				"999",
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestLaunchScope_CreateClusters_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/launch/cluster")
+		assertMethod(t, r, http.MethodPost)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		assert.Equal(t, float64(42), payload["launchId"])
+		assert.Equal(t, true, payload["removeNumbers"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"Clusters successfully created."}`))
+	}))
+
+	removeNumbers := true
+	result, err := c.Project("my_project").Launches().CreateClusters(
+		t.Context(),
+		types.CreateClustersRQ{
+			LaunchId:      42,
+			RemoveNumbers: &removeNumbers,
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Message)
+	assert.Equal(t, "Clusters successfully created.", *result.Message)
+}
+
+func TestLaunchScope_CreateClusters_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "BadRequest",
+			statusCode: http.StatusBadRequest,
+			body:       `{"errorCode": 4001, "message": "Invalid cluster request."}`,
+			check:      client.IsBadRequest,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Launches().CreateClusters(
+				t.Context(),
+				types.CreateClustersRQ{LaunchId: 42},
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestLaunchScope_GetOwners_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/launch/owners")
+		assertMethod(t, r, http.MethodGet)
+
+		query := r.URL.Query()
+		assert.Equal(t, "john", query.Get("filter.cnt.user"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`["john_doe", "john_smith"]`))
+	}))
+
+	owners, err := c.Project("my_project").Launches().GetOwners(t.Context(), "john")
+	require.NoError(t, err)
+	require.Len(t, owners, 2)
+
+	assert.Equal(t, "john_doe", owners[0])
+	assert.Equal(t, "john_smith", owners[1])
+}
+
+func TestLaunchScope_GetOwners_Empty(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/launch/owners")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`[]`))
+	}))
+
+	owners, err := c.Project("my_project").Launches().GetOwners(t.Context(), "nonexistent")
+	require.NoError(t, err)
+	require.Empty(t, owners)
+}
+
+func TestLaunchScope_GetOwners_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Launches().GetOwners(
+				t.Context(),
+				"john",
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestLaunchScope_GetStatuses_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/launch/status")
+		assertMethod(t, r, http.MethodGet)
+
+		assert.Contains(t, r.URL.RawQuery, "ids=1")
+		assert.Contains(t, r.URL.RawQuery, "ids=2")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{"1": "PASSED", "2": "FAILED"}`))
+	}))
+
+	statuses, err := c.Project("my_project").Launches().GetStatuses(t.Context(), []int64{1, 2})
+	require.NoError(t, err)
+	require.Len(t, statuses, 2)
+
+	assert.Equal(t, "PASSED", statuses["1"])
+	assert.Equal(t, "FAILED", statuses["2"])
+}
+
+func TestLaunchScope_GetStatuses_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+		{
+			name:       "NotFound",
+			statusCode: http.StatusNotFound,
+			body:       `{"errorCode": 40410, "message": "Project not found."}`,
+			check:      client.IsNotFound,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Launches().GetStatuses(
+				t.Context(),
+				[]int64{1, 2},
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
 func TestLaunchScope_GetReport_Success(t *testing.T) {
 	t.Parallel()
 
