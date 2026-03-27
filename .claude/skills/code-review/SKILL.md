@@ -35,7 +35,7 @@ Review changes with a **correctness-first, simplicity-first** mindset. This is a
 
 ## Verification Steps
 
-1. Use the `gh` CLI to check out the pull request branch.
+1. Use the `gh` CLI to check out the pull request branch. Add the `--detach` flag to avoid checking out the pull request branch. This helps to avoid conflicts with worktrees.
 2. `make lint` (fixes formatting too)
 3. `make test`
 4. `make test-integration` (skip if Docker unavailable, but note it)
