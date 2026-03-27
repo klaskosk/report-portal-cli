@@ -758,6 +758,76 @@ func TestLaunchScope_GetNames_EdgeCases(t *testing.T) {
 	}
 }
 
+func TestLaunchScope_GetAttributeKeys_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/launch/attribute/keys")
+		assertMethod(t, r, http.MethodGet)
+
+		query := r.URL.Query()
+		assert.Equal(t, "build", query.Get("filter.cnt.attributeKey"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`["build.number","branch"]`))
+	}))
+
+	keys, err := c.Project("my_project").Launches().GetAttributeKeys(t.Context(), "build")
+	require.NoError(t, err)
+	require.Equal(t, []string{"build.number", "branch"}, keys)
+}
+
+func TestLaunchScope_GetAttributeValues_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/launch/attribute/values")
+		assertMethod(t, r, http.MethodGet)
+
+		query := r.URL.Query()
+		assert.Equal(t, "main", query.Get("filter.cnt.attributeValue"))
+		assert.Empty(t, query.Get("filter.eq.attributeKey"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`["main","master"]`))
+	}))
+
+	values, err := c.Project("my_project").Launches().GetAttributeValues(t.Context(), "main", nil)
+	require.NoError(t, err)
+	require.Equal(t, []string{"main", "master"}, values)
+}
+
+func TestLaunchScope_GetAttributeValues_WithAttributeKey(t *testing.T) {
+	t.Parallel()
+
+	key := "branch"
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/launch/attribute/values")
+		assertMethod(t, r, http.MethodGet)
+
+		query := r.URL.Query()
+		assert.Equal(t, "feat", query.Get("filter.cnt.attributeValue"))
+		assert.Equal(t, "branch", query.Get("filter.eq.attributeKey"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`["feature-a"]`))
+	}))
+
+	values, err := c.Project("my_project").Launches().GetAttributeValues(t.Context(), "feat", &key)
+	require.NoError(t, err)
+	require.Equal(t, []string{"feature-a"}, values)
+}
+
 func TestLaunchScope_Update_Success(t *testing.T) {
 	t.Parallel()
 

@@ -603,6 +603,92 @@ func (l *LaunchScope) GetNames(
 	return *names, nil
 }
 
+// GetAttributeKeys returns unique launch attribute keys in the project. keySubstring is sent as
+// filter.cnt.attributeKey (substring match for autocomplete). Use an empty string when no
+// substring filter is needed.
+func (l *LaunchScope) GetAttributeKeys(
+	ctx context.Context,
+	keySubstring string,
+) ([]string, error) {
+	logger := l.project.operationLogger(
+		"GetLaunchAttributeKeys",
+		slog.String("filter", keySubstring),
+	)
+	logger.InfoContext(ctx, "API request")
+
+	params := &api.GetAttributeKeysUsingGETParams{
+		FilterCntAttributeKey: keySubstring,
+	}
+
+	response, err := l.project.client.raw.GetAttributeKeysUsingGETWithResponse(
+		ctx,
+		l.project.projectName,
+		params,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get launch attribute keys: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	keys, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get launch attribute keys: %w", err)
+	}
+
+	if keys == nil {
+		return []string{}, nil
+	}
+
+	return *keys, nil
+}
+
+// GetAttributeValues returns unique launch attribute values in the project. valueSubstring is
+// sent as filter.cnt.attributeValue. When attributeKey is non-nil, results are limited to values
+// for that key (filter.eq.attributeKey).
+func (l *LaunchScope) GetAttributeValues(
+	ctx context.Context,
+	valueSubstring string,
+	attributeKey *string,
+) ([]string, error) {
+	logger := l.project.operationLogger(
+		"GetLaunchAttributeValues",
+		slog.String("valueFilter", valueSubstring),
+	)
+	if attributeKey != nil {
+		logger = logger.With(slog.String("attributeKey", *attributeKey))
+	}
+
+	logger.InfoContext(ctx, "API request")
+
+	params := &api.GetAttributeValuesUsingGETParams{
+		FilterCntAttributeValue: valueSubstring,
+		FilterEqAttributeKey:    attributeKey,
+	}
+
+	response, err := l.project.client.raw.GetAttributeValuesUsingGETWithResponse(
+		ctx,
+		l.project.projectName,
+		params,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get launch attribute values: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	values, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get launch attribute values: %w", err)
+	}
+
+	if values == nil {
+		return []string{}, nil
+	}
+
+	return *values, nil
+}
+
 // Compare returns statistics for the given launch IDs, keyed by metric name.
 // Each metric maps to a slice of chart data points across the compared launches.
 func (l *LaunchScope) Compare(
