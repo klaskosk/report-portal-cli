@@ -918,6 +918,396 @@ func TestTestItemScope_BulkUpdate_Errors(t *testing.T) {
 	}
 }
 
+func TestTestItemScope_GetAttributeKeys_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/item/attribute/keys")
+		assertMethod(t, r, http.MethodGet)
+
+		query := r.URL.Query()
+		assert.Equal(t, "env", query.Get("filter.cnt.attributeKey"))
+		assert.Equal(t, "42", query.Get("launch"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`["environment","env.type"]`))
+	}))
+
+	keys, err := c.Project("my_project").Items().GetAttributeKeys(t.Context(), 42, "env")
+	require.NoError(t, err)
+	require.Equal(t, []string{"environment", "env.type"}, keys)
+}
+
+func TestTestItemScope_GetAttributeKeys_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "NotFound",
+			statusCode: http.StatusNotFound,
+			body:       `{"errorCode": 40410, "message": "Project 'unknown' not found."}`,
+			check:      client.IsNotFound,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Items().GetAttributeKeys(
+				t.Context(), 1, "env",
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestTestItemScope_GetAttributeKeysForProject_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/item/attribute/keys/all")
+		assertMethod(t, r, http.MethodGet)
+
+		query := r.URL.Query()
+		assert.Equal(t, "build", query.Get("filter.cnt.attributeKey"))
+		assert.Equal(t, "99", query.Get("filterId"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`["build.number","build.branch"]`))
+	}))
+
+	keys, err := c.Project("my_project").Items().GetAttributeKeysForProject(
+		t.Context(), 99, "build",
+	)
+	require.NoError(t, err)
+	require.Equal(t, []string{"build.number", "build.branch"}, keys)
+}
+
+func TestTestItemScope_GetAttributeKeysForProject_WithOptions(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/item/attribute/keys/all")
+		assertMethod(t, r, http.MethodGet)
+
+		query := r.URL.Query()
+		assert.Equal(t, "tag", query.Get("filter.cnt.attributeKey"))
+		assert.Equal(t, "50", query.Get("filterId"))
+		assert.Equal(t, "true", query.Get("isLatest"))
+		assert.Equal(t, "10", query.Get("launchesLimit"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`["tag.priority"]`))
+	}))
+
+	keys, err := c.Project("my_project").Items().GetAttributeKeysForProject(
+		t.Context(), 50, "tag",
+		client.WithProjectKeysLatest(true),
+		client.WithProjectKeysLaunchesLimit(10),
+	)
+	require.NoError(t, err)
+	require.Equal(t, []string{"tag.priority"}, keys)
+}
+
+func TestTestItemScope_GetAttributeValues_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/item/attribute/values")
+		assertMethod(t, r, http.MethodGet)
+
+		query := r.URL.Query()
+		assert.Equal(t, "prod", query.Get("filter.cnt.attributeValue"))
+		assert.Empty(t, query.Get("filter.eq.attributeKey"))
+		assert.Equal(t, "42", query.Get("launch"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`["production","prod-east"]`))
+	}))
+
+	values, err := c.Project("my_project").Items().GetAttributeValues(
+		t.Context(), 42, "prod", nil,
+	)
+	require.NoError(t, err)
+	require.Equal(t, []string{"production", "prod-east"}, values)
+}
+
+func TestTestItemScope_GetAttributeValues_WithAttributeKey(t *testing.T) {
+	t.Parallel()
+
+	key := "environment"
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/item/attribute/values")
+		assertMethod(t, r, http.MethodGet)
+
+		query := r.URL.Query()
+		assert.Equal(t, "stag", query.Get("filter.cnt.attributeValue"))
+		assert.Equal(t, "environment", query.Get("filter.eq.attributeKey"))
+		assert.Equal(t, "42", query.Get("launch"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`["staging"]`))
+	}))
+
+	values, err := c.Project("my_project").Items().GetAttributeValues(
+		t.Context(), 42, "stag", &key,
+	)
+	require.NoError(t, err)
+	require.Equal(t, []string{"staging"}, values)
+}
+
+func TestTestItemScope_GetAttributeValues_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "NotFound",
+			statusCode: http.StatusNotFound,
+			body:       `{"errorCode": 40410, "message": "Project 'unknown' not found."}`,
+			check:      client.IsNotFound,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Items().GetAttributeValues(
+				t.Context(), 1, "val", nil,
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestTestItemScope_GetStepAttributeKeys_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/item/step/attribute/keys")
+		assertMethod(t, r, http.MethodGet)
+
+		query := r.URL.Query()
+		assert.Equal(t, "retry", query.Get("filter.cnt.attributeKey"))
+		assert.Empty(t, query.Get("filter.eq.name"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`["retry.count","retry.reason"]`))
+	}))
+
+	keys, err := c.Project("my_project").Items().GetStepAttributeKeys(
+		t.Context(), "retry", nil,
+	)
+	require.NoError(t, err)
+	require.Equal(t, []string{"retry.count", "retry.reason"}, keys)
+}
+
+func TestTestItemScope_GetStepAttributeKeys_WithStepName(t *testing.T) {
+	t.Parallel()
+
+	stepName := "Login Step"
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/item/step/attribute/keys")
+		assertMethod(t, r, http.MethodGet)
+
+		query := r.URL.Query()
+		assert.Equal(t, "tag", query.Get("filter.cnt.attributeKey"))
+		assert.Equal(t, "Login Step", query.Get("filter.eq.name"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`["tag.auth"]`))
+	}))
+
+	keys, err := c.Project("my_project").Items().GetStepAttributeKeys(
+		t.Context(), "tag", &stepName,
+	)
+	require.NoError(t, err)
+	require.Equal(t, []string{"tag.auth"}, keys)
+}
+
+func TestTestItemScope_GetStepAttributeKeys_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "NotFound",
+			statusCode: http.StatusNotFound,
+			body:       `{"errorCode": 40410, "message": "Project 'unknown' not found."}`,
+			check:      client.IsNotFound,
+		},
+		{
+			name:       "Forbidden",
+			statusCode: http.StatusForbidden,
+			body:       `{"errorCode": 4003, "message": "Access denied."}`,
+			check:      client.IsForbidden,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Items().GetStepAttributeKeys(
+				t.Context(), "key", nil,
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestTestItemScope_GetStepAttributeValues_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/item/step/attribute/values")
+		assertMethod(t, r, http.MethodGet)
+
+		query := r.URL.Query()
+		assert.Equal(t, "pass", query.Get("filter.cnt.attributeValue"))
+		assert.Empty(t, query.Get("filter.eq.attributeKey"))
+		assert.Empty(t, query.Get("filter.eq.name"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`["password","passphrase"]`))
+	}))
+
+	values, err := c.Project("my_project").Items().GetStepAttributeValues(
+		t.Context(), "pass", nil, nil,
+	)
+	require.NoError(t, err)
+	require.Equal(t, []string{"password", "passphrase"}, values)
+}
+
+func TestTestItemScope_GetStepAttributeValues_WithAllFilters(t *testing.T) {
+	t.Parallel()
+
+	key := "status"
+	stepName := "Verify Step"
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/item/step/attribute/values")
+		assertMethod(t, r, http.MethodGet)
+
+		query := r.URL.Query()
+		assert.Equal(t, "ok", query.Get("filter.cnt.attributeValue"))
+		assert.Equal(t, "status", query.Get("filter.eq.attributeKey"))
+		assert.Equal(t, "Verify Step", query.Get("filter.eq.name"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`["ok","ok_with_warnings"]`))
+	}))
+
+	values, err := c.Project("my_project").Items().GetStepAttributeValues(
+		t.Context(), "ok", &key, &stepName,
+	)
+	require.NoError(t, err)
+	require.Equal(t, []string{"ok", "ok_with_warnings"}, values)
+}
+
+func TestTestItemScope_GetStepAttributeValues_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "NotFound",
+			statusCode: http.StatusNotFound,
+			body:       `{"errorCode": 40410, "message": "Project 'unknown' not found."}`,
+			check:      client.IsNotFound,
+		},
+		{
+			name:       "Forbidden",
+			statusCode: http.StatusForbidden,
+			body:       `{"errorCode": 4003, "message": "Access denied."}`,
+			check:      client.IsForbidden,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Items().GetStepAttributeValues(
+				t.Context(), "val", nil, nil,
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
 func TestTestItemScope_GetHistory_Success(t *testing.T) {
 	t.Parallel()
 

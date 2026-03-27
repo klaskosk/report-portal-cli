@@ -32,8 +32,8 @@ These controllers cover the primary use cases but are missing specific endpoints
   - **Implemented:** Start, Finish, ForceFinish, Merge, Analyze, Import, Compare, Get (ID/UUID), List, Delete, DeleteBulk, GetLatest, GetDebug, GetNames, GetReport, Update, BulkUpdate, GetClusters, CreateClusters, GetOwners, GetStatuses.
   - **Not Implemented:** Fetching unique attribute keys/values.
 - `**test-item-controller`** (`TestItemScope`):
-  - **Implemented:** StartRoot, StartChild, Finish, Get (ID/UUID), GetByIDs, List, Update, BulkUpdate, Delete, DeleteBulk, GetHistory, DefineIssueType.
-  - **Not Implemented:** Fetching unique attribute keys/values (for items and steps), fetching accumulated statistics (`/statistics`), ML suggested items (`/suggest/{itemId}` and `/suggest/cluster/{clusterId}`), handling user choice for suggested items, and linking/unlinking external issues.
+  - **Implemented:** StartRoot, StartChild, Finish, Get (ID/UUID), GetByIDs, List, Update, BulkUpdate, Delete, DeleteBulk, GetHistory, DefineIssueType, GetAttributeKeys, GetAttributeKeysForProject, GetAttributeValues, GetStepAttributeKeys, GetStepAttributeValues.
+  - **Not Implemented:** Fetching accumulated statistics (`/statistics`), ML suggested items (`/suggest/{itemId}` and `/suggest/cluster/{clusterId}`), handling user choice for suggested items, and linking/unlinking external issues.
 - `**log-controller`** (`LogScope`):
   - **Implemented:** Create (single/batch), Get (ID/UUID), List, Delete, Search, GetLogsUnder.
   - **Not Implemented:** Getting next/previous log in test item (`/locations/{parentId}`), getting nested steps with logs (`/nested/{parentId}`), and getting page numbers for logs.
