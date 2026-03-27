@@ -110,7 +110,7 @@ func (w *WidgetScope) GetData(
 		Params: map[string]any{},
 	}
 	for _, option := range options {
-		option(params)
+		option.applyGetWidgetData(params)
 	}
 
 	logger.InfoContext(ctx, "API request")
@@ -136,13 +136,21 @@ func (w *WidgetScope) GetData(
 }
 
 // GetWidgetDataOption configures the parameters for getting widget data.
-type GetWidgetDataOption func(*api.GetWidgetUsingGETParams)
+type GetWidgetDataOption interface {
+	applyGetWidgetData(*api.GetWidgetUsingGETParams)
+}
+
+type getWidgetDataOptionFunc func(*api.GetWidgetUsingGETParams)
+
+func (f getWidgetDataOptionFunc) applyGetWidgetData(params *api.GetWidgetUsingGETParams) {
+	f(params)
+}
 
 // WithWidgetAttributes sets the attributes for widget data retrieval.
 func WithWidgetAttributes(attributes ...string) GetWidgetDataOption {
-	return func(params *api.GetWidgetUsingGETParams) {
+	return getWidgetDataOptionFunc(func(params *api.GetWidgetUsingGETParams) {
 		params.Attributes = &attributes
-	}
+	})
 }
 
 // GetNames returns widget names matching the filter (for autocomplete).

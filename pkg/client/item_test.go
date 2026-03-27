@@ -1625,7 +1625,9 @@ func TestTestItemScope_GetSuggestedClusterItems_Errors(t *testing.T) {
 			t.Parallel()
 
 			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
-			_, err := testClient.Project("my_project").Items().GetSuggestedClusterItems(t.Context(), 99)
+			_, err := testClient.Project("my_project").
+				Items().
+				GetSuggestedClusterItems(t.Context(), 99)
 
 			require.Error(t, err)
 			assert.True(t, testCase.check(err))

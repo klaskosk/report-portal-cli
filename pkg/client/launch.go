@@ -130,7 +130,15 @@ func (l *LaunchScope) GetByID(
 }
 
 // ListLaunchesOption configures the filter and pagination parameters for listing launches.
-type ListLaunchesOption func(*api.GetProjectLaunchesUsingGETParams)
+type ListLaunchesOption interface {
+	applyListLaunches(*api.GetProjectLaunchesUsingGETParams)
+}
+
+type listLaunchesOptionFunc func(*api.GetProjectLaunchesUsingGETParams)
+
+func (f listLaunchesOptionFunc) applyListLaunches(params *api.GetProjectLaunchesUsingGETParams) {
+	f(params)
+}
 
 // List returns a paginated list of launches matching the given filter options.
 func (l *LaunchScope) List(
@@ -141,7 +149,7 @@ func (l *LaunchScope) List(
 
 	params := &api.GetProjectLaunchesUsingGETParams{}
 	for _, option := range options {
-		option(params)
+		option.applyListLaunches(params)
 	}
 
 	logger.InfoContext(ctx, "API request")
@@ -167,63 +175,63 @@ func (l *LaunchScope) List(
 
 // WithLaunchName filters launches by name.
 func WithLaunchName(name string) ListLaunchesOption {
-	return func(params *api.GetProjectLaunchesUsingGETParams) {
+	return listLaunchesOptionFunc(func(params *api.GetProjectLaunchesUsingGETParams) {
 		params.FilterEqName = &name
-	}
+	})
 }
 
 // WithLaunchStatus filters launches by status.
 func WithLaunchStatus(status string) ListLaunchesOption {
-	return func(params *api.GetProjectLaunchesUsingGETParams) {
+	return listLaunchesOptionFunc(func(params *api.GetProjectLaunchesUsingGETParams) {
 		params.FilterEqStatus = &status
-	}
+	})
 }
 
 // WithLaunchPageNumber sets the page number (0-based).
 func WithLaunchPageNumber(n int32) ListLaunchesOption {
-	return func(params *api.GetProjectLaunchesUsingGETParams) {
+	return listLaunchesOptionFunc(func(params *api.GetProjectLaunchesUsingGETParams) {
 		params.PagePage = &n
-	}
+	})
 }
 
 // WithLaunchPageSize sets the number of results per page.
 func WithLaunchPageSize(size int32) ListLaunchesOption {
-	return func(params *api.GetProjectLaunchesUsingGETParams) {
+	return listLaunchesOptionFunc(func(params *api.GetProjectLaunchesUsingGETParams) {
 		params.PageSize = &size
-	}
+	})
 }
 
 // WithLaunchSort sets the sorting criteria (e.g. "startTime,desc").
 func WithLaunchSort(fields ...string) ListLaunchesOption {
-	return func(params *api.GetProjectLaunchesUsingGETParams) {
+	return listLaunchesOptionFunc(func(params *api.GetProjectLaunchesUsingGETParams) {
 		params.PageSort = &fields
-	}
+	})
 }
 
 // WithLaunchUser filters launches by username.
 func WithLaunchUser(username string) ListLaunchesOption {
-	return func(params *api.GetProjectLaunchesUsingGETParams) {
+	return listLaunchesOptionFunc(func(params *api.GetProjectLaunchesUsingGETParams) {
 		params.FilterEqUser = &username
-	}
+	})
 }
 
 // WithLaunchUserID filters launches by user ID.
 func WithLaunchUserID(userID int64) ListLaunchesOption {
-	return func(params *api.GetProjectLaunchesUsingGETParams) {
+	return listLaunchesOptionFunc(func(params *api.GetProjectLaunchesUsingGETParams) {
 		params.FilterEqUserId = &userID
-	}
+	})
 }
 
 // WithLaunchMode filters launches by mode (e.g. "DEFAULT", "DEBUG").
 func WithLaunchMode(mode string) ListLaunchesOption {
-	return func(params *api.GetProjectLaunchesUsingGETParams) {
+	return listLaunchesOptionFunc(func(params *api.GetProjectLaunchesUsingGETParams) {
 		params.FilterEqMode = &mode
-	}
+	})
 }
 
 // WithLaunchAttribute filters launches by a composite attribute key:value pair.
 func WithLaunchAttribute(key, value string) ListLaunchesOption {
-	return func(params *api.GetProjectLaunchesUsingGETParams) {
+	return listLaunchesOptionFunc(func(params *api.GetProjectLaunchesUsingGETParams) {
 		composite := key + ":" + value
 		if params.FilterEqCompositeAttribute == nil {
 			params.FilterEqCompositeAttribute = &[]string{composite}
@@ -233,35 +241,35 @@ func WithLaunchAttribute(key, value string) ListLaunchesOption {
 				composite,
 			)
 		}
-	}
+	})
 }
 
 // WithLaunchAttributeKey filters launches by attribute key only.
 func WithLaunchAttributeKey(key string) ListLaunchesOption {
-	return func(params *api.GetProjectLaunchesUsingGETParams) {
+	return listLaunchesOptionFunc(func(params *api.GetProjectLaunchesUsingGETParams) {
 		params.FilterEqAttributeKey = &key
-	}
+	})
 }
 
 // WithLaunchDescription filters launches by description.
 func WithLaunchDescription(description string) ListLaunchesOption {
-	return func(params *api.GetProjectLaunchesUsingGETParams) {
+	return listLaunchesOptionFunc(func(params *api.GetProjectLaunchesUsingGETParams) {
 		params.FilterEqDescription = &description
-	}
+	})
 }
 
 // WithLaunchNumber filters launches by launch number.
 func WithLaunchNumber(number int32) ListLaunchesOption {
-	return func(params *api.GetProjectLaunchesUsingGETParams) {
+	return listLaunchesOptionFunc(func(params *api.GetProjectLaunchesUsingGETParams) {
 		params.FilterEqNumber = &number
-	}
+	})
 }
 
 // WithLaunchHasRetries filters launches by retry status.
 func WithLaunchHasRetries(hasRetries bool) ListLaunchesOption {
-	return func(params *api.GetProjectLaunchesUsingGETParams) {
+	return listLaunchesOptionFunc(func(params *api.GetProjectLaunchesUsingGETParams) {
 		params.FilterEqHasRetries = &hasRetries
-	}
+	})
 }
 
 // GetLatest returns the latest launches (uses /launch/latest endpoint).
@@ -273,7 +281,7 @@ func (l *LaunchScope) GetLatest(
 
 	baseParams := &api.GetProjectLaunchesUsingGETParams{}
 	for _, option := range options {
-		option(baseParams)
+		option.applyListLaunches(baseParams)
 	}
 
 	converted := api.GetLatestLaunchesUsingGETParams(*baseParams)
@@ -309,7 +317,7 @@ func (l *LaunchScope) GetDebug(
 
 	baseParams := &api.GetProjectLaunchesUsingGETParams{}
 	for _, option := range options {
-		option(baseParams)
+		option.applyListLaunches(baseParams)
 	}
 
 	converted := api.GetDebugLaunchesUsingGETParams(*baseParams)
@@ -781,27 +789,35 @@ func buildImportMultipart(filename string, data io.Reader) (*bytes.Buffer, strin
 }
 
 // ListClustersOption configures the pagination parameters for listing ML clusters.
-type ListClustersOption func(*api.GetClustersUsingGETParams)
+type ListClustersOption interface {
+	applyListClusters(*api.GetClustersUsingGETParams)
+}
+
+type listClustersOptionFunc func(*api.GetClustersUsingGETParams)
+
+func (f listClustersOptionFunc) applyListClusters(params *api.GetClustersUsingGETParams) {
+	f(params)
+}
 
 // WithClusterPageNumber sets the page number (0-based) for cluster listing.
 func WithClusterPageNumber(n int32) ListClustersOption {
-	return func(params *api.GetClustersUsingGETParams) {
+	return listClustersOptionFunc(func(params *api.GetClustersUsingGETParams) {
 		params.PagePage = &n
-	}
+	})
 }
 
 // WithClusterPageSize sets the number of results per page for cluster listing.
 func WithClusterPageSize(size int32) ListClustersOption {
-	return func(params *api.GetClustersUsingGETParams) {
+	return listClustersOptionFunc(func(params *api.GetClustersUsingGETParams) {
 		params.PageSize = &size
-	}
+	})
 }
 
 // WithClusterSort sets the sorting criteria for cluster listing (e.g. "index,asc").
 func WithClusterSort(fields ...string) ListClustersOption {
-	return func(params *api.GetClustersUsingGETParams) {
+	return listClustersOptionFunc(func(params *api.GetClustersUsingGETParams) {
 		params.PageSort = &fields
-	}
+	})
 }
 
 // GetClusters returns ML clusters for the given launch.
@@ -814,7 +830,7 @@ func (l *LaunchScope) GetClusters(
 
 	params := &api.GetClustersUsingGETParams{}
 	for _, option := range options {
-		option(params)
+		option.applyListClusters(params)
 	}
 
 	logger.InfoContext(ctx, "API request")
