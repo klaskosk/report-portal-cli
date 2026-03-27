@@ -1034,3 +1034,456 @@ func TestTestItemScope_GetHistory_Errors(t *testing.T) {
 		})
 	}
 }
+
+func TestTestItemScope_GetStatistics_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/item/statistics")
+		assertMethod(t, r, http.MethodGet)
+
+		assert.Equal(t, "123", r.URL.Query().Get("filter.eq.launchId"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"executions": {"passed": 10, "failed": 3, "skipped": 1, "total": 14},
+			"defects": {
+				"product_bug": {"pb001": 2},
+				"to_investigate": {"ti001": 1}
+			}
+		}`))
+	}))
+
+	result, err := c.Project("my_project").Items().GetStatistics(
+		t.Context(),
+		client.WithStatisticsLaunchID(123),
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Executions)
+	require.NotNil(t, result.Defects)
+
+	assert.Equal(t, int32(10), (*result.Executions)["passed"])
+	assert.Equal(t, int32(3), (*result.Executions)["failed"])
+	assert.Equal(t, int32(2), (*result.Defects)["product_bug"]["pb001"])
+}
+
+func TestTestItemScope_GetStatistics_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "NotFound",
+			statusCode: http.StatusNotFound,
+			body:       `{"errorCode": 40410, "message": "Project 'unknown' not found."}`,
+			check:      client.IsNotFound,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Items().GetStatistics(t.Context())
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestTestItemScope_GetSuggestedItems_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/item/suggest/42")
+		assertMethod(t, r, http.MethodGet)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`[
+			{
+				"testItemResource": {"id": 100, "name": "Similar Test"},
+				"suggestRs": {"issueType": "pb001", "matchScore": 0.95}
+			}
+		]`))
+	}))
+
+	items, err := c.Project("my_project").Items().GetSuggestedItems(t.Context(), 42)
+	require.NoError(t, err)
+	require.Len(t, items, 1)
+	require.NotNil(t, items[0].TestItemResource)
+	require.NotNil(t, items[0].TestItemResource.Name)
+	require.NotNil(t, items[0].SuggestRs)
+	require.NotNil(t, items[0].SuggestRs.IssueType)
+
+	assert.Equal(t, "Similar Test", *items[0].TestItemResource.Name)
+	assert.Equal(t, "pb001", *items[0].SuggestRs.IssueType)
+}
+
+func TestTestItemScope_GetSuggestedItems_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "NotFound",
+			statusCode: http.StatusNotFound,
+			body:       `{"errorCode": 40440, "message": "Test item '42' not found."}`,
+			check:      client.IsNotFound,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Items().GetSuggestedItems(t.Context(), 42)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestTestItemScope_GetSuggestedClusterItems_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/item/suggest/cluster/99")
+		assertMethod(t, r, http.MethodGet)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`[
+			{
+				"testItemResource": {"id": 200, "name": "Cluster Match A"},
+				"suggestRs": {"clusterId": 99, "matchScore": 0.88}
+			},
+			{
+				"testItemResource": {"id": 201, "name": "Cluster Match B"},
+				"suggestRs": {"clusterId": 99, "matchScore": 0.75}
+			}
+		]`))
+	}))
+
+	items, err := c.Project("my_project").Items().GetSuggestedClusterItems(t.Context(), 99)
+	require.NoError(t, err)
+	require.Len(t, items, 2)
+	require.NotNil(t, items[0].TestItemResource)
+	require.NotNil(t, items[0].TestItemResource.Name)
+
+	assert.Equal(t, "Cluster Match A", *items[0].TestItemResource.Name)
+	assert.Equal(t, "Cluster Match B", *items[1].TestItemResource.Name)
+}
+
+func TestTestItemScope_GetSuggestedClusterItems_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "NotFound",
+			statusCode: http.StatusNotFound,
+			body:       `{"errorCode": 40440, "message": "Cluster '99' not found."}`,
+			check:      client.IsNotFound,
+		},
+		{
+			name:       "Forbidden",
+			statusCode: http.StatusForbidden,
+			body:       `{"errorCode": 4003, "message": "Access denied."}`,
+			check:      client.IsForbidden,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Items().GetSuggestedClusterItems(t.Context(), 99)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestTestItemScope_HandleSuggestChoice_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/item/suggest/choice")
+		assertMethod(t, r, http.MethodPut)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload []map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+		assert.Len(t, payload, 1)
+		assert.Equal(t, "pb001", payload[0]["issueType"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"Suggestion choice applied."}`))
+	}))
+
+	issueType := "pb001"
+	result, err := c.Project("my_project").Items().HandleSuggestChoice(
+		t.Context(),
+		[]types.SuggestInfo{
+			{IssueType: &issueType},
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Message)
+	assert.Equal(t, "Suggestion choice applied.", *result.Message)
+}
+
+func TestTestItemScope_HandleSuggestChoice_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "BadRequest",
+			statusCode: http.StatusBadRequest,
+			body:       `{"errorCode": 4001, "message": "Invalid suggest choice payload."}`,
+			check:      client.IsBadRequest,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Items().HandleSuggestChoice(
+				t.Context(),
+				[]types.SuggestInfo{},
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestTestItemScope_LinkExternalIssues_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/item/issue/link")
+		assertMethod(t, r, http.MethodPut)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		testItemIds := payload["testItemIds"].([]any)
+		assert.Len(t, testItemIds, 1)
+
+		issues := payload["issues"].([]any)
+		assert.Len(t, issues, 1)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`[{"message":"Issues linked successfully."}]`))
+	}))
+
+	ticketID := "JIRA-123"
+	btsURL := "https://jira.example.com"
+	btsProject := "PROJ"
+	url := "https://jira.example.com/browse/JIRA-123"
+
+	result, err := c.Project("my_project").Items().LinkExternalIssues(
+		t.Context(),
+		types.LinkExternalIssueRQ{
+			TestItemIds: &[]int64{42},
+			Issues: &[]types.ExternalSystemIssue{
+				{
+					TicketId:   &ticketID,
+					BtsUrl:     &btsURL,
+					BtsProject: &btsProject,
+					Url:        &url,
+				},
+			},
+		},
+	)
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	require.NotNil(t, result[0].Message)
+	assert.Equal(t, "Issues linked successfully.", *result[0].Message)
+}
+
+func TestTestItemScope_LinkExternalIssues_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "BadRequest",
+			statusCode: http.StatusBadRequest,
+			body:       `{"errorCode": 4001, "message": "Invalid link request."}`,
+			check:      client.IsBadRequest,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Items().LinkExternalIssues(
+				t.Context(),
+				types.LinkExternalIssueRQ{
+					TestItemIds: &[]int64{42},
+				},
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestTestItemScope_UnlinkExternalIssues_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/item/issue/unlink")
+		assertMethod(t, r, http.MethodPut)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		testItemIds := payload["testItemIds"].([]any)
+		assert.Len(t, testItemIds, 1)
+
+		ticketIds := payload["ticketIds"].([]any)
+		assert.Len(t, ticketIds, 1)
+		assert.Equal(t, "JIRA-123", ticketIds[0])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`[{"message":"Issues unlinked successfully."}]`))
+	}))
+
+	result, err := c.Project("my_project").Items().UnlinkExternalIssues(
+		t.Context(),
+		types.UnlinkExternalIssueRQ{
+			TestItemIds: &[]int64{42},
+			TicketIds:   &[]string{"JIRA-123"},
+		},
+	)
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	require.NotNil(t, result[0].Message)
+	assert.Equal(t, "Issues unlinked successfully.", *result[0].Message)
+}
+
+func TestTestItemScope_UnlinkExternalIssues_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "BadRequest",
+			statusCode: http.StatusBadRequest,
+			body:       `{"errorCode": 4001, "message": "Invalid unlink request."}`,
+			check:      client.IsBadRequest,
+		},
+		{
+			name:       "NotFound",
+			statusCode: http.StatusNotFound,
+			body:       `{"errorCode": 40440, "message": "Test item not found."}`,
+			check:      client.IsNotFound,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Items().UnlinkExternalIssues(
+				t.Context(),
+				types.UnlinkExternalIssueRQ{
+					TestItemIds: &[]int64{42},
+					TicketIds:   &[]string{"JIRA-123"},
+				},
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}

@@ -21,7 +21,7 @@ the same endpoint) are omitted; only the canonical operation is listed.
 | Controller | Covered | Deferred | Excluded | Total |
 |---|--:|--:|--:|--:|
 | launch-controller | 19 | 7 | 0 | 26 |
-| test-item-controller | 15 | 12 | 0 | 27 |
+| test-item-controller | 21 | 6 | 0 | 27 |
 | log-controller | 8 | 3 | 0 | 11 |
 | integration-controller | 15 | 0 | 2 | 17 |
 | bug-tracking-system-controller | 4 | 2 | 0 | 6 |
@@ -33,9 +33,9 @@ the same endpoint) are omitted; only the canonical operation is listed.
 | activity-controller | 2 | 0 | 0 | 2 |
 | activity-event-controller | 2 | 0 | 0 | 2 |
 | file-storage-controller | 1 | 0 | 5 | 6 |
-| **Total** | **107** | **39** | **7** | **153** |
+| **Total** | **113** | **33** | **7** | **153** |
 
-Coverage rate: 107/153 (70%) overall, 107/146 (73%) excluding intentional exclusions.
+Coverage rate: 113/153 (74%) overall, 113/146 (77%) excluding intentional exclusions.
 
 ---
 
@@ -93,18 +93,18 @@ Wrapper scope: `TestItemScope` (project-scoped via `Client.Project(name).Items()
 | `GetItemsHistoryUsingGET` | `GetHistory` | covered | |
 | `GetTicketIdsUsingGET` | `BugTrackingScope.GetTicketIds` | covered | Spec-tagged here; wrapped on BugTrackingScope. |
 | `GetTicketIdsForProjectUsingGET` | `BugTrackingScope.GetTicketIdsForProject` | covered | Spec-tagged here; wrapped on BugTrackingScope. |
-| `GetTestItemsUsingGET1` | n/a | deferred | Provider-scoped listing variant; `GetTestItemsUsingGET2` (List) covers primary use case. |
+| `GetTestItemsUsingGET1` | `GetStatistics` | covered | |
 | `GetTestItemsV2UsingGET` | n/a | deferred | V2 alternate listing endpoint; V1 is the stable contract. |
 | `GetAttributeKeysForProjectUsingGET` | n/a | deferred | UI autocomplete; low automation value. |
 | `GetAttributeKeysUsingGET1` | n/a | deferred | UI autocomplete; low automation value. |
 | `GetAttributeKeysUsingGET2` | n/a | deferred | UI autocomplete; low automation value. |
 | `GetAttributeValuesUsingGET1` | n/a | deferred | UI autocomplete; low automation value. |
 | `GetAttributeValuesUsingGET2` | n/a | deferred | UI autocomplete; low automation value. |
-| `GetSuggestedClusterItemsUsingGET` | n/a | deferred | ML suggestion feature; low automation demand. |
-| `GetSuggestedItemsUsingGET` | n/a | deferred | ML suggestion feature; low automation demand. |
-| `HandleSuggestChooseUsingPUT` | n/a | deferred | ML suggestion acceptance; low automation demand. |
-| `LinkExternalIssuesUsingPUT` | n/a | deferred | BTS linking; can be added if automation use case arises. |
-| `UnlinkExternalIssuesUsingPUT` | n/a | deferred | BTS unlinking; can be added if automation use case arises. |
+| `GetSuggestedClusterItemsUsingGET` | `GetSuggestedClusterItems` | covered | |
+| `GetSuggestedItemsUsingGET` | `GetSuggestedItems` | covered | |
+| `HandleSuggestChooseUsingPUT` | `HandleSuggestChoice` | covered | |
+| `LinkExternalIssuesUsingPUT` | `LinkExternalIssues` | covered | |
+| `UnlinkExternalIssuesUsingPUT` | `UnlinkExternalIssues` | covered | |
 
 ## log-controller
 

@@ -556,3 +556,232 @@ func WithHistoryLatest(isLatest bool) HistoryOption {
 		params.IsLatest = &isLatest
 	}
 }
+
+// StatisticsOption configures filter parameters for fetching accumulated test item statistics.
+type StatisticsOption func(*api.GetTestItemsUsingGET1Params)
+
+// GetStatistics returns accumulated statistics for test items matching the given filter options.
+func (i *TestItemScope) GetStatistics(
+	ctx context.Context,
+	options ...StatisticsOption,
+) (*types.StatisticsResource, error) {
+	logger := i.project.operationLogger("GetTestItemStatistics")
+
+	params := &api.GetTestItemsUsingGET1Params{Params: ""}
+	for _, option := range options {
+		option(params)
+	}
+
+	logger.InfoContext(ctx, "API request")
+
+	response, err := i.project.client.raw.GetTestItemsUsingGET1WithResponse(
+		ctx,
+		i.project.projectName,
+		params,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get test item statistics: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get test item statistics: %w", err)
+	}
+
+	return result, nil
+}
+
+// WithStatisticsLaunchID filters statistics by launch ID.
+func WithStatisticsLaunchID(launchID int64) StatisticsOption {
+	return func(params *api.GetTestItemsUsingGET1Params) {
+		params.FilterEqLaunchId = &launchID
+	}
+}
+
+// WithStatisticsParentID filters statistics by parent item ID.
+func WithStatisticsParentID(parentID int64) StatisticsOption {
+	return func(params *api.GetTestItemsUsingGET1Params) {
+		params.FilterEqParentId = &parentID
+	}
+}
+
+// WithStatisticsStatus filters statistics by item status.
+func WithStatisticsStatus(status string) StatisticsOption {
+	return func(params *api.GetTestItemsUsingGET1Params) {
+		params.FilterEqStatus = &status
+	}
+}
+
+// WithStatisticsName filters statistics by item name.
+func WithStatisticsName(name string) StatisticsOption {
+	return func(params *api.GetTestItemsUsingGET1Params) {
+		params.FilterEqName = &name
+	}
+}
+
+// WithStatisticsType filters statistics by item type (e.g. "SUITE", "TEST", "STEP").
+func WithStatisticsType(itemType string) StatisticsOption {
+	return func(params *api.GetTestItemsUsingGET1Params) {
+		params.FilterEqType = &itemType
+	}
+}
+
+// WithStatisticsHasChildren filters statistics by whether items have children.
+func WithStatisticsHasChildren(hasChildren bool) StatisticsOption {
+	return func(params *api.GetTestItemsUsingGET1Params) {
+		params.FilterEqHasChildren = &hasChildren
+	}
+}
+
+// GetSuggestedItems returns ML-suggested test items for the given item ID.
+func (i *TestItemScope) GetSuggestedItems(
+	ctx context.Context,
+	itemID int64,
+) ([]types.SuggestedItem, error) {
+	logger := i.project.operationLogger("GetSuggestedItems", slog.Int64("itemId", itemID))
+	logger.InfoContext(ctx, "API request")
+
+	response, err := i.project.client.raw.GetSuggestedItemsUsingGETWithResponse(
+		ctx,
+		i.project.projectName,
+		itemID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get suggested items: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	items, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get suggested items: %w", err)
+	}
+
+	if items == nil {
+		return []types.SuggestedItem{}, nil
+	}
+
+	return *items, nil
+}
+
+// GetSuggestedClusterItems returns ML-suggested test items for the given cluster ID.
+func (i *TestItemScope) GetSuggestedClusterItems(
+	ctx context.Context,
+	clusterID int64,
+) ([]types.SuggestedItem, error) {
+	logger := i.project.operationLogger("GetSuggestedClusterItems", slog.Int64("clusterId", clusterID))
+	logger.InfoContext(ctx, "API request")
+
+	response, err := i.project.client.raw.GetSuggestedClusterItemsUsingGETWithResponse(
+		ctx,
+		i.project.projectName,
+		clusterID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get suggested cluster items: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	items, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get suggested cluster items: %w", err)
+	}
+
+	if items == nil {
+		return []types.SuggestedItem{}, nil
+	}
+
+	return *items, nil
+}
+
+// HandleSuggestChoice accepts or rejects ML-suggested items.
+func (i *TestItemScope) HandleSuggestChoice(
+	ctx context.Context,
+	choices []types.SuggestInfo,
+) (*types.OperationCompletionRS, error) {
+	logger := i.project.operationLogger("HandleSuggestChoice")
+	logger.InfoContext(ctx, "API request")
+
+	response, err := i.project.client.raw.HandleSuggestChooseUsingPUTWithResponse(
+		ctx,
+		i.project.projectName,
+		choices,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("handle suggest choice: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("handle suggest choice: %w", err)
+	}
+
+	return result, nil
+}
+
+// LinkExternalIssues links external bug tracking system issues to test items.
+func (i *TestItemScope) LinkExternalIssues(
+	ctx context.Context,
+	request types.LinkExternalIssueRQ,
+) ([]types.OperationCompletionRS, error) {
+	logger := i.project.operationLogger("LinkExternalIssues")
+	logger.InfoContext(ctx, "API request")
+
+	response, err := i.project.client.raw.LinkExternalIssuesUsingPUTWithResponse(
+		ctx,
+		i.project.projectName,
+		request,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("link external issues: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	results, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("link external issues: %w", err)
+	}
+
+	if results == nil {
+		return []types.OperationCompletionRS{}, nil
+	}
+
+	return *results, nil
+}
+
+// UnlinkExternalIssues removes external bug tracking system issue links from test items.
+func (i *TestItemScope) UnlinkExternalIssues(
+	ctx context.Context,
+	request types.UnlinkExternalIssueRQ,
+) ([]types.OperationCompletionRS, error) {
+	logger := i.project.operationLogger("UnlinkExternalIssues")
+	logger.InfoContext(ctx, "API request")
+
+	response, err := i.project.client.raw.UnlinkExternalIssuesUsingPUTWithResponse(
+		ctx,
+		i.project.projectName,
+		request,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("unlink external issues: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	results, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("unlink external issues: %w", err)
+	}
+
+	if results == nil {
+		return []types.OperationCompletionRS{}, nil
+	}
+
+	return *results, nil
+}
