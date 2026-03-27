@@ -29,8 +29,8 @@ These controllers have 100% of their OpenAPI operations implemented in the Go cl
 These controllers cover the primary use cases but are missing specific endpoints:
 
 - `**launch-controller**` (`LaunchScope`):
-  - **Implemented:** Start, Finish, ForceFinish, Merge, Analyze, Import, Compare, Get (ID/UUID), List, Delete, DeleteBulk, GetLatest, GetDebug, GetNames, GetReport, Update, BulkUpdate.
-  - **Not Implemented:** Fetching unique attribute keys/values, fetching ML clusters (`/cluster/{launchId}`), creating clusters, fetching all unique owners, and fetching statuses.
+  - **Implemented:** Start, Finish, ForceFinish, Merge, Analyze, Import, Compare, Get (ID/UUID), List, Delete, DeleteBulk, GetLatest, GetDebug, GetNames, GetReport, Update, BulkUpdate, GetClusters, CreateClusters, GetOwners, GetStatuses.
+  - **Not Implemented:** Fetching unique attribute keys/values.
 - `**test-item-controller`** (`TestItemScope`):
   - **Implemented:** StartRoot, StartChild, Finish, Get (ID/UUID), GetByIDs, List, Update, BulkUpdate, Delete, DeleteBulk, GetHistory, DefineIssueType.
   - **Not Implemented:** Fetching unique attribute keys/values (for items and steps), fetching accumulated statistics (`/statistics`), ML suggested items (`/suggest/{itemId}` and `/suggest/cluster/{clusterId}`), handling user choice for suggested items, and linking/unlinking external issues.
@@ -72,4 +72,3 @@ These controllers represent significant gaps in the API client's capabilities:
 ## ⚫ Intentionally Not Implemented
 
 - `**deprecated-user-controller`**: This entire controller is deprecated in the OpenAPI spec in favor of `user-controller`, so its absence in the Go client is correct and expected.
-

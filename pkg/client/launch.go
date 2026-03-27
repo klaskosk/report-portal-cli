@@ -780,6 +780,161 @@ func buildImportMultipart(filename string, data io.Reader) (*bytes.Buffer, strin
 	return &buf, writer.FormDataContentType(), nil
 }
 
+// ListClustersOption configures the pagination parameters for listing ML clusters.
+type ListClustersOption func(*api.GetClustersUsingGETParams)
+
+// WithClusterPageNumber sets the page number (0-based) for cluster listing.
+func WithClusterPageNumber(n int32) ListClustersOption {
+	return func(params *api.GetClustersUsingGETParams) {
+		params.PagePage = &n
+	}
+}
+
+// WithClusterPageSize sets the number of results per page for cluster listing.
+func WithClusterPageSize(size int32) ListClustersOption {
+	return func(params *api.GetClustersUsingGETParams) {
+		params.PageSize = &size
+	}
+}
+
+// WithClusterSort sets the sorting criteria for cluster listing (e.g. "index,asc").
+func WithClusterSort(fields ...string) ListClustersOption {
+	return func(params *api.GetClustersUsingGETParams) {
+		params.PageSort = &fields
+	}
+}
+
+// GetClusters returns ML clusters for the given launch.
+func (l *LaunchScope) GetClusters(
+	ctx context.Context,
+	launchID string,
+	options ...ListClustersOption,
+) (*types.IterableClusterInfoResource, error) {
+	logger := l.project.operationLogger("GetClusters", slog.String("launchId", launchID))
+
+	params := &api.GetClustersUsingGETParams{}
+	for _, option := range options {
+		option(params)
+	}
+
+	logger.InfoContext(ctx, "API request")
+
+	response, err := l.project.client.raw.GetClustersUsingGETWithResponse(
+		ctx,
+		l.project.projectName,
+		launchID,
+		params,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get clusters: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get clusters: %w", err)
+	}
+
+	return result, nil
+}
+
+// CreateClusters triggers ML cluster creation for a launch.
+func (l *LaunchScope) CreateClusters(
+	ctx context.Context,
+	request types.CreateClustersRQ,
+) (*types.OperationCompletionRS, error) {
+	logger := l.project.operationLogger("CreateClusters", slog.Int64("launchId", request.LaunchId))
+	logger.InfoContext(ctx, "API request")
+
+	response, err := l.project.client.raw.CreateClustersUsingPOSTWithResponse(
+		ctx,
+		l.project.projectName,
+		request,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("create clusters: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("create clusters: %w", err)
+	}
+
+	return result, nil
+}
+
+// GetOwners returns unique launch owner usernames matching the filter.
+func (l *LaunchScope) GetOwners(
+	ctx context.Context,
+	userFilter string,
+) ([]string, error) {
+	logger := l.project.operationLogger("GetLaunchOwners", slog.String("filter", userFilter))
+	logger.InfoContext(ctx, "API request")
+
+	params := &api.GetAllOwnersUsingGETParams{
+		FilterCntUser: userFilter,
+	}
+
+	response, err := l.project.client.raw.GetAllOwnersUsingGETWithResponse(
+		ctx,
+		l.project.projectName,
+		params,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get launch owners: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	owners, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get launch owners: %w", err)
+	}
+
+	if owners == nil {
+		return []string{}, nil
+	}
+
+	return *owners, nil
+}
+
+// GetStatuses returns the statuses of launches by their IDs. The returned map
+// keys are launch IDs (as strings) and values are status strings.
+func (l *LaunchScope) GetStatuses(
+	ctx context.Context,
+	ids []int64,
+) (map[string]string, error) {
+	logger := l.project.operationLogger("GetLaunchStatuses")
+	logger.InfoContext(ctx, "API request")
+
+	params := &api.GetStatusesUsingGETParams{Ids: ids}
+
+	response, err := l.project.client.raw.GetStatusesUsingGETWithResponse(
+		ctx,
+		l.project.projectName,
+		params,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get launch statuses: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	statuses, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get launch statuses: %w", err)
+	}
+
+	if statuses == nil {
+		return map[string]string{}, nil
+	}
+
+	return *statuses, nil
+}
+
 // GetReport retrieves the raw launch report for the given launch ID. The
 // response is typically an HTML document.
 func (l *LaunchScope) GetReport(
