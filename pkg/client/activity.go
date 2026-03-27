@@ -52,7 +52,7 @@ func (a *ActivityScope) ListForItem(
 
 	params := &api.GetTestItemActivitiesUsingGETParams{}
 	for _, option := range options {
-		option(params)
+		option.applyListActivities(params)
 	}
 
 	logger.InfoContext(ctx, "API request")
@@ -78,25 +78,33 @@ func (a *ActivityScope) ListForItem(
 }
 
 // ListActivitiesOption configures the filter and pagination parameters for listing item activities.
-type ListActivitiesOption func(*api.GetTestItemActivitiesUsingGETParams)
+type ListActivitiesOption interface {
+	applyListActivities(*api.GetTestItemActivitiesUsingGETParams)
+}
+
+type listActivitiesOptionFunc func(*api.GetTestItemActivitiesUsingGETParams)
+
+func (f listActivitiesOptionFunc) applyListActivities(params *api.GetTestItemActivitiesUsingGETParams) {
+	f(params)
+}
 
 // WithActivityPageNumber sets the page number (0-based) for activity listing.
 func WithActivityPageNumber(n int32) ListActivitiesOption {
-	return func(params *api.GetTestItemActivitiesUsingGETParams) {
+	return listActivitiesOptionFunc(func(params *api.GetTestItemActivitiesUsingGETParams) {
 		params.PagePage = &n
-	}
+	})
 }
 
 // WithActivityPageSize sets the number of results per page for activity listing.
 func WithActivityPageSize(size int32) ListActivitiesOption {
-	return func(params *api.GetTestItemActivitiesUsingGETParams) {
+	return listActivitiesOptionFunc(func(params *api.GetTestItemActivitiesUsingGETParams) {
 		params.PageSize = &size
-	}
+	})
 }
 
 // WithActivitySort sets the sorting criteria for activity listing (e.g. "lastModified,desc").
 func WithActivitySort(fields ...string) ListActivitiesOption {
-	return func(params *api.GetTestItemActivitiesUsingGETParams) {
+	return listActivitiesOptionFunc(func(params *api.GetTestItemActivitiesUsingGETParams) {
 		params.PageSort = &fields
-	}
+	})
 }

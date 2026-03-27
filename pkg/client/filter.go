@@ -23,7 +23,7 @@ func (f *UserFilterScope) List(
 
 	params := &api.GetAllFiltersUsingGETParams{}
 	for _, option := range options {
-		option(params)
+		option.applyListFilters(params)
 	}
 
 	logger.InfoContext(ctx, "API request")
@@ -233,25 +233,33 @@ func (f *UserFilterScope) GetNames(
 }
 
 // ListFiltersOption configures the filter and pagination parameters for listing user filters.
-type ListFiltersOption func(*api.GetAllFiltersUsingGETParams)
+type ListFiltersOption interface {
+	applyListFilters(*api.GetAllFiltersUsingGETParams)
+}
+
+type listFiltersOptionFunc func(*api.GetAllFiltersUsingGETParams)
+
+func (f listFiltersOptionFunc) applyListFilters(params *api.GetAllFiltersUsingGETParams) {
+	f(params)
+}
 
 // WithFilterPageNumber sets the page number (0-based) for filter listing.
 func WithFilterPageNumber(n int32) ListFiltersOption {
-	return func(params *api.GetAllFiltersUsingGETParams) {
+	return listFiltersOptionFunc(func(params *api.GetAllFiltersUsingGETParams) {
 		params.PagePage = &n
-	}
+	})
 }
 
 // WithFilterPageSize sets the number of results per page for filter listing.
 func WithFilterPageSize(size int32) ListFiltersOption {
-	return func(params *api.GetAllFiltersUsingGETParams) {
+	return listFiltersOptionFunc(func(params *api.GetAllFiltersUsingGETParams) {
 		params.PageSize = &size
-	}
+	})
 }
 
 // WithFilterSort sets the sorting criteria for filter listing (e.g. "name,asc").
 func WithFilterSort(fields ...string) ListFiltersOption {
-	return func(params *api.GetAllFiltersUsingGETParams) {
+	return listFiltersOptionFunc(func(params *api.GetAllFiltersUsingGETParams) {
 		params.PageSort = &fields
-	}
+	})
 }

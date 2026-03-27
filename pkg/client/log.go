@@ -86,7 +86,15 @@ func (l *LogScope) GetByUUID(
 }
 
 // ListLogsOption configures filter and pagination parameters for listing logs.
-type ListLogsOption func(*api.GetLogsUsingGETParams)
+type ListLogsOption interface {
+	applyListLogs(*api.GetLogsUsingGETParams)
+}
+
+type listLogsOptionFunc func(*api.GetLogsUsingGETParams)
+
+func (f listLogsOptionFunc) applyListLogs(params *api.GetLogsUsingGETParams) {
+	f(params)
+}
 
 // List returns a paginated list of log entries matching the given filter options.
 func (l *LogScope) List(
@@ -97,7 +105,7 @@ func (l *LogScope) List(
 
 	params := &api.GetLogsUsingGETParams{}
 	for _, option := range options {
-		option(params)
+		option.applyListLogs(params)
 	}
 
 	logger.InfoContext(ctx, "API request")
@@ -298,44 +306,44 @@ func buildBatchLogMultipart(entries []BatchLogEntry) (*bytes.Buffer, string, err
 
 // WithLogItemID filters logs by test item ID.
 func WithLogItemID(itemID int64) ListLogsOption {
-	return func(params *api.GetLogsUsingGETParams) {
+	return listLogsOptionFunc(func(params *api.GetLogsUsingGETParams) {
 		params.FilterEqItem = &itemID
-	}
+	})
 }
 
 // WithLogLaunchID filters logs by launch ID.
 func WithLogLaunchID(launchID int64) ListLogsOption {
-	return func(params *api.GetLogsUsingGETParams) {
+	return listLogsOptionFunc(func(params *api.GetLogsUsingGETParams) {
 		params.FilterEqLaunchId = &launchID
-	}
+	})
 }
 
 // WithLogLevel filters logs by level (e.g. "ERROR", "INFO", "DEBUG").
 func WithLogLevel(level string) ListLogsOption {
-	return func(params *api.GetLogsUsingGETParams) {
+	return listLogsOptionFunc(func(params *api.GetLogsUsingGETParams) {
 		params.FilterEqLevel = &level
-	}
+	})
 }
 
 // WithLogPageNumber sets the page number (0-based).
 func WithLogPageNumber(n int32) ListLogsOption {
-	return func(params *api.GetLogsUsingGETParams) {
+	return listLogsOptionFunc(func(params *api.GetLogsUsingGETParams) {
 		params.PagePage = &n
-	}
+	})
 }
 
 // WithLogPageSize sets the number of results per page.
 func WithLogPageSize(size int32) ListLogsOption {
-	return func(params *api.GetLogsUsingGETParams) {
+	return listLogsOptionFunc(func(params *api.GetLogsUsingGETParams) {
 		params.PageSize = &size
-	}
+	})
 }
 
 // WithLogSort sets the sorting criteria (e.g. "logTime,desc").
 func WithLogSort(fields ...string) ListLogsOption {
-	return func(params *api.GetLogsUsingGETParams) {
+	return listLogsOptionFunc(func(params *api.GetLogsUsingGETParams) {
 		params.PageSort = &fields
-	}
+	})
 }
 
 // Search finds log entries related to the given test item that match similar

@@ -160,7 +160,15 @@ func (i *TestItemScope) GetByUUID(
 }
 
 // ListTestItemsOption configures filter and pagination parameters for listing test items.
-type ListTestItemsOption func(*api.GetTestItemsUsingGET2Params)
+type ListTestItemsOption interface {
+	applyListTestItems(*api.GetTestItemsUsingGET2Params)
+}
+
+type listTestItemsOptionFunc func(*api.GetTestItemsUsingGET2Params)
+
+func (f listTestItemsOptionFunc) applyListTestItems(params *api.GetTestItemsUsingGET2Params) {
+	f(params)
+}
 
 // List returns a paginated list of test items matching the given filter options.
 func (i *TestItemScope) List(
@@ -171,7 +179,7 @@ func (i *TestItemScope) List(
 
 	params := &api.GetTestItemsUsingGET2Params{}
 	for _, option := range options {
-		option(params)
+		option.applyListTestItems(params)
 	}
 
 	logger.InfoContext(ctx, "API request")
@@ -423,20 +431,30 @@ func (i *TestItemScope) GetAttributeKeys(
 
 // GetAttributeKeysForProjectOption configures optional parameters for
 // GetAttributeKeysForProject.
-type GetAttributeKeysForProjectOption func(*api.GetAttributeKeysForProjectUsingGETParams)
+type GetAttributeKeysForProjectOption interface {
+	applyGetAttributeKeysForProject(*api.GetAttributeKeysForProjectUsingGETParams)
+}
+
+type getAttributeKeysForProjectOptionFunc func(*api.GetAttributeKeysForProjectUsingGETParams)
+
+func (f getAttributeKeysForProjectOptionFunc) applyGetAttributeKeysForProject(
+	params *api.GetAttributeKeysForProjectUsingGETParams,
+) {
+	f(params)
+}
 
 // WithProjectKeysLatest restricts results to the latest launches only.
 func WithProjectKeysLatest(isLatest bool) GetAttributeKeysForProjectOption {
-	return func(params *api.GetAttributeKeysForProjectUsingGETParams) {
+	return getAttributeKeysForProjectOptionFunc(func(params *api.GetAttributeKeysForProjectUsingGETParams) {
 		params.IsLatest = &isLatest
-	}
+	})
 }
 
 // WithProjectKeysLaunchesLimit sets the maximum number of launches to scan.
 func WithProjectKeysLaunchesLimit(limit int32) GetAttributeKeysForProjectOption {
-	return func(params *api.GetAttributeKeysForProjectUsingGETParams) {
+	return getAttributeKeysForProjectOptionFunc(func(params *api.GetAttributeKeysForProjectUsingGETParams) {
 		params.LaunchesLimit = &limit
-	}
+	})
 }
 
 // GetAttributeKeysForProject returns unique test item attribute keys across the project,
@@ -460,7 +478,7 @@ func (i *TestItemScope) GetAttributeKeysForProject(
 		FilterId:              filterID,
 	}
 	for _, option := range options {
-		option(params)
+		option.applyGetAttributeKeysForProject(params)
 	}
 
 	response, err := i.project.client.raw.GetAttributeKeysForProjectUsingGETWithResponse(
@@ -637,77 +655,85 @@ func (i *TestItemScope) GetStepAttributeValues(
 
 // WithItemPageNumber sets the page number (0-based).
 func WithItemPageNumber(n int32) ListTestItemsOption {
-	return func(params *api.GetTestItemsUsingGET2Params) {
+	return listTestItemsOptionFunc(func(params *api.GetTestItemsUsingGET2Params) {
 		params.PagePage = &n
-	}
+	})
 }
 
 // WithItemPageSize sets the number of results per page.
 func WithItemPageSize(size int32) ListTestItemsOption {
-	return func(params *api.GetTestItemsUsingGET2Params) {
+	return listTestItemsOptionFunc(func(params *api.GetTestItemsUsingGET2Params) {
 		params.PageSize = &size
-	}
+	})
 }
 
 // WithItemSort sets the sorting criteria (e.g. "startTime,desc").
 func WithItemSort(fields ...string) ListTestItemsOption {
-	return func(params *api.GetTestItemsUsingGET2Params) {
+	return listTestItemsOptionFunc(func(params *api.GetTestItemsUsingGET2Params) {
 		params.PageSort = &fields
-	}
+	})
 }
 
 // WithItemLaunchID filters test items by launch ID.
 func WithItemLaunchID(launchID int64) ListTestItemsOption {
-	return func(params *api.GetTestItemsUsingGET2Params) {
+	return listTestItemsOptionFunc(func(params *api.GetTestItemsUsingGET2Params) {
 		params.FilterEqLaunchId = &launchID
-	}
+	})
 }
 
 // WithItemParentID filters test items by parent item ID.
 func WithItemParentID(parentID int64) ListTestItemsOption {
-	return func(params *api.GetTestItemsUsingGET2Params) {
+	return listTestItemsOptionFunc(func(params *api.GetTestItemsUsingGET2Params) {
 		params.FilterEqParentId = &parentID
-	}
+	})
 }
 
 // WithItemType filters test items by type (e.g. "SUITE", "TEST", "STEP").
 func WithItemType(itemType string) ListTestItemsOption {
-	return func(params *api.GetTestItemsUsingGET2Params) {
+	return listTestItemsOptionFunc(func(params *api.GetTestItemsUsingGET2Params) {
 		params.FilterEqType = &itemType
-	}
+	})
 }
 
 // WithItemName filters test items by name.
 func WithItemName(name string) ListTestItemsOption {
-	return func(params *api.GetTestItemsUsingGET2Params) {
+	return listTestItemsOptionFunc(func(params *api.GetTestItemsUsingGET2Params) {
 		params.FilterEqName = &name
-	}
+	})
 }
 
 // WithItemStatus filters test items by status.
 func WithItemStatus(status string) ListTestItemsOption {
-	return func(params *api.GetTestItemsUsingGET2Params) {
+	return listTestItemsOptionFunc(func(params *api.GetTestItemsUsingGET2Params) {
 		params.FilterEqStatus = &status
-	}
+	})
 }
 
 // WithItemHasChildren filters test items by whether they have children.
 func WithItemHasChildren(hasChildren bool) ListTestItemsOption {
-	return func(params *api.GetTestItemsUsingGET2Params) {
+	return listTestItemsOptionFunc(func(params *api.GetTestItemsUsingGET2Params) {
 		params.FilterEqHasChildren = &hasChildren
-	}
+	})
 }
 
 // WithItemPath filters test items by path identifier.
 func WithItemPath(path int64) ListTestItemsOption {
-	return func(params *api.GetTestItemsUsingGET2Params) {
+	return listTestItemsOptionFunc(func(params *api.GetTestItemsUsingGET2Params) {
 		params.FilterEqPath = &path
-	}
+	})
 }
 
 // HistoryOption configures the filter and pagination parameters for retrieving
 // test item execution history.
-type HistoryOption func(*api.GetItemsHistoryUsingGETParams)
+type HistoryOption interface {
+	applyHistory(*api.GetItemsHistoryUsingGETParams)
+}
+
+type historyOptionFunc func(*api.GetItemsHistoryUsingGETParams)
+
+func (f historyOptionFunc) applyHistory(params *api.GetItemsHistoryUsingGETParams) {
+	f(params)
+}
 
 // GetHistory returns the execution history for test items matching the given
 // options. Each element groups a test item's runs across launches.
@@ -719,7 +745,7 @@ func (i *TestItemScope) GetHistory(
 
 	params := &api.GetItemsHistoryUsingGETParams{}
 	for _, option := range options {
-		option(params)
+		option.applyHistory(params)
 	}
 
 	logger.InfoContext(ctx, "API request")
@@ -745,77 +771,85 @@ func (i *TestItemScope) GetHistory(
 
 // WithHistoryDepth sets the number of previous launches to include in history.
 func WithHistoryDepth(depth int32) HistoryOption {
-	return func(params *api.GetItemsHistoryUsingGETParams) {
+	return historyOptionFunc(func(params *api.GetItemsHistoryUsingGETParams) {
 		params.HistoryDepth = &depth
-	}
+	})
 }
 
 // WithHistoryLaunchID filters history by launch ID.
 func WithHistoryLaunchID(launchID int64) HistoryOption {
-	return func(params *api.GetItemsHistoryUsingGETParams) {
+	return historyOptionFunc(func(params *api.GetItemsHistoryUsingGETParams) {
 		params.FilterEqLaunchId = &launchID
-	}
+	})
 }
 
 // WithHistoryFilterID sets the saved filter ID to scope the history query.
 func WithHistoryFilterID(filterID int64) HistoryOption {
-	return func(params *api.GetItemsHistoryUsingGETParams) {
+	return historyOptionFunc(func(params *api.GetItemsHistoryUsingGETParams) {
 		params.FilterId = &filterID
-	}
+	})
 }
 
 // WithHistoryLaunchesLimit sets the maximum number of launches to scan.
 func WithHistoryLaunchesLimit(limit int32) HistoryOption {
-	return func(params *api.GetItemsHistoryUsingGETParams) {
+	return historyOptionFunc(func(params *api.GetItemsHistoryUsingGETParams) {
 		params.LaunchesLimit = &limit
-	}
+	})
 }
 
 // WithHistoryType filters history by a specific item execution type
 // (e.g. "SUITE", "TEST", "STEP").
 func WithHistoryType(historyType string) HistoryOption {
-	return func(params *api.GetItemsHistoryUsingGETParams) {
+	return historyOptionFunc(func(params *api.GetItemsHistoryUsingGETParams) {
 		params.Type = &historyType
-	}
+	})
 }
 
 // WithHistoryItemName filters history entries by test item name.
 func WithHistoryItemName(name string) HistoryOption {
-	return func(params *api.GetItemsHistoryUsingGETParams) {
+	return historyOptionFunc(func(params *api.GetItemsHistoryUsingGETParams) {
 		params.FilterEqName = &name
-	}
+	})
 }
 
 // WithHistoryItemStatus filters history entries by test item status.
 func WithHistoryItemStatus(status string) HistoryOption {
-	return func(params *api.GetItemsHistoryUsingGETParams) {
+	return historyOptionFunc(func(params *api.GetItemsHistoryUsingGETParams) {
 		params.FilterEqStatus = &status
-	}
+	})
 }
 
 // WithHistoryPageNumber sets the page number (0-based) for history results.
 func WithHistoryPageNumber(n int32) HistoryOption {
-	return func(params *api.GetItemsHistoryUsingGETParams) {
+	return historyOptionFunc(func(params *api.GetItemsHistoryUsingGETParams) {
 		params.PagePage = &n
-	}
+	})
 }
 
 // WithHistoryPageSize sets the number of results per page for history results.
 func WithHistoryPageSize(size int32) HistoryOption {
-	return func(params *api.GetItemsHistoryUsingGETParams) {
+	return historyOptionFunc(func(params *api.GetItemsHistoryUsingGETParams) {
 		params.PageSize = &size
-	}
+	})
 }
 
 // WithHistoryLatest filters history to only the latest results.
 func WithHistoryLatest(isLatest bool) HistoryOption {
-	return func(params *api.GetItemsHistoryUsingGETParams) {
+	return historyOptionFunc(func(params *api.GetItemsHistoryUsingGETParams) {
 		params.IsLatest = &isLatest
-	}
+	})
 }
 
 // StatisticsOption configures filter parameters for fetching accumulated test item statistics.
-type StatisticsOption func(*api.GetTestItemsUsingGET1Params)
+type StatisticsOption interface {
+	applyStatistics(*api.GetTestItemsUsingGET1Params)
+}
+
+type statisticsOptionFunc func(*api.GetTestItemsUsingGET1Params)
+
+func (f statisticsOptionFunc) applyStatistics(params *api.GetTestItemsUsingGET1Params) {
+	f(params)
+}
 
 // GetStatistics returns accumulated statistics for test items matching the given filter options.
 func (i *TestItemScope) GetStatistics(
@@ -826,7 +860,7 @@ func (i *TestItemScope) GetStatistics(
 
 	params := &api.GetTestItemsUsingGET1Params{Params: ""}
 	for _, option := range options {
-		option(params)
+		option.applyStatistics(params)
 	}
 
 	logger.InfoContext(ctx, "API request")
@@ -852,44 +886,44 @@ func (i *TestItemScope) GetStatistics(
 
 // WithStatisticsLaunchID filters statistics by launch ID.
 func WithStatisticsLaunchID(launchID int64) StatisticsOption {
-	return func(params *api.GetTestItemsUsingGET1Params) {
+	return statisticsOptionFunc(func(params *api.GetTestItemsUsingGET1Params) {
 		params.FilterEqLaunchId = &launchID
-	}
+	})
 }
 
 // WithStatisticsParentID filters statistics by parent item ID.
 func WithStatisticsParentID(parentID int64) StatisticsOption {
-	return func(params *api.GetTestItemsUsingGET1Params) {
+	return statisticsOptionFunc(func(params *api.GetTestItemsUsingGET1Params) {
 		params.FilterEqParentId = &parentID
-	}
+	})
 }
 
 // WithStatisticsStatus filters statistics by item status.
 func WithStatisticsStatus(status string) StatisticsOption {
-	return func(params *api.GetTestItemsUsingGET1Params) {
+	return statisticsOptionFunc(func(params *api.GetTestItemsUsingGET1Params) {
 		params.FilterEqStatus = &status
-	}
+	})
 }
 
 // WithStatisticsName filters statistics by item name.
 func WithStatisticsName(name string) StatisticsOption {
-	return func(params *api.GetTestItemsUsingGET1Params) {
+	return statisticsOptionFunc(func(params *api.GetTestItemsUsingGET1Params) {
 		params.FilterEqName = &name
-	}
+	})
 }
 
 // WithStatisticsType filters statistics by item type (e.g. "SUITE", "TEST", "STEP").
 func WithStatisticsType(itemType string) StatisticsOption {
-	return func(params *api.GetTestItemsUsingGET1Params) {
+	return statisticsOptionFunc(func(params *api.GetTestItemsUsingGET1Params) {
 		params.FilterEqType = &itemType
-	}
+	})
 }
 
 // WithStatisticsHasChildren filters statistics by whether items have children.
 func WithStatisticsHasChildren(hasChildren bool) StatisticsOption {
-	return func(params *api.GetTestItemsUsingGET1Params) {
+	return statisticsOptionFunc(func(params *api.GetTestItemsUsingGET1Params) {
 		params.FilterEqHasChildren = &hasChildren
-	}
+	})
 }
 
 // GetSuggestedItems returns ML-suggested test items for the given item ID.
@@ -928,7 +962,10 @@ func (i *TestItemScope) GetSuggestedClusterItems(
 	ctx context.Context,
 	clusterID int64,
 ) ([]types.SuggestedItem, error) {
-	logger := i.project.operationLogger("GetSuggestedClusterItems", slog.Int64("clusterId", clusterID))
+	logger := i.project.operationLogger(
+		"GetSuggestedClusterItems",
+		slog.Int64("clusterId", clusterID),
+	)
 	logger.InfoContext(ctx, "API request")
 
 	response, err := i.project.client.raw.GetSuggestedClusterItemsUsingGETWithResponse(

@@ -23,7 +23,7 @@ type Client struct {
 type Option func(*config) error
 
 type config struct {
-	httpClient api.HttpRequestDoer
+	httpClient *http.Client
 	logger     *slog.Logger
 }
 
@@ -104,9 +104,9 @@ func normalizeBaseURL(baseURL string) (string, error) {
 }
 
 // WithHTTPClient overrides the default HTTP client used for requests.
-func WithHTTPClient(doer api.HttpRequestDoer) Option {
+func WithHTTPClient(httpClient *http.Client) Option {
 	return func(config *config) error {
-		config.httpClient = doer
+		config.httpClient = httpClient
 
 		return nil
 	}

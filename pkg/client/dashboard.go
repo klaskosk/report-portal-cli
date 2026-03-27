@@ -23,7 +23,7 @@ func (d *DashboardScope) List(
 
 	params := &api.GetAllDashboardsUsingGETParams{}
 	for _, option := range options {
-		option(params)
+		option.applyListDashboards(params)
 	}
 
 	logger.InfoContext(ctx, "API request")
@@ -222,25 +222,33 @@ func (d *DashboardScope) RemoveWidget(
 }
 
 // ListDashboardsOption configures the filter and pagination parameters for listing dashboards.
-type ListDashboardsOption func(*api.GetAllDashboardsUsingGETParams)
+type ListDashboardsOption interface {
+	applyListDashboards(*api.GetAllDashboardsUsingGETParams)
+}
+
+type listDashboardsOptionFunc func(*api.GetAllDashboardsUsingGETParams)
+
+func (f listDashboardsOptionFunc) applyListDashboards(params *api.GetAllDashboardsUsingGETParams) {
+	f(params)
+}
 
 // WithDashboardPageNumber sets the page number (0-based) for dashboard listing.
 func WithDashboardPageNumber(n int32) ListDashboardsOption {
-	return func(params *api.GetAllDashboardsUsingGETParams) {
+	return listDashboardsOptionFunc(func(params *api.GetAllDashboardsUsingGETParams) {
 		params.PagePage = &n
-	}
+	})
 }
 
 // WithDashboardPageSize sets the number of results per page for dashboard listing.
 func WithDashboardPageSize(size int32) ListDashboardsOption {
-	return func(params *api.GetAllDashboardsUsingGETParams) {
+	return listDashboardsOptionFunc(func(params *api.GetAllDashboardsUsingGETParams) {
 		params.PageSize = &size
-	}
+	})
 }
 
 // WithDashboardSort sets the sorting criteria for dashboard listing (e.g. "name,asc").
 func WithDashboardSort(fields ...string) ListDashboardsOption {
-	return func(params *api.GetAllDashboardsUsingGETParams) {
+	return listDashboardsOptionFunc(func(params *api.GetAllDashboardsUsingGETParams) {
 		params.PageSort = &fields
-	}
+	})
 }

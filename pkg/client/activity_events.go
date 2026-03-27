@@ -32,7 +32,7 @@ func (a *ActivityEventsScope) Search(
 		Sort:   "createdAt",
 	}
 	for _, option := range options {
-		option(params)
+		option.applySearchActivityEvents(params)
 	}
 
 	logger.InfoContext(ctx, "API request")
@@ -95,37 +95,45 @@ func (a *ActivityEventsScope) GetProjectSubjectNames(
 }
 
 // SearchActivityEventsOption configures pagination parameters for searching activity events.
-type SearchActivityEventsOption func(*api.GetActivitiesUsingPOSTParams)
+type SearchActivityEventsOption interface {
+	applySearchActivityEvents(*api.GetActivitiesUsingPOSTParams)
+}
+
+type searchActivityEventsOptionFunc func(*api.GetActivitiesUsingPOSTParams)
+
+func (f searchActivityEventsOptionFunc) applySearchActivityEvents(params *api.GetActivitiesUsingPOSTParams) {
+	f(params)
+}
 
 // EventSortOrder defines the sort direction for activity event queries.
 type EventSortOrder string
 
 // WithEventLimit sets the maximum number of results to return.
 func WithEventLimit(limit int32) SearchActivityEventsOption {
-	return func(params *api.GetActivitiesUsingPOSTParams) {
+	return searchActivityEventsOptionFunc(func(params *api.GetActivitiesUsingPOSTParams) {
 		params.Limit = limit
-	}
+	})
 }
 
 // WithEventOffset sets the offset for paginated results.
 func WithEventOffset(offset int32) SearchActivityEventsOption {
-	return func(params *api.GetActivitiesUsingPOSTParams) {
+	return searchActivityEventsOptionFunc(func(params *api.GetActivitiesUsingPOSTParams) {
 		params.Offset = offset
-	}
+	})
 }
 
 // WithEventSort sets the field to sort results by (e.g. "createdAt").
 func WithEventSort(field string) SearchActivityEventsOption {
-	return func(params *api.GetActivitiesUsingPOSTParams) {
+	return searchActivityEventsOptionFunc(func(params *api.GetActivitiesUsingPOSTParams) {
 		params.Sort = field
-	}
+	})
 }
 
 // WithEventOrder sets the sort direction for activity event results.
 func WithEventOrder(order EventSortOrder) SearchActivityEventsOption {
-	return func(params *api.GetActivitiesUsingPOSTParams) {
+	return searchActivityEventsOptionFunc(func(params *api.GetActivitiesUsingPOSTParams) {
 		params.Order = api.GetActivitiesUsingPOSTParamsOrder(order)
-	}
+	})
 }
 
 // EventOrderAsc is the ascending sort order for activity event queries.
