@@ -378,6 +378,263 @@ func (i *TestItemScope) BulkUpdate(
 	return result, nil
 }
 
+// GetAttributeKeys returns unique test item attribute keys within a specific launch.
+// keySubstring is sent as filter.cnt.attributeKey (substring match for autocomplete).
+// Use an empty string when no substring filter is needed.
+func (i *TestItemScope) GetAttributeKeys(
+	ctx context.Context,
+	launchID int64,
+	keySubstring string,
+) ([]string, error) {
+	logger := i.project.operationLogger(
+		"GetItemAttributeKeys",
+		slog.Int64("launchId", launchID),
+		slog.String("filter", keySubstring),
+	)
+	logger.InfoContext(ctx, "API request")
+
+	params := &api.GetAttributeKeysUsingGET1Params{
+		FilterCntAttributeKey: keySubstring,
+		Launch:                launchID,
+	}
+
+	response, err := i.project.client.raw.GetAttributeKeysUsingGET1WithResponse(
+		ctx,
+		i.project.projectName,
+		params,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get item attribute keys: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	keys, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get item attribute keys: %w", err)
+	}
+
+	if keys == nil {
+		return []string{}, nil
+	}
+
+	return *keys, nil
+}
+
+// GetAttributeKeysForProjectOption configures optional parameters for
+// GetAttributeKeysForProject.
+type GetAttributeKeysForProjectOption func(*api.GetAttributeKeysForProjectUsingGETParams)
+
+// WithProjectKeysLatest restricts results to the latest launches only.
+func WithProjectKeysLatest(isLatest bool) GetAttributeKeysForProjectOption {
+	return func(params *api.GetAttributeKeysForProjectUsingGETParams) {
+		params.IsLatest = &isLatest
+	}
+}
+
+// WithProjectKeysLaunchesLimit sets the maximum number of launches to scan.
+func WithProjectKeysLaunchesLimit(limit int32) GetAttributeKeysForProjectOption {
+	return func(params *api.GetAttributeKeysForProjectUsingGETParams) {
+		params.LaunchesLimit = &limit
+	}
+}
+
+// GetAttributeKeysForProject returns unique test item attribute keys across the project,
+// scoped to a saved user filter. keySubstring is sent as filter.cnt.attributeKey (substring
+// match for autocomplete). Use an empty string when no substring filter is needed.
+func (i *TestItemScope) GetAttributeKeysForProject(
+	ctx context.Context,
+	filterID int64,
+	keySubstring string,
+	options ...GetAttributeKeysForProjectOption,
+) ([]string, error) {
+	logger := i.project.operationLogger(
+		"GetItemAttributeKeysForProject",
+		slog.Int64("filterId", filterID),
+		slog.String("filter", keySubstring),
+	)
+	logger.InfoContext(ctx, "API request")
+
+	params := &api.GetAttributeKeysForProjectUsingGETParams{
+		FilterCntAttributeKey: keySubstring,
+		FilterId:              filterID,
+	}
+	for _, option := range options {
+		option(params)
+	}
+
+	response, err := i.project.client.raw.GetAttributeKeysForProjectUsingGETWithResponse(
+		ctx,
+		i.project.projectName,
+		params,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get item attribute keys for project: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	keys, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get item attribute keys for project: %w", err)
+	}
+
+	if keys == nil {
+		return []string{}, nil
+	}
+
+	return *keys, nil
+}
+
+// GetAttributeValues returns unique test item attribute values within a specific launch.
+// valueSubstring is sent as filter.cnt.attributeValue (substring match for autocomplete).
+// When attributeKey is non-nil, results are limited to values for that key
+// (filter.eq.attributeKey).
+func (i *TestItemScope) GetAttributeValues(
+	ctx context.Context,
+	launchID int64,
+	valueSubstring string,
+	attributeKey *string,
+) ([]string, error) {
+	logger := i.project.operationLogger(
+		"GetItemAttributeValues",
+		slog.Int64("launchId", launchID),
+		slog.String("valueFilter", valueSubstring),
+	)
+	if attributeKey != nil {
+		logger = logger.With(slog.String("attributeKey", *attributeKey))
+	}
+
+	logger.InfoContext(ctx, "API request")
+
+	params := &api.GetAttributeValuesUsingGET1Params{
+		FilterCntAttributeValue: valueSubstring,
+		FilterEqAttributeKey:    attributeKey,
+		Launch:                  launchID,
+	}
+
+	response, err := i.project.client.raw.GetAttributeValuesUsingGET1WithResponse(
+		ctx,
+		i.project.projectName,
+		params,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get item attribute values: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	values, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get item attribute values: %w", err)
+	}
+
+	if values == nil {
+		return []string{}, nil
+	}
+
+	return *values, nil
+}
+
+// GetStepAttributeKeys returns unique step-level attribute keys. keySubstring is sent as
+// filter.cnt.attributeKey (substring match for autocomplete). When stepName is non-nil,
+// results are limited to steps with that name (filter.eq.name).
+func (i *TestItemScope) GetStepAttributeKeys(
+	ctx context.Context,
+	keySubstring string,
+	stepName *string,
+) ([]string, error) {
+	logger := i.project.operationLogger(
+		"GetStepAttributeKeys",
+		slog.String("filter", keySubstring),
+	)
+	if stepName != nil {
+		logger = logger.With(slog.String("stepName", *stepName))
+	}
+
+	logger.InfoContext(ctx, "API request")
+
+	params := &api.GetAttributeKeysUsingGET2Params{
+		FilterCntAttributeKey: keySubstring,
+		FilterEqName:          stepName,
+	}
+
+	response, err := i.project.client.raw.GetAttributeKeysUsingGET2WithResponse(
+		ctx,
+		i.project.projectName,
+		params,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get step attribute keys: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	keys, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get step attribute keys: %w", err)
+	}
+
+	if keys == nil {
+		return []string{}, nil
+	}
+
+	return *keys, nil
+}
+
+// GetStepAttributeValues returns unique step-level attribute values. valueSubstring is
+// sent as filter.cnt.attributeValue (substring match for autocomplete). When attributeKey
+// is non-nil, results are limited to values for that key (filter.eq.attributeKey). When
+// stepName is non-nil, results are limited to steps with that name (filter.eq.name).
+func (i *TestItemScope) GetStepAttributeValues(
+	ctx context.Context,
+	valueSubstring string,
+	attributeKey *string,
+	stepName *string,
+) ([]string, error) {
+	logger := i.project.operationLogger(
+		"GetStepAttributeValues",
+		slog.String("valueFilter", valueSubstring),
+	)
+	if attributeKey != nil {
+		logger = logger.With(slog.String("attributeKey", *attributeKey))
+	}
+
+	if stepName != nil {
+		logger = logger.With(slog.String("stepName", *stepName))
+	}
+
+	logger.InfoContext(ctx, "API request")
+
+	params := &api.GetAttributeValuesUsingGET2Params{
+		FilterCntAttributeValue: valueSubstring,
+		FilterEqAttributeKey:    attributeKey,
+		FilterEqName:            stepName,
+	}
+
+	response, err := i.project.client.raw.GetAttributeValuesUsingGET2WithResponse(
+		ctx,
+		i.project.projectName,
+		params,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get step attribute values: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	values, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	if err != nil {
+		return nil, fmt.Errorf("get step attribute values: %w", err)
+	}
+
+	if values == nil {
+		return []string{}, nil
+	}
+
+	return *values, nil
+}
+
 // WithItemPageNumber sets the page number (0-based).
 func WithItemPageNumber(n int32) ListTestItemsOption {
 	return func(params *api.GetTestItemsUsingGET2Params) {
