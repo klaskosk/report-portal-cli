@@ -34,6 +34,10 @@ go.work.sum
 # built binary
 rp
 
+# preprocess tool binary
+preprocess
+pkg/preprocess
+
 # stored plans
 .cursor/plans/
 

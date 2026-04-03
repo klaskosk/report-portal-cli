@@ -1,6 +1,7 @@
-BINARY    := rp
-BUILD_DIR := .
-CMD_DIR   := ./cmd/$(BINARY)
+BINARY     := rp
+BUILD_DIR  := .
+CMD_DIR    := ./cmd/$(BINARY)
+GOMAXPROCS ?= 8 # limit parallelism to reduce PostgreSQL deadlock frequency
 
 .DEFAULT_GOAL := help
 
@@ -15,6 +16,11 @@ build: ## Build the rp binary
 vet: ## Run go vet on all packages
 	go vet ./...
 
+.PHONY: import-spec
+import-spec: ## Import an upstream OpenAPI spec: make import-spec SPEC=path/to/spec.json
+	@test -n "$(SPEC)" || (echo "Error: SPEC is required. Usage: make import-spec SPEC=path/to/spec.json" && exit 1)
+	go run ./pkg/internal/openapi/preprocess -spec "$(SPEC)" -out ./pkg/internal/openapi
+
 .PHONY: generate
 generate: ## Run go generate for all packages
 	go generate ./...
@@ -27,7 +33,7 @@ test: ## Run unit tests
 
 .PHONY: test-integration
 test-integration: ## Run integration tests (requires Docker)
-	cd test/integration && go test -tags=integration -cover -coverpkg=github.com/klaskosk/report-portal-cli/...,github.com/klaskosk/report-portal-cli/pkg/... -v -count=1 -timeout 10m ./...
+	cd test/integration && GOMAXPROCS=$(GOMAXPROCS) go test -tags=integration -cover -coverpkg=github.com/klaskosk/report-portal-cli/...,github.com/klaskosk/report-portal-cli/pkg/... -v -count=1 -timeout 10m ./...
 
 .PHONY: test-all
 test-all: test test-integration ## Run all tests

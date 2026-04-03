@@ -30,7 +30,7 @@ func TestLaunchScope_GetByID_Success(t *testing.T) {
 			"uuid": "abc-def-123",
 			"name": "Test Launch",
 			"status": "PASSED",
-			"startTime": 1700000000000,
+			"startTime": "2023-11-14T22:13:20Z",
 			"number": 1
 		}`))
 	}))
@@ -82,15 +82,16 @@ func TestLaunchScope_GetByID_Errors(t *testing.T) {
 	}
 }
 
-func TestLaunchScope_GetByUUID_Success(t *testing.T) {
+func TestLaunchScope_GetByUUID_PrefersV2Response(t *testing.T) {
 	t.Parallel()
 
 	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assertBearerToken(t, r, "test-token")
 		assertPath(t, r, "/api/v1/my_project/launch/uuid/abc-def-123")
 		assertMethod(t, r, http.MethodGet)
+		assertHeader(t, r, "Accept", "application/x.reportportal.launch.v2+json")
 
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "application/x.reportportal.launch.v2+json")
 		w.WriteHeader(http.StatusOK)
 
 		_, _ = w.Write([]byte(`{
@@ -98,7 +99,7 @@ func TestLaunchScope_GetByUUID_Success(t *testing.T) {
 			"uuid": "abc-def-123",
 			"name": "Test Launch",
 			"status": "FAILED",
-			"startTime": 1700000000000,
+			"startTime": "2023-11-14T22:13:20Z",
 			"number": 3
 		}`))
 	}))
@@ -108,6 +109,33 @@ func TestLaunchScope_GetByUUID_Success(t *testing.T) {
 
 	assert.Equal(t, "abc-def-123", launch.Uuid)
 	assert.Equal(t, "FAILED", launch.Status)
+}
+
+func TestLaunchScope_GetByUUID_LegacyJSONReturnsError(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/launch/uuid/abc-def-123")
+		assertMethod(t, r, http.MethodGet)
+		assertHeader(t, r, "Accept", "application/x.reportportal.launch.v2+json")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"id": 42,
+			"uuid": "abc-def-123",
+			"name": "Test Launch",
+			"status": "FAILED",
+			"startTime": "2023-11-14T22:13:20Z",
+			"number": 3
+		}`))
+	}))
+
+	_, err := c.Project("my_project").Launches().GetByUUID(t.Context(), "abc-def-123")
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "legacy JSON shape")
 }
 
 func TestLaunchScope_GetByUUID_NotFound(t *testing.T) {
@@ -124,7 +152,7 @@ func TestLaunchScope_GetByUUID_NotFound(t *testing.T) {
 func TestLaunchScope_Start_Success(t *testing.T) {
 	t.Parallel()
 
-	startTime := time.UnixMilli(1700000000000)
+	startTime := time.UnixMilli(1700000000000).UTC()
 	mode := types.StartLaunchRQModeDEFAULT
 
 	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -139,7 +167,7 @@ func TestLaunchScope_Start_Success(t *testing.T) {
 		require.NoError(t, json.Unmarshal(body, &payload))
 
 		assert.Equal(t, "Integration Launch", payload["name"])
-		assert.Equal(t, float64(startTime.UnixMilli()), payload["startTime"])
+		assert.Equal(t, startTime.UTC().Format(time.RFC3339Nano), payload["startTime"])
 		assert.Equal(t, string(mode), payload["mode"])
 
 		w.Header().Set("Content-Type", "application/json")
@@ -149,7 +177,7 @@ func TestLaunchScope_Start_Success(t *testing.T) {
 
 	result, err := c.Project("my_project").Launches().Start(t.Context(), types.StartLaunchRQ{
 		Name:      "Integration Launch",
-		StartTime: types.EpochMillis(startTime),
+		StartTime: startTime,
 		Mode:      &mode,
 	})
 	require.NoError(t, err)
@@ -193,7 +221,7 @@ func TestLaunchScope_Start_Errors(t *testing.T) {
 				t.Context(),
 				types.StartLaunchRQ{
 					Name:      "Integration Launch",
-					StartTime: types.EpochMillis(time.Now()),
+					StartTime: time.Now(),
 				},
 			)
 
@@ -206,7 +234,7 @@ func TestLaunchScope_Start_Errors(t *testing.T) {
 func TestLaunchScope_Finish_Success(t *testing.T) {
 	t.Parallel()
 
-	endTime := time.UnixMilli(1700000007000)
+	endTime := time.UnixMilli(1700000007000).UTC()
 	status := types.FinishExecutionRQStatusPASSED
 
 	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -220,7 +248,7 @@ func TestLaunchScope_Finish_Success(t *testing.T) {
 		var payload map[string]any
 		require.NoError(t, json.Unmarshal(body, &payload))
 
-		assert.Equal(t, float64(endTime.UnixMilli()), payload["endTime"])
+		assert.Equal(t, endTime.UTC().Format(time.RFC3339Nano), payload["endTime"])
 		assert.Equal(t, string(status), payload["status"])
 
 		w.Header().Set("Content-Type", "application/json")
@@ -232,7 +260,7 @@ func TestLaunchScope_Finish_Success(t *testing.T) {
 		t.Context(),
 		"launch-uuid-1",
 		types.FinishExecutionRQ{
-			EndTime: types.EpochMillis(endTime),
+			EndTime: endTime,
 			Status:  &status,
 		},
 	)
@@ -280,7 +308,7 @@ func TestLaunchScope_Finish_Errors(t *testing.T) {
 				t.Context(),
 				"missing-launch",
 				types.FinishExecutionRQ{
-					EndTime: types.EpochMillis(time.Now()),
+					EndTime: time.Now(),
 					Status:  &status,
 				},
 			)
@@ -303,8 +331,8 @@ func TestLaunchScope_List_Success(t *testing.T) {
 
 		_, _ = w.Write([]byte(`{
 			"content": [
-				{"id": 1, "uuid": "uuid-1", "name": "Launch 1", "status": "PASSED", "startTime": 1700000000000, "number": 1},
-				{"id": 2, "uuid": "uuid-2", "name": "Launch 2", "status": "FAILED", "startTime": 1700000001000, "number": 2}
+				{"id": 1, "uuid": "uuid-1", "name": "Launch 1", "status": "PASSED", "startTime": "2023-11-14T22:13:20Z", "number": 1},
+				{"id": 2, "uuid": "uuid-2", "name": "Launch 2", "status": "FAILED", "startTime": "2023-11-14T22:13:21Z", "number": 2}
 			],
 			"page": {"number": 1, "size": 10, "totalElements": 2, "totalPages": 1}
 		}`))
@@ -312,10 +340,10 @@ func TestLaunchScope_List_Success(t *testing.T) {
 
 	result, err := c.Project("my_project").Launches().List(t.Context())
 	require.NoError(t, err)
-	require.Len(t, result.Content, 2)
+	require.Len(t, *result.Content, 2)
 
-	assert.Equal(t, "Launch 1", result.Content[0].Name)
-	assert.Equal(t, 2, result.Page.TotalElements)
+	assert.Equal(t, "Launch 1", (*result.Content)[0].Name)
+	assert.EqualValues(t, 2, *result.Page.TotalElements)
 }
 
 func TestLaunchScope_List_WithFilterOptions(t *testing.T) {
@@ -390,7 +418,7 @@ func TestLaunchScope_GetLatest_Success(t *testing.T) {
 
 		_, _ = w.Write([]byte(`{
 			"content": [
-				{"id": 1, "uuid": "latest-uuid", "name": "Latest Launch", "status": "PASSED", "startTime": 1700000000000, "number": 5}
+				{"id": 1, "uuid": "latest-uuid", "name": "Latest Launch", "status": "PASSED", "startTime": "2023-11-14T22:13:20Z", "number": 5}
 			],
 			"page": {"number": 1, "size": 10, "totalElements": 1, "totalPages": 1}
 		}`))
@@ -398,9 +426,9 @@ func TestLaunchScope_GetLatest_Success(t *testing.T) {
 
 	result, err := c.Project("my_project").Launches().GetLatest(t.Context())
 	require.NoError(t, err)
-	require.Len(t, result.Content, 1)
+	require.Len(t, *result.Content, 1)
 
-	assert.Equal(t, "Latest Launch", result.Content[0].Name)
+	assert.Equal(t, "Latest Launch", (*result.Content)[0].Name)
 }
 
 func TestLaunchScope_GetLatest_WithOptions(t *testing.T) {
@@ -442,7 +470,7 @@ func TestLaunchScope_GetDebug_Success(t *testing.T) {
 
 		_, _ = w.Write([]byte(`{
 			"content": [
-				{"id": 2, "uuid": "debug-uuid", "name": "Debug Launch", "status": "IN_PROGRESS", "startTime": 1700000000000, "number": 3, "mode": "DEBUG"}
+				{"id": 2, "uuid": "debug-uuid", "name": "Debug Launch", "status": "IN_PROGRESS", "startTime": "2023-11-14T22:13:20Z", "number": 3, "mode": "DEBUG"}
 			],
 			"page": {"number": 1, "size": 10, "totalElements": 1, "totalPages": 1}
 		}`))
@@ -450,9 +478,9 @@ func TestLaunchScope_GetDebug_Success(t *testing.T) {
 
 	result, err := c.Project("my_project").Launches().GetDebug(t.Context())
 	require.NoError(t, err)
-	require.Len(t, result.Content, 1)
+	require.Len(t, *result.Content, 1)
 
-	assert.Equal(t, "Debug Launch", result.Content[0].Name)
+	assert.Equal(t, "Debug Launch", (*result.Content)[0].Name)
 }
 
 func TestLaunchScope_GetDebug_WithOptions(t *testing.T) {
@@ -571,7 +599,7 @@ func TestLaunchScope_WithAttributeFilters(t *testing.T) {
 			name:   "WithLaunchAttribute",
 			option: client.WithLaunchAttribute("env", "production"),
 			expected: map[string]string{
-				"filter.eq.compositeAttribute": "env:production",
+				"filter.has.compositeAttribute": "env:production",
 			},
 		},
 		{
@@ -968,14 +996,8 @@ func TestLaunchScope_DeleteBulk_Success(t *testing.T) {
 		assertPath(t, r, "/api/v1/my_project/launch")
 		assertMethod(t, r, http.MethodDelete)
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
-
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
-
-		ids := payload["ids"].([]any)
-		assert.Len(t, ids, 2)
+		q := r.URL.Query()["ids"]
+		assert.Equal(t, []string{"1", "2"}, q)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -1003,7 +1025,7 @@ func TestLaunchScope_DeleteBulk_Unauthorized(t *testing.T) {
 func TestLaunchScope_ForceFinish_Success(t *testing.T) {
 	t.Parallel()
 
-	endTime := time.UnixMilli(1700000007000)
+	endTime := time.UnixMilli(1700000007000).UTC()
 	status := types.FinishExecutionRQStatusFAILED
 
 	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1017,7 +1039,7 @@ func TestLaunchScope_ForceFinish_Success(t *testing.T) {
 		var payload map[string]any
 		require.NoError(t, json.Unmarshal(body, &payload))
 
-		assert.Equal(t, float64(endTime.UnixMilli()), payload["endTime"])
+		assert.Equal(t, endTime.UTC().Format(time.RFC3339Nano), payload["endTime"])
 		assert.Equal(t, string(status), payload["status"])
 
 		w.Header().Set("Content-Type", "application/json")
@@ -1029,7 +1051,7 @@ func TestLaunchScope_ForceFinish_Success(t *testing.T) {
 		t.Context(),
 		42,
 		types.FinishExecutionRQ{
-			EndTime: types.EpochMillis(endTime),
+			EndTime: endTime,
 			Status:  &status,
 		},
 	)
@@ -1065,7 +1087,7 @@ func TestLaunchScope_ForceFinish_Errors(t *testing.T) {
 				t.Context(),
 				999,
 				types.FinishExecutionRQ{
-					EndTime: types.EpochMillis(time.Now()),
+					EndTime: time.Now(),
 				},
 			)
 
@@ -1075,13 +1097,60 @@ func TestLaunchScope_ForceFinish_Errors(t *testing.T) {
 	}
 }
 
-func TestLaunchScope_Merge_Success(t *testing.T) {
+func TestLaunchScope_Merge_PrefersV2Response(t *testing.T) {
 	t.Parallel()
 
 	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assertBearerToken(t, r, "test-token")
 		assertPath(t, r, "/api/v1/my_project/launch/merge")
 		assertMethod(t, r, http.MethodPost)
+		assertHeader(t, r, "Accept", "application/x.reportportal.launch.v2+json")
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		assert.Equal(t, "Merged Launch", payload["name"])
+		assert.Equal(t, "BASIC", payload["mergeType"], "should default to BASIC merge type")
+
+		launches := payload["launches"].([]any)
+		assert.Len(t, launches, 2)
+
+		w.Header().Set("Content-Type", "application/x.reportportal.launch.v2+json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{
+			"id": 100,
+			"uuid": "merged-uuid",
+			"name": "Merged Launch",
+			"status": "PASSED",
+			"startTime": "2023-11-14T22:13:20Z",
+			"number": 10
+		}`))
+	}))
+
+	result, err := c.Project("my_project").Launches().Merge(
+		t.Context(),
+		types.MergeLaunchesRQ{
+			Name:     "Merged Launch",
+			Launches: []int64{1, 2},
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, "Merged Launch", result.Name)
+	assert.Equal(t, int64(100), result.Id)
+}
+
+func TestLaunchScope_Merge_LegacyJSONReturnsError(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/launch/merge")
+		assertMethod(t, r, http.MethodPost)
+		assertHeader(t, r, "Accept", "application/x.reportportal.launch.v2+json")
 
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
@@ -1102,22 +1171,20 @@ func TestLaunchScope_Merge_Success(t *testing.T) {
 			"uuid": "merged-uuid",
 			"name": "Merged Launch",
 			"status": "PASSED",
-			"startTime": 1700000000000,
+			"startTime": "2023-11-14T22:13:20Z",
 			"number": 10
 		}`))
 	}))
 
-	result, err := c.Project("my_project").Launches().Merge(
+	_, err := c.Project("my_project").Launches().Merge(
 		t.Context(),
 		types.MergeLaunchesRQ{
 			Name:     "Merged Launch",
 			Launches: []int64{1, 2},
 		},
 	)
-	require.NoError(t, err)
-	require.NotNil(t, result)
-	assert.Equal(t, "Merged Launch", result.Name)
-	assert.Equal(t, int64(100), result.Id)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "legacy JSON shape")
 }
 
 func TestLaunchScope_Merge_Errors(t *testing.T) {
@@ -1181,7 +1248,7 @@ func TestLaunchScope_Analyze_Success(t *testing.T) {
 	result, err := c.Project("my_project").Launches().Analyze(
 		t.Context(),
 		types.AnalyzeLaunchRQ{
-			LaunchId: &launchID,
+			LaunchId: launchID,
 		},
 	)
 	require.NoError(t, err)
@@ -1216,7 +1283,7 @@ func TestLaunchScope_Analyze_Errors(t *testing.T) {
 			_, err := testClient.Project("my_project").Launches().Analyze(
 				t.Context(),
 				types.AnalyzeLaunchRQ{
-					LaunchId: &launchID,
+					LaunchId: launchID,
 				},
 			)
 
@@ -1253,7 +1320,7 @@ func TestLaunchScope_BulkUpdate_Success(t *testing.T) {
 	result, err := c.Project("my_project").Launches().BulkUpdate(
 		t.Context(),
 		types.BulkInfoUpdateRQ{
-			Ids:         &[]int64{1, 2},
+			Ids:         []int64{1, 2},
 			Description: &description,
 		},
 	)
@@ -1294,7 +1361,7 @@ func TestLaunchScope_BulkUpdate_Errors(t *testing.T) {
 			_, err := testClient.Project("my_project").Launches().BulkUpdate(
 				t.Context(),
 				types.BulkInfoUpdateRQ{
-					Ids: &[]int64{1, 2},
+					Ids: []int64{1, 2},
 				},
 			)
 
@@ -1307,7 +1374,7 @@ func TestLaunchScope_BulkUpdate_Errors(t *testing.T) {
 func TestLaunchScope_BulkForceFinish_Success(t *testing.T) {
 	t.Parallel()
 
-	endTime := time.UnixMilli(1700000007000)
+	endTime := time.UnixMilli(1700000007000).UTC()
 	status := types.FinishExecutionRQStatusFAILED
 
 	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1334,7 +1401,7 @@ func TestLaunchScope_BulkForceFinish_Success(t *testing.T) {
 		types.BulkRQLongFinishExecutionRQ{
 			Entities: map[string]types.FinishExecutionRQ{
 				"42": {
-					EndTime: types.EpochMillis(endTime),
+					EndTime: endTime,
 					Status:  &status,
 				},
 			},
@@ -1404,8 +1471,8 @@ func TestLaunchScope_Compare_Success(t *testing.T) {
 
 		_, _ = w.Write([]byte(`{
 			"executionStatistics": [
-				{"id": 1, "name": "Launch 1", "number": 1, "startTime": 1700000000000, "values": {"passed": "10", "failed": "2"}},
-				{"id": 2, "name": "Launch 2", "number": 2, "startTime": 1700000001000, "values": {"passed": "12", "failed": "1"}}
+				{"id": 1, "name": "Launch 1", "number": 1, "startTime": "2023-11-14T22:13:20Z", "values": {"passed": "10", "failed": "2"}},
+				{"id": 2, "name": "Launch 2", "number": 2, "startTime": "2023-11-14T22:13:21Z", "values": {"passed": "12", "failed": "1"}}
 			]
 		}`))
 	}))
@@ -1419,7 +1486,7 @@ func TestLaunchScope_Compare_Success(t *testing.T) {
 	assert.EqualValues(
 		t,
 		1700000000000,
-		time.Time(*result["executionStatistics"][0].StartTime).UnixMilli(),
+		result["executionStatistics"][0].StartTime.UnixMilli(),
 	)
 }
 
@@ -1461,84 +1528,20 @@ func TestLaunchScope_Compare_Errors(t *testing.T) {
 	}
 }
 
-func TestLaunchScope_Import_Success(t *testing.T) {
+func TestLaunchScope_Import_NotInOpenAPISpec(t *testing.T) {
 	t.Parallel()
 
 	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/launch/import")
-		assertMethod(t, r, http.MethodPost)
-
-		assert.Contains(t, r.Header.Get("Content-Type"), "multipart/form-data")
-
-		err := r.ParseMultipartForm(10 << 20)
-		require.NoError(t, err)
-
-		file, header, err := r.FormFile("file")
-		require.NoError(t, err)
-
-		defer file.Close()
-
-		assert.Equal(t, "launch-export.zip", header.Filename)
-
-		fileData, err := io.ReadAll(file)
-		require.NoError(t, err)
-		assert.Equal(t, "fake-zip-data", string(fileData))
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-
-		_, _ = w.Write([]byte(`{"message": "Launch successfully imported."}`))
+		t.Fatalf("unexpected HTTP request: %s %s", r.Method, r.URL.Path)
 	}))
 
-	result, err := c.Project("my_project").Launches().Import(
+	_, err := c.Project("my_project").Launches().Import(
 		t.Context(),
 		"launch-export.zip",
 		strings.NewReader("fake-zip-data"),
 	)
-	require.NoError(t, err)
-	require.NotNil(t, result)
-	assert.Contains(t, *result.Message, "imported")
-}
-
-func TestLaunchScope_Import_Errors(t *testing.T) {
-	t.Parallel()
-
-	testCases := []struct {
-		name       string
-		statusCode int
-		body       string
-		check      func(error) bool
-	}{
-		{
-			name:       "BadRequest",
-			statusCode: http.StatusBadRequest,
-			body:       `{"errorCode": 4001, "message": "Invalid file format."}`,
-			check:      client.IsBadRequest,
-		},
-		{
-			name:       "Unauthorized",
-			statusCode: http.StatusUnauthorized,
-			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
-			check:      client.IsUnauthorized,
-		},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
-			_, err := testClient.Project("my_project").Launches().Import(
-				t.Context(),
-				"bad.zip",
-				strings.NewReader("data"),
-			)
-
-			require.Error(t, err)
-			assert.True(t, testCase.check(err))
-		})
-	}
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "not supported by generated API client")
 }
 
 func TestLaunchScope_GetClusters_Success(t *testing.T) {
@@ -1574,14 +1577,14 @@ func TestLaunchScope_GetClusters_Success(t *testing.T) {
 		client.WithClusterPageSize(size),
 	)
 	require.NoError(t, err)
-	require.Len(t, result.Content, 2)
+	require.Len(t, *result.Content, 2)
 
-	require.NotNil(t, result.Content[0].Id)
-	assert.Equal(t, int64(1), *result.Content[0].Id)
-	assert.Equal(t, "NullPointerException", *result.Content[0].Message)
-	require.NotNil(t, result.Content[0].LaunchId)
-	assert.Equal(t, int64(42), *result.Content[0].LaunchId)
-	assert.Equal(t, 2, result.Page.TotalElements)
+	require.NotNil(t, (*result.Content)[0].Id)
+	assert.Equal(t, int64(1), *(*result.Content)[0].Id)
+	assert.Equal(t, "NullPointerException", *(*result.Content)[0].Message)
+	require.NotNil(t, (*result.Content)[0].LaunchId)
+	assert.Equal(t, int64(42), *(*result.Content)[0].LaunchId)
+	assert.EqualValues(t, 2, *result.Page.TotalElements)
 }
 
 func TestLaunchScope_GetClusters_Errors(t *testing.T) {

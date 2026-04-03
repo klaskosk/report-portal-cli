@@ -1,12 +1,13 @@
 module github.com/klaskosk/report-portal-cli/test/integration
 
-go 1.25
+go 1.26
 
-toolchain go1.25.5
+toolchain go1.26.0
 
 replace github.com/klaskosk/report-portal-cli/pkg => ../../pkg
 
 require (
+	github.com/google/uuid v1.6.0
 	github.com/klaskosk/report-portal-cli/pkg v0.0.0-00010101000000-000000000000
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
@@ -89,7 +90,6 @@ require (
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/pprof v0.0.0-20260115054156-294ebfa9ad83 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.1 // indirect

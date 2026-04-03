@@ -97,13 +97,46 @@ func TestTestItemScope_GetByID_Errors(t *testing.T) {
 	}
 }
 
-func TestTestItemScope_GetByUUID_Success(t *testing.T) {
+func TestTestItemScope_GetByUUID_PrefersV2Response(t *testing.T) {
 	t.Parallel()
 
 	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assertBearerToken(t, r, "test-token")
 		assertPath(t, r, "/api/v1/my_project/item/uuid/item-uuid-42")
 		assertMethod(t, r, http.MethodGet)
+		assertHeader(t, r, "Accept", "application/x.reportportal.test.v2+json")
+
+		w.Header().Set("Content-Type", "application/x.reportportal.test.v2+json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"id": 42,
+			"uuid": "item-uuid-42",
+			"name": "Suite 42",
+			"status": "FAILED",
+			"type": "SUITE",
+			"startTime": "2023-11-14T22:13:20Z"
+		}`))
+	}))
+
+	item, err := c.Project("my_project").Items().GetByUUID(t.Context(), "item-uuid-42")
+	require.NoError(t, err)
+	require.NotNil(t, item)
+	require.NotNil(t, item.Uuid)
+	require.NotNil(t, item.Status)
+
+	assert.Equal(t, "item-uuid-42", *item.Uuid)
+	assert.Equal(t, "FAILED", *item.Status)
+}
+
+func TestTestItemScope_GetByUUID_LegacyJSONReturnsError(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/item/uuid/item-uuid-42")
+		assertMethod(t, r, http.MethodGet)
+		assertHeader(t, r, "Accept", "application/x.reportportal.test.v2+json")
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -117,14 +150,9 @@ func TestTestItemScope_GetByUUID_Success(t *testing.T) {
 		}`))
 	}))
 
-	item, err := c.Project("my_project").Items().GetByUUID(t.Context(), "item-uuid-42")
-	require.NoError(t, err)
-	require.NotNil(t, item)
-	require.NotNil(t, item.Uuid)
-	require.NotNil(t, item.Status)
-
-	assert.Equal(t, "item-uuid-42", *item.Uuid)
-	assert.Equal(t, "FAILED", *item.Status)
+	_, err := c.Project("my_project").Items().GetByUUID(t.Context(), "item-uuid-42")
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "legacy JSON shape")
 }
 
 func TestTestItemScope_GetByUUID_NotFound(t *testing.T) {
@@ -141,7 +169,7 @@ func TestTestItemScope_GetByUUID_NotFound(t *testing.T) {
 func TestTestItemScope_StartRoot_Success(t *testing.T) {
 	t.Parallel()
 
-	startTime := time.UnixMilli(1700000000000)
+	startTime := time.UnixMilli(1700000000000).UTC()
 	itemType := types.StartTestItemRQType("SUITE")
 	hasStats := true
 
@@ -158,7 +186,7 @@ func TestTestItemScope_StartRoot_Success(t *testing.T) {
 
 		assert.Equal(t, "launch-uuid-1", payload["launchUuid"])
 		assert.Equal(t, "Authentication Suite", payload["name"])
-		assert.Equal(t, float64(startTime.UnixMilli()), payload["startTime"])
+		assert.Equal(t, startTime.UTC().Format(time.RFC3339Nano), payload["startTime"])
 		assert.Equal(t, string(itemType), payload["type"])
 		assert.Equal(t, true, payload["hasStats"])
 
@@ -172,7 +200,7 @@ func TestTestItemScope_StartRoot_Success(t *testing.T) {
 		types.StartTestItemRQ{
 			LaunchUuid: "launch-uuid-1",
 			Name:       "Authentication Suite",
-			StartTime:  types.EpochMillis(startTime),
+			StartTime:  startTime,
 			Type:       itemType,
 			HasStats:   &hasStats,
 		},
@@ -217,7 +245,7 @@ func TestTestItemScope_StartRoot_Errors(t *testing.T) {
 				types.StartTestItemRQ{
 					LaunchUuid: "launch-uuid-1",
 					Name:       "Authentication Suite",
-					StartTime:  types.EpochMillis(time.Now()),
+					StartTime:  time.Now(),
 					Type:       itemType,
 				},
 			)
@@ -230,7 +258,7 @@ func TestTestItemScope_StartRoot_Errors(t *testing.T) {
 func TestTestItemScope_StartChild_Success(t *testing.T) {
 	t.Parallel()
 
-	startTime := time.UnixMilli(1700000001000)
+	startTime := time.UnixMilli(1700000001000).UTC()
 	itemType := types.StartTestItemRQType("TEST")
 	hasStats := true
 
@@ -247,7 +275,7 @@ func TestTestItemScope_StartChild_Success(t *testing.T) {
 
 		assert.Equal(t, "launch-uuid-1", payload["launchUuid"])
 		assert.Equal(t, "Login Test", payload["name"])
-		assert.Equal(t, float64(startTime.UnixMilli()), payload["startTime"])
+		assert.Equal(t, startTime.UTC().Format(time.RFC3339Nano), payload["startTime"])
 		assert.Equal(t, string(itemType), payload["type"])
 		assert.Equal(t, true, payload["hasStats"])
 
@@ -262,7 +290,7 @@ func TestTestItemScope_StartChild_Success(t *testing.T) {
 		types.StartTestItemRQ{
 			LaunchUuid: "launch-uuid-1",
 			Name:       "Login Test",
-			StartTime:  types.EpochMillis(startTime),
+			StartTime:  startTime,
 			Type:       itemType,
 			HasStats:   &hasStats,
 		},
@@ -308,7 +336,7 @@ func TestTestItemScope_StartChild_Errors(t *testing.T) {
 				types.StartTestItemRQ{
 					LaunchUuid: "launch-uuid-1",
 					Name:       "Login Test",
-					StartTime:  types.EpochMillis(time.Now()),
+					StartTime:  time.Now(),
 					Type:       itemType,
 				},
 			)
@@ -321,7 +349,7 @@ func TestTestItemScope_StartChild_Errors(t *testing.T) {
 func TestTestItemScope_Finish_Success(t *testing.T) {
 	t.Parallel()
 
-	endTime := time.UnixMilli(1700000005000)
+	endTime := time.UnixMilli(1700000005000).UTC()
 	status := types.FinishTestItemRQStatusPASSED
 
 	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -336,7 +364,7 @@ func TestTestItemScope_Finish_Success(t *testing.T) {
 		require.NoError(t, json.Unmarshal(body, &payload))
 
 		assert.Equal(t, "launch-uuid-1", payload["launchUuid"])
-		assert.Equal(t, float64(endTime.UnixMilli()), payload["endTime"])
+		assert.Equal(t, endTime.UTC().Format(time.RFC3339Nano), payload["endTime"])
 		assert.Equal(t, string(status), payload["status"])
 
 		w.Header().Set("Content-Type", "application/json")
@@ -349,7 +377,7 @@ func TestTestItemScope_Finish_Success(t *testing.T) {
 		"test-uuid-1",
 		types.FinishTestItemRQ{
 			LaunchUuid: "launch-uuid-1",
-			EndTime:    types.EpochMillis(endTime),
+			EndTime:    endTime,
 			Status:     &status,
 		},
 	)
@@ -393,7 +421,7 @@ func TestTestItemScope_Finish_Errors(t *testing.T) {
 				"missing-item",
 				types.FinishTestItemRQ{
 					LaunchUuid: "launch-uuid-1",
-					EndTime:    types.EpochMillis(time.Now()),
+					EndTime:    time.Now(),
 					Status:     &status,
 				},
 			)
@@ -426,11 +454,12 @@ func TestTestItemScope_List_Success(t *testing.T) {
 	result, err := c.Project("my_project").Items().List(t.Context())
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	require.Len(t, result.Content, 2)
-	require.NotNil(t, result.Content[0].Name)
+	require.NotNil(t, result.Content)
+	require.Len(t, *result.Content, 2)
+	require.NotNil(t, (*result.Content)[0].Name)
 
-	assert.Equal(t, "Suite A", *result.Content[0].Name)
-	assert.Equal(t, 2, result.Page.TotalElements)
+	assert.Equal(t, "Suite A", *(*result.Content)[0].Name)
+	assert.EqualValues(t, 2, *result.Page.TotalElements)
 }
 
 func TestTestItemScope_List_WithFilterOptions(t *testing.T) {
@@ -867,7 +896,7 @@ func TestTestItemScope_BulkUpdate_Success(t *testing.T) {
 	result, err := c.Project("my_project").Items().BulkUpdate(
 		t.Context(),
 		types.BulkInfoUpdateRQ{
-			Ids:         &[]int64{101, 202},
+			Ids:         []int64{101, 202},
 			Description: &description,
 		},
 	)
@@ -908,7 +937,7 @@ func TestTestItemScope_BulkUpdate_Errors(t *testing.T) {
 			_, err := testClient.Project("my_project").Items().BulkUpdate(
 				t.Context(),
 				types.BulkInfoUpdateRQ{
-					Ids: &[]int64{101, 202},
+					Ids: []int64{101, 202},
 				},
 			)
 
@@ -1346,11 +1375,12 @@ func TestTestItemScope_GetHistory_Success(t *testing.T) {
 	)
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	require.Len(t, result.Content, 1)
-	require.NotNil(t, result.Content[0].GroupingField)
-	assert.Equal(t, "test-case-1", *result.Content[0].GroupingField)
-	require.NotNil(t, result.Content[0].Resources)
-	assert.Len(t, *result.Content[0].Resources, 2)
+	require.NotNil(t, result.Content)
+	require.Len(t, *result.Content, 1)
+	require.NotNil(t, (*result.Content)[0].GroupingField)
+	assert.Equal(t, "test-case-1", *(*result.Content)[0].GroupingField)
+	require.NotNil(t, (*result.Content)[0].Resources)
+	assert.Len(t, *(*result.Content)[0].Resources, 2)
 }
 
 func TestTestItemScope_GetHistory_WithOptions(t *testing.T) {
@@ -1725,8 +1755,9 @@ func TestTestItemScope_LinkExternalIssues_Success(t *testing.T) {
 		testItemIds := payload["testItemIds"].([]any)
 		assert.Len(t, testItemIds, 1)
 
-		issues := payload["issues"].([]any)
-		assert.Len(t, issues, 1)
+		issues, ok := payload["issues"].(map[string]any)
+		require.True(t, ok)
+		assert.Equal(t, "JIRA-123", issues["ticketId"])
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -1741,14 +1772,12 @@ func TestTestItemScope_LinkExternalIssues_Success(t *testing.T) {
 	result, err := c.Project("my_project").Items().LinkExternalIssues(
 		t.Context(),
 		types.LinkExternalIssueRQ{
-			TestItemIds: &[]int64{42},
-			Issues: &[]types.ExternalSystemIssue{
-				{
-					TicketId:   &ticketID,
-					BtsUrl:     &btsURL,
-					BtsProject: &btsProject,
-					Url:        &url,
-				},
+			TestItemIds: []int64{42},
+			Issues: types.ExternalSystemIssue{
+				TicketId:   ticketID,
+				BtsUrl:     btsURL,
+				BtsProject: btsProject,
+				Url:        url,
 			},
 		},
 	)
@@ -1789,7 +1818,7 @@ func TestTestItemScope_LinkExternalIssues_Errors(t *testing.T) {
 			_, err := testClient.Project("my_project").Items().LinkExternalIssues(
 				t.Context(),
 				types.LinkExternalIssueRQ{
-					TestItemIds: &[]int64{42},
+					TestItemIds: []int64{42},
 				},
 			)
 
@@ -1828,8 +1857,8 @@ func TestTestItemScope_UnlinkExternalIssues_Success(t *testing.T) {
 	result, err := c.Project("my_project").Items().UnlinkExternalIssues(
 		t.Context(),
 		types.UnlinkExternalIssueRQ{
-			TestItemIds: &[]int64{42},
-			TicketIds:   &[]string{"JIRA-123"},
+			TestItemIds: []int64{42},
+			TicketIds:   []string{"JIRA-123"},
 		},
 	)
 	require.NoError(t, err)
@@ -1869,8 +1898,8 @@ func TestTestItemScope_UnlinkExternalIssues_Errors(t *testing.T) {
 			_, err := testClient.Project("my_project").Items().UnlinkExternalIssues(
 				t.Context(),
 				types.UnlinkExternalIssueRQ{
-					TestItemIds: &[]int64{42},
-					TicketIds:   &[]string{"JIRA-123"},
+					TestItemIds: []int64{42},
+					TicketIds:   []string{"JIRA-123"},
 				},
 			)
 

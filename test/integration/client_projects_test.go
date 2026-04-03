@@ -62,7 +62,8 @@ var _ = Describe("Client: Projects", Label("client", "projects"), func() {
 			result, err := c.Projects().List(ctx)
 			Expect(err).NotTo(HaveOccurred(), "List should not fail")
 			Expect(result).NotTo(BeNil())
-			Expect(result.Content).NotTo(BeEmpty(), "should have at least one project")
+			Expect(result.Content).NotTo(BeNil(), "should have at least one project")
+			Expect(*result.Content).NotTo(BeEmpty(), "should have at least one project")
 		})
 
 		It("supports pagination options", func(ctx SpecContext) {
@@ -72,7 +73,8 @@ var _ = Describe("Client: Projects", Label("client", "projects"), func() {
 			)
 			Expect(err).NotTo(HaveOccurred(), "List with pagination should not fail")
 			Expect(result).NotTo(BeNil())
-			Expect(len(result.Content)).To(BeNumerically("<=", 1),
+			Expect(result.Content).NotTo(BeNil())
+			Expect(len(*result.Content)).To(BeNumerically("<=", 1),
 				"page size 1 should return at most 1 project")
 		})
 	})
@@ -98,8 +100,7 @@ var _ = Describe("Client: Projects", Label("client", "projects"), func() {
 			info, err := c.Projects().GetInfo(ctx, "superadmin_personal")
 			Expect(err).NotTo(HaveOccurred(), "GetInfo should not fail")
 			Expect(info).NotTo(BeNil())
-			Expect(info.ProjectName).NotTo(BeNil())
-			Expect(*info.ProjectName).To(Equal("superadmin_personal"))
+			Expect(info.ProjectName).To(Equal("superadmin_personal"))
 		})
 
 		It("returns not found for an unknown project", func(ctx SpecContext) {
@@ -124,7 +125,7 @@ var _ = Describe("Client: Projects Write", Label("client", "projects", "write"),
 
 			created, err := c.Projects().Create(ctx, types.CreateProjectRQ{
 				ProjectName: projectName,
-				EntryType:   types.INTERNAL,
+				EntryType:   types.CreateProjectRQEntryTypeINTERNAL,
 			})
 			Expect(err).NotTo(HaveOccurred(), "Create should not fail")
 			Expect(created).NotTo(BeNil())
@@ -173,7 +174,9 @@ var _ = Describe("Client: Projects Write", Label("client", "projects", "write"),
 			result, err := c.Projects().ListUsers(ctx, "superadmin_personal")
 			Expect(err).NotTo(HaveOccurred(), "ListUsers should not fail")
 			Expect(result).NotTo(BeNil())
-			Expect(result.Content).NotTo(BeEmpty(),
+			Expect(result.Content).NotTo(BeNil(),
+				"superadmin_personal should have at least one user")
+			Expect(*result.Content).NotTo(BeEmpty(),
 				"superadmin_personal should have at least one user")
 		})
 	})

@@ -46,3 +46,5 @@ formatters:
     - gofumpt
     - goimports
     - golines
+run:
+  allow-serial-runners: true

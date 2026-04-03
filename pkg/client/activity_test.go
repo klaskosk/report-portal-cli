@@ -29,7 +29,7 @@ func TestActivityScope_GetByID_Success(t *testing.T) {
 			"projectId": 1,
 			"projectName": "my_project",
 			"user": "admin",
-			"lastModified": 1700000000000
+			"lastModified": "2023-11-14T22:13:20Z"
 		}`))
 	}))
 
@@ -81,6 +81,7 @@ func TestActivityScope_ListForItem_Success(t *testing.T) {
 			"content": [
 				{
 					"id": 1,
+					"created_at": "2024-03-29T12:29:54.772Z",
 					"event_name": "updateItem",
 					"object_type": "testItem",
 					"object_name": "Login Test",
@@ -100,9 +101,10 @@ func TestActivityScope_ListForItem_Success(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, result.Content, 1)
 
-	assert.Equal(t, int64(1), result.Content[0].Id)
-	assert.Equal(t, "updateItem", result.Content[0].EventName)
-	assert.Equal(t, int64(100), result.Content[0].ObjectId)
+	event := result.Content[0]
+	assert.Equal(t, int64(1), event.Id)
+	assert.Equal(t, "updateItem", event.EventName)
+	assert.Equal(t, int64(100), event.ObjectId)
 }
 
 func TestActivityScope_ListForItem_WithOptions(t *testing.T) {

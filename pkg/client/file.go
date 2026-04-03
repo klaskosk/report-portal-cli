@@ -22,7 +22,7 @@ func (p *ProjectScope) DownloadFile(
 	logger := p.operationLogger("DownloadFile", slog.Int64("dataId", dataID))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.GetFileUsingGETWithResponse(
+	response, err := p.client.raw.GetFileWithResponse(
 		ctx,
 		p.projectName,
 		dataID,
@@ -42,7 +42,7 @@ func (p *ProjectScope) DownloadFile(
 
 	code := response.StatusCode()
 	if code < 200 || code >= 300 {
-		return nil, fmt.Errorf("download file: %w", newUnexpectedStatusError(code))
+		return nil, fmt.Errorf("download file: %w", newUnexpectedStatusError(code, response.Body))
 	}
 
 	httpResp := response.HTTPResponse

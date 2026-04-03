@@ -76,48 +76,22 @@ func TestUsersScope_GetByLogin_Success(t *testing.T) {
 	assert.Equal(t, "testuser", user.UserId)
 }
 
-func TestUsersScope_GetByLogin_FallsBackToDeprecatedEndpoint(t *testing.T) {
+func TestUsersScope_GetByLogin_Forbidden(t *testing.T) {
 	t.Parallel()
-
-	var (
-		primaryCalls  int
-		fallbackCalls int
-	)
 
 	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assertBearerToken(t, r, "test-token")
 		assertMethod(t, r, http.MethodGet)
+		assertPath(t, r, "/api/users/testuser")
 
-		switch r.URL.Path {
-		case "/api/v1/user/testuser":
-			primaryCalls++
-
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusForbidden)
-			_, _ = w.Write([]byte(`{"errorCode": 4031, "message": "forbidden"}`))
-		case "/api/users/testuser":
-			fallbackCalls++
-
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{
-				"id": 2,
-				"userId": "testuser",
-				"email": "test@example.com",
-				"userRole": "USER"
-			}`))
-		default:
-			t.Fatalf("unexpected path: %s", r.URL.Path)
-		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write([]byte(`{"errorCode": 4031, "message": "forbidden"}`))
 	}))
 
-	user, err := c.Users().GetByLogin(t.Context(), "testuser")
-	require.NoError(t, err)
-	require.NotNil(t, user)
-
-	assert.Equal(t, "testuser", user.UserId)
-	assert.Equal(t, 1, primaryCalls, "expected one call to preferred endpoint")
-	assert.Equal(t, 1, fallbackCalls, "expected one call to deprecated fallback endpoint")
+	_, err := c.Users().GetByLogin(t.Context(), "testuser")
+	require.Error(t, err)
+	assert.True(t, client.IsForbidden(err))
 }
 
 func TestUsersScope_GetByLogin_NotFound(t *testing.T) {

@@ -19,18 +19,18 @@ func (s *OnboardingScope) GetStatus(ctx context.Context, page *string) (map[stri
 	logger := s.client.logger.With(slog.String("operation", "GetOnboardingStatus"))
 	logger.InfoContext(ctx, "API request")
 
-	params := &api.OnBoardingUsingGETParams{
+	params := &api.OnBoardingParams{
 		Page: page,
 	}
 
-	response, err := s.client.raw.OnBoardingUsingGETWithResponse(ctx, params)
+	response, err := s.client.raw.OnBoardingWithResponse(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("get onboarding status: %w", err)
 	}
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get onboarding status: %w", err)
 	}

@@ -34,10 +34,11 @@ func TestFilterScope_List_Success(t *testing.T) {
 
 	result, err := c.Project("my_project").Filters().List(t.Context())
 	require.NoError(t, err)
-	require.Len(t, result.Content, 2)
+	require.NotNil(t, result.Content)
+	require.Len(t, *result.Content, 2)
 
-	assert.Equal(t, "Filter 1", result.Content[0].Name)
-	assert.Equal(t, 2, result.Page.TotalElements)
+	assert.Equal(t, "Filter 1", (*result.Content)[0].Name)
+	assert.EqualValues(t, 2, *result.Page.TotalElements)
 }
 
 func TestFilterScope_List_WithOptions(t *testing.T) {
@@ -273,7 +274,7 @@ func TestFilterScope_GetNames_Success(t *testing.T) {
 	result, err := c.Project("my_project").Filters().GetNames(t.Context(), "")
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	require.Len(t, result.Content, 2)
+	require.Len(t, *result.Content, 2)
 }
 
 func TestFilterScope_GetNames_Empty(t *testing.T) {

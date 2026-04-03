@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"unicode/utf8"
 
 	"github.com/klaskosk/report-portal-cli/pkg/types"
 )
@@ -87,6 +88,19 @@ func IsConflict(err error) bool {
 	return HasStatusCode(err, http.StatusConflict)
 }
 
+// IsServerError reports whether err is an API error with an HTTP 5xx status code.
+// Cannot delegate to HasStatusCode, which matches an exact status code; this function checks any code in [500, 600).
+func IsServerError(err error) bool {
+	var sc statusCoder
+	if !errors.As(err, &sc) {
+		return false
+	}
+
+	code := sc.StatusCode()
+
+	return code >= 500 && code < 600
+}
+
 // statusCoder is implemented by error types that carry an HTTP status code.
 type statusCoder interface {
 	StatusCode() int
@@ -109,21 +123,71 @@ func HasErrorCode(err error, code int) bool {
 }
 
 // UnexpectedStatusError represents an HTTP error response that did not contain a parseable JSON error body. This
-// typically occurs when a proxy, gateway, or infrastructure component returns an HTML or plain-text error page.
+// typically occurs when a proxy, gateway, or infrastructure component returns an HTML or plain-text error page, or
+// when the server returns a non-JSON response (e.g. a plain string for a 401). The raw response body is preserved
+// so callers can inspect what the server actually returned.
 type UnexpectedStatusError struct {
 	statusCode int
+	body       []byte
 }
 
+const maxBodyPreview = 256
+
 func (e *UnexpectedStatusError) Error() string {
-	return fmt.Sprintf("unexpected HTTP %d (no JSON error body)", e.statusCode)
+	if len(e.body) == 0 {
+		return fmt.Sprintf("unexpected HTTP %d (no JSON error body)", e.statusCode)
+	}
+
+	preview := e.body
+	suffix := ""
+
+	if len(preview) > maxBodyPreview {
+		preview = preview[:maxBodyPreview]
+		suffix = "..."
+	}
+
+	return fmt.Sprintf("unexpected HTTP %d: %s%s", e.statusCode, sanitizeBodyPreview(preview), suffix)
 }
 
 // newUnexpectedStatusError constructs an UnexpectedStatusError for non-2xx responses without a JSON body.
-func newUnexpectedStatusError(statusCode int) *UnexpectedStatusError {
+func newUnexpectedStatusError(statusCode int, body []byte) *UnexpectedStatusError {
 	return &UnexpectedStatusError{
 		statusCode: statusCode,
+		body:       body,
 	}
 }
 
 // StatusCode returns the HTTP status code from the response.
 func (e *UnexpectedStatusError) StatusCode() int { return e.statusCode }
+
+// Body returns the raw response body from the server.
+func (e *UnexpectedStatusError) Body() []byte { return e.body }
+
+// bodyCarrier is implemented by error types that preserve a raw response body.
+type bodyCarrier interface {
+	Body() []byte
+}
+
+// sanitizeBodyPreview returns a string representation of body that is safe to
+// include in error messages. If the bytes are valid UTF-8 they are returned
+// as-is; otherwise they are quoted with Go syntax to avoid corrupt output.
+func sanitizeBodyPreview(body []byte) string {
+	s := string(body)
+	if utf8.ValidString(s) {
+		return s
+	}
+
+	return fmt.Sprintf("%q", s)
+}
+
+// BodyOf extracts the raw response body from an error that carries one (e.g. UnexpectedStatusError). The second return
+// value reports whether a body was found. This is the predicate-style accessor for body inspection, so callers don't
+// need to assert on concrete error types.
+func BodyOf(err error) ([]byte, bool) {
+	var bc bodyCarrier
+	if !errors.As(err, &bc) {
+		return nil, false
+	}
+
+	return bc.Body(), true
+}

@@ -16,7 +16,6 @@ The API client wraps a generated OpenAPI client (`pkg/internal/api/`) with a sco
 - **API errors**: Use predicate functions (`IsNotFound`, `IsUnauthorized`, etc.) rather than type assertions. Follow Dave Cheney's philosophy.
 - **List options**: Functional options pattern (`WithLaunchName`, `WithLaunchStatus`, `WithLaunchPageSize`, ...).
 - **Response handling**: Always check `response.JSONDefault` (error body) before using success fields.
-- **Timestamps**: Use `types.EpochMillis`, not raw ints or `time.Time`.
 - **Test style**: Black-box (`package client_test`), `t.Parallel()` everywhere, httptest for unit tests. `export_test.go` exposes test-only constructors.
 - **Integration tests**: Ginkgo/Gomega, `//go:build integration`, testcontainers-compose for a real Report Portal stack.
 - **Table testing**: In Ginkgo, use `DescribeTable` with `Entry` to test table-driven scenarios. In unit tests, use a `[]struct{}{}` with `t.Run` to test table-driven scenarios.
@@ -34,7 +33,9 @@ make tidy          # go mod tidy across all three modules
 
 ## Code generation
 
-OpenAPI specs live in `pkg/internal/openapi/`. Overlays add error responses, typed iterables, and `EpochMillis` mappings. Regenerate with `make generate`. Don't hand-edit `*.gen.go` files.
+OpenAPI specs live in `pkg/internal/openapi/`. Overlays add error responses and typed iterables. Regenerate with `make generate`. Don't hand-edit `*.gen.go` files or the base spec files (`openapi.yaml`, `components.openapi.yaml`) — all corrections go through overlay files.
+
+**Sidecar schema files**: oapi-codegen runs two independent generation passes (API client via `api.config.yaml`, types via `types.config.yaml`), each with its own overlay. When an API overlay rewrites a response `$ref` to a schema that doesn't exist in the base spec, the API generator can't resolve it. Sidecar files (e.g. `widget-names.openapi.yaml`, `activity-page.openapi.yaml`) provide a standalone spec the API generator can load. The same schema must also be defined in `overlay.components.openapi.yaml` so the types generator produces the Go struct. Both definitions must stay in sync.
 
 ## Naming conventions
 

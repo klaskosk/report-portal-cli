@@ -52,9 +52,9 @@ func TestActivityEventsScope_Search_Success(t *testing.T) {
 	result, err := c.ActivityEvents().Search(t.Context(), types.SearchCriteriaRQ{})
 	require.NoError(t, err)
 	require.NotNil(t, result.Items)
-	require.Len(t, *result.Items, 1)
+	require.Len(t, result.Items, 1)
 
-	event := (*result.Items)[0]
+	event := result.Items[0]
 	assert.Equal(t, int64(1), event.Id)
 	assert.Equal(t, "startLaunch", event.EventName)
 	assert.Equal(t, "launch", event.ObjectType)
@@ -117,7 +117,7 @@ func TestActivityEventsScope_Search_EmptyResults(t *testing.T) {
 	result, err := c.ActivityEvents().Search(t.Context(), types.SearchCriteriaRQ{})
 	require.NoError(t, err)
 	require.NotNil(t, result.Items)
-	assert.Empty(t, *result.Items)
+	assert.Empty(t, result.Items)
 }
 
 func TestActivityEventsScope_Search_Unauthorized(t *testing.T) {
@@ -253,8 +253,8 @@ func TestNewEventSearchCriteria(t *testing.T) {
 	)
 
 	require.NotNil(t, criteria.SearchCriterias)
-	require.Len(t, *criteria.SearchCriterias, 2)
+	require.Len(t, criteria.SearchCriterias, 2)
 
-	assert.Equal(t, "subjectName", (*criteria.SearchCriterias)[0].FilterKey)
-	assert.Equal(t, "objectType", (*criteria.SearchCriterias)[1].FilterKey)
+	assert.Equal(t, "subjectName", criteria.SearchCriterias[0].FilterKey)
+	assert.Equal(t, "objectType", criteria.SearchCriterias[1].FilterKey)
 }

@@ -25,11 +25,11 @@ func (s *BugTrackingScope) GetSystemFields(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.GetSetOfIntegrationSystemFieldsUsingGET1WithResponse(
+	response, err := s.project.client.raw.GetSetOfIntegrationSystemFieldsWithResponse(
 		ctx,
 		s.project.projectName,
 		integrationID,
-		&api.GetSetOfIntegrationSystemFieldsUsingGET1Params{},
+		&api.GetSetOfIntegrationSystemFieldsParams{},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("get bts system fields: %w", err)
@@ -37,7 +37,7 @@ func (s *BugTrackingScope) GetSystemFields(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get bts system fields: %w", err)
 	}
@@ -60,7 +60,7 @@ func (s *BugTrackingScope) GetAllowableIssueTypes(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.GetAllowableIssueTypesUsingGET1WithResponse(
+	response, err := s.project.client.raw.GetAllowableIssueTypesWithResponse(
 		ctx,
 		s.project.projectName,
 		integrationID,
@@ -71,7 +71,7 @@ func (s *BugTrackingScope) GetAllowableIssueTypes(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get bts allowable issue types: %w", err)
 	}
@@ -98,11 +98,11 @@ func (s *BugTrackingScope) GetTicket(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.GetTicketUsingGETWithResponse(
+	response, err := s.project.client.raw.GetTicketWithResponse(
 		ctx,
 		s.project.projectName,
 		ticketID,
-		&api.GetTicketUsingGETParams{
+		&api.GetTicketParams{
 			BtsUrl:     btsURL,
 			BtsProject: btsProject,
 		},
@@ -113,7 +113,7 @@ func (s *BugTrackingScope) GetTicket(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get bts ticket: %w", err)
 	}
@@ -133,7 +133,7 @@ func (s *BugTrackingScope) CreateIssue(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.CreateIssueUsingPOSTWithResponse(
+	response, err := s.project.client.raw.CreateIssueWithResponse(
 		ctx,
 		s.project.projectName,
 		integrationID,
@@ -145,7 +145,7 @@ func (s *BugTrackingScope) CreateIssue(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON201)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON201, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("create bts issue: %w", err)
 	}
@@ -165,10 +165,10 @@ func (s *BugTrackingScope) GetTicketIds(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.GetTicketIdsUsingGETWithResponse(
+	response, err := s.project.client.raw.GetTicketIdsWithResponse(
 		ctx,
 		s.project.projectName,
-		&api.GetTicketIdsUsingGETParams{
+		&api.GetTicketIdsParams{
 			Launch: launchID,
 			Term:   term,
 		},
@@ -179,7 +179,7 @@ func (s *BugTrackingScope) GetTicketIds(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get bts ticket ids: %w", err)
 	}
@@ -201,10 +201,10 @@ func (s *BugTrackingScope) GetTicketIdsForProject(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.GetTicketIdsForProjectUsingGETWithResponse(
+	response, err := s.project.client.raw.GetTicketIdsForProjectWithResponse(
 		ctx,
 		s.project.projectName,
-		&api.GetTicketIdsForProjectUsingGETParams{
+		&api.GetTicketIdsForProjectParams{
 			Term: term,
 		},
 	)
@@ -214,7 +214,7 @@ func (s *BugTrackingScope) GetTicketIdsForProject(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get bts ticket ids for project: %w", err)
 	}

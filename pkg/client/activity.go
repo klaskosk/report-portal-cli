@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/klaskosk/report-portal-cli/pkg/internal/api"
 	"github.com/klaskosk/report-portal-cli/pkg/types"
@@ -23,7 +24,7 @@ func (a *ActivityScope) GetByID(
 	logger := a.project.operationLogger("GetActivityByID", slog.Int64("activityId", activityID))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := a.project.client.raw.GetActivityUsingGETWithResponse(
+	response, err := a.project.client.raw.GetActivityWithResponse(
 		ctx,
 		a.project.projectName,
 		activityID,
@@ -34,7 +35,7 @@ func (a *ActivityScope) GetByID(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get activity by id: %w", err)
 	}
@@ -47,17 +48,17 @@ func (a *ActivityScope) ListForItem(
 	ctx context.Context,
 	itemID int64,
 	options ...ListActivitiesOption,
-) (*types.IterableActivityEventResource, error) {
+) (*types.PageActivityEventResource, error) {
 	logger := a.project.operationLogger("ListActivitiesForItem", slog.Int64("itemId", itemID))
 
-	params := &api.GetTestItemActivitiesUsingGETParams{}
+	params := &api.GetTestItemActivitiesParams{}
 	for _, option := range options {
 		option.applyListActivities(params)
 	}
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := a.project.client.raw.GetTestItemActivitiesUsingGETWithResponse(
+	response, err := a.project.client.raw.GetTestItemActivitiesWithResponse(
 		ctx,
 		a.project.projectName,
 		itemID,
@@ -69,7 +70,7 @@ func (a *ActivityScope) ListForItem(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("list activities for item: %w", err)
 	}
@@ -79,32 +80,39 @@ func (a *ActivityScope) ListForItem(
 
 // ListActivitiesOption configures the filter and pagination parameters for listing item activities.
 type ListActivitiesOption interface {
-	applyListActivities(*api.GetTestItemActivitiesUsingGETParams)
+	applyListActivities(*api.GetTestItemActivitiesParams)
 }
 
-type listActivitiesOptionFunc func(*api.GetTestItemActivitiesUsingGETParams)
+type listActivitiesOptionFunc func(*api.GetTestItemActivitiesParams)
 
-func (f listActivitiesOptionFunc) applyListActivities(params *api.GetTestItemActivitiesUsingGETParams) {
+func (f listActivitiesOptionFunc) applyListActivities(params *api.GetTestItemActivitiesParams) {
 	f(params)
 }
 
 // WithActivityPageNumber sets the page number (0-based) for activity listing.
 func WithActivityPageNumber(n int32) ListActivitiesOption {
-	return listActivitiesOptionFunc(func(params *api.GetTestItemActivitiesUsingGETParams) {
+	return listActivitiesOptionFunc(func(params *api.GetTestItemActivitiesParams) {
 		params.PagePage = &n
 	})
 }
 
 // WithActivityPageSize sets the number of results per page for activity listing.
 func WithActivityPageSize(size int32) ListActivitiesOption {
-	return listActivitiesOptionFunc(func(params *api.GetTestItemActivitiesUsingGETParams) {
+	return listActivitiesOptionFunc(func(params *api.GetTestItemActivitiesParams) {
 		params.PageSize = &size
 	})
 }
 
 // WithActivitySort sets the sorting criteria for activity listing (e.g. "lastModified,desc").
 func WithActivitySort(fields ...string) ListActivitiesOption {
-	return listActivitiesOptionFunc(func(params *api.GetTestItemActivitiesUsingGETParams) {
-		params.PageSort = &fields
+	return listActivitiesOptionFunc(func(params *api.GetTestItemActivitiesParams) {
+		if len(fields) == 0 {
+			params.PageSort = nil
+
+			return
+		}
+
+		s := strings.Join(fields, ",")
+		params.PageSort = &s
 	})
 }

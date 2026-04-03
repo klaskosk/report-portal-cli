@@ -35,7 +35,7 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 
 		seededLogs, err = seedTestLogEntries(ctx, baseURL, bearerToken, projectName, seededTestData, 1)
 		Expect(err).To(Succeed(), "failed to seed log entries")
-	}, NodeTimeout(120*time.Second))
+	}, NodeTimeout(240*time.Second))
 
 	AfterEach(func(ctx SpecContext) {
 		if projectName != "" {
@@ -88,8 +88,8 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 				expectJSONString(launch, "uuid")
 				expectJSONString(launch, "name")
 				expectJSONString(launch, "status")
-				expectJSONNumber(launch, "startTime")
-				expectJSONNumber(launch, "number")
+			expectJSONString(launch, "startTime")
+			expectJSONNumber(launch, "number")
 			}
 		})
 	})
@@ -147,8 +147,8 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 				expectJSONString(item, "name")
 				expectJSONString(item, "type")
 				expectJSONString(item, "status")
-				expectJSONNumber(item, "startTime")
-				expectJSONNumber(item, "launchId")
+			expectJSONString(item, "startTime")
+			expectJSONNumber(item, "launchId")
 			}
 		})
 	})

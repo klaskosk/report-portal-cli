@@ -59,15 +59,18 @@ var _ = Describe("Client: Widgets", Label("client", "widgets"), func() {
 			widgets := c.Project(projectName).Widgets()
 
 			By("creating a widget")
-			widgetOpts := map[string]any{}
+			widgetOpts := map[string]interface{}{}
+			contentFields := []string{"statistics$executions$total", "statistics$executions$passed"}
+			itemsCount := int32(10)
+			filterIDs := []int64{filterID}
 			widgetName := fmt.Sprintf("test-widget-%d", time.Now().UnixNano())
 			created, err := widgets.Create(ctx, types.WidgetRQ{
 				Name:       widgetName,
-				WidgetType: "statisticTrend",
-				FilterIds:  &[]int64{filterID},
+				WidgetType: types.WidgetRQWidgetTypeStatisticTrend,
+				FilterIds:  &filterIDs,
 				ContentParameters: &types.ContentParameters{
-					ContentFields: []string{"statistics$executions$total", "statistics$executions$passed"},
-					ItemsCount:    10,
+					ContentFields: &contentFields,
+					ItemsCount:    &itemsCount,
 					WidgetOptions: &widgetOpts,
 				},
 			})
@@ -90,14 +93,17 @@ var _ = Describe("Client: Widgets", Label("client", "widgets"), func() {
 			widgets := c.Project(projectName).Widgets()
 
 			By("creating a widget")
-			widgetOpts := map[string]any{}
+			widgetOpts := map[string]interface{}{}
+			contentFields := []string{"statistics$executions$total"}
+			itemsCount := int32(10)
+			filterIDs := []int64{filterID}
 			created, err := widgets.Create(ctx, types.WidgetRQ{
 				Name:       fmt.Sprintf("update-widget-%d", time.Now().UnixNano()),
-				WidgetType: "launchStatistics",
-				FilterIds:  &[]int64{filterID},
+				WidgetType: types.WidgetRQWidgetTypeLaunchStatistics,
+				FilterIds:  &filterIDs,
 				ContentParameters: &types.ContentParameters{
-					ContentFields: []string{"statistics$executions$total"},
-					ItemsCount:    10,
+					ContentFields: &contentFields,
+					ItemsCount:    &itemsCount,
 					WidgetOptions: &widgetOpts,
 				},
 			})
@@ -107,13 +113,16 @@ var _ = Describe("Client: Widgets", Label("client", "widgets"), func() {
 
 			By("updating the widget")
 			updatedName := fmt.Sprintf("updated-widget-%d", time.Now().UnixNano())
+			updateFields := []string{"statistics$executions$total"}
+			updateItemsCount := int32(10)
+			updateFilterIDs := []int64{filterID}
 			_, err = widgets.Update(ctx, widgetID, types.WidgetRQ{
 				Name:       updatedName,
-				WidgetType: "launchStatistics",
-				FilterIds:  &[]int64{filterID},
+				WidgetType: types.WidgetRQWidgetTypeLaunchStatistics,
+				FilterIds:  &updateFilterIDs,
 				ContentParameters: &types.ContentParameters{
-					ContentFields: []string{"statistics$executions$total"},
-					ItemsCount:    10,
+					ContentFields: &updateFields,
+					ItemsCount:    &updateItemsCount,
 					WidgetOptions: &widgetOpts,
 				},
 			})
@@ -131,15 +140,18 @@ var _ = Describe("Client: Widgets", Label("client", "widgets"), func() {
 			widgets := c.Project(projectName).Widgets()
 
 			By("creating a widget")
-			widgetOpts := map[string]any{}
+			widgetOpts := map[string]interface{}{}
+			contentFields := []string{"statistics$executions$total", "statistics$executions$passed"}
+			itemsCount := int32(10)
+			filterIDs := []int64{filterID}
 			widgetName := fmt.Sprintf("data-widget-%d", time.Now().UnixNano())
 			created, err := widgets.Create(ctx, types.WidgetRQ{
 				Name:       widgetName,
-				WidgetType: "cumulative",
-				FilterIds:  &[]int64{filterID},
+				WidgetType: types.WidgetRQWidgetTypeCumulative,
+				FilterIds:  &filterIDs,
 				ContentParameters: &types.ContentParameters{
-					ContentFields: []string{"statistics$executions$total", "statistics$executions$passed"},
-					ItemsCount:    10,
+					ContentFields: &contentFields,
+					ItemsCount:    &itemsCount,
 					WidgetOptions: &widgetOpts,
 				},
 			})
@@ -162,15 +174,18 @@ var _ = Describe("Client: Widgets", Label("client", "widgets"), func() {
 			widgets := c.Project(projectName).Widgets()
 
 			By("creating a widget")
-			widgetOpts := map[string]any{}
+			widgetOpts := map[string]interface{}{}
+			contentFields := []string{"statistics$executions$total"}
+			itemsCount := int32(10)
+			filterIDs := []int64{filterID}
 			widgetName := fmt.Sprintf("raw-names-widget-%d", time.Now().UnixNano())
 			_, err := widgets.Create(ctx, types.WidgetRQ{
 				Name:       widgetName,
-				WidgetType: "launchStatistics",
-				FilterIds:  &[]int64{filterID},
+				WidgetType: types.WidgetRQWidgetTypeLaunchStatistics,
+				FilterIds:  &filterIDs,
 				ContentParameters: &types.ContentParameters{
-					ContentFields: []string{"statistics$executions$total"},
-					ItemsCount:    10,
+					ContentFields: &contentFields,
+					ItemsCount:    &itemsCount,
 					WidgetOptions: &widgetOpts,
 				},
 			})
@@ -215,15 +230,18 @@ var _ = Describe("Client: Widgets", Label("client", "widgets"), func() {
 			widgets := c.Project(projectName).Widgets()
 
 			By("creating a widget")
-			widgetOpts := map[string]any{}
+			widgetOpts := map[string]interface{}{}
+			contentFields := []string{"statistics$executions$total"}
+			itemsCount := int32(10)
+			filterIDs := []int64{filterID}
 			widgetName := fmt.Sprintf("names-widget-%d", time.Now().UnixNano())
 			_, err := widgets.Create(ctx, types.WidgetRQ{
 				Name:       widgetName,
-				WidgetType: "launchStatistics",
-				FilterIds:  &[]int64{filterID},
+				WidgetType: types.WidgetRQWidgetTypeLaunchStatistics,
+				FilterIds:  &filterIDs,
 				ContentParameters: &types.ContentParameters{
-					ContentFields: []string{"statistics$executions$total"},
-					ItemsCount:    10,
+					ContentFields: &contentFields,
+					ItemsCount:    &itemsCount,
 					WidgetOptions: &widgetOpts,
 				},
 			})

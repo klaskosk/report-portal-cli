@@ -18,14 +18,14 @@ func (u *UsersScope) GetMyself(ctx context.Context) (*types.UserResource, error)
 	logger := u.client.logger.With(slog.String("operation", "GetMyself"))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := u.client.raw.GetMyselfUsingGETWithResponse(ctx)
+	response, err := u.client.raw.GetMyselfWithResponse(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get myself: %w", err)
 	}
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get myself: %w", err)
 	}
@@ -33,9 +33,7 @@ func (u *UsersScope) GetMyself(ctx context.Context) (*types.UserResource, error)
 	return result, nil
 }
 
-// GetByLogin returns a user by their login name. It prefers the non-deprecated user controller endpoint
-// (GetUserUsingGET) and falls back to the deprecated endpoint (GetUserUsingGET1) when the preferred endpoint is
-// rejected due to authorization differences across deployments.
+// GetByLogin returns a user by their login name via GetUserWithResponse.
 func (u *UsersScope) GetByLogin(ctx context.Context, login string) (*types.UserResource, error) {
 	logger := u.client.logger.With(
 		slog.String("operation", "GetUserByLogin"),
@@ -43,50 +41,23 @@ func (u *UsersScope) GetByLogin(ctx context.Context, login string) (*types.UserR
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := u.client.raw.GetUserUsingGETWithResponse(ctx, login)
+	response, err := u.client.raw.GetUserWithResponse(ctx, login)
 	if err != nil {
 		return nil, fmt.Errorf("get user by login: %w", err)
 	}
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
-	if err == nil {
-		return result, nil
-	}
-
-	if !IsUnauthorized(err) && !IsForbidden(err) {
-		return nil, fmt.Errorf("get user by login: %w", err)
-	}
-
-	logger.DebugContext(
-		ctx,
-		"falling back to deprecated user endpoint",
-		"reason", err.Error(),
-	)
-
-	fallbackResponse, fallbackErr := u.client.raw.GetUserUsingGET1WithResponse(ctx, login)
-	if fallbackErr != nil {
-		return nil, fmt.Errorf("get user by login (fallback): %w", fallbackErr)
-	}
-
-	logger.DebugContext(ctx, "fallback API response", "status", fallbackResponse.StatusCode())
-
-	result, err = handleResponse(
-		fallbackResponse,
-		fallbackResponse.JSONDefault,
-		fallbackResponse.JSON200,
-	)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
-		return nil, fmt.Errorf("get user by login (fallback): %w", err)
+		return nil, fmt.Errorf("get user by login: %w", err)
 	}
 
 	return result, nil
 }
 
 // ListProjects returns the projects accessible to the given user.
-// Uses the deprecated user controller endpoint (GetUserProjectsUsingGET1) because the
-// non-deprecated variant requires admin privileges on some Report Portal deployments.
+// Uses GetUserProjectsWithResponse because the non-deprecated variant requires admin privileges on some deployments.
 func (u *UsersScope) ListProjects(
 	ctx context.Context,
 	username string,
@@ -97,7 +68,7 @@ func (u *UsersScope) ListProjects(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := u.client.raw.GetUserProjectsUsingGET1WithResponse(ctx, username)
+	response, err := u.client.raw.GetUserProjectsWithResponse(ctx, username)
 	if err != nil {
 		return nil, fmt.Errorf("list user projects: %w", err)
 	}
@@ -108,6 +79,7 @@ func (u *UsersScope) ListProjects(
 		response,
 		response.JSONDefault,
 		response.JSON200,
+		response.Body,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("list user projects: %w", err)

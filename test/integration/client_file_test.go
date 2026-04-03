@@ -36,7 +36,8 @@ var _ = Describe("Client: File Download", Label("client", "file"), func() {
 		if err != nil {
 			Skip("could not seed attachment: " + err.Error())
 		}
-	}, NodeTimeout(120*time.Second))
+		// RP 5.15 async indexing requires longer startup for item/log hierarchy
+	}, NodeTimeout(240*time.Second))
 
 	AfterEach(func(ctx SpecContext) {
 		if projectName != "" {

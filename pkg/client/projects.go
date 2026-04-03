@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/klaskosk/report-portal-cli/pkg/internal/api"
 	"github.com/klaskosk/report-portal-cli/pkg/types"
@@ -25,14 +26,14 @@ func (p *ProjectsScope) Get(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.GetProjectUsingGETWithResponse(ctx, projectName)
+	response, err := p.client.raw.GetProjectWithResponse(ctx, projectName)
 	if err != nil {
 		return nil, fmt.Errorf("get project: %w", err)
 	}
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get project: %w", err)
 	}
@@ -47,7 +48,7 @@ func (p *ProjectsScope) ListNames(ctx context.Context) ([]string, error) {
 	logger := p.client.logger.With(slog.String("operation", "ListProjectNames"))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.GetAllProjectNamesUsingGETWithResponse(ctx)
+	response, err := p.client.raw.GetAllProjectNamesWithResponse(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("list project names: %w", err)
 	}
@@ -58,6 +59,7 @@ func (p *ProjectsScope) ListNames(ctx context.Context) ([]string, error) {
 		response,
 		response.JSONDefault,
 		response.JSON200,
+		response.Body,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("list project names: %w", err)
@@ -68,47 +70,54 @@ func (p *ProjectsScope) ListNames(ctx context.Context) ([]string, error) {
 
 // ListProjectsOption configures the filter and pagination parameters for listing projects.
 type ListProjectsOption interface {
-	applyListProjects(*api.GetAllProjectsInfoUsingGETParams)
+	applyListProjects(*api.GetAllProjectsInfoParams)
 }
 
-type listProjectsOptionFunc func(*api.GetAllProjectsInfoUsingGETParams)
+type listProjectsOptionFunc func(*api.GetAllProjectsInfoParams)
 
-func (f listProjectsOptionFunc) applyListProjects(params *api.GetAllProjectsInfoUsingGETParams) {
+func (f listProjectsOptionFunc) applyListProjects(params *api.GetAllProjectsInfoParams) {
 	f(params)
 }
 
 // WithProjectName filters the project list by exact project name.
 func WithProjectName(name string) ListProjectsOption {
-	return listProjectsOptionFunc(func(params *api.GetAllProjectsInfoUsingGETParams) {
+	return listProjectsOptionFunc(func(params *api.GetAllProjectsInfoParams) {
 		params.FilterEqName = &name
 	})
 }
 
 // WithProjectType filters the project list by project type (e.g. "INTERNAL").
 func WithProjectType(projectType string) ListProjectsOption {
-	return listProjectsOptionFunc(func(params *api.GetAllProjectsInfoUsingGETParams) {
+	return listProjectsOptionFunc(func(params *api.GetAllProjectsInfoParams) {
 		params.FilterEqType = &projectType
 	})
 }
 
 // WithProjectPageNumber sets the page number (0-based) for project listing.
 func WithProjectPageNumber(n int32) ListProjectsOption {
-	return listProjectsOptionFunc(func(params *api.GetAllProjectsInfoUsingGETParams) {
+	return listProjectsOptionFunc(func(params *api.GetAllProjectsInfoParams) {
 		params.PagePage = &n
 	})
 }
 
 // WithProjectPageSize sets the number of results per page for project listing.
 func WithProjectPageSize(size int32) ListProjectsOption {
-	return listProjectsOptionFunc(func(params *api.GetAllProjectsInfoUsingGETParams) {
+	return listProjectsOptionFunc(func(params *api.GetAllProjectsInfoParams) {
 		params.PageSize = &size
 	})
 }
 
 // WithProjectSort sets the sorting criteria for project listing (e.g. "name,asc").
 func WithProjectSort(fields ...string) ListProjectsOption {
-	return listProjectsOptionFunc(func(params *api.GetAllProjectsInfoUsingGETParams) {
-		params.PageSort = &fields
+	return listProjectsOptionFunc(func(params *api.GetAllProjectsInfoParams) {
+		if len(fields) == 0 {
+			params.PageSort = nil
+
+			return
+		}
+
+		s := strings.Join(fields, ",")
+		params.PageSort = &s
 	})
 }
 
@@ -116,24 +125,24 @@ func WithProjectSort(fields ...string) ListProjectsOption {
 func (p *ProjectsScope) List(
 	ctx context.Context,
 	options ...ListProjectsOption,
-) (*types.IterableProjectInfoResource, error) {
+) (*types.PageProjectInfoResource, error) {
 	logger := p.client.logger.With(slog.String("operation", "ListProjects"))
 
-	params := &api.GetAllProjectsInfoUsingGETParams{}
+	params := &api.GetAllProjectsInfoParams{}
 	for _, option := range options {
 		option.applyListProjects(params)
 	}
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.GetAllProjectsInfoUsingGETWithResponse(ctx, params)
+	response, err := p.client.raw.GetAllProjectsInfoWithResponse(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("list projects: %w", err)
 	}
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("list projects: %w", err)
 	}
@@ -152,16 +161,16 @@ func (p *ProjectsScope) SearchNames(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	params := &api.SearchProjectNamesUsingGETParams{Term: term}
+	params := &api.SearchProjectNamesParams{Term: term}
 
-	response, err := p.client.raw.SearchProjectNamesUsingGETWithResponse(ctx, params)
+	response, err := p.client.raw.SearchProjectNamesWithResponse(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("search project names: %w", err)
 	}
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("search project names: %w", err)
 	}
@@ -180,21 +189,21 @@ func (p *ProjectsScope) GetInfo(
 		slog.String("projectName", projectName),
 	)
 
-	params := &api.GetProjectInfoUsingGETParams{}
+	params := &api.GetProjectInfoParams{}
 	for _, option := range options {
 		option.applyGetProjectInfo(params)
 	}
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.GetProjectInfoUsingGETWithResponse(ctx, projectName, params)
+	response, err := p.client.raw.GetProjectInfoWithResponse(ctx, projectName, params)
 	if err != nil {
 		return nil, fmt.Errorf("get project info: %w", err)
 	}
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get project info: %w", err)
 	}
@@ -204,18 +213,18 @@ func (p *ProjectsScope) GetInfo(
 
 // GetProjectInfoOption configures the parameters for getting project info.
 type GetProjectInfoOption interface {
-	applyGetProjectInfo(*api.GetProjectInfoUsingGETParams)
+	applyGetProjectInfo(*api.GetProjectInfoParams)
 }
 
-type getProjectInfoOptionFunc func(*api.GetProjectInfoUsingGETParams)
+type getProjectInfoOptionFunc func(*api.GetProjectInfoParams)
 
-func (f getProjectInfoOptionFunc) applyGetProjectInfo(params *api.GetProjectInfoUsingGETParams) {
+func (f getProjectInfoOptionFunc) applyGetProjectInfo(params *api.GetProjectInfoParams) {
 	f(params)
 }
 
 // WithProjectInfoInterval sets the interval for project info statistics (e.g. "1M", "3M").
 func WithProjectInfoInterval(interval string) GetProjectInfoOption {
-	return getProjectInfoOptionFunc(func(params *api.GetProjectInfoUsingGETParams) {
+	return getProjectInfoOptionFunc(func(params *api.GetProjectInfoParams) {
 		params.Interval = &interval
 	})
 }
@@ -231,14 +240,14 @@ func (p *ProjectsScope) Create(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.CreateProjectUsingPOSTWithResponse(ctx, request)
+	response, err := p.client.raw.CreateProjectWithResponse(ctx, request)
 	if err != nil {
 		return nil, fmt.Errorf("create project: %w", err)
 	}
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON201)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON201, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("create project: %w", err)
 	}
@@ -250,21 +259,24 @@ func (p *ProjectsScope) Create(
 func (p *ProjectsScope) Delete(
 	ctx context.Context,
 	projectID int64,
-) (*types.OperationCompletionRS, error) {
+) (*types.DeleteBulkRS, error) {
 	logger := p.client.logger.With(
 		slog.String("operation", "DeleteProject"),
 		slog.Int64("projectId", projectID),
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.DeleteProjectUsingDELETEWithResponse(ctx, projectID)
+	response, err := p.client.raw.DeleteProjectWithResponse(
+		ctx,
+		&api.DeleteProjectParams{Ids: []int64{projectID}},
+	)
 	if err != nil {
 		return nil, fmt.Errorf("delete project: %w", err)
 	}
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("delete project: %w", err)
 	}
@@ -284,14 +296,14 @@ func (p *ProjectsScope) Update(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.UpdateProjectUsingPUTWithResponse(ctx, projectName, request)
+	response, err := p.client.raw.UpdateProjectWithResponse(ctx, projectName, request)
 	if err != nil {
 		return nil, fmt.Errorf("update project: %w", err)
 	}
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("update project: %w", err)
 	}
@@ -311,14 +323,14 @@ func (p *ProjectsScope) AssignUsers(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.AssignProjectUsersUsingPUTWithResponse(ctx, projectName, request)
+	response, err := p.client.raw.AssignProjectUsersWithResponse(ctx, projectName, request)
 	if err != nil {
 		return nil, fmt.Errorf("assign project users: %w", err)
 	}
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("assign project users: %w", err)
 	}
@@ -338,7 +350,7 @@ func (p *ProjectsScope) UnassignUsers(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.UnassignProjectUsersUsingPUTWithResponse(
+	response, err := p.client.raw.UnassignProjectUsersWithResponse(
 		ctx,
 		projectName,
 		request,
@@ -349,7 +361,7 @@ func (p *ProjectsScope) UnassignUsers(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("unassign project users: %w", err)
 	}
@@ -362,27 +374,27 @@ func (p *ProjectsScope) ListUsers(
 	ctx context.Context,
 	projectName string,
 	options ...ListProjectUsersOption,
-) (*types.IterableUserResource, error) {
+) (*types.PageUserResource, error) {
 	logger := p.client.logger.With(
 		slog.String("operation", "ListProjectUsers"),
 		slog.String("projectName", projectName),
 	)
 
-	params := &api.GetProjectUsersUsingGET1Params{}
+	params := &api.GetProjectUsersParams{}
 	for _, option := range options {
 		option.applyListProjectUsers(params)
 	}
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.GetProjectUsersUsingGET1WithResponse(ctx, projectName, params)
+	response, err := p.client.raw.GetProjectUsersWithResponse(ctx, projectName, params)
 	if err != nil {
 		return nil, fmt.Errorf("list project users: %w", err)
 	}
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("list project users: %w", err)
 	}
@@ -392,32 +404,39 @@ func (p *ProjectsScope) ListUsers(
 
 // ListProjectUsersOption configures the filter and pagination parameters for listing project users.
 type ListProjectUsersOption interface {
-	applyListProjectUsers(*api.GetProjectUsersUsingGET1Params)
+	applyListProjectUsers(*api.GetProjectUsersParams)
 }
 
-type listProjectUsersOptionFunc func(*api.GetProjectUsersUsingGET1Params)
+type listProjectUsersOptionFunc func(*api.GetProjectUsersParams)
 
-func (f listProjectUsersOptionFunc) applyListProjectUsers(params *api.GetProjectUsersUsingGET1Params) {
+func (f listProjectUsersOptionFunc) applyListProjectUsers(params *api.GetProjectUsersParams) {
 	f(params)
 }
 
 // WithUserPageNumber sets the page number (0-based) for project users listing.
 func WithUserPageNumber(n int32) ListProjectUsersOption {
-	return listProjectUsersOptionFunc(func(params *api.GetProjectUsersUsingGET1Params) {
+	return listProjectUsersOptionFunc(func(params *api.GetProjectUsersParams) {
 		params.PagePage = &n
 	})
 }
 
 // WithUserPageSize sets the number of results per page for project users listing.
 func WithUserPageSize(size int32) ListProjectUsersOption {
-	return listProjectUsersOptionFunc(func(params *api.GetProjectUsersUsingGET1Params) {
+	return listProjectUsersOptionFunc(func(params *api.GetProjectUsersParams) {
 		params.PageSize = &size
 	})
 }
 
 // WithUserSort sets the sorting criteria for project users listing.
 func WithUserSort(fields ...string) ListProjectUsersOption {
-	return listProjectUsersOptionFunc(func(params *api.GetProjectUsersUsingGET1Params) {
-		params.PageSort = &fields
+	return listProjectUsersOptionFunc(func(params *api.GetProjectUsersParams) {
+		if len(fields) == 0 {
+			params.PageSort = nil
+
+			return
+		}
+
+		s := strings.Join(fields, ",")
+		params.PageSort = &s
 	})
 }

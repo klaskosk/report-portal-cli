@@ -1,8 +1,8 @@
 module github.com/klaskosk/report-portal-cli
 
-go 1.25
+go 1.26
 
-toolchain go1.25.5
+toolchain go1.26.0
 
 replace github.com/klaskosk/report-portal-cli/pkg => ./pkg
 

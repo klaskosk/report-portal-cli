@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/klaskosk/report-portal-cli/pkg/internal/api"
 	"github.com/klaskosk/report-portal-cli/pkg/types"
@@ -18,17 +19,17 @@ type DashboardScope struct {
 func (d *DashboardScope) List(
 	ctx context.Context,
 	options ...ListDashboardsOption,
-) (*types.IterableDashboardResource, error) {
+) (*types.PageDashboardResource, error) {
 	logger := d.project.operationLogger("ListDashboards")
 
-	params := &api.GetAllDashboardsUsingGETParams{}
+	params := &api.GetAllDashboardsParams{}
 	for _, option := range options {
 		option.applyListDashboards(params)
 	}
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := d.project.client.raw.GetAllDashboardsUsingGETWithResponse(
+	response, err := d.project.client.raw.GetAllDashboardsWithResponse(
 		ctx,
 		d.project.projectName,
 		params,
@@ -39,7 +40,7 @@ func (d *DashboardScope) List(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("list dashboards: %w", err)
 	}
@@ -55,7 +56,7 @@ func (d *DashboardScope) GetByID(
 	logger := d.project.operationLogger("GetDashboardByID", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := d.project.client.raw.GetDashboardUsingGETWithResponse(
+	response, err := d.project.client.raw.GetDashboardWithResponse(
 		ctx,
 		d.project.projectName,
 		id,
@@ -66,7 +67,7 @@ func (d *DashboardScope) GetByID(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get dashboard by id: %w", err)
 	}
@@ -82,7 +83,7 @@ func (d *DashboardScope) Create(
 	logger := d.project.operationLogger("CreateDashboard", slog.String("name", request.Name))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := d.project.client.raw.CreateDashboardUsingPOSTWithResponse(
+	response, err := d.project.client.raw.CreateDashboardWithResponse(
 		ctx,
 		d.project.projectName,
 		request,
@@ -93,7 +94,7 @@ func (d *DashboardScope) Create(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON201)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON201, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("create dashboard: %w", err)
 	}
@@ -110,7 +111,7 @@ func (d *DashboardScope) Update(
 	logger := d.project.operationLogger("UpdateDashboard", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := d.project.client.raw.UpdateDashboardUsingPUTWithResponse(
+	response, err := d.project.client.raw.UpdateDashboardWithResponse(
 		ctx,
 		d.project.projectName,
 		id,
@@ -122,7 +123,7 @@ func (d *DashboardScope) Update(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("update dashboard: %w", err)
 	}
@@ -138,7 +139,7 @@ func (d *DashboardScope) Delete(
 	logger := d.project.operationLogger("DeleteDashboard", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := d.project.client.raw.DeleteDashboardUsingDELETEWithResponse(
+	response, err := d.project.client.raw.DeleteDashboardWithResponse(
 		ctx,
 		d.project.projectName,
 		id,
@@ -149,7 +150,7 @@ func (d *DashboardScope) Delete(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("delete dashboard: %w", err)
 	}
@@ -169,7 +170,7 @@ func (d *DashboardScope) AddWidget(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := d.project.client.raw.AddWidgetUsingPUTWithResponse(
+	response, err := d.project.client.raw.AddWidgetWithResponse(
 		ctx,
 		d.project.projectName,
 		dashboardID,
@@ -181,7 +182,7 @@ func (d *DashboardScope) AddWidget(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("add widget to dashboard: %w", err)
 	}
@@ -201,7 +202,7 @@ func (d *DashboardScope) RemoveWidget(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := d.project.client.raw.RemoveWidgetUsingDELETEWithResponse(
+	response, err := d.project.client.raw.RemoveWidgetWithResponse(
 		ctx,
 		d.project.projectName,
 		dashboardID,
@@ -213,7 +214,7 @@ func (d *DashboardScope) RemoveWidget(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("remove widget from dashboard: %w", err)
 	}
@@ -223,32 +224,39 @@ func (d *DashboardScope) RemoveWidget(
 
 // ListDashboardsOption configures the filter and pagination parameters for listing dashboards.
 type ListDashboardsOption interface {
-	applyListDashboards(*api.GetAllDashboardsUsingGETParams)
+	applyListDashboards(*api.GetAllDashboardsParams)
 }
 
-type listDashboardsOptionFunc func(*api.GetAllDashboardsUsingGETParams)
+type listDashboardsOptionFunc func(*api.GetAllDashboardsParams)
 
-func (f listDashboardsOptionFunc) applyListDashboards(params *api.GetAllDashboardsUsingGETParams) {
+func (f listDashboardsOptionFunc) applyListDashboards(params *api.GetAllDashboardsParams) {
 	f(params)
 }
 
 // WithDashboardPageNumber sets the page number (0-based) for dashboard listing.
 func WithDashboardPageNumber(n int32) ListDashboardsOption {
-	return listDashboardsOptionFunc(func(params *api.GetAllDashboardsUsingGETParams) {
+	return listDashboardsOptionFunc(func(params *api.GetAllDashboardsParams) {
 		params.PagePage = &n
 	})
 }
 
 // WithDashboardPageSize sets the number of results per page for dashboard listing.
 func WithDashboardPageSize(size int32) ListDashboardsOption {
-	return listDashboardsOptionFunc(func(params *api.GetAllDashboardsUsingGETParams) {
+	return listDashboardsOptionFunc(func(params *api.GetAllDashboardsParams) {
 		params.PageSize = &size
 	})
 }
 
 // WithDashboardSort sets the sorting criteria for dashboard listing (e.g. "name,asc").
 func WithDashboardSort(fields ...string) ListDashboardsOption {
-	return listDashboardsOptionFunc(func(params *api.GetAllDashboardsUsingGETParams) {
-		params.PageSort = &fields
+	return listDashboardsOptionFunc(func(params *api.GetAllDashboardsParams) {
+		if len(fields) == 0 {
+			params.PageSort = nil
+
+			return
+		}
+
+		s := strings.Join(fields, ",")
+		params.PageSort = &s
 	})
 }

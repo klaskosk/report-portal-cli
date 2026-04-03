@@ -34,10 +34,11 @@ func TestDashboardScope_List_Success(t *testing.T) {
 
 	result, err := c.Project("my_project").Dashboards().List(t.Context())
 	require.NoError(t, err)
-	require.Len(t, result.Content, 2)
+	require.NotNil(t, result.Content)
+	require.Len(t, *result.Content, 2)
 
-	assert.Equal(t, "Dashboard 1", result.Content[0].Name)
-	assert.Equal(t, 2, result.Page.TotalElements)
+	assert.Equal(t, "Dashboard 1", (*result.Content)[0].Name)
+	assert.EqualValues(t, 2, *result.Page.TotalElements)
 }
 
 func TestDashboardScope_List_WithOptions(t *testing.T) {
@@ -262,8 +263,8 @@ func TestDashboardScope_AddWidget_Success(t *testing.T) {
 		t.Context(),
 		42,
 		types.AddWidgetRq{
-			AddWidget: &types.WidgetObjectModel{
-				WidgetId: &widgetID,
+			AddWidget: types.WidgetObjectModel{
+				WidgetId: widgetID,
 			},
 		},
 	)

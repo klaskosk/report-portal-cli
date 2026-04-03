@@ -155,15 +155,20 @@ func listLogs(
 		return fmt.Errorf("listing logs: %w", err)
 	}
 
-	headers := logHeaders()
-	rows := make([][]string, 0, len(result.Content))
+	var logs []types.LogResource
+	if result.Content != nil {
+		logs = *result.Content
+	}
 
-	for i := range result.Content {
-		_, row := logRow(&result.Content[i])
+	headers := logHeaders()
+	rows := make([][]string, 0, len(logs))
+
+	for i := range logs {
+		_, row := logRow(&logs[i])
 		rows = append(rows, row)
 	}
 
-	return printer.Print(result.Content, headers, rows)
+	return printer.Print(logs, headers, rows)
 }
 
 // logHeaders returns the table column headers for log output.
@@ -186,7 +191,7 @@ func logRow(logEntry *types.LogResource) ([]string, []string) {
 
 	level := ""
 	if logEntry.Level != nil {
-		level = string(*logEntry.Level)
+		level = *logEntry.Level
 	}
 
 	return logHeaders(), []string{
