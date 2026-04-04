@@ -235,6 +235,117 @@ func TestDashboardScope_Delete_NotFound(t *testing.T) {
 	assert.True(t, client.IsNotFound(err))
 }
 
+func TestDashboardScope_GetConfig_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/dashboard/42/config")
+		assertMethod(t, r, http.MethodGet)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"widgets": [
+				{
+					"widgetObject": {"widgetId": 5, "widgetPosition": {"positionX": 0, "positionY": 0}, "widgetSize": {"width": 6, "height": 4}},
+					"widgetResource": {"id": 5, "name": "Launch statistics"}
+				}
+			]
+		}`))
+	}))
+
+	config, err := c.Project("my_project").Dashboards().GetConfig(t.Context(), 42)
+	require.NoError(t, err)
+	require.NotNil(t, config.Widgets)
+	require.Len(t, *config.Widgets, 1)
+
+	assert.Equal(t, int64(5), (*config.Widgets)[0].WidgetObject.WidgetId)
+	assert.Equal(t, "Launch statistics", (*config.Widgets)[0].WidgetResource.Name)
+}
+
+func TestDashboardScope_GetConfig_NilWidgets(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/dashboard/1/config")
+		assertMethod(t, r, http.MethodGet)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{}`))
+	}))
+
+	config, err := c.Project("my_project").Dashboards().GetConfig(t.Context(), 1)
+	require.NoError(t, err)
+	require.NotNil(t, config.Widgets)
+	assert.Empty(t, *config.Widgets)
+}
+
+func TestDashboardScope_GetConfig_NotFound(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusNotFound,
+		`{"errorCode": 40410, "message": "Dashboard '999' not found."}`))
+
+	_, err := c.Project("my_project").Dashboards().GetConfig(t.Context(), 999)
+	require.Error(t, err)
+	assert.True(t, client.IsNotFound(err))
+}
+
+func TestDashboardScope_CreatePreconfigured_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/dashboard/preconfigured")
+		assertMethod(t, r, http.MethodPost)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		assert.Equal(t, "Preconfigured Dashboard", payload["name"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"id":15}`))
+	}))
+
+	result, err := c.Project("my_project").Dashboards().CreatePreconfigured(
+		t.Context(),
+		types.DashboardPreconfiguredRq{
+			Name:   "Preconfigured Dashboard",
+			Config: types.DashboardConfigResource{},
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Id)
+	assert.Equal(t, int64(15), *result.Id)
+}
+
+func TestDashboardScope_CreatePreconfigured_Unauthorized(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusUnauthorized,
+		`{"errorCode": 4001, "message": "Full authentication is required."}`))
+
+	_, err := c.Project("my_project").Dashboards().CreatePreconfigured(
+		t.Context(),
+		types.DashboardPreconfiguredRq{
+			Name:   "Test",
+			Config: types.DashboardConfigResource{},
+		},
+	)
+	require.Error(t, err)
+	assert.True(t, client.IsUnauthorized(err))
+}
+
 func TestDashboardScope_AddWidget_Success(t *testing.T) {
 	t.Parallel()
 
