@@ -709,3 +709,363 @@ func TestLogScope_GetLogsUnder_PreservesProvidedLogLevel(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result)
 }
+
+func TestLogScope_GetPageNumber_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/log/42/page")
+		assertMethod(t, r, http.MethodGet)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{"number": 3}`))
+	}))
+
+	result, err := c.Project("my_project").Logs().GetPageNumber(t.Context(), 42)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, float64(3), result["number"])
+}
+
+func TestLogScope_GetPageNumber_WithOptions(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertPath(t, r, "/api/v1/my_project/log/42/page")
+
+		query := r.URL.Query()
+		assert.Equal(t, "100", query.Get("filter.eq.item"))
+		assert.Equal(t, "20", query.Get("page.size"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{"number": 5}`))
+	}))
+
+	result, err := c.Project("my_project").Logs().GetPageNumber(
+		t.Context(),
+		42,
+		client.WithLogPageItemID(100),
+		client.WithLogPageNumberPageSize(20),
+	)
+	require.NoError(t, err)
+	assert.Equal(t, float64(5), result["number"])
+}
+
+func TestLogScope_GetPageNumber_Unauthorized(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusUnauthorized,
+		`{"errorCode": 4001, "message": "Full authentication is required."}`))
+
+	_, err := c.Project("my_project").Logs().GetPageNumber(t.Context(), 42)
+	require.Error(t, err)
+	assert.True(t, client.IsUnauthorized(err))
+}
+
+func TestLogScope_GetPageNumber_EmptyResponse(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{}`))
+	}))
+
+	result, err := c.Project("my_project").Logs().GetPageNumber(t.Context(), 42)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Empty(t, result)
+}
+
+func TestLogScope_GetPageNumber_EmptyJSONBody(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	result, err := c.Project("my_project").Logs().GetPageNumber(t.Context(), 42)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Empty(t, result)
+}
+
+func TestLogScope_GetLogLocations_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/log/locations/100")
+		assertMethod(t, r, http.MethodGet)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`[
+			{
+				"id": 1,
+				"uuid": "loc-uuid-1",
+				"level": "ERROR",
+				"message": "failure detected",
+				"itemId": 100,
+				"launchId": 10
+			}
+		]`))
+	}))
+
+	result, err := c.Project("my_project").Logs().GetLogLocations(t.Context(), 100)
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	assert.Equal(t, int64(1), result[0].Id)
+	assert.Equal(t, "loc-uuid-1", result[0].Uuid)
+	require.NotNil(t, result[0].Message)
+	assert.Equal(t, "failure detected", *result[0].Message)
+}
+
+func TestLogScope_GetLogLocations_WithOptions(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertPath(t, r, "/api/v1/my_project/log/locations/100")
+
+		query := r.URL.Query()
+		assert.Equal(t, "10", query.Get("page.size"))
+		assert.Equal(t, "2", query.Get("page.page"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`[]`))
+	}))
+
+	_, err := c.Project("my_project").Logs().GetLogLocations(
+		t.Context(),
+		100,
+		client.WithLogLocationsPageSize(10),
+		client.WithLogLocationsPageNumber(2),
+	)
+	require.NoError(t, err)
+}
+
+func TestLogScope_GetLogLocations_Unauthorized(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusUnauthorized,
+		`{"errorCode": 4001, "message": "Full authentication is required."}`))
+
+	_, err := c.Project("my_project").Logs().GetLogLocations(t.Context(), 100)
+	require.Error(t, err)
+	assert.True(t, client.IsUnauthorized(err))
+}
+
+func TestLogScope_GetLogLocations_EmptyResponse(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`[]`))
+	}))
+
+	result, err := c.Project("my_project").Logs().GetLogLocations(t.Context(), 100)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Empty(t, result)
+}
+
+func TestLogScope_GetLogLocations_EmptyJSONBody(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	result, err := c.Project("my_project").Logs().GetLogLocations(t.Context(), 100)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Empty(t, result)
+}
+
+func TestLogScope_SearchLogLocations_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/log/locations/search/100")
+		assertMethod(t, r, http.MethodGet)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"content": [
+				{
+					"id": 1,
+					"uuid": "search-uuid-1",
+					"level": "ERROR",
+					"message": "search hit"
+				}
+			],
+			"page": {"number": 0, "size": 10, "totalElements": 1, "totalPages": 1}
+		}`))
+	}))
+
+	result, err := c.Project("my_project").Logs().SearchLogLocations(t.Context(), 100)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Content)
+	require.Len(t, *result.Content, 1)
+
+	require.NotNil(t, (*result.Content)[0].Message)
+	assert.Equal(t, "search hit", *(*result.Content)[0].Message)
+}
+
+func TestLogScope_SearchLogLocations_WithOptions(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertPath(t, r, "/api/v1/my_project/log/locations/search/100")
+
+		query := r.URL.Query()
+		assert.Equal(t, "5", query.Get("page.size"))
+		assert.Equal(t, "1", query.Get("page.page"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"content": [],
+			"page": {"number": 1, "size": 5, "totalElements": 0, "totalPages": 0}
+		}`))
+	}))
+
+	_, err := c.Project("my_project").Logs().SearchLogLocations(
+		t.Context(),
+		100,
+		client.WithSearchLogLocationsPageSize(5),
+		client.WithSearchLogLocationsPageNumber(1),
+	)
+	require.NoError(t, err)
+}
+
+func TestLogScope_SearchLogLocations_EmptyResponse(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"content": [],
+			"page": {"number": 0, "size": 10, "totalElements": 0, "totalPages": 0}
+		}`))
+	}))
+
+	result, err := c.Project("my_project").Logs().SearchLogLocations(t.Context(), 100)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Empty(t, result.Content)
+}
+
+func TestLogScope_SearchLogLocations_Unauthorized(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusUnauthorized,
+		`{"errorCode": 4001, "message": "Full authentication is required."}`))
+
+	_, err := c.Project("my_project").Logs().SearchLogLocations(t.Context(), 100)
+	require.Error(t, err)
+	assert.True(t, client.IsUnauthorized(err))
+}
+
+func TestLogScope_GetNestedLogs_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/log/nested/100")
+		assertMethod(t, r, http.MethodGet)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"content": [{"id": 1, "message": "nested log"}],
+			"page": {"number": 0, "size": 10, "totalElements": 1, "totalPages": 1}
+		}`))
+	}))
+
+	result, err := c.Project("my_project").Logs().GetNestedLogs(t.Context(), 100)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Content)
+	assert.Len(t, *result.Content, 1)
+	assert.EqualValues(t, 1, *result.Page.TotalElements)
+}
+
+func TestLogScope_GetNestedLogs_WithOptions(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertPath(t, r, "/api/v1/my_project/log/nested/100")
+
+		query := r.URL.Query()
+		assert.Equal(t, "25", query.Get("page.size"))
+		assert.Equal(t, "3", query.Get("page.page"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"content": [],
+			"page": {"number": 3, "size": 25, "totalElements": 0, "totalPages": 0}
+		}`))
+	}))
+
+	_, err := c.Project("my_project").Logs().GetNestedLogs(
+		t.Context(),
+		100,
+		client.WithNestedLogsPageSize(25),
+		client.WithNestedLogsPageNumber(3),
+	)
+	require.NoError(t, err)
+}
+
+func TestLogScope_GetNestedLogs_EmptyResponse(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"content": [],
+			"page": {"number": 0, "size": 10, "totalElements": 0, "totalPages": 0}
+		}`))
+	}))
+
+	result, err := c.Project("my_project").Logs().GetNestedLogs(t.Context(), 100)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Empty(t, result.Content)
+}
+
+func TestLogScope_GetNestedLogs_Unauthorized(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusUnauthorized,
+		`{"errorCode": 4001, "message": "Full authentication is required."}`))
+
+	_, err := c.Project("my_project").Logs().GetNestedLogs(t.Context(), 100)
+	require.Error(t, err)
+	assert.True(t, client.IsUnauthorized(err))
+}

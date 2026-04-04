@@ -396,6 +396,278 @@ func (l *LogScope) Search(
 	return *result, nil
 }
 
+// GetLogPageNumberOption configures parameters for looking up a log's page number.
+type GetLogPageNumberOption interface {
+	applyGetLogPageNumber(*api.GetPageNumberParams)
+}
+
+type getLogPageNumberOptionFunc func(*api.GetPageNumberParams)
+
+func (f getLogPageNumberOptionFunc) applyGetLogPageNumber(params *api.GetPageNumberParams) {
+	f(params)
+}
+
+// WithLogPageItemID filters the page number lookup by test item ID.
+func WithLogPageItemID(id int64) GetLogPageNumberOption {
+	return getLogPageNumberOptionFunc(func(params *api.GetPageNumberParams) {
+		narrowed := int32(id)
+		params.FilterEqItem = &narrowed
+	})
+}
+
+// WithLogPageNumberPageSize sets the page size for the page number lookup.
+func WithLogPageNumberPageSize(size int32) GetLogPageNumberOption {
+	return getLogPageNumberOptionFunc(func(params *api.GetPageNumberParams) {
+		params.PageSize = &size
+	})
+}
+
+// GetPageNumber looks up which page a specific log entry appears on.
+func (l *LogScope) GetPageNumber(
+	ctx context.Context,
+	logID int64,
+	options ...GetLogPageNumberOption,
+) (map[string]any, error) {
+	logger := l.project.operationLogger("GetLogPageNumber", slog.Int64("logId", logID))
+
+	params := &api.GetPageNumberParams{}
+	for _, option := range options {
+		option.applyGetLogPageNumber(params)
+	}
+
+	logger.InfoContext(ctx, "API request")
+
+	response, err := l.project.client.raw.GetPageNumberWithResponse(
+		ctx,
+		l.project.projectName,
+		logID,
+		params,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get log page number: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	if response.JSON200 == nil && response.JSONDefault == nil {
+		if code := response.StatusCode(); code < 200 || code >= 300 {
+			return nil, fmt.Errorf("get log page number: %w", newUnexpectedStatusError(code, response.Body))
+		}
+
+		return map[string]any{}, nil
+	}
+
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("get log page number: %w", err)
+	}
+
+	if *result == nil {
+		return map[string]any{}, nil
+	}
+
+	return *result, nil
+}
+
+// GetLogLocationsOption configures parameters for retrieving log locations.
+type GetLogLocationsOption interface {
+	applyGetLogLocations(*api.GetErrorPageParams)
+}
+
+type getLogLocationsOptionFunc func(*api.GetErrorPageParams)
+
+func (f getLogLocationsOptionFunc) applyGetLogLocations(params *api.GetErrorPageParams) {
+	f(params)
+}
+
+// WithLogLocationsPageSize sets the number of results per page.
+func WithLogLocationsPageSize(size int32) GetLogLocationsOption {
+	return getLogLocationsOptionFunc(func(params *api.GetErrorPageParams) {
+		params.PageSize = &size
+	})
+}
+
+// WithLogLocationsPageNumber sets the page number (0-based).
+func WithLogLocationsPageNumber(page int32) GetLogLocationsOption {
+	return getLogLocationsOptionFunc(func(params *api.GetErrorPageParams) {
+		params.PagePage = &page
+	})
+}
+
+// GetLogLocations retrieves paginated log entries at error locations for a
+// parent item.
+func (l *LogScope) GetLogLocations(
+	ctx context.Context,
+	parentID int64,
+	options ...GetLogLocationsOption,
+) ([]types.PagedLogResource, error) {
+	logger := l.project.operationLogger("GetLogLocations", slog.Int64("parentId", parentID))
+
+	params := &api.GetErrorPageParams{
+		Params: map[string]string{},
+	}
+	for _, option := range options {
+		option.applyGetLogLocations(params)
+	}
+
+	logger.InfoContext(ctx, "API request")
+
+	response, err := l.project.client.raw.GetErrorPageWithResponse(
+		ctx,
+		l.project.projectName,
+		parentID,
+		params,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get log locations: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	if response.JSON200 == nil && response.JSONDefault == nil {
+		if code := response.StatusCode(); code < 200 || code >= 300 {
+			return nil, fmt.Errorf("get log locations: %w", newUnexpectedStatusError(code, response.Body))
+		}
+
+		return []types.PagedLogResource{}, nil
+	}
+
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("get log locations: %w", err)
+	}
+
+	if *result == nil {
+		return []types.PagedLogResource{}, nil
+	}
+
+	return *result, nil
+}
+
+// SearchLogLocationsOption configures parameters for searching log locations.
+type SearchLogLocationsOption interface {
+	applySearchLogLocations(*api.GetLogsWithLocationBySearchParams)
+}
+
+type searchLogLocationsOptionFunc func(*api.GetLogsWithLocationBySearchParams)
+
+func (f searchLogLocationsOptionFunc) applySearchLogLocations(params *api.GetLogsWithLocationBySearchParams) {
+	f(params)
+}
+
+// WithSearchLogLocationsPageSize sets the number of results per page.
+func WithSearchLogLocationsPageSize(size int32) SearchLogLocationsOption {
+	return searchLogLocationsOptionFunc(func(params *api.GetLogsWithLocationBySearchParams) {
+		params.PageSize = &size
+	})
+}
+
+// WithSearchLogLocationsPageNumber sets the page number (0-based).
+func WithSearchLogLocationsPageNumber(page int32) SearchLogLocationsOption {
+	return searchLogLocationsOptionFunc(func(params *api.GetLogsWithLocationBySearchParams) {
+		params.PagePage = &page
+	})
+}
+
+// SearchLogLocations searches log locations with pagination for a parent item.
+func (l *LogScope) SearchLogLocations(
+	ctx context.Context,
+	parentID int64,
+	options ...SearchLogLocationsOption,
+) (*types.PagePagedLogResource, error) {
+	logger := l.project.operationLogger("SearchLogLocations", slog.Int64("parentId", parentID))
+
+	params := &api.GetLogsWithLocationBySearchParams{
+		Params: map[string]string{},
+	}
+	for _, option := range options {
+		option.applySearchLogLocations(params)
+	}
+
+	logger.InfoContext(ctx, "API request")
+
+	response, err := l.project.client.raw.GetLogsWithLocationBySearchWithResponse(
+		ctx,
+		l.project.projectName,
+		parentID,
+		params,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("search log locations: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("search log locations: %w", err)
+	}
+
+	return result, nil
+}
+
+// GetNestedLogsOption configures parameters for retrieving nested log entries.
+type GetNestedLogsOption interface {
+	applyGetNestedLogs(*api.GetNestedItemsParams)
+}
+
+type getNestedLogsOptionFunc func(*api.GetNestedItemsParams)
+
+func (f getNestedLogsOptionFunc) applyGetNestedLogs(params *api.GetNestedItemsParams) {
+	f(params)
+}
+
+// WithNestedLogsPageSize sets the number of results per page.
+func WithNestedLogsPageSize(size int32) GetNestedLogsOption {
+	return getNestedLogsOptionFunc(func(params *api.GetNestedItemsParams) {
+		params.PageSize = &size
+	})
+}
+
+// WithNestedLogsPageNumber sets the page number (0-based).
+func WithNestedLogsPageNumber(page int32) GetNestedLogsOption {
+	return getNestedLogsOptionFunc(func(params *api.GetNestedItemsParams) {
+		params.PagePage = &page
+	})
+}
+
+// GetNestedLogs retrieves nested log entries under a parent item.
+func (l *LogScope) GetNestedLogs(
+	ctx context.Context,
+	parentID int64,
+	options ...GetNestedLogsOption,
+) (*types.PageObject, error) {
+	logger := l.project.operationLogger("GetNestedLogs", slog.Int64("parentId", parentID))
+
+	params := &api.GetNestedItemsParams{
+		Params: map[string]string{},
+	}
+	for _, option := range options {
+		option.applyGetNestedLogs(params)
+	}
+
+	logger.InfoContext(ctx, "API request")
+
+	response, err := l.project.client.raw.GetNestedItemsWithResponse(
+		ctx,
+		l.project.projectName,
+		parentID,
+		params,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get nested logs: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("get nested logs: %w", err)
+	}
+
+	return result, nil
+}
+
 // GetLogsUnder retrieves log entries grouped by item ID for the specified
 // items and optional log level filter. The returned map is keyed by item ID
 // (as a string) with each value containing that item's log entries.

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -48,15 +49,30 @@ func New(baseURL, bearerToken string, opts ...Option) (*Client, error) {
 		}
 	}
 
+	httpClient := config.httpClient
+	if httpClient == nil {
+		httpClient = &http.Client{}
+	}
+
+	transport := httpClient.Transport
+	if transport == nil {
+		transport = http.DefaultTransport
+	}
+
+	wrappedClient := &http.Client{
+		Transport:     &emptyJSONBodyNormalizer{next: transport},
+		CheckRedirect: httpClient.CheckRedirect,
+		Jar:           httpClient.Jar,
+		Timeout:       httpClient.Timeout,
+	}
+
 	apiOpts := []api.ClientOption{
 		api.WithRequestEditorFn(func(_ context.Context, req *http.Request) error {
 			req.Header.Set("Authorization", "Bearer "+bearerToken)
 
 			return nil
 		}),
-	}
-	if config.httpClient != nil {
-		apiOpts = append(apiOpts, api.WithHTTPClient(config.httpClient))
+		api.WithHTTPClient(wrappedClient),
 	}
 
 	raw, err := api.NewClientWithResponses(normalizedBaseURL, apiOpts...)
@@ -155,4 +171,29 @@ func WithLogger(logger *slog.Logger) Option {
 
 		return nil
 	}
+}
+
+// emptyJSONBodyNormalizer is an http.RoundTripper that replaces empty response
+// bodies on 2xx JSON responses with the JSON literal "null". Some Report Portal
+// endpoints may return 200 with Content-Type: application/json and an empty
+// body; without this normalizer the generated parser would fail with
+// "unexpected end of JSON input" because json.Unmarshal rejects empty input.
+type emptyJSONBodyNormalizer struct {
+	next http.RoundTripper
+}
+
+func (n *emptyJSONBodyNormalizer) RoundTrip(req *http.Request) (*http.Response, error) {
+	resp, err := n.next.RoundTrip(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 &&
+		resp.ContentLength == 0 &&
+		strings.Contains(resp.Header.Get("Content-Type"), "json") {
+		resp.Body = io.NopCloser(strings.NewReader("null"))
+		resp.ContentLength = 4
+	}
+
+	return resp, nil
 }
