@@ -1908,3 +1908,207 @@ func TestTestItemScope_UnlinkExternalIssues_Errors(t *testing.T) {
 		})
 	}
 }
+
+func TestTestItemScope_Search_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/item/search")
+		assertMethod(t, r, http.MethodGet)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"content": [
+				{"id": 101, "uuid": "suite-101", "name": "Suite A", "status": "PASSED", "type": "SUITE"},
+				{"id": 102, "uuid": "test-102", "name": "Test A", "status": "FAILED", "type": "TEST"}
+			],
+			"page": {"number": 0, "size": 10, "totalElements": 2, "totalPages": 1}
+		}`))
+	}))
+
+	result, err := c.Project("my_project").Items().Search(t.Context())
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Content)
+	require.Len(t, *result.Content, 2)
+	require.NotNil(t, (*result.Content)[0].Name)
+
+	assert.Equal(t, "Suite A", *(*result.Content)[0].Name)
+	assert.EqualValues(t, 2, *result.Page.TotalElements)
+}
+
+func TestTestItemScope_Search_WithOptions(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertPath(t, r, "/api/v1/my_project/item/search")
+
+		query := r.URL.Query()
+		assert.Equal(t, "Login", query.Get("filter.cnt.name"))
+		assert.Equal(t, "env:prod", query.Get("filter.has.compositeAttribute"))
+		assert.Equal(t, "FAILED", query.Get("filter.in.status"))
+		assert.Equal(t, "1", query.Get("page.page"))
+		assert.Equal(t, "25", query.Get("page.size"))
+		assert.Equal(t, "startTime,desc", query.Get("page.sort"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"content": [],
+			"page": {"number": 1, "size": 25, "totalElements": 0, "totalPages": 0}
+		}`))
+	}))
+
+	_, err := c.Project("my_project").Items().Search(
+		t.Context(),
+		client.WithSearchItemName("Login"),
+		client.WithSearchItemAttribute("env:prod"),
+		client.WithSearchItemStatus("FAILED"),
+		client.WithSearchItemPageNumber(1),
+		client.WithSearchItemPageSize(25),
+		client.WithSearchItemSort("startTime,desc"),
+	)
+	require.NoError(t, err)
+}
+
+func TestTestItemScope_Search_Unauthorized(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusUnauthorized,
+		`{"errorCode": 4001, "message": "Full authentication is required."}`))
+
+	_, err := c.Project("my_project").Items().Search(t.Context())
+	require.Error(t, err)
+	assert.True(t, client.IsUnauthorized(err))
+}
+
+func TestTestItemScope_Search_EmptyPage(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertPath(t, r, "/api/v1/my_project/item/search")
+		assertMethod(t, r, http.MethodGet)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"content": [],
+			"page": {"number": 0, "size": 10, "totalElements": 0, "totalPages": 0}
+		}`))
+	}))
+
+	result, err := c.Project("my_project").Items().Search(t.Context())
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Content)
+	assert.Empty(t, *result.Content)
+	assert.EqualValues(t, 0, *result.Page.TotalElements)
+}
+
+func TestTestItemScope_ListV2_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/item/v2")
+		assertMethod(t, r, http.MethodGet)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"content": [
+				{"id": 201, "uuid": "suite-201", "name": "Suite B", "status": "PASSED", "type": "SUITE"},
+				{"id": 202, "uuid": "test-202", "name": "Test B", "status": "FAILED", "type": "TEST"}
+			],
+			"page": {"number": 0, "size": 10, "totalElements": 2, "totalPages": 1}
+		}`))
+	}))
+
+	result, err := c.Project("my_project").Items().ListV2(t.Context())
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Content)
+	require.Len(t, *result.Content, 2)
+	require.NotNil(t, (*result.Content)[0].Name)
+
+	assert.Equal(t, "Suite B", *(*result.Content)[0].Name)
+	assert.EqualValues(t, 2, *result.Page.TotalElements)
+}
+
+func TestTestItemScope_ListV2_WithFilterOptions(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertPath(t, r, "/api/v1/my_project/item/v2")
+
+		query := r.URL.Query()
+		assert.Equal(t, "FAILED", query.Get("filter.eq.status"))
+		assert.Equal(t, "Auth Test", query.Get("filter.eq.name"))
+		assert.Equal(t, "123", query.Get("filter.eq.launchId"))
+		assert.Equal(t, "456", query.Get("filter.eq.parentId"))
+		assert.Equal(t, "2", query.Get("page.page"))
+		assert.Equal(t, "5", query.Get("page.size"))
+		assert.Equal(t, "startTime,desc", query.Get("page.sort"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"content": [],
+			"page": {"number": 2, "size": 5, "totalElements": 0, "totalPages": 0}
+		}`))
+	}))
+
+	_, err := c.Project("my_project").Items().ListV2(
+		t.Context(),
+		client.WithItemV2Status("FAILED"),
+		client.WithItemV2Name("Auth Test"),
+		client.WithItemV2LaunchID(123),
+		client.WithItemV2ParentID(456),
+		client.WithItemV2PageNumber(2),
+		client.WithItemV2PageSize(5),
+		client.WithItemV2Sort("startTime,desc"),
+	)
+	require.NoError(t, err)
+}
+
+func TestTestItemScope_ListV2_Unauthorized(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusUnauthorized,
+		`{"errorCode": 4001, "message": "Full authentication is required."}`))
+
+	_, err := c.Project("my_project").Items().ListV2(t.Context())
+	require.Error(t, err)
+	assert.True(t, client.IsUnauthorized(err))
+}
+
+func TestTestItemScope_ListV2_EmptyPage(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertPath(t, r, "/api/v1/my_project/item/v2")
+		assertMethod(t, r, http.MethodGet)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"content": [],
+			"page": {"number": 0, "size": 10, "totalElements": 0, "totalPages": 0}
+		}`))
+	}))
+
+	result, err := c.Project("my_project").Items().ListV2(t.Context())
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Content)
+	assert.Empty(t, *result.Content)
+	assert.EqualValues(t, 0, *result.Page.TotalElements)
+}
