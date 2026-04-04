@@ -589,3 +589,65 @@ func TestProjectIntegrationsScope_ExecuteCommand_NotFound(t *testing.T) {
 	require.Error(t, err)
 	assert.True(t, client.IsNotFound(err))
 }
+
+func TestIntegrationsScope_DeleteAllByType_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/integration/all/jira")
+		assertMethod(t, r, http.MethodDelete)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"Integrations successfully deleted."}`))
+	}))
+
+	result, err := c.Integrations().DeleteAllByType(t.Context(), "jira")
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Message)
+	assert.Equal(t, "Integrations successfully deleted.", *result.Message)
+}
+
+func TestIntegrationsScope_DeleteAllByType_Unauthorized(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusUnauthorized,
+		`{"errorCode": 4001, "message": "Full authentication is required."}`))
+
+	_, err := c.Integrations().DeleteAllByType(t.Context(), "jira")
+	require.Error(t, err)
+	assert.True(t, client.IsUnauthorized(err))
+}
+
+func TestProjectIntegrationsScope_DeleteAllByType_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/integration/my_project/all/jira")
+		assertMethod(t, r, http.MethodDelete)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"Integrations successfully deleted."}`))
+	}))
+
+	result, err := c.Project("my_project").Integrations().DeleteAllByType(t.Context(), "jira")
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Message)
+	assert.Equal(t, "Integrations successfully deleted.", *result.Message)
+}
+
+func TestProjectIntegrationsScope_DeleteAllByType_Unauthorized(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusUnauthorized,
+		`{"errorCode": 4001, "message": "Full authentication is required."}`))
+
+	_, err := c.Project("my_project").Integrations().DeleteAllByType(t.Context(), "jira")
+	require.Error(t, err)
+	assert.True(t, client.IsUnauthorized(err))
+}

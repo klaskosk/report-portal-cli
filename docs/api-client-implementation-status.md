@@ -18,6 +18,7 @@ Report Portal 5.15 splits reporting APIs into synchronous `v1` tags (`Launch`, `
 - `Activity Event` (`ActivityEventsScope`): Search activities and get project subject names.
 - `Demo Data` (`DemoDataScope`): Generate demo data for a project.
 - `Onboarding` (`OnboardingScope`): Get onboarding status.
+- `Integration` (`IntegrationsScope`, `ProjectIntegrationsScope`): List/get/create/update/delete, connection testing, project command execution, and bulk delete-by-type for global and project integrations.
 - `Project Settings` (`ProjectSettingsScope`): Get project settings plus full CRUD for notifications, pattern templates, and custom issue sub-types.
 - `Settings` (`SettingsScope`): Get server settings, update server settings, and update analytics settings. The `PUT /v1/settings/analytics` variant (`SaveAnalyticsSettings1`) is deliberately excluded; it is functionally identical to the `POST` variant already wrapped by `UpdateAnalytics`.
 - `User Filter` (`UserFilterScope`): Create/get/list/update/delete, get names, get by IDs, and bulk update.
@@ -30,9 +31,6 @@ Report Portal 5.15 splits reporting APIs into synchronous `v1` tags (`Launch`, `
 - `Dashboard` (`DashboardScope`):
   - Implemented: List/get/create/update/delete dashboards plus add/remove widgets.
   - Not implemented: Dashboard config retrieval and preconfigured dashboard creation.
-- `Integration` (`IntegrationsScope`, `ProjectIntegrationsScope`):
-  - Implemented: List/get/create/update/delete, connection testing, and project command execution for global and project integrations.
-  - Not implemented: Bulk delete-by-type endpoints.
 - `Launch` (`LaunchScope`):
   - Implemented: Start/finish/get/list/update/delete, bulk operations, compare, analyze, latest/debug listings, report retrieval, clusters, names, owners, statuses, and attribute autocomplete.
   - Not implemented: `Launch Async` wrappers. `LaunchScope.Import` currently returns an unsupported error because the 5.15 OpenAPI spec does not define a launch import operation.
