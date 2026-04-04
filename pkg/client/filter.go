@@ -235,6 +235,37 @@ func (f *UserFilterScope) GetNames(
 	return result, nil
 }
 
+// BulkUpdate updates multiple filters in a single API call.
+func (f *UserFilterScope) BulkUpdate(
+	ctx context.Context,
+	request types.CollectionsRQBulkUpdateFilterRQ,
+) ([]types.OperationCompletionRS, error) {
+	logger := f.project.operationLogger("BulkUpdateFilters")
+	logger.InfoContext(ctx, "API request")
+
+	response, err := f.project.client.raw.UpdateUserFiltersWithResponse(
+		ctx,
+		f.project.projectName,
+		request,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("bulk update filters: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("bulk update filters: %w", err)
+	}
+
+	if result == nil || *result == nil {
+		return []types.OperationCompletionRS{}, nil
+	}
+
+	return *result, nil
+}
+
 // ListFiltersOption configures the filter and pagination parameters for listing user filters.
 type ListFiltersOption interface {
 	applyListFilters(*api.GetAllFiltersParams)
