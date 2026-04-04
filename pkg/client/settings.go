@@ -62,3 +62,27 @@ func (s *SettingsScope) UpdateAnalytics(
 
 	return result, nil
 }
+
+// UpdateServerSettings updates a single server setting by key.
+// Requires admin privileges.
+func (s *SettingsScope) UpdateServerSettings(
+	ctx context.Context,
+	request types.UpdateSettingsRq,
+) (*types.OperationCompletionRS, error) {
+	logger := s.client.logger.With(slog.String("operation", "UpdateServerSettings"))
+	logger.InfoContext(ctx, "API request")
+
+	response, err := s.client.raw.UpdateServerSettingsWithResponse(ctx, request)
+	if err != nil {
+		return nil, fmt.Errorf("update server settings: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("update server settings: %w", err)
+	}
+
+	return result, nil
+}

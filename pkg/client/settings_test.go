@@ -1,6 +1,8 @@
 package client_test
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
 	"testing"
 
@@ -70,6 +72,52 @@ func TestSettingsScope_UpdateAnalytics_Unauthorized(t *testing.T) {
 		`{"errorCode": 4001, "message": "Full authentication is required."}`))
 
 	_, err := c.Settings().UpdateAnalytics(t.Context(), types.AnalyticsResource{})
+	require.Error(t, err)
+	assert.True(t, client.IsUnauthorized(err))
+}
+
+func TestSettingsScope_UpdateServerSettings_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/settings")
+		assertMethod(t, r, http.MethodPut)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		assert.Equal(t, "server.analytics.all", payload["key"])
+		assert.Equal(t, "false", payload["value"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{"message": "Server settings were successfully updated."}`))
+	}))
+
+	result, err := c.Settings().UpdateServerSettings(t.Context(), types.UpdateSettingsRq{
+		Key:   "server.analytics.all",
+		Value: "false",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, "Server settings were successfully updated.", *result.Message)
+}
+
+func TestSettingsScope_UpdateServerSettings_Unauthorized(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusUnauthorized,
+		`{"errorCode": 4001, "message": "Full authentication is required."}`))
+
+	_, err := c.Settings().UpdateServerSettings(t.Context(), types.UpdateSettingsRq{
+		Key:   "server.analytics.all",
+		Value: "false",
+	})
 	require.Error(t, err)
 	assert.True(t, client.IsUnauthorized(err))
 }
