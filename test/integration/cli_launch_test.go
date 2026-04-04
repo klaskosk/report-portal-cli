@@ -19,8 +19,8 @@ type launchListEntry struct {
 	UUID        string  `json:"uuid"`
 	Name        string  `json:"name"`
 	Status      string  `json:"status"`
-	StartTime   int64   `json:"startTime"`
-	EndTime     *int64  `json:"endTime"`
+	StartTime   string  `json:"startTime"`
+	EndTime     *string `json:"endTime"`
 	Number      int64   `json:"number"`
 	Description *string `json:"description"`
 }
@@ -78,7 +78,7 @@ var _ = Describe("CLI: get launch", Label("cli", "launches"), func() {
 						Expect(l.UUID).NotTo(BeEmpty(), "launch should have a non-empty uuid")
 						Expect(l.Name).NotTo(BeEmpty(), "launch should have a non-empty name")
 						Expect(l.Status).NotTo(BeEmpty(), "launch should have a non-empty status")
-						Expect(l.StartTime).NotTo(BeZero(), "launch should have a non-zero startTime")
+						Expect(l.StartTime).NotTo(BeEmpty(), "launch should have a non-empty startTime")
 						Expect(l.Number).NotTo(BeZero(), "launch should have a non-zero number")
 					}
 				},

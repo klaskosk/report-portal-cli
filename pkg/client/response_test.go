@@ -9,14 +9,27 @@ import (
 )
 
 // fakeResponse mimics an oapi-codegen response struct with a JSONDefault
-// error body and a typed success field.
+// error body, a typed success field, and the raw response body.
 type fakeResponse struct {
 	statusCode  int
 	JSONDefault *types.ErrorRS
 	JSON200     *string
+	Body        []byte
 }
 
 func (f fakeResponse) StatusCode() int { return f.statusCode }
+
+// fakeV2Response mimics a response struct with both a v2 content-negotiated
+// field and a legacy JSON200 field.
+type fakeV2Response struct {
+	statusCode int
+	JSONDefault *types.ErrorRS
+	V2JSON200   *string
+	JSON200     *string
+	Body        []byte
+}
+
+func (f fakeV2Response) StatusCode() int { return f.statusCode }
 
 func TestHandleResponse_Success(t *testing.T) {
 	t.Parallel()
@@ -24,7 +37,7 @@ func TestHandleResponse_Success(t *testing.T) {
 	want := "ok"
 	resp := fakeResponse{statusCode: 200, JSON200: &want}
 
-	got, err := handleResponse(resp, resp.JSONDefault, resp.JSON200)
+	got, err := handleResponse(resp, resp.JSONDefault, resp.JSON200, resp.Body)
 	require.NoError(t, err)
 	assert.Equal(t, &want, got)
 }
@@ -35,7 +48,7 @@ func TestHandleResponse_Error(t *testing.T) {
 	errBody := &types.ErrorRS{ErrorCode: 40410, Message: "Not found"}
 	resp := fakeResponse{statusCode: 404, JSONDefault: errBody}
 
-	got, err := handleResponse(resp, resp.JSONDefault, resp.JSON200)
+	got, err := handleResponse(resp, resp.JSONDefault, resp.JSON200, resp.Body)
 	require.Error(t, err)
 	assert.Nil(t, got)
 	assert.True(t, IsNotFound(err))
@@ -51,7 +64,7 @@ func TestHandleResponse_NilSuccess(t *testing.T) {
 
 	resp := fakeResponse{statusCode: 200, JSON200: nil}
 
-	got, err := handleResponse(resp, resp.JSONDefault, resp.JSON200)
+	got, err := handleResponse(resp, resp.JSONDefault, resp.JSON200, resp.Body)
 	require.Error(t, err)
 	assert.Nil(t, got)
 	assert.Contains(
@@ -67,19 +80,24 @@ func TestHandleResponse_NonJSONError(t *testing.T) {
 	testCases := []struct {
 		name       string
 		statusCode int
+		body       []byte
 	}{
-		{"404 without JSON body", 404},
-		{"500 without JSON body", 500},
-		{"502 without JSON body", 502},
+		{"404 without JSON body", 404, nil},
+		{"500 without JSON body", 500, nil},
+		{"502 without JSON body", 502, []byte("<html>Bad Gateway</html>")},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			resp := fakeResponse{statusCode: testCase.statusCode, JSONDefault: nil}
+			resp := fakeResponse{
+				statusCode:  testCase.statusCode,
+				JSONDefault: nil,
+				Body:        testCase.body,
+			}
 
-			got, err := handleResponse(resp, resp.JSONDefault, resp.JSON200)
+			got, err := handleResponse(resp, resp.JSONDefault, resp.JSON200, resp.Body)
 			require.Error(t, err)
 			assert.Nil(t, got)
 			assert.True(t, HasStatusCode(err, testCase.statusCode))
@@ -92,6 +110,21 @@ func TestHandleResponse_NonJSONError(t *testing.T) {
 	}
 }
 
+func TestHandleResponse_NonJSONErrorPreservesBody(t *testing.T) {
+	t.Parallel()
+
+	body := []byte("Full authentication is required to access this resource")
+	resp := fakeResponse{statusCode: 401, JSONDefault: nil, Body: body}
+
+	_, err := handleResponse(resp, resp.JSONDefault, resp.JSON200, resp.Body)
+	require.Error(t, err)
+
+	gotBody, ok := BodyOf(err)
+	require.True(t, ok)
+	assert.Equal(t, body, gotBody)
+	assert.Contains(t, err.Error(), "Full authentication is required")
+}
+
 func TestHandleResponse_2xxWithNilJSON(t *testing.T) {
 	t.Parallel()
 
@@ -99,7 +132,7 @@ func TestHandleResponse_2xxWithNilJSON(t *testing.T) {
 	// Report Portal doesn't actually return 204s in any supported endpoints.
 	resp := fakeResponse{statusCode: 204, JSON200: nil}
 
-	got, err := handleResponse(resp, resp.JSONDefault, resp.JSON200)
+	got, err := handleResponse(resp, resp.JSONDefault, resp.JSON200, resp.Body)
 	require.Error(t, err)
 	assert.Nil(t, got)
 	assert.Contains(
@@ -108,3 +141,75 @@ func TestHandleResponse_2xxWithNilJSON(t *testing.T) {
 		"API returned success status (204) but no valid response body was parsed",
 	)
 }
+
+func TestHandleV2Response(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name          string
+		statusCode    int
+		jsonDefault   *types.ErrorRS
+		v2Success     *string
+		legacySuccess *string
+		body          []byte
+		wantResult    *string
+		wantErr       string
+	}{
+		{
+			name:       "v2 success",
+			statusCode: 200,
+			v2Success:  ptr("v2-ok"),
+			wantResult: ptr("v2-ok"),
+		},
+		{
+			name:          "legacy rejection",
+			statusCode:    200,
+			legacySuccess: ptr("legacy-ok"),
+			wantErr:       "API returned legacy JSON shape",
+		},
+		{
+			name:        "API error",
+			statusCode:  404,
+			jsonDefault: &types.ErrorRS{ErrorCode: 40410, Message: "Not found"},
+			wantErr:     "HTTP 404",
+		},
+		{
+			name:       "non-2xx without JSON",
+			statusCode: 502,
+			body:       []byte("<html>Bad Gateway</html>"),
+			wantErr:    "unexpected HTTP 502",
+		},
+		{
+			name:       "2xx with no body fallthrough",
+			statusCode: 200,
+			wantErr:    "API returned success status (200) but no valid response body was parsed",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			resp := fakeV2Response{
+				statusCode:  testCase.statusCode,
+				JSONDefault: testCase.jsonDefault,
+				V2JSON200:   testCase.v2Success,
+				JSON200:     testCase.legacySuccess,
+				Body:        testCase.body,
+			}
+
+			got, err := handleV2Response(resp, resp.JSONDefault, resp.V2JSON200, resp.JSON200, resp.Body)
+
+			if testCase.wantErr != "" {
+				require.Error(t, err)
+				assert.Nil(t, got)
+				assert.Contains(t, err.Error(), testCase.wantErr)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, testCase.wantResult, got)
+			}
+		})
+	}
+}
+
+func ptr[T any](v T) *T { return &v }

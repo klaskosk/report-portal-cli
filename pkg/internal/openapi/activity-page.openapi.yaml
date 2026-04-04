@@ -1,0 +1,79 @@
+# Sidecar schema for PageActivityEventResource.
+#
+# The upstream spec uses the generic untyped Page for the getTestItemActivities
+# response, but the content array actually contains ActivityEventResource items.
+# This sidecar provides a typed schema so the API generator can resolve the $ref
+# from overlay.openapi.yaml. The corresponding Go type is generated into the
+# types package via overlay.components.openapi.yaml (which can use $ref back to
+# components.openapi.yaml). Sidecar files are needed because oapi-codegen runs
+# two independent generation passes — one for API client code and one for types —
+# each with its own overlay, so a schema added only in the components overlay is
+# invisible to the API generator.
+openapi: 3.0.1
+info:
+  title: Activity Page Schema
+  version: 1.0.0
+
+components:
+  schemas:
+    PageActivityEventResource:
+      type: object
+      required:
+        - content
+        - page
+      properties:
+        content:
+          type: array
+          items:
+            type: object
+            required:
+              - created_at
+              - event_name
+              - id
+              - object_id
+              - object_name
+              - object_type
+              - project_id
+              - project_name
+              - subject_id
+              - subject_name
+              - subject_type
+            properties:
+              created_at:
+                type: string
+                format: date-time
+              details: {}
+              event_name:
+                type: string
+              id:
+                type: integer
+                format: int64
+              object_id:
+                type: integer
+                format: int64
+              object_name:
+                type: string
+              object_type:
+                type: string
+              project_id:
+                type: integer
+                format: int64
+              project_name:
+                type: string
+              subject_id:
+                type: string
+              subject_name:
+                type: string
+              subject_type:
+                type: string
+        page:
+          type: object
+          properties:
+            number:
+              type: integer
+            size:
+              type: integer
+            totalElements:
+              type: integer
+            totalPages:
+              type: integer

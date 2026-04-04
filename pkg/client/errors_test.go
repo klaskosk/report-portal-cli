@@ -85,6 +85,58 @@ func TestErrorPredicates(t *testing.T) {
 	}
 }
 
+func TestIsServerError(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{"nil error", nil, false},
+		{"plain error", errors.New("plain error"), false},
+		{
+			"APIError 499",
+			client.NewTestAPIError(499, &types.ErrorRS{ErrorCode: 4990, Message: "test"}),
+			false,
+		},
+		{
+			"APIError 500",
+			client.NewTestAPIError(500, &types.ErrorRS{ErrorCode: 5000, Message: "test"}),
+			true,
+		},
+		{
+			"APIError 599",
+			client.NewTestAPIError(599, &types.ErrorRS{ErrorCode: 5990, Message: "test"}),
+			true,
+		},
+		{
+			"APIError 600",
+			client.NewTestAPIError(600, &types.ErrorRS{ErrorCode: 6000, Message: "test"}),
+			false,
+		},
+		{"UnexpectedStatusError 500", client.NewTestUnexpectedStatusError(500), true},
+		{"UnexpectedStatusError 502", client.NewTestUnexpectedStatusError(502), true},
+		{"UnexpectedStatusError 404", client.NewTestUnexpectedStatusError(404), false},
+		{
+			"wrapped APIError 503",
+			fmt.Errorf(
+				"retrying: %w",
+				client.NewTestAPIError(503, &types.ErrorRS{ErrorCode: 5030, Message: "test"}),
+			),
+			true,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, testCase.want, client.IsServerError(testCase.err))
+		})
+	}
+}
+
 func TestHasStatusCode(t *testing.T) {
 	t.Parallel()
 

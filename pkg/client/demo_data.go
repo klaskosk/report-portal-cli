@@ -21,7 +21,7 @@ func (s *DemoDataScope) Generate(
 	logger := s.project.operationLogger("GenerateDemoData")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.GenerateUsingPOSTWithResponse(
+	response, err := s.project.client.raw.GenerateWithResponse(
 		ctx,
 		s.project.projectName,
 		demoDataRequest,
@@ -32,7 +32,7 @@ func (s *DemoDataScope) Generate(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("generate demo data: %w", err)
 	}

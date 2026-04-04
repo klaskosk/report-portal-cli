@@ -9,7 +9,7 @@ var NewTestAPIError = func(statusCode int, resp *types.ErrorRS) error {
 
 // NewTestUnexpectedStatusError exposes newUnexpectedStatusError for external test packages.
 var NewTestUnexpectedStatusError = func(statusCode int) error {
-	return newUnexpectedStatusError(statusCode)
+	return newUnexpectedStatusError(statusCode, nil)
 }
 
 // NewTestActivityScope creates an ActivityScope for testing without requiring a full Client setup.

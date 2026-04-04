@@ -94,9 +94,10 @@ var _ = Describe("Client: Dashboards", Label("client", "dashboards"), func() {
 			result, err := dashboards.List(ctx)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).NotTo(BeNil())
+			Expect(result.Content).NotTo(BeNil())
 
 			found := false
-			for _, d := range result.Content {
+			for _, d := range *result.Content {
 				if d.Id == *created.Id {
 					found = true
 					Expect(d.Name).To(Equal("Listed Dashboard"))
@@ -134,14 +135,17 @@ var _ = Describe("Client: Dashboards", Label("client", "dashboards"), func() {
 			filterID := *filterCreated.Id
 
 			By("creating a widget")
-			widgetOpts := map[string]any{}
+			widgetOpts := map[string]interface{}{}
+			contentFields := []string{"statistics$executions$total", "statistics$executions$passed", "statistics$executions$failed"}
+			itemsCount := int32(10)
+			filterIDs := []int64{filterID}
 			widgetCreated, err := widgets.Create(ctx, types.WidgetRQ{
 				Name:       fmt.Sprintf("dashboard-widget-%d", time.Now().UnixNano()),
-				WidgetType: "launchStatistics",
-				FilterIds:  &[]int64{filterID},
+				WidgetType: types.WidgetRQWidgetTypeLaunchStatistics,
+				FilterIds:  &filterIDs,
 				ContentParameters: &types.ContentParameters{
-					ContentFields: []string{"statistics$executions$total", "statistics$executions$passed", "statistics$executions$failed"},
-					ItemsCount:    10,
+					ContentFields: &contentFields,
+					ItemsCount:    &itemsCount,
 					WidgetOptions: &widgetOpts,
 				},
 			})
@@ -160,8 +164,8 @@ var _ = Describe("Client: Dashboards", Label("client", "dashboards"), func() {
 			By("adding the widget to the dashboard")
 			widgetName := fmt.Sprintf("dashboard-widget-%d", time.Now().UnixNano())
 			_, err = dashboards.AddWidget(ctx, dashboardID, types.AddWidgetRq{
-				AddWidget: &types.WidgetObjectModel{
-					WidgetId:   &widgetID,
+				AddWidget: types.WidgetObjectModel{
+					WidgetId:   widgetID,
 					WidgetName: &widgetName,
 				},
 			})
@@ -175,7 +179,7 @@ var _ = Describe("Client: Dashboards", Label("client", "dashboards"), func() {
 
 			found := false
 			for _, w := range *dash.Widgets {
-				if w.WidgetId != nil && *w.WidgetId == widgetID {
+				if w.WidgetId == widgetID {
 					found = true
 
 					break
@@ -192,10 +196,8 @@ var _ = Describe("Client: Dashboards", Label("client", "dashboards"), func() {
 			Expect(err).NotTo(HaveOccurred())
 			if dashAfter.Widgets != nil {
 				for _, w := range *dashAfter.Widgets {
-					if w.WidgetId != nil {
-						Expect(*w.WidgetId).NotTo(Equal(widgetID),
-							"widget should no longer appear on the dashboard")
-					}
+					Expect(w.WidgetId).NotTo(Equal(widgetID),
+						"widget should no longer appear on the dashboard")
 				}
 			}
 		})

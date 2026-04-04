@@ -42,7 +42,8 @@ var _ = Describe("CLI: get log", Label("cli", "logs"), func() {
 		By("seeding log entries")
 		seededLogs, err = seedTestLogEntries(ctx, baseURL, bearerToken, projectName, seededTestData, 3)
 		Expect(err).To(Succeed(), "failed to seed log entries into %q", projectName)
-	}, NodeTimeout(120*time.Second))
+		// RP 5.15 async indexing requires longer startup for item/log hierarchy
+	}, NodeTimeout(240*time.Second))
 
 	AfterEach(func(ctx SpecContext) {
 		if projectName == "" {

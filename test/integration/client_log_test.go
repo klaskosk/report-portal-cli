@@ -35,7 +35,7 @@ var _ = Describe("Client: Logs", Label("client", "logs"), func() {
 		By("seeding log entries for the suite item")
 		seededLogs, err = seedTestLogEntries(ctx, baseURL, bearerToken, projectName, seeded, 3)
 		Expect(err).To(Succeed(), "failed to seed log entries in %q", projectName)
-	}, NodeTimeout(120*time.Second))
+	}, NodeTimeout(240*time.Second))
 
 	AfterEach(func(ctx SpecContext) {
 		if projectName != "" {
@@ -52,7 +52,8 @@ var _ = Describe("Client: Logs", Label("client", "logs"), func() {
 			)
 			Expect(err).NotTo(HaveOccurred(), "listing logs by item should not fail")
 			Expect(result).NotTo(BeNil())
-			Expect(result.Content).NotTo(BeEmpty(), "seeded item should have log entries")
+			Expect(result.Content).NotTo(BeNil(), "seeded item should have log entries")
+			Expect(*result.Content).NotTo(BeEmpty(), "seeded item should have log entries")
 		})
 
 		It("returns empty results for an item with no logs", func(ctx SpecContext) {
@@ -63,7 +64,9 @@ var _ = Describe("Client: Logs", Label("client", "logs"), func() {
 			)
 			Expect(err).NotTo(HaveOccurred(), "listing logs for missing item should not fail")
 			Expect(result).NotTo(BeNil())
-			Expect(result.Content).To(BeEmpty())
+			if result.Content != nil {
+				Expect(*result.Content).To(BeEmpty())
+			}
 		})
 	})
 
@@ -96,14 +99,14 @@ var _ = Describe("Client: Logs", Label("client", "logs"), func() {
 					ItemUUID:   seeded.SuiteUUID,
 					Level:      "INFO",
 					Message:    "batch-log-entry-1",
-					Time:       types.EpochMillis(time.Now()),
+					Time:       time.Now(),
 				},
 				client.BatchLogEntry{
 					LaunchUUID: seeded.LaunchUUID,
 					ItemUUID:   seeded.SuiteUUID,
 					Level:      "ERROR",
 					Message:    "batch-log-entry-2",
-					Time:       types.EpochMillis(time.Now()),
+					Time:       time.Now(),
 				},
 			)
 			Expect(err).NotTo(HaveOccurred(), "batch creating log entries should not fail")
@@ -119,7 +122,7 @@ var _ = Describe("Client: Logs", Label("client", "logs"), func() {
 					ItemUUID:       seeded.SuiteUUID,
 					Level:          "INFO",
 					Message:        "log with attachment",
-					Time:           types.EpochMillis(time.Now()),
+					Time:           time.Now(),
 					AttachmentName: "test.txt",
 					AttachmentData: []byte("integration test attachment content"),
 				},
@@ -134,14 +137,14 @@ var _ = Describe("Client: Logs", Label("client", "logs"), func() {
 	Context("Write Operations", func() {
 		It("creates a log entry via client", func(ctx SpecContext) {
 			message := "client-created log entry"
-			level := types.SaveLogRQLevel("INFO")
+			level := "INFO"
 
 			result, err := c.Project(projectName).Logs().Create(ctx, types.SaveLogRQ{
 				LaunchUuid: seeded.LaunchUUID,
 				ItemUuid:   &seeded.SuiteUUID,
 				Message:    &message,
 				Level:      &level,
-				Time:       types.EpochMillis(time.Now()),
+				Time:       time.Now(),
 			})
 			Expect(err).NotTo(HaveOccurred(), "creating log entry should not fail")
 			Expect(result).NotTo(BeNil())
@@ -154,11 +157,11 @@ var _ = Describe("Client: Logs", Label("client", "logs"), func() {
 					client.WithLogItemID(seeded.SuiteID),
 					client.WithLogPageSize(50),
 				)
-				if listErr != nil || logs == nil {
+				if listErr != nil || logs == nil || logs.Content == nil {
 					return false
 				}
 
-				for _, entry := range logs.Content {
+				for _, entry := range *logs.Content {
 					if entry.Message != nil && *entry.Message == "client-created log entry" {
 						found = true
 						return true
@@ -204,7 +207,7 @@ var _ = Describe("Client: Logs", Label("client", "logs"), func() {
 		It("retrieves logs grouped by item ID", func(ctx SpecContext) {
 			itemIDs := []int64{seeded.SuiteID}
 			result, err := c.Project(projectName).Logs().GetLogsUnder(ctx,
-				types.GetLogsUnderRq{ItemIds: &itemIDs},
+				types.GetLogsUnderRq{ItemIds: itemIDs},
 			)
 			Expect(err).NotTo(HaveOccurred(), "getting logs under items should not fail")
 			Expect(result).NotTo(BeNil(), "logs under result should not be nil")

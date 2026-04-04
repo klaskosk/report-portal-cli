@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/klaskosk/report-portal-cli/pkg/client"
 	"github.com/klaskosk/report-portal-cli/pkg/types"
 	. "github.com/onsi/ginkgo/v2"
@@ -45,8 +46,7 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 				"listing launches for project %q should not fail", projectName)
 			Expect(result).NotTo(BeNil(),
 				"launch list result should not be nil")
-			Expect(result.Content).NotTo(BeEmpty(),
-				"launch list should contain seeded demo launches")
+			expectContent(result.Content, "launch list")
 		})
 
 		It("filters by name", func(ctx SpecContext) {
@@ -56,10 +56,9 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			)
 			Expect(err).NotTo(HaveOccurred(),
 				"listing launches to discover a known name should not fail")
-			Expect(all.Content).NotTo(BeEmpty(),
-				"launch list should contain at least one launch for name discovery")
+			content := expectContent(all.Content, "launch list for name discovery")
 
-			knownName := all.Content[0].Name
+			knownName := content[0].Name
 
 			filtered, err := c.Project(projectName).Launches().List(ctx,
 				client.WithLaunchName(knownName),
@@ -67,7 +66,8 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			Expect(err).NotTo(HaveOccurred(),
 				"filtering launches by name %q should not fail", knownName)
 
-			for _, launch := range filtered.Content {
+			Expect(filtered.Content).NotTo(BeNil())
+			for _, launch := range *filtered.Content {
 				Expect(launch.Name).To(Equal(knownName),
 					"filtered launch should have name %q but got %q", knownName, launch.Name)
 			}
@@ -80,10 +80,13 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			)
 			Expect(err).NotTo(HaveOccurred(),
 				"listing launches (first page) should not fail")
-			Expect(firstPage.Content).To(HaveLen(1),
+			Expect(firstPage.Content).NotTo(BeNil())
+			Expect(*firstPage.Content).To(HaveLen(1),
 				"first page with page size 1 should return exactly 1 launch")
+			Expect(firstPage.Page).NotTo(BeNil())
+			Expect(firstPage.Page.Number).NotTo(BeNil())
 
-			nextPageNumber := int32(firstPage.Page.Number) + 1
+			nextPageNumber := int32(*firstPage.Page.Number) + 1
 			secondPage, err := c.Project(projectName).Launches().List(ctx,
 				client.WithLaunchPageSize(1),
 				client.WithLaunchPageNumber(nextPageNumber),
@@ -92,10 +95,11 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			Expect(err).NotTo(HaveOccurred(),
 				"listing launches (second page) should not fail")
 
-			if firstPage.Page.TotalPages > 1 {
-				Expect(secondPage.Content).To(HaveLen(1),
+			if firstPage.Page.TotalPages != nil && *firstPage.Page.TotalPages > 1 {
+				Expect(secondPage.Content).NotTo(BeNil())
+				Expect(*secondPage.Content).To(HaveLen(1),
 					"second page with page size 1 should return exactly 1 launch")
-				Expect(secondPage.Content[0].Id).NotTo(Equal(firstPage.Content[0].Id),
+				Expect((*secondPage.Content)[0].Id).NotTo(Equal((*firstPage.Content)[0].Id),
 					"second page launch should differ from first page launch")
 			}
 		})
@@ -108,10 +112,12 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			Expect(err).NotTo(HaveOccurred(),
 				"listing launches sorted by startTime desc should not fail")
 
-			if len(result.Content) >= 2 {
-				for i := 1; i < len(result.Content); i++ {
-					prev := time.Time(result.Content[i-1].StartTime)
-					curr := time.Time(result.Content[i].StartTime)
+			Expect(result.Content).NotTo(BeNil())
+			if len(*result.Content) >= 2 {
+				content := *result.Content
+				for i := 1; i < len(content); i++ {
+				prev := content[i-1].StartTime
+				curr := content[i].StartTime
 					Expect(prev).To(
 						BeTemporally(">=", curr),
 						"launch[%d] startTime %v should be >= launch[%d] startTime %v (descending order)",
@@ -131,10 +137,12 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			)
 			Expect(err).NotTo(HaveOccurred(),
 				"listing launches to discover a known ID should not fail")
-			Expect(list.Content).NotTo(BeEmpty(),
+			Expect(list.Content).NotTo(BeNil(),
+				"launch list should contain at least one launch for ID lookup")
+			Expect(*list.Content).NotTo(BeEmpty(),
 				"launch list should contain at least one launch for ID lookup")
 
-			knownID = list.Content[0].Id
+			knownID = (*list.Content)[0].Id
 		})
 
 		It("returns the launch", func(ctx SpecContext) {
@@ -171,10 +179,12 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			)
 			Expect(err).NotTo(HaveOccurred(),
 				"listing launches to discover a known UUID should not fail")
-			Expect(list.Content).NotTo(BeEmpty(),
+			Expect(list.Content).NotTo(BeNil(),
+				"launch list should contain at least one launch for UUID lookup")
+			Expect(*list.Content).NotTo(BeEmpty(),
 				"launch list should contain at least one launch for UUID lookup")
 
-			knownUUID = list.Content[0].Uuid
+			knownUUID = (*list.Content)[0].Uuid
 		})
 
 		It("returns the launch", func(ctx SpecContext) {
@@ -209,8 +219,7 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 				"getting latest launches should not fail")
 			Expect(result).NotTo(BeNil(),
 				"latest launches result should not be nil")
-			Expect(result.Content).NotTo(BeEmpty(),
-				"latest launches should contain launches")
+			expectContent(result.Content, "latest launches")
 		})
 
 		It("supports filtering options", func(ctx SpecContext) {
@@ -219,9 +228,10 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 				client.WithLaunchPageSize(1),
 			)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(all.Content).NotTo(BeEmpty())
+			Expect(all.Content).NotTo(BeNil())
+			Expect(*all.Content).NotTo(BeEmpty())
 
-			knownName := all.Content[0].Name
+			knownName := (*all.Content)[0].Name
 
 			// Filter latest by name
 			result, err := c.Project(projectName).Launches().GetLatest(ctx,
@@ -230,8 +240,9 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			Expect(err).NotTo(HaveOccurred(),
 				"getting latest launches with name filter should not fail")
 			Expect(result).NotTo(BeNil())
+			Expect(result.Content).NotTo(BeNil())
 
-			for _, launch := range result.Content {
+			for _, launch := range *result.Content {
 				Expect(launch.Name).To(Equal(knownName),
 					"filtered latest launch should have name %q", knownName)
 			}
@@ -244,7 +255,8 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			Expect(err).NotTo(HaveOccurred(),
 				"getting latest launches with page size should not fail")
 			Expect(result).NotTo(BeNil())
-			Expect(result.Content).To(HaveLen(1),
+			Expect(result.Content).NotTo(BeNil())
+			Expect(*result.Content).To(HaveLen(1),
 				"latest launches with page size 1 should return exactly 1 launch")
 		})
 	})
@@ -316,14 +328,15 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			// Start and finish a launch for update.
 			startedLaunch, err := c.Project(projectName).Launches().Start(ctx, types.StartLaunchRQ{
 				Name:      fmt.Sprintf("update-test-%d", time.Now().UnixNano()),
-				StartTime: types.EpochMillis(time.Now()),
+				StartTime: time.Now(),
+				Uuid:      uuid.NewString(),
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(startedLaunch.Id).NotTo(BeNil())
 
 			finishedStatus := types.FinishExecutionRQStatusPASSED
 			_, err = c.Project(projectName).Launches().Finish(ctx, *startedLaunch.Id, types.FinishExecutionRQ{
-				EndTime: types.EpochMillis(time.Now()),
+				EndTime: time.Now(),
 				Status:  &finishedStatus,
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -351,14 +364,15 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			// Start and finish a launch for deletion.
 			startedLaunch, err := c.Project(projectName).Launches().Start(ctx, types.StartLaunchRQ{
 				Name:      fmt.Sprintf("delete-test-%d", time.Now().UnixNano()),
-				StartTime: types.EpochMillis(time.Now()),
+				StartTime: time.Now(),
+				Uuid:      uuid.NewString(),
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(startedLaunch.Id).NotTo(BeNil())
 
 			finishedStatus := types.FinishExecutionRQStatusPASSED
 			_, err = c.Project(projectName).Launches().Finish(ctx, *startedLaunch.Id, types.FinishExecutionRQ{
-				EndTime: types.EpochMillis(time.Now()),
+				EndTime: time.Now(),
 				Status:  &finishedStatus,
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -381,7 +395,8 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			// Start a launch but do NOT finish it normally.
 			startedLaunch, err := c.Project(projectName).Launches().Start(ctx, types.StartLaunchRQ{
 				Name:      fmt.Sprintf("force-finish-test-%d", time.Now().UnixNano()),
-				StartTime: types.EpochMillis(time.Now()),
+				StartTime: time.Now(),
+				Uuid:      uuid.NewString(),
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(startedLaunch.Id).NotTo(BeNil())
@@ -392,7 +407,7 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 
 			// Force-finish it.
 			_, err = c.Project(projectName).Launches().ForceFinish(ctx, launchID, types.FinishExecutionRQ{
-				EndTime: types.EpochMillis(time.Now()),
+				EndTime: time.Now(),
 			})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -417,14 +432,15 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			for i := range 2 {
 				started, err := c.Project(projectName).Launches().Start(ctx, types.StartLaunchRQ{
 					Name:      fmt.Sprintf("merge-test-%d-%d", time.Now().UnixNano(), i),
-					StartTime: types.EpochMillis(time.Now()),
+					StartTime: time.Now(),
+					Uuid:      uuid.NewString(),
 				})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(started.Id).NotTo(BeNil())
 
 				finishedStatus := types.FinishExecutionRQStatusPASSED
 				_, err = c.Project(projectName).Launches().Finish(ctx, *started.Id, types.FinishExecutionRQ{
-					EndTime: types.EpochMillis(time.Now()),
+					EndTime: time.Now(),
 					Status:  &finishedStatus,
 				})
 				Expect(err).NotTo(HaveOccurred())
@@ -437,8 +453,8 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 
 			// Merge the two launches.
 			mergedName := fmt.Sprintf("merged-launch-%d", time.Now().UnixNano())
-			startTime := types.EpochMillis(time.Now().Add(-time.Minute))
-			endTime := types.EpochMillis(time.Now())
+			startTime := time.Now().Add(-time.Minute)
+			endTime := time.Now()
 			merged, err := c.Project(projectName).Launches().Merge(ctx, types.MergeLaunchesRQ{
 				Name:      mergedName,
 				Launches:  launchIDs,
@@ -458,9 +474,10 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 				client.WithLaunchPageSize(2),
 			)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(list.Content).To(HaveLen(2))
+			Expect(list.Content).NotTo(BeNil())
+			Expect(*list.Content).To(HaveLen(2))
 
-			ids := []int64{list.Content[0].Id, list.Content[1].Id}
+			ids := []int64{(*list.Content)[0].Id, (*list.Content)[1].Id}
 			comment := "bulk updated by integration test"
 			action := types.DescriptionActionUPDATE
 			attributes := []types.UpdateItemAttributeRQ{}
@@ -468,7 +485,7 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 
 			result, err := c.Project(projectName).Launches().BulkUpdate(ctx, types.BulkInfoUpdateRQ{
 				Attributes:  &attributes,
-				Ids:         &ids,
+				Ids:         ids,
 				Description: &description,
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -481,7 +498,8 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			for i := range 2 {
 				started, err := c.Project(projectName).Launches().Start(ctx, types.StartLaunchRQ{
 					Name:      fmt.Sprintf("bulk-stop-test-%d-%d", time.Now().UnixNano(), i),
-					StartTime: types.EpochMillis(time.Now()),
+					StartTime: time.Now(),
+					Uuid:      uuid.NewString(),
 				})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(started.Id).NotTo(BeNil())
@@ -491,7 +509,7 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				entities[fmt.Sprintf("%d", launchID)] = types.FinishExecutionRQ{
-					EndTime: types.EpochMillis(time.Now()),
+					EndTime: time.Now(),
 				}
 			}
 
@@ -510,10 +528,11 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 				client.WithLaunchPageSize(1),
 			)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(all.Content).NotTo(BeEmpty())
-			Expect(all.Content[0].Owner).NotTo(BeNil(), "launch should have an owner")
+			Expect(all.Content).NotTo(BeNil())
+			Expect(*all.Content).NotTo(BeEmpty())
+			Expect((*all.Content)[0].Owner).NotTo(BeNil(), "launch should have an owner")
 
-			knownUser := *all.Content[0].Owner
+			knownUser := *(*all.Content)[0].Owner
 
 			result, err := c.Project(projectName).Launches().List(ctx,
 				client.WithLaunchUser(knownUser),
@@ -521,7 +540,8 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			Expect(err).NotTo(HaveOccurred(),
 				"filtering launches by user %q should not fail", knownUser)
 
-			for _, launch := range result.Content {
+			Expect(result.Content).NotTo(BeNil())
+			for _, launch := range *result.Content {
 				if launch.Owner != nil {
 					Expect(*launch.Owner).To(Equal(knownUser),
 						"filtered launch should have owner %q", knownUser)
@@ -557,11 +577,12 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 				client.WithLaunchSort("id,asc"),
 			)
 			Expect(err).NotTo(HaveOccurred(), "listing launches for compare should not fail")
-			Expect(list.Content).To(HaveLen(2), "need at least 2 launches to compare")
+			Expect(list.Content).NotTo(BeNil())
+			Expect(*list.Content).To(HaveLen(2), "need at least 2 launches to compare")
 
 			query := url.Values{}
-			query.Add("ids", fmt.Sprintf("%d", list.Content[0].Id))
-			query.Add("ids", fmt.Sprintf("%d", list.Content[1].Id))
+			query.Add("ids", fmt.Sprintf("%d", (*list.Content)[0].Id))
+			query.Add("ids", fmt.Sprintf("%d", (*list.Content)[1].Id))
 
 			requestURL := fmt.Sprintf("%s/api/v1/%s/launch/compare?%s", baseURL, projectName, query.Encode())
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
@@ -603,8 +624,9 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 
 			Expect(foundStartTime).To(BeTrue(), "raw compare response should include an entry with startTime")
 			_, isNumber := startTime.(float64)
-			Expect(isNumber).To(BeTrue(),
-				"compare startTime should be a numeric epoch value, got %T", startTime)
+			_, isString := startTime.(string)
+			Expect(isNumber || isString).To(BeTrue(),
+				"compare startTime should be a numeric epoch or ISO 8601 string, got %T", startTime)
 		})
 
 		It("compares seeded launches by ID", func(ctx SpecContext) {
@@ -613,9 +635,10 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 				client.WithLaunchSort("id,asc"),
 			)
 			Expect(err).NotTo(HaveOccurred(), "listing launches for compare should not fail")
-			Expect(list.Content).To(HaveLen(2), "need at least 2 launches to compare")
+			Expect(list.Content).NotTo(BeNil())
+			Expect(*list.Content).To(HaveLen(2), "need at least 2 launches to compare")
 
-			ids := []int64{list.Content[0].Id, list.Content[1].Id}
+			ids := []int64{(*list.Content)[0].Id, (*list.Content)[1].Id}
 			result, err := c.Project(projectName).Launches().Compare(ctx, ids)
 			Expect(err).NotTo(HaveOccurred(), "comparing launches should not fail")
 			Expect(result).NotTo(BeNil(), "compare result should not be nil")

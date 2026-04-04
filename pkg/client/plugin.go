@@ -19,14 +19,14 @@ func (s *PluginScope) List(ctx context.Context) ([]types.IntegrationTypeResource
 	logger := s.client.logger.With(slog.String("operation", "ListPlugins"))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.client.raw.GetPluginsUsingGETWithResponse(ctx)
+	response, err := s.client.raw.GetPluginsWithResponse(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("list plugins: %w", err)
 	}
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("list plugins: %w", err)
 	}
@@ -44,14 +44,14 @@ func (s *PluginScope) ListPublic(ctx context.Context) ([]types.IntegrationTypeRe
 	logger := s.client.logger.With(slog.String("operation", "ListPublicPlugins"))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.client.raw.GetPluginsUsingGET1WithResponse(ctx)
+	response, err := s.client.raw.GetPlugins1WithResponse(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("list public plugins: %w", err)
 	}
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("list public plugins: %w", err)
 	}
@@ -75,14 +75,14 @@ func (s *PluginScope) UpdateState(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.client.raw.UpdatePluginStateUsingPUTWithResponse(ctx, pluginID, stateUpdate)
+	response, err := s.client.raw.UpdatePluginStateWithResponse(ctx, pluginID, stateUpdate)
 	if err != nil {
 		return nil, fmt.Errorf("update plugin state: %w", err)
 	}
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("update plugin state: %w", err)
 	}
@@ -101,14 +101,14 @@ func (s *PluginScope) Delete(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.client.raw.DeletePluginUsingDELETEWithResponse(ctx, pluginID)
+	response, err := s.client.raw.DeletePluginWithResponse(ctx, pluginID)
 	if err != nil {
 		return nil, fmt.Errorf("delete plugin: %w", err)
 	}
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("delete plugin: %w", err)
 	}
@@ -129,7 +129,7 @@ func (s *PluginScope) GetPublicFile(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.client.raw.GetPublicFileUsingGETWithResponse(ctx, pluginName, fileName)
+	response, err := s.client.raw.GetPublicFileWithResponse(ctx, pluginName, fileName)
 	if err != nil {
 		return nil, fmt.Errorf("get public plugin file: %w", err)
 	}
@@ -145,7 +145,10 @@ func (s *PluginScope) GetPublicFile(
 
 	code := response.StatusCode()
 	if code < 200 || code >= 300 {
-		return nil, fmt.Errorf("get public plugin file: %w", newUnexpectedStatusError(code))
+		return nil, fmt.Errorf(
+			"get public plugin file: %w",
+			newUnexpectedStatusError(code, response.Body),
+		)
 	}
 
 	return response.Body, nil

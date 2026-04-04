@@ -3,11 +3,6 @@ info:
   title: Patch timestamps, error responses, and ID types
   version: 1.0.0
 actions:
-  - target: $..[?(@.format == 'date-time')]
-    update:
-      x-go-type: types.EpochMillis
-      x-go-type-import:
-        path: github.com/klaskosk/report-portal-cli/pkg/types
   # Fix numeric ID path parameters that are incorrectly typed as strings.
   - target: $.paths['/v1/{projectName}/launch/{launchId}'].get.parameters[?(@.name == 'launchId')].schema
     update:
@@ -56,6 +51,11 @@ actions:
           application/json:
             schema:
               $ref: 'components.openapi.yaml#/components/schemas/ErrorRS'
-  # /v1/{projectName}/widget/names/all returns a paged object with string content items in RP 5.11.
-  - target: $.paths['/v1/{projectName}/widget/names/all'].get.responses['200'].content['application/json'].schema.$ref
-    update: 'widget-names.openapi.yaml#/components/schemas/WidgetNamesIterable'
+  # /v1/{projectName}/activity/item/{itemId} returns Page in the spec, but content is ActivityEventResource[].
+  - target: $.paths['/v1/{projectName}/activity/item/{itemId}'].get.responses['200'].content['application/json'].schema
+    update:
+      $ref: 'activity-page.openapi.yaml#/components/schemas/PageActivityEventResource'
+  # /v1/{projectName}/widget/names/all returns a paged object with string content items.
+  - target: $.paths['/v1/{projectName}/widget/names/all'].get.responses['200'].content['application/json'].schema
+    update:
+      $ref: 'widget-names.openapi.yaml#/components/schemas/WidgetNamesIterable'

@@ -59,3 +59,10 @@ func assertMethod(t *testing.T, r *http.Request, expectedMethod string) {
 
 	assert.Equal(t, expectedMethod, r.Method, "request method mismatch")
 }
+
+// assertHeader checks that the request header matches the expected value.
+func assertHeader(t *testing.T, r *http.Request, key, expectedValue string) {
+	t.Helper()
+
+	assert.Equal(t, expectedValue, r.Header.Get(key), "request header mismatch for %s", key)
+}

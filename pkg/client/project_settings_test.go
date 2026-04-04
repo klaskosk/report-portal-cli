@@ -133,7 +133,7 @@ func TestProjectSettingsScope_GetNotifications_Success(t *testing.T) {
 	require.Len(t, notifications, 1)
 
 	assert.Equal(t, int64(10), *notifications[0].Id)
-	assert.Equal(t, "Launch finished", *notifications[0].RuleName)
+	assert.Equal(t, "Launch finished", notifications[0].RuleName)
 }
 
 func TestProjectSettingsScope_GetNotifications_Unauthorized(t *testing.T) {
@@ -172,7 +172,7 @@ func TestProjectSettingsScope_CreateNotification_Success(t *testing.T) {
 	result, err := c.Project("my_project").Settings().CreateNotification(
 		t.Context(),
 		types.SenderCaseDTO{
-			RuleName: &ruleName,
+			RuleName: ruleName,
 		},
 	)
 	require.NoError(t, err)
@@ -245,7 +245,7 @@ func TestProjectSettingsScope_UpdateNotification_Success(t *testing.T) {
 	result, err := c.Project("my_project").Settings().UpdateNotification(
 		t.Context(),
 		types.SenderCaseDTO{
-			RuleName: &ruleName,
+			RuleName: ruleName,
 		},
 	)
 	require.NoError(t, err)
@@ -378,8 +378,10 @@ func TestProjectSettingsScope_CreatePatternTemplate_Success(t *testing.T) {
 	result, err := c.Project("my_project").Settings().CreatePatternTemplate(
 		t.Context(),
 		types.CreatePatternTemplateRQ{
-			Name: &name,
-			Type: &patternType,
+			Enabled: false,
+			Name:    name,
+			Type:    patternType,
+			Value:   "",
 		},
 	)
 	require.NoError(t, err)
@@ -453,7 +455,8 @@ func TestProjectSettingsScope_UpdatePatternTemplate_Success(t *testing.T) {
 		t.Context(),
 		10,
 		types.UpdatePatternTemplateRQ{
-			Name: &name,
+			Enabled: true,
+			Name:    name,
 		},
 	)
 	require.NoError(t, err)
@@ -661,13 +664,14 @@ func TestProjectSettingsScope_UpdateIssueSubType_Success(t *testing.T) {
 		_, _ = w.Write([]byte(`{"message":"Issue sub-type updated."}`))
 	}))
 
-	longName := "Updated Bug"
 	result, err := c.Project("my_project").Settings().UpdateIssueSubType(
 		t.Context(),
 		types.UpdateOneIssueSubTypeRQ{
-			Locator:  "pb001",
-			TypeRef:  "PRODUCT_BUG",
-			LongName: &longName,
+			Color:     "#000000",
+			Locator:   "pb001",
+			LongName:  "Updated Bug",
+			ShortName: "UB",
+			TypeRef:   "PRODUCT_BUG",
 		},
 	)
 	require.NoError(t, err)
@@ -707,8 +711,11 @@ func TestProjectSettingsScope_UpdateIssueSubType_Errors(t *testing.T) {
 			_, err := testClient.Project("my_project").Settings().UpdateIssueSubType(
 				t.Context(),
 				types.UpdateOneIssueSubTypeRQ{
-					Locator: "pb001",
-					TypeRef: "PRODUCT_BUG",
+					Color:     "",
+					Locator:   "pb001",
+					LongName:  "",
+					ShortName: "",
+					TypeRef:   "PRODUCT_BUG",
 				},
 			)
 

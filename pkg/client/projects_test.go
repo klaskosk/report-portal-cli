@@ -148,10 +148,11 @@ func TestProjectsScope_List_Success(t *testing.T) {
 
 	result, err := c.Projects().List(t.Context())
 	require.NoError(t, err)
-	require.Len(t, result.Content, 1)
+	require.Len(t, *result.Content, 1)
 
-	assert.Equal(t, "my_project", *result.Content[0].ProjectName)
-	assert.Equal(t, "INTERNAL", *result.Content[0].EntryType)
+	assert.Equal(t, "my_project", (*result.Content)[0].ProjectName)
+	require.NotNil(t, (*result.Content)[0].EntryType)
+	assert.Equal(t, "INTERNAL", *(*result.Content)[0].EntryType)
 }
 
 func TestProjectsScope_List_WithOptions(t *testing.T) {
@@ -289,9 +290,9 @@ func TestProjectsScope_GetInfo_Success(t *testing.T) {
 	)
 	require.NoError(t, err)
 	require.NotNil(t, info)
-	assert.Equal(t, "my_project", *info.ProjectName)
-	assert.Equal(t, int32(5), *info.UsersQuantity)
-	assert.Equal(t, int32(42), *info.LaunchesQuantity)
+	assert.Equal(t, "my_project", info.ProjectName)
+	assert.Equal(t, int32(5), info.UsersQuantity)
+	assert.Equal(t, int32(42), info.LaunchesQuantity)
 }
 
 func TestProjectsScope_GetInfo_NotFound(t *testing.T) {
@@ -328,7 +329,7 @@ func TestProjectsScope_Create_Success(t *testing.T) {
 
 	result, err := c.Projects().Create(t.Context(), types.CreateProjectRQ{
 		ProjectName: "new_project",
-		EntryType:   types.INTERNAL,
+		EntryType:   types.CreateProjectRQEntryTypeINTERNAL,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -366,7 +367,7 @@ func TestProjectsScope_Create_Errors(t *testing.T) {
 			c := newTestClient(t, jsonResponse(tt.status, tt.body))
 			_, err := c.Projects().Create(t.Context(), types.CreateProjectRQ{
 				ProjectName: "new_project",
-				EntryType:   types.INTERNAL,
+				EntryType:   types.CreateProjectRQEntryTypeINTERNAL,
 			})
 			require.Error(t, err)
 			assert.True(t, tt.assertErr(err))
@@ -380,18 +381,19 @@ func TestProjectsScope_Delete_Success(t *testing.T) {
 	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assertBearerToken(t, r, "test-token")
 		assertMethod(t, r, http.MethodDelete)
-		assertPath(t, r, "/api/v1/project/42")
+		assertPath(t, r, "/api/v1/project")
+		assert.Equal(t, []string{"42"}, r.URL.Query()["ids"])
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message":"Project deleted."}`))
+		_, _ = w.Write([]byte(`{"successfullyDeleted":[42]}`))
 	}))
 
 	result, err := c.Projects().Delete(t.Context(), 42)
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	require.NotNil(t, result.Message)
-	assert.Equal(t, "Project deleted.", *result.Message)
+	require.NotNil(t, result.SuccessfullyDeleted)
+	assert.Equal(t, []int64{42}, *result.SuccessfullyDeleted)
 }
 
 func TestProjectsScope_Delete_NotFound(t *testing.T) {
@@ -558,11 +560,11 @@ func TestProjectsScope_ListUsers_Success(t *testing.T) {
 
 	result, err := c.Projects().ListUsers(t.Context(), "my_project")
 	require.NoError(t, err)
-	require.Len(t, result.Content, 1)
+	require.Len(t, *result.Content, 1)
 
-	assert.Equal(t, int64(1), result.Content[0].Id)
-	assert.Equal(t, "admin", result.Content[0].UserId)
-	assert.Equal(t, "admin@example.com", result.Content[0].Email)
+	assert.Equal(t, int64(1), (*result.Content)[0].Id)
+	assert.Equal(t, "admin", (*result.Content)[0].UserId)
+	assert.Equal(t, "admin@example.com", (*result.Content)[0].Email)
 }
 
 func TestProjectsScope_ListUsers_WithOptions(t *testing.T) {

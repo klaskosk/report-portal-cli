@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/klaskosk/report-portal-cli/pkg/client"
 	"github.com/klaskosk/report-portal-cli/pkg/types"
 	. "github.com/onsi/ginkgo/v2"
@@ -109,7 +110,8 @@ func seedTestLaunches(ctx context.Context, rpBaseURL, token, projectName string,
 
 		startedLaunch, err := launches.Start(ctx, types.StartLaunchRQ{
 			Name:      launchName,
-			StartTime: types.EpochMillis(startTime),
+			StartTime: startTime,
+			Uuid:      uuid.NewString(),
 		})
 		if err != nil {
 			return fmt.Errorf("starting launch %q: %w", launchName, err)
@@ -118,12 +120,16 @@ func seedTestLaunches(ctx context.Context, rpBaseURL, token, projectName string,
 			return fmt.Errorf("start launch %q returned empty uuid", launchName)
 		}
 
-		_, err = launches.Finish(ctx, *startedLaunch.Id, types.FinishExecutionRQ{
-			EndTime: types.EpochMillis(endTime),
-			Status:  &finishedStatus,
+		finishErr := retryTransient(ctx, 3, func() error {
+			_, err := launches.Finish(ctx, *startedLaunch.Id, types.FinishExecutionRQ{
+				EndTime: endTime,
+				Status:  &finishedStatus,
+			})
+
+			return err
 		})
-		if err != nil {
-			return fmt.Errorf("finishing launch %q: %w", launchName, err)
+		if finishErr != nil {
+			return fmt.Errorf("finishing launch %q: %w", launchName, finishErr)
 		}
 	}
 
@@ -140,8 +146,8 @@ type seededTestItems struct {
 }
 
 const (
-	seedResolutionAttempts = 20
-	seedResolutionInterval = 250 * time.Millisecond
+	seedResolutionAttempts = 60
+	seedResolutionInterval = 1 * time.Second
 
 	// Activity and audit events require longer indexing time.
 	activityResolutionAttempts = 120
@@ -176,7 +182,8 @@ func waitForSeedResolution(
 }
 
 // seedTestItems creates one launch with one SUITE and one TEST child item and returns their resolved IDs/UUIDs for use
-// in integration tests.
+// in integration tests. The v2 async API occasionally drops items under load, so the entire seed is retried up to 3
+// times before giving up.
 func seedTestItems(
 	ctx context.Context,
 	rpBaseURL, token, projectName string,
@@ -190,6 +197,31 @@ func seedTestItems(
 	launches := project.Launches()
 	items := project.Items()
 
+	const maxSeedAttempts = 3
+
+	var lastErr error
+
+	for attempt := range maxSeedAttempts {
+		result, seedErr := trySeedTestItems(ctx, launches, items)
+		if seedErr == nil {
+			return result, nil
+		}
+
+		lastErr = seedErr
+
+		if attempt < maxSeedAttempts-1 {
+			GinkgoWriter.Printf("seed attempt %d failed (%v), retrying...\n", attempt+1, seedErr)
+		}
+	}
+
+	return seededTestItems{}, lastErr
+}
+
+func trySeedTestItems(
+	ctx context.Context,
+	launches *client.LaunchScope,
+	items *client.TestItemScope,
+) (seededTestItems, error) {
 	now := time.Now()
 	launchName := fmt.Sprintf("integration-item-launch-%d", now.UnixNano())
 	suiteName := fmt.Sprintf("integration-suite-%d", now.UnixNano())
@@ -235,9 +267,11 @@ func startSeededItemHierarchy(
 	now time.Time,
 	launchName, suiteName, testName string,
 ) (seededItemRefs, error) {
+	launchUUID := uuid.NewString()
 	startedLaunch, err := launches.Start(ctx, types.StartLaunchRQ{
 		Name:      launchName,
-		StartTime: types.EpochMillis(now),
+		StartTime: now,
+		Uuid:      launchUUID,
 	})
 	if err != nil {
 		return seededItemRefs{}, fmt.Errorf("starting launch for item seeding: %w", err)
@@ -246,16 +280,17 @@ func startSeededItemHierarchy(
 		return seededItemRefs{}, fmt.Errorf("start launch returned empty uuid")
 	}
 
-	launchUUID := *startedLaunch.Id
 	hasStats := true
+	suiteUUID := uuid.NewString()
 
 	suiteType := types.StartTestItemRQType("SUITE")
 	startedSuite, err := items.StartRoot(ctx, types.StartTestItemRQ{
 		LaunchUuid: launchUUID,
 		Name:       suiteName,
-		StartTime:  types.EpochMillis(now),
+		StartTime:  now,
 		Type:       suiteType,
 		HasStats:   &hasStats,
+		Uuid:       suiteUUID,
 	})
 	if err != nil {
 		return seededItemRefs{}, fmt.Errorf("starting suite item: %w", err)
@@ -264,14 +299,15 @@ func startSeededItemHierarchy(
 		return seededItemRefs{}, fmt.Errorf("starting suite item returned empty uuid")
 	}
 
-	suiteUUID := *startedSuite.Id
+	testUUID := uuid.NewString()
 	testType := types.StartTestItemRQType("TEST")
 	startedTest, err := items.StartChild(ctx, suiteUUID, types.StartTestItemRQ{
 		LaunchUuid: launchUUID,
 		Name:       testName,
-		StartTime:  types.EpochMillis(now.Add(1 * time.Second)),
+		StartTime:  now.Add(1 * time.Second),
 		Type:       testType,
 		HasStats:   &hasStats,
+		Uuid:       testUUID,
 	})
 	if err != nil {
 		return seededItemRefs{}, fmt.Errorf("starting child test item: %w", err)
@@ -283,12 +319,38 @@ func startSeededItemHierarchy(
 	return seededItemRefs{
 		LaunchUUID: launchUUID,
 		SuiteUUID:  suiteUUID,
-		TestUUID:   *startedTest.Id,
+		TestUUID:   testUUID,
 	}, nil
 }
 
+// retryTransient retries fn up to maxAttempts when it returns a 500-level error, which commonly indicates a transient
+// PostgreSQL deadlock under parallel test load.
+func retryTransient(ctx context.Context, maxAttempts int, fn func() error) error {
+	var lastErr error
+	for attempt := range maxAttempts {
+		lastErr = fn()
+		if lastErr == nil {
+			return nil
+		}
+
+		if !client.IsServerError(lastErr) {
+			return lastErr
+		}
+
+		if attempt < maxAttempts-1 {
+			select {
+			case <-ctx.Done():
+				return fmt.Errorf("context cancelled during retry: %w", ctx.Err())
+			case <-time.After(time.Duration(attempt+1) * 500 * time.Millisecond):
+			}
+		}
+	}
+
+	return lastErr
+}
+
 // finishSeededItemHierarchy closes the child item, parent suite, and launch in that order so Report Portal persists a
-// complete hierarchy for listing tests.
+// complete hierarchy for listing tests. Operations are retried on transient 500 errors (e.g. PostgreSQL deadlocks).
 func finishSeededItemHierarchy(
 	ctx context.Context,
 	launches *client.LaunchScope,
@@ -298,16 +360,18 @@ func finishSeededItemHierarchy(
 ) error {
 	finishedItemStatus := types.FinishTestItemRQStatusPASSED
 	finishItem := func(itemUUID string, endTime time.Time) error {
-		_, finishErr := items.Finish(ctx, itemUUID, types.FinishTestItemRQ{
-			LaunchUuid: refs.LaunchUUID,
-			EndTime:    types.EpochMillis(endTime),
-			Status:     &finishedItemStatus,
-		})
-		if finishErr != nil {
-			return fmt.Errorf("finishing item %q: %w", itemUUID, finishErr)
-		}
+		return retryTransient(ctx, 3, func() error {
+			_, finishErr := items.Finish(ctx, itemUUID, types.FinishTestItemRQ{
+				LaunchUuid: refs.LaunchUUID,
+				EndTime:    endTime,
+				Status:     &finishedItemStatus,
+			})
+			if finishErr != nil {
+				return fmt.Errorf("finishing item %q: %w", itemUUID, finishErr)
+			}
 
-		return nil
+			return nil
+		})
 	}
 
 	if err := finishItem(refs.TestUUID, now.Add(5*time.Second)); err != nil {
@@ -318,15 +382,18 @@ func finishSeededItemHierarchy(
 	}
 
 	finishedLaunchStatus := types.FinishExecutionRQStatusPASSED
-	_, err := launches.Finish(ctx, refs.LaunchUUID, types.FinishExecutionRQ{
-		EndTime: types.EpochMillis(now.Add(7 * time.Second)),
-		Status:  &finishedLaunchStatus,
-	})
-	if err != nil {
-		return fmt.Errorf("finishing launch for item seeding: %w", err)
-	}
 
-	return nil
+	return retryTransient(ctx, 3, func() error {
+		_, err := launches.Finish(ctx, refs.LaunchUUID, types.FinishExecutionRQ{
+			EndTime: now.Add(7 * time.Second),
+			Status:  &finishedLaunchStatus,
+		})
+		if err != nil {
+			return fmt.Errorf("finishing launch for item seeding: %w", err)
+		}
+
+		return nil
+	})
 }
 
 // resolveSeededItemIdentifiers resolves async references into the stable IDs consumed by integration tests and waits
@@ -375,13 +442,23 @@ func resolveItemByUUID(
 		resolvedItemUUID string
 	)
 
+	var lastErr error
+
 	resolved := waitForSeedResolution(
 		ctx,
 		seedResolutionAttempts,
 		seedResolutionInterval,
 		func() bool {
 			item, getErr := items.GetByUUID(ctx, itemUUID)
-			if getErr == nil && item != nil && item.Id != nil && item.Uuid != nil {
+			if getErr != nil {
+				lastErr = getErr
+
+				return false
+			}
+
+			lastErr = nil
+
+			if item != nil && item.Id != nil && item.Uuid != nil {
 				if *item.Id != 0 && *item.Uuid != "" {
 					resolvedItemID = *item.Id
 					resolvedItemUUID = *item.Uuid
@@ -396,6 +473,14 @@ func resolveItemByUUID(
 	if !resolved {
 		if ctx.Err() != nil {
 			return 0, "", fmt.Errorf("could not resolve item by uuid %q: %w", itemUUID, ctx.Err())
+		}
+
+		if lastErr != nil {
+			return 0, "", fmt.Errorf(
+				"could not resolve item by uuid %q (last error: %w)",
+				itemUUID,
+				lastErr,
+			)
 		}
 
 		return 0, "", fmt.Errorf("could not resolve item by uuid %q", itemUUID)
@@ -477,15 +562,14 @@ func createProject(ctx context.Context, rpBaseURL, token, projectName string) er
 	return nil
 }
 
-// deleteProject deletes the named Report Portal project. Errors are logged
-// but not returned so cleanup always proceeds.
+// deleteProject deletes the named Report Portal project by first resolving its
+// numeric ID, then calling the batch-delete endpoint. Errors are logged but not
+// returned so cleanup always proceeds.
 func deleteProject(ctx context.Context, rpBaseURL, token, projectName string) {
-	projectURL := fmt.Sprintf("%s/api/v1/project/%s", rpBaseURL, projectName)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, projectURL, nil)
+	c, err := client.New(rpBaseURL, token)
 	if err != nil {
 		GinkgoWriter.Printf(
-			"warning: could not build delete-project request for %q: %v\n",
+			"warning: could not create client for delete-project %q: %v\n",
 			projectName,
 			err,
 		)
@@ -493,23 +577,24 @@ func deleteProject(ctx context.Context, rpBaseURL, token, projectName string) {
 		return
 	}
 
-	req.Header.Set("Authorization", "Bearer "+token)
-
-	resp, err := httpClient.Do(req)
+	proj, err := c.Projects().Get(ctx, projectName)
 	if err != nil {
-		GinkgoWriter.Printf("warning: delete-project request failed for %q: %v\n", projectName, err)
+		GinkgoWriter.Printf(
+			"warning: could not look up project %q for deletion: %v\n",
+			projectName,
+			err,
+		)
 
 		return
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(resp.Body)
+	_, err = c.Projects().Delete(ctx, proj.ProjectId)
+	if err != nil {
 		GinkgoWriter.Printf(
-			"warning: delete-project returned %d for %q: %s\n",
-			resp.StatusCode,
+			"warning: delete-project failed for %q (id=%d): %v\n",
 			projectName,
-			string(respBody),
+			proj.ProjectId,
+			err,
 		)
 	}
 }
@@ -737,7 +822,9 @@ func seedLogWithAttachment(
 
 	jsonPart := fmt.Sprintf(
 		`[{"launchUuid":%q,"itemUuid":%q,"level":"INFO","message":"attachment test","time":%d,"file":{"name":"test.txt"}}]`,
-		seeded.LaunchUUID, seeded.SuiteUUID, time.Now().UnixMilli(),
+		seeded.LaunchUUID,
+		seeded.SuiteUUID,
+		time.Now().UnixMilli(),
 	)
 
 	fileContent := "integration test attachment content"
@@ -797,11 +884,11 @@ func seedLogWithAttachment(
 				client.WithLogItemID(seeded.SuiteID),
 				client.WithLogPageSize(50),
 			)
-			if listErr != nil || result == nil {
+			if listErr != nil || result == nil || result.Content == nil {
 				return false
 			}
 
-			for _, entry := range result.Content {
+			for _, entry := range *result.Content {
 				if entry.BinaryContent == nil || entry.BinaryContent.Id == "" {
 					continue
 				}
@@ -824,6 +911,22 @@ func seedLogWithAttachment(
 	}
 
 	return attachmentID, nil
+}
+
+// expectContent asserts that a paginated *[]T content field is non-nil and
+// non-empty, reducing the verbose two-line pattern to a single call.
+func expectContent[T any](content *[]T, description ...string) []T {
+	GinkgoHelper()
+
+	desc := "paginated content"
+	if len(description) > 0 {
+		desc = description[0]
+	}
+
+	Expect(content).NotTo(BeNil(), "%s should not be nil", desc)
+	Expect(*content).NotTo(BeEmpty(), "%s should not be empty", desc)
+
+	return *content
 }
 
 // expectLogLevel asserts that stderr contains log output at the given level.
@@ -905,16 +1008,16 @@ func seedTestLogEntries(
 				client.WithLogItemID(seeded.SuiteID),
 				client.WithLogPageSize(int32(count+10)),
 			)
-			if listErr != nil || result == nil {
+			if listErr != nil || result == nil || result.Content == nil {
 				return false
 			}
 
-			if len(result.Content) < count {
+			if len(*result.Content) < count {
 				return false
 			}
 
-			logIDs = make([]int64, 0, len(result.Content))
-			for _, entry := range result.Content {
+			logIDs = make([]int64, 0, len(*result.Content))
+			for _, entry := range *result.Content {
 				logIDs = append(logIDs, entry.Id)
 			}
 

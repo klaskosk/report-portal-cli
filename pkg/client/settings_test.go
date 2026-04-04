@@ -46,7 +46,7 @@ func TestSettingsScope_UpdateAnalytics_Success(t *testing.T) {
 	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assertBearerToken(t, r, "test-token")
 		assertPath(t, r, "/api/v1/settings/analytics")
-		assertMethod(t, r, http.MethodPut)
+		assertMethod(t, r, http.MethodPost)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -56,7 +56,7 @@ func TestSettingsScope_UpdateAnalytics_Success(t *testing.T) {
 
 	analyticsType := "all"
 	result, err := c.Settings().UpdateAnalytics(t.Context(), types.AnalyticsResource{
-		Type: &analyticsType,
+		Type: analyticsType,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, result)

@@ -22,7 +22,7 @@ func (w *WidgetScope) GetByID(
 	logger := w.project.operationLogger("GetWidgetByID", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := w.project.client.raw.GetWidgetUsingGET1WithResponse(
+	response, err := w.project.client.raw.GetWidgetWithResponse(
 		ctx,
 		w.project.projectName,
 		id,
@@ -33,7 +33,7 @@ func (w *WidgetScope) GetByID(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get widget by id: %w", err)
 	}
@@ -49,7 +49,7 @@ func (w *WidgetScope) Create(
 	logger := w.project.operationLogger("CreateWidget", slog.String("name", request.Name))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := w.project.client.raw.CreateWidgetUsingPOSTWithResponse(
+	response, err := w.project.client.raw.CreateWidgetWithResponse(
 		ctx,
 		w.project.projectName,
 		request,
@@ -60,7 +60,7 @@ func (w *WidgetScope) Create(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON201)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON201, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("create widget: %w", err)
 	}
@@ -77,7 +77,7 @@ func (w *WidgetScope) Update(
 	logger := w.project.operationLogger("UpdateWidget", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := w.project.client.raw.UpdateWidgetUsingPUTWithResponse(
+	response, err := w.project.client.raw.UpdateWidgetWithResponse(
 		ctx,
 		w.project.projectName,
 		id,
@@ -89,7 +89,7 @@ func (w *WidgetScope) Update(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("update widget: %w", err)
 	}
@@ -106,8 +106,8 @@ func (w *WidgetScope) GetData(
 ) (*types.WidgetResource, error) {
 	logger := w.project.operationLogger("GetWidgetData", slog.Int64("id", id))
 
-	params := &api.GetWidgetUsingGETParams{
-		Params: map[string]any{},
+	params := &api.GetWidget1Params{
+		Params: types.MultiValueMapStringString{},
 	}
 	for _, option := range options {
 		option.applyGetWidgetData(params)
@@ -115,7 +115,7 @@ func (w *WidgetScope) GetData(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := w.project.client.raw.GetWidgetUsingGETWithResponse(
+	response, err := w.project.client.raw.GetWidget1WithResponse(
 		ctx,
 		w.project.projectName,
 		id,
@@ -127,7 +127,7 @@ func (w *WidgetScope) GetData(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get widget data: %w", err)
 	}
@@ -137,18 +137,18 @@ func (w *WidgetScope) GetData(
 
 // GetWidgetDataOption configures the parameters for getting widget data.
 type GetWidgetDataOption interface {
-	applyGetWidgetData(*api.GetWidgetUsingGETParams)
+	applyGetWidgetData(*api.GetWidget1Params)
 }
 
-type getWidgetDataOptionFunc func(*api.GetWidgetUsingGETParams)
+type getWidgetDataOptionFunc func(*api.GetWidget1Params)
 
-func (f getWidgetDataOptionFunc) applyGetWidgetData(params *api.GetWidgetUsingGETParams) {
+func (f getWidgetDataOptionFunc) applyGetWidgetData(params *api.GetWidget1Params) {
 	f(params)
 }
 
 // WithWidgetAttributes sets the attributes for widget data retrieval.
 func WithWidgetAttributes(attributes ...string) GetWidgetDataOption {
-	return getWidgetDataOptionFunc(func(params *api.GetWidgetUsingGETParams) {
+	return getWidgetDataOptionFunc(func(params *api.GetWidget1Params) {
 		params.Attributes = &attributes
 	})
 }
@@ -160,14 +160,14 @@ func (w *WidgetScope) GetNames(
 ) (*types.WidgetNamesIterable, error) {
 	logger := w.project.operationLogger("GetWidgetNames", slog.String("filter", filter))
 
-	params := &api.GetWidgetNamesUsingGETParams{}
+	params := &api.GetWidgetNamesParams{}
 	if filter != "" {
 		params.FilterEqName = &filter
 	}
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := w.project.client.raw.GetWidgetNamesUsingGETWithResponse(
+	response, err := w.project.client.raw.GetWidgetNamesWithResponse(
 		ctx,
 		w.project.projectName,
 		params,
@@ -178,7 +178,7 @@ func (w *WidgetScope) GetNames(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get widget names: %w", err)
 	}

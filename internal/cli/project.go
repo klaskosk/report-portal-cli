@@ -138,10 +138,7 @@ func projectRow(project *types.ProjectResource) ([]string, []string) {
 		organization = *project.Organization
 	}
 
-	created := ""
-	if project.CreationDate != nil {
-		created = time.Time(*project.CreationDate).UTC().Format(time.DateTime)
-	}
+	created := project.CreationDate.UTC().Format(time.DateTime)
 
 	return headers, []string{
 		strconv.FormatInt(project.ProjectId, 10),

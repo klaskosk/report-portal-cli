@@ -77,6 +77,8 @@ func runGetLaunch(cmd *cobra.Command, args []string) error {
 }
 
 // getSingleLaunch retrieves and prints a single launch by numeric ID or UUID.
+//
+//nolint:dupl // structural similarity with getSingleItem is inherent to the get-single-resource pattern
 func getSingleLaunch(
 	cmd *cobra.Command,
 	clientInstance *client.Client,
@@ -86,18 +88,21 @@ func getSingleLaunch(
 	ctx := cmd.Context()
 	scope := clientInstance.Project(project).Launches()
 
-	var (
-		launch *types.LaunchResource
-		err    error
-	)
-
 	numericID, parseErr := strconv.ParseInt(idOrUUID, 10, 64)
 	if parseErr == nil {
-		launch, err = scope.GetByID(ctx, numericID)
-	} else {
-		launch, err = scope.GetByUUID(ctx, idOrUUID)
+		launch, err := scope.GetByID(ctx, numericID)
+		if err != nil {
+			printer.PrintError(err)
+
+			return fmt.Errorf("getting launch %s: %w", idOrUUID, err)
+		}
+
+		headers, row := launchRow(launch)
+
+		return printer.Print(launch, headers, [][]string{row})
 	}
 
+	launch, err := scope.GetByUUID(ctx, idOrUUID)
 	if err != nil {
 		printer.PrintError(err)
 
@@ -124,7 +129,7 @@ func listLaunches(
 		return err
 	}
 
-	var result *types.IterableLaunchResource
+	var result *types.PageLaunchResource
 
 	switch {
 	case filterFlags.latest:
@@ -141,15 +146,20 @@ func listLaunches(
 		return fmt.Errorf("listing launches: %w", err)
 	}
 
-	headers := launchHeaders()
-	rows := make([][]string, 0, len(result.Content))
+	var launches []types.LaunchResource
+	if result.Content != nil {
+		launches = *result.Content
+	}
 
-	for i := range result.Content {
-		_, row := launchRow(&result.Content[i])
+	headers := launchHeaders()
+	rows := make([][]string, 0, len(launches))
+
+	for i := range launches {
+		_, row := launchRow(&launches[i])
 		rows = append(rows, row)
 	}
 
-	return printer.Print(result.Content, headers, rows)
+	return printer.Print(launches, headers, rows)
 }
 
 // resolveLaunchOptions builds the full set of list options from pagination and filter flags.
@@ -196,7 +206,7 @@ func launchHeaders() []string {
 
 // launchRow formats a launch resource as a table row, returning both headers and column values.
 func launchRow(launch *types.LaunchResource) ([]string, []string) {
-	startTime := time.Time(launch.StartTime).UTC().Format(time.DateTime)
+	startTime := launch.StartTime.UTC().Format(time.DateTime)
 
 	return launchHeaders(), []string{
 		strconv.FormatInt(launch.Id, 10),

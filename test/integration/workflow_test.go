@@ -18,8 +18,8 @@ type workflowLaunch struct {
 	UUID        string  `json:"uuid"`
 	Name        string  `json:"name"`
 	Status      string  `json:"status"`
-	StartTime   int64   `json:"startTime"`
-	EndTime     *int64  `json:"endTime"`
+	StartTime   string  `json:"startTime"`
+	EndTime     *string `json:"endTime"`
 	Number      int64   `json:"number"`
 	Description *string `json:"description"`
 }
@@ -31,8 +31,8 @@ type workflowItem struct {
 	Name      *string `json:"name"`
 	Type      *string `json:"type"`
 	Status    *string `json:"status"`
-	StartTime *int64  `json:"startTime"`
-	EndTime   *int64  `json:"endTime"`
+	StartTime *string `json:"startTime"`
+	EndTime   *string `json:"endTime"`
 	LaunchID  *int64  `json:"launchId"`
 	Parent    *int64  `json:"parent"`
 }

@@ -86,18 +86,20 @@ var _ = Describe("Client: ProjectSettings Write", Label("client", "project-setti
 			// Create.
 			ruleName := fmt.Sprintf("test-rule-%d", time.Now().UnixNano())
 			enabled := true
-			sendCase := types.SenderCaseDTOSendCase("ALWAYS")
+			sendCase := types.Always
 			attributesOperator := types.AND
 			attributes := []types.ItemAttributeResource{}
 			recipients := []string{"test@example.com"}
 
+			notificationType := "email"
 			created, err := settings.CreateNotification(ctx, types.SenderCaseDTO{
 				Attributes:         &attributes,
-				RuleName:           &ruleName,
+				RuleName:           ruleName,
 				Enabled:            &enabled,
-				SendCase:           &sendCase,
-				AttributesOperator: &attributesOperator,
+				SendCase:           sendCase,
+				AttributesOperator: attributesOperator,
 				Recipients:         &recipients,
+				Type:               &notificationType,
 			})
 			Expect(err).NotTo(HaveOccurred(), "creating notification should not fail")
 			Expect(created).NotTo(BeNil())
@@ -119,18 +121,18 @@ var _ = Describe("Client: ProjectSettings Write", Label("client", "project-setti
 			}
 			Expect(updateRequest).NotTo(BeNil(), "created notification should be listed")
 
-			updateRequest.RuleName = &updatedName
+			updateRequest.RuleName = updatedName
 			if updateRequest.Attributes == nil {
 				updateRequest.Attributes = &attributes
 			}
-			if updateRequest.AttributesOperator == nil {
-				updateRequest.AttributesOperator = &attributesOperator
+			if updateRequest.AttributesOperator == "" {
+				updateRequest.AttributesOperator = attributesOperator
 			}
 			if updateRequest.Enabled == nil {
 				updateRequest.Enabled = &enabled
 			}
-			if updateRequest.SendCase == nil {
-				updateRequest.SendCase = &sendCase
+			if updateRequest.SendCase == "" {
+				updateRequest.SendCase = sendCase
 			}
 			if updateRequest.Recipients == nil {
 				updateRequest.Recipients = &recipients
@@ -156,10 +158,10 @@ var _ = Describe("Client: ProjectSettings Write", Label("client", "project-setti
 			value := "timeout"
 
 			created, err := settings.CreatePatternTemplate(ctx, types.CreatePatternTemplateRQ{
-				Name:    &name,
-				Type:    &patternType,
-				Enabled: &enabled,
-				Value:   &value,
+				Name:    name,
+				Type:    patternType,
+				Enabled: enabled,
+				Value:   value,
 			})
 			Expect(err).NotTo(HaveOccurred(), "creating pattern template should not fail")
 			Expect(created).NotTo(BeNil())
@@ -170,8 +172,8 @@ var _ = Describe("Client: ProjectSettings Write", Label("client", "project-setti
 			// Update.
 			updatedName := name + "-updated"
 			_, err = settings.UpdatePatternTemplate(ctx, createdID, types.UpdatePatternTemplateRQ{
-				Name:    &updatedName,
-				Enabled: &enabled,
+				Name:    updatedName,
+				Enabled: enabled,
 			})
 			Expect(err).NotTo(HaveOccurred(), "updating pattern template should not fail")
 
@@ -207,9 +209,9 @@ var _ = Describe("Client: ProjectSettings Write", Label("client", "project-setti
 			_, err = settings.UpdateIssueSubType(ctx, types.UpdateOneIssueSubTypeRQ{
 				Locator:   locator,
 				TypeRef:   "PRODUCT_BUG",
-				LongName:  &updatedName,
-				ShortName: &updatedShortName,
-				Color:     &updatedColor,
+				LongName:  updatedName,
+				ShortName: updatedShortName,
+				Color:     updatedColor,
 			})
 			Expect(err).NotTo(HaveOccurred(), "updating issue sub-type should not fail")
 

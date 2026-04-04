@@ -145,11 +145,11 @@ func TestLogScope_List_Success(t *testing.T) {
 	result, err := c.Project("my_project").Logs().List(t.Context())
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	require.Len(t, result.Content, 2)
+	require.Len(t, *result.Content, 2)
 
-	require.NotNil(t, result.Content[0].Message)
-	assert.Equal(t, "Step 1", *result.Content[0].Message)
-	assert.Equal(t, 2, result.Page.TotalElements)
+	require.NotNil(t, (*result.Content)[0].Message)
+	assert.Equal(t, "Step 1", *(*result.Content)[0].Message)
+	assert.EqualValues(t, 2, *result.Page.TotalElements)
 }
 
 func TestLogScope_List_WithFilterOptions(t *testing.T) {
@@ -221,7 +221,7 @@ func TestLogScope_Create_Success(t *testing.T) {
 	t.Parallel()
 
 	message := "Test log message"
-	level := types.SaveLogRQLevel("INFO")
+	level := "INFO"
 	itemUUID := "item-uuid-1"
 
 	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -252,7 +252,7 @@ func TestLogScope_Create_Success(t *testing.T) {
 			ItemUuid:   &itemUUID,
 			Message:    &message,
 			Level:      &level,
-			Time:       types.EpochMillis(time.UnixMilli(1700000000000)),
+			Time:       time.UnixMilli(1700000000000).UTC(),
 		},
 	)
 	require.NoError(t, err)
@@ -293,7 +293,7 @@ func TestLogScope_Create_Errors(t *testing.T) {
 				t.Context(),
 				types.SaveLogRQ{
 					LaunchUuid: "launch-uuid-1",
-					Time:       types.EpochMillis(time.Now()),
+					Time:       time.Now(),
 				},
 			)
 
@@ -390,7 +390,7 @@ func TestLogScope_CreateBatch_Success(t *testing.T) {
 			ItemUUID:   "item-uuid-1",
 			Level:      "INFO",
 			Message:    "Test log message",
-			Time:       types.EpochMillis(time.UnixMilli(1700000000000)),
+			Time:       time.UnixMilli(1700000000000).UTC(),
 		},
 	)
 	require.NoError(t, err)
@@ -438,7 +438,7 @@ func TestLogScope_CreateBatch_WithAttachment(t *testing.T) {
 			ItemUUID:       "item-uuid-1",
 			Level:          "INFO",
 			Message:        "Log with attachment",
-			Time:           types.EpochMillis(time.UnixMilli(1700000000000)),
+			Time:           time.UnixMilli(1700000000000).UTC(),
 			AttachmentName: "test.txt",
 			AttachmentData: []byte("file content here"),
 		},
@@ -483,7 +483,7 @@ func TestLogScope_CreateBatch_Errors(t *testing.T) {
 					LaunchUUID: "launch-uuid-1",
 					Level:      "INFO",
 					Message:    "Test",
-					Time:       types.EpochMillis(time.Now()),
+					Time:       time.Now(),
 				},
 			)
 
@@ -506,14 +506,12 @@ func TestLogScope_Search_Success(t *testing.T) {
 
 		var request types.SearchLogRq
 		require.NoError(t, json.Unmarshal(body, &request))
-		require.NotNil(t, request.SearchMode)
-		assert.Equal(t, types.CurrentLaunch, *request.SearchMode)
+		assert.Equal(t, types.CurrentLaunch, request.SearchMode)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
-			"content": [
+		_, _ = w.Write([]byte(`[
 				{
 					"itemId": 200,
 					"itemName": "Similar Test",
@@ -521,22 +519,15 @@ func TestLogScope_Search_Success(t *testing.T) {
 					"status": "FAILED",
 					"duration": 1.5
 				}
-			],
-			"page": {
-				"number": 0,
-				"size": 20,
-				"totalElements": 1,
-				"totalPages": 1
-			}
-		}`))
+			]`))
 	}))
 
 	result, err := c.Project("my_project").Logs().Search(t.Context(), 100, types.SearchLogRq{})
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	require.Len(t, result.Content, 1)
-	require.NotNil(t, result.Content[0].ItemName)
-	assert.Equal(t, "Similar Test", *result.Content[0].ItemName)
+	require.Len(t, result, 1)
+	require.NotNil(t, result[0].ItemName)
+	assert.Equal(t, "Similar Test", *result[0].ItemName)
 }
 
 func TestLogScope_Search_Errors(t *testing.T) {
@@ -593,18 +584,15 @@ func TestLogScope_Search_PreservesProvidedSearchMode(t *testing.T) {
 
 		var request types.SearchLogRq
 		require.NoError(t, json.Unmarshal(body, &request))
-		require.NotNil(t, request.SearchMode)
-		assert.Equal(t, expectedMode, *request.SearchMode)
+		assert.Equal(t, expectedMode, request.SearchMode)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write(
-			[]byte(`{"content":[],"page":{"number":0,"size":20,"totalElements":0,"totalPages":0}}`),
-		)
+		_, _ = w.Write([]byte(`[]`))
 	}))
 
 	result, err := c.Project("my_project").Logs().Search(t.Context(), 100, types.SearchLogRq{
-		SearchMode: &expectedMode,
+		SearchMode: expectedMode,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -623,10 +611,8 @@ func TestLogScope_GetLogsUnder_Success(t *testing.T) {
 
 		var request types.GetLogsUnderRq
 		require.NoError(t, json.Unmarshal(body, &request))
-		require.NotNil(t, request.ItemIds)
-		assert.Equal(t, []int64{100, 200}, *request.ItemIds)
-		require.NotNil(t, request.LogLevel)
-		assert.Equal(t, types.GetLogsUnderRqLogLevelInfo, *request.LogLevel)
+		assert.Equal(t, []int64{100, 200}, request.ItemIds)
+		assert.Equal(t, "INFO", request.LogLevel)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -645,7 +631,7 @@ func TestLogScope_GetLogsUnder_Success(t *testing.T) {
 	itemIDs := []int64{100, 200}
 	result, err := c.Project("my_project").Logs().GetLogsUnder(
 		t.Context(),
-		types.GetLogsUnderRq{ItemIds: &itemIDs},
+		types.GetLogsUnderRq{ItemIds: itemIDs},
 	)
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -684,7 +670,7 @@ func TestLogScope_GetLogsUnder_Errors(t *testing.T) {
 			itemIDs := []int64{100}
 			_, err := testClient.Project("my_project").Logs().GetLogsUnder(
 				t.Context(),
-				types.GetLogsUnderRq{ItemIds: &itemIDs},
+				types.GetLogsUnderRq{ItemIds: itemIDs},
 			)
 
 			require.Error(t, err)
@@ -696,7 +682,7 @@ func TestLogScope_GetLogsUnder_Errors(t *testing.T) {
 func TestLogScope_GetLogsUnder_PreservesProvidedLogLevel(t *testing.T) {
 	t.Parallel()
 
-	expectedLevel := types.GetLogsUnderRqLogLevelError
+	expectedLevel := "ERROR"
 	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assertBearerToken(t, r, "test-token")
 		assertPath(t, r, "/api/v1/my_project/log/under")
@@ -707,9 +693,8 @@ func TestLogScope_GetLogsUnder_PreservesProvidedLogLevel(t *testing.T) {
 
 		var request types.GetLogsUnderRq
 		require.NoError(t, json.Unmarshal(body, &request))
-		require.NotNil(t, request.ItemIds)
-		require.NotNil(t, request.LogLevel)
-		assert.Equal(t, expectedLevel, *request.LogLevel)
+		assert.Equal(t, []int64{100}, request.ItemIds)
+		assert.Equal(t, expectedLevel, request.LogLevel)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -718,8 +703,8 @@ func TestLogScope_GetLogsUnder_PreservesProvidedLogLevel(t *testing.T) {
 
 	itemIDs := []int64{100}
 	result, err := c.Project("my_project").Logs().GetLogsUnder(t.Context(), types.GetLogsUnderRq{
-		ItemIds:  &itemIDs,
-		LogLevel: &expectedLevel,
+		ItemIds:  itemIDs,
+		LogLevel: expectedLevel,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, result)

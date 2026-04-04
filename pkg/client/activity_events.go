@@ -25,10 +25,10 @@ func (a *ActivityEventsScope) Search(
 ) (*types.PagedResponseActivityEventResource, error) {
 	logger := a.client.logger.With(slog.String("operation", "SearchActivityEvents"))
 
-	params := &api.GetActivitiesUsingPOSTParams{
+	params := &api.GetActivitiesParams{
 		Limit:  20,
 		Offset: 0,
-		Order:  api.GetActivitiesUsingPOSTParamsOrder(EventOrderDesc),
+		Order:  api.GetActivitiesParamsOrder(EventOrderDesc),
 		Sort:   "createdAt",
 	}
 	for _, option := range options {
@@ -37,7 +37,7 @@ func (a *ActivityEventsScope) Search(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := a.client.raw.GetActivitiesUsingPOSTWithResponse(
+	response, err := a.client.raw.GetActivitiesWithResponse(
 		ctx,
 		params,
 		criteria,
@@ -48,7 +48,7 @@ func (a *ActivityEventsScope) Search(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("search activity events: %w", err)
 	}
@@ -69,9 +69,9 @@ func (a *ActivityEventsScope) GetProjectSubjectNames(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	params := &api.GetProjectSubjectNameUsingGETParams{}
+	params := &api.GetProjectSubjectNameParams{}
 
-	response, err := a.client.raw.GetProjectSubjectNameUsingGETWithResponse(
+	response, err := a.client.raw.GetProjectSubjectNameWithResponse(
 		ctx,
 		projectName,
 		params,
@@ -82,7 +82,7 @@ func (a *ActivityEventsScope) GetProjectSubjectNames(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get project subject names: %w", err)
 	}
@@ -96,12 +96,12 @@ func (a *ActivityEventsScope) GetProjectSubjectNames(
 
 // SearchActivityEventsOption configures pagination parameters for searching activity events.
 type SearchActivityEventsOption interface {
-	applySearchActivityEvents(*api.GetActivitiesUsingPOSTParams)
+	applySearchActivityEvents(*api.GetActivitiesParams)
 }
 
-type searchActivityEventsOptionFunc func(*api.GetActivitiesUsingPOSTParams)
+type searchActivityEventsOptionFunc func(*api.GetActivitiesParams)
 
-func (f searchActivityEventsOptionFunc) applySearchActivityEvents(params *api.GetActivitiesUsingPOSTParams) {
+func (f searchActivityEventsOptionFunc) applySearchActivityEvents(params *api.GetActivitiesParams) {
 	f(params)
 }
 
@@ -110,29 +110,29 @@ type EventSortOrder string
 
 // WithEventLimit sets the maximum number of results to return.
 func WithEventLimit(limit int32) SearchActivityEventsOption {
-	return searchActivityEventsOptionFunc(func(params *api.GetActivitiesUsingPOSTParams) {
+	return searchActivityEventsOptionFunc(func(params *api.GetActivitiesParams) {
 		params.Limit = limit
 	})
 }
 
 // WithEventOffset sets the offset for paginated results.
 func WithEventOffset(offset int32) SearchActivityEventsOption {
-	return searchActivityEventsOptionFunc(func(params *api.GetActivitiesUsingPOSTParams) {
+	return searchActivityEventsOptionFunc(func(params *api.GetActivitiesParams) {
 		params.Offset = offset
 	})
 }
 
 // WithEventSort sets the field to sort results by (e.g. "createdAt").
 func WithEventSort(field string) SearchActivityEventsOption {
-	return searchActivityEventsOptionFunc(func(params *api.GetActivitiesUsingPOSTParams) {
+	return searchActivityEventsOptionFunc(func(params *api.GetActivitiesParams) {
 		params.Sort = field
 	})
 }
 
 // WithEventOrder sets the sort direction for activity event results.
 func WithEventOrder(order EventSortOrder) SearchActivityEventsOption {
-	return searchActivityEventsOptionFunc(func(params *api.GetActivitiesUsingPOSTParams) {
-		params.Order = api.GetActivitiesUsingPOSTParamsOrder(order)
+	return searchActivityEventsOptionFunc(func(params *api.GetActivitiesParams) {
+		params.Order = api.GetActivitiesParamsOrder(order)
 	})
 }
 
@@ -145,7 +145,7 @@ const EventOrderDesc EventSortOrder = EventSortOrder(api.DESC)
 // NewEventSearchCriteria creates a SearchCriteriaRQ with the given filter conditions.
 func NewEventSearchCriteria(criteria ...types.SearchCriteria) types.SearchCriteriaRQ {
 	return types.SearchCriteriaRQ{
-		SearchCriterias: &criteria,
+		SearchCriterias: criteria,
 	}
 }
 

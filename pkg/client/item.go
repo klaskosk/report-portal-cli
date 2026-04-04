@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/klaskosk/report-portal-cli/pkg/internal/api"
 	"github.com/klaskosk/report-portal-cli/pkg/types"
@@ -22,7 +23,7 @@ func (i *TestItemScope) StartRoot(
 	logger := i.project.operationLogger("StartRootTestItem", slog.String("name", request.Name))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.StartRootItemUsingPOST1WithResponse(
+	response, err := i.project.client.raw.StartRootItemWithResponse(
 		ctx,
 		i.project.projectName,
 		request,
@@ -33,7 +34,7 @@ func (i *TestItemScope) StartRoot(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON201)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON201, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("start root test item: %w", err)
 	}
@@ -55,7 +56,7 @@ func (i *TestItemScope) StartChild(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.StartChildItemUsingPOST1WithResponse(
+	response, err := i.project.client.raw.StartChildItem2WithResponse(
 		ctx,
 		i.project.projectName,
 		parentItemUUID,
@@ -67,7 +68,7 @@ func (i *TestItemScope) StartChild(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON201)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON201, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("start child test item: %w", err)
 	}
@@ -85,7 +86,7 @@ func (i *TestItemScope) Finish(
 	logger := i.project.operationLogger("FinishTestItem", slog.String("itemUuid", itemUUID))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.FinishTestItemUsingPUT1WithResponse(
+	response, err := i.project.client.raw.FinishTestItem2WithResponse(
 		ctx,
 		i.project.projectName,
 		itemUUID,
@@ -97,7 +98,7 @@ func (i *TestItemScope) Finish(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("finish test item: %w", err)
 	}
@@ -113,7 +114,7 @@ func (i *TestItemScope) GetByID(
 	logger := i.project.operationLogger("GetTestItemByID", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.GetTestItemUsingGETWithResponse(
+	response, err := i.project.client.raw.GetTestItemWithResponse(
 		ctx,
 		i.project.projectName,
 		id,
@@ -124,7 +125,7 @@ func (i *TestItemScope) GetByID(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get test item by id: %w", err)
 	}
@@ -132,7 +133,9 @@ func (i *TestItemScope) GetByID(
 	return result, nil
 }
 
-// GetByUUID returns a single test item by its UUID.
+// GetByUUID returns a single test item by its UUID. It prefers the versioned v2
+// content type so timestamp fields arrive as ISO-8601 strings, but still accepts
+// the legacy JSON shape as a fallback if the server ignores the Accept header.
 func (i *TestItemScope) GetByUUID(
 	ctx context.Context,
 	uuid string,
@@ -140,10 +143,11 @@ func (i *TestItemScope) GetByUUID(
 	logger := i.project.operationLogger("GetTestItemByUUID", slog.String("uuid", uuid))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.GetTestItemByUuidUsingGETWithResponse(
+	response, err := i.project.client.raw.GetTestItemByUuidTimestampWithResponse(
 		ctx,
 		i.project.projectName,
 		uuid,
+		withAcceptHeader(acceptReportPortalTestV2),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("get test item by uuid: %w", err)
@@ -151,7 +155,13 @@ func (i *TestItemScope) GetByUUID(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleV2Response(
+		response,
+		response.JSONDefault,
+		response.ApplicationXReportportalTestV2JSON200,
+		response.JSON200,
+		response.Body,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("get test item by uuid: %w", err)
 	}
@@ -161,12 +171,12 @@ func (i *TestItemScope) GetByUUID(
 
 // ListTestItemsOption configures filter and pagination parameters for listing test items.
 type ListTestItemsOption interface {
-	applyListTestItems(*api.GetTestItemsUsingGET2Params)
+	applyListTestItems(*api.GetTestItemsParams)
 }
 
-type listTestItemsOptionFunc func(*api.GetTestItemsUsingGET2Params)
+type listTestItemsOptionFunc func(*api.GetTestItemsParams)
 
-func (f listTestItemsOptionFunc) applyListTestItems(params *api.GetTestItemsUsingGET2Params) {
+func (f listTestItemsOptionFunc) applyListTestItems(params *api.GetTestItemsParams) {
 	f(params)
 }
 
@@ -174,17 +184,17 @@ func (f listTestItemsOptionFunc) applyListTestItems(params *api.GetTestItemsUsin
 func (i *TestItemScope) List(
 	ctx context.Context,
 	options ...ListTestItemsOption,
-) (*types.IterableTestItemResource, error) {
+) (*types.PageTestItemResource, error) {
 	logger := i.project.operationLogger("ListTestItems")
 
-	params := &api.GetTestItemsUsingGET2Params{}
+	params := &api.GetTestItemsParams{}
 	for _, option := range options {
 		option.applyListTestItems(params)
 	}
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.GetTestItemsUsingGET2WithResponse(
+	response, err := i.project.client.raw.GetTestItemsWithResponse(
 		ctx,
 		i.project.projectName,
 		params,
@@ -195,7 +205,7 @@ func (i *TestItemScope) List(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("list test items: %w", err)
 	}
@@ -214,11 +224,11 @@ func (i *TestItemScope) GetByIDs(
 		return []types.TestItemResource{}, nil
 	}
 
-	params := &api.GetTestItemsUsingGETParams{Ids: ids}
+	params := &api.GetTestItems3Params{Ids: ids}
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.GetTestItemsUsingGETWithResponse(
+	response, err := i.project.client.raw.GetTestItems3WithResponse(
 		ctx,
 		i.project.projectName,
 		params,
@@ -229,7 +239,7 @@ func (i *TestItemScope) GetByIDs(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	items, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	items, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get test items by ids: %w", err)
 	}
@@ -250,7 +260,7 @@ func (i *TestItemScope) Update(
 	logger := i.project.operationLogger("UpdateTestItem", slog.Int64("itemId", itemID))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.UpdateTestItemUsingPUTWithResponse(
+	response, err := i.project.client.raw.UpdateTestItemWithResponse(
 		ctx,
 		i.project.projectName,
 		itemID,
@@ -262,7 +272,7 @@ func (i *TestItemScope) Update(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("update test item: %w", err)
 	}
@@ -278,7 +288,7 @@ func (i *TestItemScope) Delete(
 	logger := i.project.operationLogger("DeleteTestItem", slog.Int64("itemId", itemID))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.DeleteTestItemUsingDELETEWithResponse(
+	response, err := i.project.client.raw.DeleteTestItemWithResponse(
 		ctx,
 		i.project.projectName,
 		itemID,
@@ -289,7 +299,7 @@ func (i *TestItemScope) Delete(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("delete test item: %w", err)
 	}
@@ -305,7 +315,7 @@ func (i *TestItemScope) DefineIssueType(
 	logger := i.project.operationLogger("DefineTestItemIssueType")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.DefineTestItemIssueTypeUsingPUTWithResponse(
+	response, err := i.project.client.raw.DefineTestItemIssueTypeWithResponse(
 		ctx,
 		i.project.projectName,
 		request,
@@ -316,7 +326,7 @@ func (i *TestItemScope) DefineIssueType(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	issues, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	issues, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("define test item issue type: %w", err)
 	}
@@ -336,10 +346,10 @@ func (i *TestItemScope) DeleteBulk(
 	logger := i.project.operationLogger("DeleteTestItemsBulk")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.DeleteTestItemsUsingDELETEWithResponse(
+	response, err := i.project.client.raw.DeleteTestItemsWithResponse(
 		ctx,
 		i.project.projectName,
-		&api.DeleteTestItemsUsingDELETEParams{Ids: ids},
+		&api.DeleteTestItemsParams{Ids: ids},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("delete test items bulk: %w", err)
@@ -347,7 +357,7 @@ func (i *TestItemScope) DeleteBulk(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	results, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	results, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("delete test items bulk: %w", err)
 	}
@@ -367,7 +377,7 @@ func (i *TestItemScope) BulkUpdate(
 	logger := i.project.operationLogger("BulkUpdateTestItems")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.BulkUpdateUsingPUT1WithResponse(
+	response, err := i.project.client.raw.BulkUpdate1WithResponse(
 		ctx,
 		i.project.projectName,
 		request,
@@ -378,7 +388,7 @@ func (i *TestItemScope) BulkUpdate(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("bulk update test items: %w", err)
 	}
@@ -401,12 +411,13 @@ func (i *TestItemScope) GetAttributeKeys(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	params := &api.GetAttributeKeysUsingGET1Params{
+	launch := launchID
+	params := &api.GetUniqueAttributeKeysParams{
 		FilterCntAttributeKey: keySubstring,
-		Launch:                launchID,
+		Launch:                &launch,
 	}
 
-	response, err := i.project.client.raw.GetAttributeKeysUsingGET1WithResponse(
+	response, err := i.project.client.raw.GetUniqueAttributeKeysWithResponse(
 		ctx,
 		i.project.projectName,
 		params,
@@ -417,7 +428,7 @@ func (i *TestItemScope) GetAttributeKeys(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	keys, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	keys, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get item attribute keys: %w", err)
 	}
@@ -432,27 +443,27 @@ func (i *TestItemScope) GetAttributeKeys(
 // GetAttributeKeysForProjectOption configures optional parameters for
 // GetAttributeKeysForProject.
 type GetAttributeKeysForProjectOption interface {
-	applyGetAttributeKeysForProject(*api.GetAttributeKeysForProjectUsingGETParams)
+	applyGetAttributeKeysForProject(*api.GetAttributeKeysForProjectParams)
 }
 
-type getAttributeKeysForProjectOptionFunc func(*api.GetAttributeKeysForProjectUsingGETParams)
+type getAttributeKeysForProjectOptionFunc func(*api.GetAttributeKeysForProjectParams)
 
 func (f getAttributeKeysForProjectOptionFunc) applyGetAttributeKeysForProject(
-	params *api.GetAttributeKeysForProjectUsingGETParams,
+	params *api.GetAttributeKeysForProjectParams,
 ) {
 	f(params)
 }
 
 // WithProjectKeysLatest restricts results to the latest launches only.
 func WithProjectKeysLatest(isLatest bool) GetAttributeKeysForProjectOption {
-	return getAttributeKeysForProjectOptionFunc(func(params *api.GetAttributeKeysForProjectUsingGETParams) {
+	return getAttributeKeysForProjectOptionFunc(func(params *api.GetAttributeKeysForProjectParams) {
 		params.IsLatest = &isLatest
 	})
 }
 
 // WithProjectKeysLaunchesLimit sets the maximum number of launches to scan.
 func WithProjectKeysLaunchesLimit(limit int32) GetAttributeKeysForProjectOption {
-	return getAttributeKeysForProjectOptionFunc(func(params *api.GetAttributeKeysForProjectUsingGETParams) {
+	return getAttributeKeysForProjectOptionFunc(func(params *api.GetAttributeKeysForProjectParams) {
 		params.LaunchesLimit = &limit
 	})
 }
@@ -473,7 +484,7 @@ func (i *TestItemScope) GetAttributeKeysForProject(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	params := &api.GetAttributeKeysForProjectUsingGETParams{
+	params := &api.GetAttributeKeysForProjectParams{
 		FilterCntAttributeKey: keySubstring,
 		FilterId:              filterID,
 	}
@@ -481,7 +492,7 @@ func (i *TestItemScope) GetAttributeKeysForProject(
 		option.applyGetAttributeKeysForProject(params)
 	}
 
-	response, err := i.project.client.raw.GetAttributeKeysForProjectUsingGETWithResponse(
+	response, err := i.project.client.raw.GetAttributeKeysForProjectWithResponse(
 		ctx,
 		i.project.projectName,
 		params,
@@ -492,7 +503,7 @@ func (i *TestItemScope) GetAttributeKeysForProject(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	keys, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	keys, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get item attribute keys for project: %w", err)
 	}
@@ -525,13 +536,14 @@ func (i *TestItemScope) GetAttributeValues(
 
 	logger.InfoContext(ctx, "API request")
 
-	params := &api.GetAttributeValuesUsingGET1Params{
+	launch := launchID
+	params := &api.GetAttributeValues2Params{
 		FilterCntAttributeValue: valueSubstring,
 		FilterEqAttributeKey:    attributeKey,
-		Launch:                  launchID,
+		Launch:                  &launch,
 	}
 
-	response, err := i.project.client.raw.GetAttributeValuesUsingGET1WithResponse(
+	response, err := i.project.client.raw.GetAttributeValues2WithResponse(
 		ctx,
 		i.project.projectName,
 		params,
@@ -542,7 +554,7 @@ func (i *TestItemScope) GetAttributeValues(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	values, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	values, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get item attribute values: %w", err)
 	}
@@ -572,12 +584,12 @@ func (i *TestItemScope) GetStepAttributeKeys(
 
 	logger.InfoContext(ctx, "API request")
 
-	params := &api.GetAttributeKeysUsingGET2Params{
+	params := &api.GetAttributeKeys1Params{
 		FilterCntAttributeKey: keySubstring,
 		FilterEqName:          stepName,
 	}
 
-	response, err := i.project.client.raw.GetAttributeKeysUsingGET2WithResponse(
+	response, err := i.project.client.raw.GetAttributeKeys1WithResponse(
 		ctx,
 		i.project.projectName,
 		params,
@@ -588,7 +600,7 @@ func (i *TestItemScope) GetStepAttributeKeys(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	keys, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	keys, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get step attribute keys: %w", err)
 	}
@@ -624,13 +636,13 @@ func (i *TestItemScope) GetStepAttributeValues(
 
 	logger.InfoContext(ctx, "API request")
 
-	params := &api.GetAttributeValuesUsingGET2Params{
+	params := &api.GetAttributeValues1Params{
 		FilterCntAttributeValue: valueSubstring,
 		FilterEqAttributeKey:    attributeKey,
 		FilterEqName:            stepName,
 	}
 
-	response, err := i.project.client.raw.GetAttributeValuesUsingGET2WithResponse(
+	response, err := i.project.client.raw.GetAttributeValues1WithResponse(
 		ctx,
 		i.project.projectName,
 		params,
@@ -641,7 +653,7 @@ func (i *TestItemScope) GetStepAttributeValues(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	values, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	values, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get step attribute values: %w", err)
 	}
@@ -655,83 +667,93 @@ func (i *TestItemScope) GetStepAttributeValues(
 
 // WithItemPageNumber sets the page number (0-based).
 func WithItemPageNumber(n int32) ListTestItemsOption {
-	return listTestItemsOptionFunc(func(params *api.GetTestItemsUsingGET2Params) {
+	return listTestItemsOptionFunc(func(params *api.GetTestItemsParams) {
 		params.PagePage = &n
 	})
 }
 
 // WithItemPageSize sets the number of results per page.
 func WithItemPageSize(size int32) ListTestItemsOption {
-	return listTestItemsOptionFunc(func(params *api.GetTestItemsUsingGET2Params) {
+	return listTestItemsOptionFunc(func(params *api.GetTestItemsParams) {
 		params.PageSize = &size
 	})
 }
 
 // WithItemSort sets the sorting criteria (e.g. "startTime,desc").
 func WithItemSort(fields ...string) ListTestItemsOption {
-	return listTestItemsOptionFunc(func(params *api.GetTestItemsUsingGET2Params) {
-		params.PageSort = &fields
+	return listTestItemsOptionFunc(func(params *api.GetTestItemsParams) {
+		if len(fields) == 0 {
+			params.PageSort = nil
+
+			return
+		}
+
+		s := strings.Join(fields, ",")
+		params.PageSort = &s
 	})
 }
 
 // WithItemLaunchID filters test items by launch ID.
 func WithItemLaunchID(launchID int64) ListTestItemsOption {
-	return listTestItemsOptionFunc(func(params *api.GetTestItemsUsingGET2Params) {
-		params.FilterEqLaunchId = &launchID
+	return listTestItemsOptionFunc(func(params *api.GetTestItemsParams) {
+		id := int32(launchID)
+		params.FilterEqLaunchId = &id
 	})
 }
 
 // WithItemParentID filters test items by parent item ID.
 func WithItemParentID(parentID int64) ListTestItemsOption {
-	return listTestItemsOptionFunc(func(params *api.GetTestItemsUsingGET2Params) {
-		params.FilterEqParentId = &parentID
+	return listTestItemsOptionFunc(func(params *api.GetTestItemsParams) {
+		id := int32(parentID)
+		params.FilterEqParentId = &id
 	})
 }
 
 // WithItemType filters test items by type (e.g. "SUITE", "TEST", "STEP").
 func WithItemType(itemType string) ListTestItemsOption {
-	return listTestItemsOptionFunc(func(params *api.GetTestItemsUsingGET2Params) {
+	return listTestItemsOptionFunc(func(params *api.GetTestItemsParams) {
 		params.FilterEqType = &itemType
 	})
 }
 
 // WithItemName filters test items by name.
 func WithItemName(name string) ListTestItemsOption {
-	return listTestItemsOptionFunc(func(params *api.GetTestItemsUsingGET2Params) {
+	return listTestItemsOptionFunc(func(params *api.GetTestItemsParams) {
 		params.FilterEqName = &name
 	})
 }
 
 // WithItemStatus filters test items by status.
 func WithItemStatus(status string) ListTestItemsOption {
-	return listTestItemsOptionFunc(func(params *api.GetTestItemsUsingGET2Params) {
+	return listTestItemsOptionFunc(func(params *api.GetTestItemsParams) {
 		params.FilterEqStatus = &status
 	})
 }
 
 // WithItemHasChildren filters test items by whether they have children.
 func WithItemHasChildren(hasChildren bool) ListTestItemsOption {
-	return listTestItemsOptionFunc(func(params *api.GetTestItemsUsingGET2Params) {
+	return listTestItemsOptionFunc(func(params *api.GetTestItemsParams) {
 		params.FilterEqHasChildren = &hasChildren
 	})
 }
 
 // WithItemPath filters test items by path identifier.
 func WithItemPath(path int64) ListTestItemsOption {
-	return listTestItemsOptionFunc(func(params *api.GetTestItemsUsingGET2Params) {
-		params.FilterEqPath = &path
+	return listTestItemsOptionFunc(func(params *api.GetTestItemsParams) {
+		p := int32(path)
+		params.FilterEqPath = &p
 	})
 }
 
 // HistoryOption configures the filter and pagination parameters for retrieving
 // test item execution history.
 type HistoryOption interface {
-	applyHistory(*api.GetItemsHistoryUsingGETParams)
+	applyHistory(*api.GetItemsHistoryParams)
 }
 
-type historyOptionFunc func(*api.GetItemsHistoryUsingGETParams)
+type historyOptionFunc func(*api.GetItemsHistoryParams)
 
-func (f historyOptionFunc) applyHistory(params *api.GetItemsHistoryUsingGETParams) {
+func (f historyOptionFunc) applyHistory(params *api.GetItemsHistoryParams) {
 	f(params)
 }
 
@@ -740,17 +762,17 @@ func (f historyOptionFunc) applyHistory(params *api.GetItemsHistoryUsingGETParam
 func (i *TestItemScope) GetHistory(
 	ctx context.Context,
 	options ...HistoryOption,
-) (*types.IterableTestItemHistoryElement, error) {
+) (*types.PageTestItemHistoryElement, error) {
 	logger := i.project.operationLogger("GetItemsHistory")
 
-	params := &api.GetItemsHistoryUsingGETParams{}
+	params := &api.GetItemsHistoryParams{}
 	for _, option := range options {
 		option.applyHistory(params)
 	}
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.GetItemsHistoryUsingGETWithResponse(
+	response, err := i.project.client.raw.GetItemsHistoryWithResponse(
 		ctx,
 		i.project.projectName,
 		params,
@@ -761,7 +783,7 @@ func (i *TestItemScope) GetHistory(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get items history: %w", err)
 	}
@@ -771,28 +793,29 @@ func (i *TestItemScope) GetHistory(
 
 // WithHistoryDepth sets the number of previous launches to include in history.
 func WithHistoryDepth(depth int32) HistoryOption {
-	return historyOptionFunc(func(params *api.GetItemsHistoryUsingGETParams) {
+	return historyOptionFunc(func(params *api.GetItemsHistoryParams) {
 		params.HistoryDepth = &depth
 	})
 }
 
 // WithHistoryLaunchID filters history by launch ID.
 func WithHistoryLaunchID(launchID int64) HistoryOption {
-	return historyOptionFunc(func(params *api.GetItemsHistoryUsingGETParams) {
-		params.FilterEqLaunchId = &launchID
+	return historyOptionFunc(func(params *api.GetItemsHistoryParams) {
+		id := int32(launchID)
+		params.FilterEqLaunchId = &id
 	})
 }
 
 // WithHistoryFilterID sets the saved filter ID to scope the history query.
 func WithHistoryFilterID(filterID int64) HistoryOption {
-	return historyOptionFunc(func(params *api.GetItemsHistoryUsingGETParams) {
+	return historyOptionFunc(func(params *api.GetItemsHistoryParams) {
 		params.FilterId = &filterID
 	})
 }
 
 // WithHistoryLaunchesLimit sets the maximum number of launches to scan.
 func WithHistoryLaunchesLimit(limit int32) HistoryOption {
-	return historyOptionFunc(func(params *api.GetItemsHistoryUsingGETParams) {
+	return historyOptionFunc(func(params *api.GetItemsHistoryParams) {
 		params.LaunchesLimit = &limit
 	})
 }
@@ -800,54 +823,54 @@ func WithHistoryLaunchesLimit(limit int32) HistoryOption {
 // WithHistoryType filters history by a specific item execution type
 // (e.g. "SUITE", "TEST", "STEP").
 func WithHistoryType(historyType string) HistoryOption {
-	return historyOptionFunc(func(params *api.GetItemsHistoryUsingGETParams) {
+	return historyOptionFunc(func(params *api.GetItemsHistoryParams) {
 		params.Type = &historyType
 	})
 }
 
 // WithHistoryItemName filters history entries by test item name.
 func WithHistoryItemName(name string) HistoryOption {
-	return historyOptionFunc(func(params *api.GetItemsHistoryUsingGETParams) {
+	return historyOptionFunc(func(params *api.GetItemsHistoryParams) {
 		params.FilterEqName = &name
 	})
 }
 
 // WithHistoryItemStatus filters history entries by test item status.
 func WithHistoryItemStatus(status string) HistoryOption {
-	return historyOptionFunc(func(params *api.GetItemsHistoryUsingGETParams) {
+	return historyOptionFunc(func(params *api.GetItemsHistoryParams) {
 		params.FilterEqStatus = &status
 	})
 }
 
 // WithHistoryPageNumber sets the page number (0-based) for history results.
 func WithHistoryPageNumber(n int32) HistoryOption {
-	return historyOptionFunc(func(params *api.GetItemsHistoryUsingGETParams) {
+	return historyOptionFunc(func(params *api.GetItemsHistoryParams) {
 		params.PagePage = &n
 	})
 }
 
 // WithHistoryPageSize sets the number of results per page for history results.
 func WithHistoryPageSize(size int32) HistoryOption {
-	return historyOptionFunc(func(params *api.GetItemsHistoryUsingGETParams) {
+	return historyOptionFunc(func(params *api.GetItemsHistoryParams) {
 		params.PageSize = &size
 	})
 }
 
 // WithHistoryLatest filters history to only the latest results.
 func WithHistoryLatest(isLatest bool) HistoryOption {
-	return historyOptionFunc(func(params *api.GetItemsHistoryUsingGETParams) {
+	return historyOptionFunc(func(params *api.GetItemsHistoryParams) {
 		params.IsLatest = &isLatest
 	})
 }
 
 // StatisticsOption configures filter parameters for fetching accumulated test item statistics.
 type StatisticsOption interface {
-	applyStatistics(*api.GetTestItemsUsingGET1Params)
+	applyStatistics(*api.GetTestItems1Params)
 }
 
-type statisticsOptionFunc func(*api.GetTestItemsUsingGET1Params)
+type statisticsOptionFunc func(*api.GetTestItems1Params)
 
-func (f statisticsOptionFunc) applyStatistics(params *api.GetTestItemsUsingGET1Params) {
+func (f statisticsOptionFunc) applyStatistics(params *api.GetTestItems1Params) {
 	f(params)
 }
 
@@ -858,14 +881,14 @@ func (i *TestItemScope) GetStatistics(
 ) (*types.StatisticsResource, error) {
 	logger := i.project.operationLogger("GetTestItemStatistics")
 
-	params := &api.GetTestItemsUsingGET1Params{Params: ""}
+	params := &api.GetTestItems1Params{Params: map[string]string{}}
 	for _, option := range options {
 		option.applyStatistics(params)
 	}
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.GetTestItemsUsingGET1WithResponse(
+	response, err := i.project.client.raw.GetTestItems1WithResponse(
 		ctx,
 		i.project.projectName,
 		params,
@@ -876,7 +899,7 @@ func (i *TestItemScope) GetStatistics(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get test item statistics: %w", err)
 	}
@@ -886,42 +909,44 @@ func (i *TestItemScope) GetStatistics(
 
 // WithStatisticsLaunchID filters statistics by launch ID.
 func WithStatisticsLaunchID(launchID int64) StatisticsOption {
-	return statisticsOptionFunc(func(params *api.GetTestItemsUsingGET1Params) {
-		params.FilterEqLaunchId = &launchID
+	return statisticsOptionFunc(func(params *api.GetTestItems1Params) {
+		id := int32(launchID)
+		params.FilterEqLaunchId = &id
 	})
 }
 
 // WithStatisticsParentID filters statistics by parent item ID.
 func WithStatisticsParentID(parentID int64) StatisticsOption {
-	return statisticsOptionFunc(func(params *api.GetTestItemsUsingGET1Params) {
-		params.FilterEqParentId = &parentID
+	return statisticsOptionFunc(func(params *api.GetTestItems1Params) {
+		id := int32(parentID)
+		params.FilterEqParentId = &id
 	})
 }
 
 // WithStatisticsStatus filters statistics by item status.
 func WithStatisticsStatus(status string) StatisticsOption {
-	return statisticsOptionFunc(func(params *api.GetTestItemsUsingGET1Params) {
+	return statisticsOptionFunc(func(params *api.GetTestItems1Params) {
 		params.FilterEqStatus = &status
 	})
 }
 
 // WithStatisticsName filters statistics by item name.
 func WithStatisticsName(name string) StatisticsOption {
-	return statisticsOptionFunc(func(params *api.GetTestItemsUsingGET1Params) {
+	return statisticsOptionFunc(func(params *api.GetTestItems1Params) {
 		params.FilterEqName = &name
 	})
 }
 
 // WithStatisticsType filters statistics by item type (e.g. "SUITE", "TEST", "STEP").
 func WithStatisticsType(itemType string) StatisticsOption {
-	return statisticsOptionFunc(func(params *api.GetTestItemsUsingGET1Params) {
+	return statisticsOptionFunc(func(params *api.GetTestItems1Params) {
 		params.FilterEqType = &itemType
 	})
 }
 
 // WithStatisticsHasChildren filters statistics by whether items have children.
 func WithStatisticsHasChildren(hasChildren bool) StatisticsOption {
-	return statisticsOptionFunc(func(params *api.GetTestItemsUsingGET1Params) {
+	return statisticsOptionFunc(func(params *api.GetTestItems1Params) {
 		params.FilterEqHasChildren = &hasChildren
 	})
 }
@@ -934,7 +959,7 @@ func (i *TestItemScope) GetSuggestedItems(
 	logger := i.project.operationLogger("GetSuggestedItems", slog.Int64("itemId", itemID))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.GetSuggestedItemsUsingGETWithResponse(
+	response, err := i.project.client.raw.GetSuggestedItemsWithResponse(
 		ctx,
 		i.project.projectName,
 		itemID,
@@ -945,7 +970,7 @@ func (i *TestItemScope) GetSuggestedItems(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	items, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	items, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get suggested items: %w", err)
 	}
@@ -968,7 +993,7 @@ func (i *TestItemScope) GetSuggestedClusterItems(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.GetSuggestedClusterItemsUsingGETWithResponse(
+	response, err := i.project.client.raw.GetSuggestedClusterItemsWithResponse(
 		ctx,
 		i.project.projectName,
 		clusterID,
@@ -979,7 +1004,7 @@ func (i *TestItemScope) GetSuggestedClusterItems(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	items, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	items, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get suggested cluster items: %w", err)
 	}
@@ -999,7 +1024,7 @@ func (i *TestItemScope) HandleSuggestChoice(
 	logger := i.project.operationLogger("HandleSuggestChoice")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.HandleSuggestChooseUsingPUTWithResponse(
+	response, err := i.project.client.raw.HandleSuggestChooseWithResponse(
 		ctx,
 		i.project.projectName,
 		choices,
@@ -1010,7 +1035,7 @@ func (i *TestItemScope) HandleSuggestChoice(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("handle suggest choice: %w", err)
 	}
@@ -1026,7 +1051,7 @@ func (i *TestItemScope) LinkExternalIssues(
 	logger := i.project.operationLogger("LinkExternalIssues")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.LinkExternalIssuesUsingPUTWithResponse(
+	response, err := i.project.client.raw.LinkExternalIssuesWithResponse(
 		ctx,
 		i.project.projectName,
 		request,
@@ -1037,7 +1062,7 @@ func (i *TestItemScope) LinkExternalIssues(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	results, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	results, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("link external issues: %w", err)
 	}
@@ -1057,7 +1082,7 @@ func (i *TestItemScope) UnlinkExternalIssues(
 	logger := i.project.operationLogger("UnlinkExternalIssues")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.UnlinkExternalIssuesUsingPUTWithResponse(
+	response, err := i.project.client.raw.UnlinkExternalIssuesWithResponse(
 		ctx,
 		i.project.projectName,
 		request,
@@ -1068,7 +1093,7 @@ func (i *TestItemScope) UnlinkExternalIssues(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	results, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	results, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("unlink external issues: %w", err)
 	}

@@ -167,9 +167,10 @@ var _ = Describe("Client: Filters", Label("client", "filters"), func() {
 			result, err := filters.List(ctx)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).NotTo(BeNil())
+			Expect(result.Content).NotTo(BeNil())
 
 			found := false
-			for _, f := range result.Content {
+			for _, f := range *result.Content {
 				if f.Id == *created.Id {
 					found = true
 					Expect(f.Name).To(Equal(filterName))

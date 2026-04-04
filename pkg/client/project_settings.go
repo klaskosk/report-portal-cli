@@ -24,7 +24,7 @@ func (s *ProjectSettingsScope) Get(ctx context.Context) (*types.ProjectSettingsR
 	logger := s.project.operationLogger("GetProjectSettings")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.GetProjectSettingsUsingGETWithResponse(
+	response, err := s.project.client.raw.GetProjectSettingsWithResponse(
 		ctx,
 		s.project.projectName,
 	)
@@ -34,7 +34,7 @@ func (s *ProjectSettingsScope) Get(ctx context.Context) (*types.ProjectSettingsR
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get project settings: %w", err)
 	}
@@ -49,7 +49,7 @@ func (s *ProjectSettingsScope) GetNotifications(
 	logger := s.project.operationLogger("GetNotifications")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.GetNotificationsUsingGETWithResponse(
+	response, err := s.project.client.raw.GetNotificationsWithResponse(
 		ctx,
 		s.project.projectName,
 	)
@@ -59,7 +59,7 @@ func (s *ProjectSettingsScope) GetNotifications(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get notifications: %w", err)
 	}
@@ -79,7 +79,7 @@ func (s *ProjectSettingsScope) CreateNotification(
 	logger := s.project.operationLogger("CreateNotification")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.CreateNotificationUsingPOSTWithResponse(
+	response, err := s.project.client.raw.CreateNotificationWithResponse(
 		ctx,
 		s.project.projectName,
 		request,
@@ -90,7 +90,7 @@ func (s *ProjectSettingsScope) CreateNotification(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON201)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON201, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("create notification: %w", err)
 	}
@@ -106,7 +106,7 @@ func (s *ProjectSettingsScope) UpdateNotification(
 	logger := s.project.operationLogger("UpdateNotification")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.UpdateNotificationUsingPUTWithResponse(
+	response, err := s.project.client.raw.UpdateNotificationWithResponse(
 		ctx,
 		s.project.projectName,
 		request,
@@ -117,7 +117,7 @@ func (s *ProjectSettingsScope) UpdateNotification(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON201)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON201, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("update notification: %w", err)
 	}
@@ -133,7 +133,7 @@ func (s *ProjectSettingsScope) DeleteNotification(
 	logger := s.project.operationLogger("DeleteNotification", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.DeleteNotificationUsingDELETEWithResponse(
+	response, err := s.project.client.raw.DeleteNotificationWithResponse(
 		ctx,
 		s.project.projectName,
 		id,
@@ -144,7 +144,7 @@ func (s *ProjectSettingsScope) DeleteNotification(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("delete notification: %w", err)
 	}
@@ -160,7 +160,7 @@ func (s *ProjectSettingsScope) CreatePatternTemplate(
 	logger := s.project.operationLogger("CreatePatternTemplate")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.CreatePatternTemplateUsingPOSTWithResponse(
+	response, err := s.project.client.raw.CreatePatternTemplateWithResponse(
 		ctx,
 		s.project.projectName,
 		request,
@@ -171,7 +171,7 @@ func (s *ProjectSettingsScope) CreatePatternTemplate(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON201)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON201, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("create pattern template: %w", err)
 	}
@@ -188,7 +188,7 @@ func (s *ProjectSettingsScope) UpdatePatternTemplate(
 	logger := s.project.operationLogger("UpdatePatternTemplate", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.UpdatePatternTemplateUsingPUTWithResponse(
+	response, err := s.project.client.raw.UpdatePatternTemplateWithResponse(
 		ctx,
 		s.project.projectName,
 		id,
@@ -200,7 +200,7 @@ func (s *ProjectSettingsScope) UpdatePatternTemplate(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("update pattern template: %w", err)
 	}
@@ -216,7 +216,7 @@ func (s *ProjectSettingsScope) DeletePatternTemplate(
 	logger := s.project.operationLogger("DeletePatternTemplate", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.DeletePatternTemplateUsingDELETEWithResponse(
+	response, err := s.project.client.raw.DeletePatternTemplateWithResponse(
 		ctx,
 		s.project.projectName,
 		id,
@@ -227,7 +227,7 @@ func (s *ProjectSettingsScope) DeletePatternTemplate(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("delete pattern template: %w", err)
 	}
@@ -243,7 +243,7 @@ func (s *ProjectSettingsScope) CreateIssueSubType(
 	logger := s.project.operationLogger("CreateIssueSubType")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.CreateProjectIssueSubTypeUsingPOSTWithResponse(
+	response, err := s.project.client.raw.CreateProjectIssueSubTypeWithResponse(
 		ctx,
 		s.project.projectName,
 		request,
@@ -254,7 +254,7 @@ func (s *ProjectSettingsScope) CreateIssueSubType(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON201)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON201, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("create issue sub-type: %w", err)
 	}
@@ -270,7 +270,7 @@ func (s *ProjectSettingsScope) UpdateIssueSubType(
 	logger := s.project.operationLogger("UpdateIssueSubType")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.UpdateProjectIssueSubTypeUsingPUTWithResponse(
+	response, err := s.project.client.raw.UpdateProjectIssueSubTypeWithResponse(
 		ctx,
 		s.project.projectName,
 		types.UpdateIssueSubTypeRQ{Ids: []types.UpdateOneIssueSubTypeRQ{request}},
@@ -281,7 +281,7 @@ func (s *ProjectSettingsScope) UpdateIssueSubType(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("update issue sub-type: %w", err)
 	}
@@ -297,7 +297,7 @@ func (s *ProjectSettingsScope) DeleteIssueSubType(
 	logger := s.project.operationLogger("DeleteIssueSubType", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.DeleteProjectIssueSubTypeUsingDELETEWithResponse(
+	response, err := s.project.client.raw.DeleteProjectIssueSubTypeWithResponse(
 		ctx,
 		s.project.projectName,
 		id,
@@ -308,7 +308,7 @@ func (s *ProjectSettingsScope) DeleteIssueSubType(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("delete issue sub-type: %w", err)
 	}

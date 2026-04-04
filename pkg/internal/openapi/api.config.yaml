@@ -16,4 +16,5 @@ output-options:
 
 import-mapping:
   components.openapi.yaml: github.com/klaskosk/report-portal-cli/pkg/types
+  activity-page.openapi.yaml: github.com/klaskosk/report-portal-cli/pkg/types
   widget-names.openapi.yaml: github.com/klaskosk/report-portal-cli/pkg/types

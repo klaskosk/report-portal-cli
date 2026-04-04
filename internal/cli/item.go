@@ -75,6 +75,8 @@ func runGetItem(cmd *cobra.Command, args []string) error {
 }
 
 // getSingleItem retrieves and prints a single test item by numeric ID or UUID.
+//
+//nolint:dupl // structural similarity with getSingleLaunch is inherent to the get-single-resource pattern
 func getSingleItem(
 	cmd *cobra.Command,
 	clientInstance *client.Client,
@@ -84,18 +86,21 @@ func getSingleItem(
 	ctx := cmd.Context()
 	scope := clientInstance.Project(project).Items()
 
-	var (
-		item *types.TestItemResource
-		err  error
-	)
-
 	numericID, parseErr := strconv.ParseInt(idOrUUID, 10, 64)
 	if parseErr == nil {
-		item, err = scope.GetByID(ctx, numericID)
-	} else {
-		item, err = scope.GetByUUID(ctx, idOrUUID)
+		item, err := scope.GetByID(ctx, numericID)
+		if err != nil {
+			printer.PrintError(err)
+
+			return fmt.Errorf("getting item %s: %w", idOrUUID, err)
+		}
+
+		headers, row := itemRow(item)
+
+		return printer.Print(item, headers, [][]string{row})
 	}
 
+	item, err := scope.GetByUUID(ctx, idOrUUID)
 	if err != nil {
 		printer.PrintError(err)
 
@@ -147,15 +152,20 @@ func listItems(
 		return fmt.Errorf("listing items: %w", err)
 	}
 
-	headers := itemHeaders()
-	rows := make([][]string, 0, len(result.Content))
+	var items []types.TestItemResource
+	if result.Content != nil {
+		items = *result.Content
+	}
 
-	for i := range result.Content {
-		_, row := itemRow(&result.Content[i])
+	headers := itemHeaders()
+	rows := make([][]string, 0, len(items))
+
+	for i := range items {
+		_, row := itemRow(&items[i])
 		rows = append(rows, row)
 	}
 
-	return printer.Print(result.Content, headers, rows)
+	return printer.Print(items, headers, rows)
 }
 
 // itemHeaders returns the table column headers for test item output.

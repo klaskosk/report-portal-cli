@@ -8,224 +8,23 @@ actions:
   # clients at runtime.
   # BinaryContent.id and thumbnailId are numeric in the data model but Report Portal often serializes them as JSON
   # strings (especially in nested log list payloads). Keep the spec as string so decoding matches the wire format.
-  # Timestamp fields are actually returned as integers with millisecond (or in the future, microsecond) precision. We
-  # use a custom type in Go to handle this automatically.
-  - target: $..[?(@.format == 'date-time')]
-    update:
-      x-go-type: EpochMillis
-  # /launch/compare returns startTime as a numeric epoch timestamp in practice.
-  - target: $.components.schemas.ChartStatisticsContent.properties.startTime
-    update:
-      type: integer
-      format: int64
-      x-go-type: EpochMillis
-  - target: $.components.schemas.Timestamp
-    update:
-      x-go-type: EpochMillis
-  # The following targets are all to better type the generated Iterables. They use the standard Spring Boot format, but
-  # the OpenAPI spec defines them as objects with no further details.
+  # Sidecar schemas (activity-page.openapi.yaml, widget-names.openapi.yaml) let the API generator resolve $ref
+  # values that overlay.openapi.yaml introduces. The corresponding Go types must also exist in the types package,
+  # so we duplicate the definitions here for the types generator. See activity-page.openapi.yaml for details.
   - target: $.components.schemas
     update:
-      PageMetadata:
+      PageActivityEventResource:
         type: object
         required:
-          - number
-          - size
-          - totalElements
-          - totalPages
+          - content
+          - page
         properties:
-          number:
-            type: integer
-          size:
-            type: integer
-          totalElements:
-            type: integer
-          totalPages:
-            type: integer
-  - target: $.components.schemas['Iterable«ActivityEventResource»']
-    update:
-      type: object
-      required:
-        - content
-        - page
-      properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/ActivityEventResource'
-        page:
-          $ref: '#/components/schemas/PageMetadata'
-  - target: $.components.schemas['Iterable«ClusterInfoResource»']
-    update:
-      type: object
-      required:
-        - content
-        - page
-      properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/ClusterInfoResource'
-        page:
-          $ref: '#/components/schemas/PageMetadata'
-  - target: $.components.schemas['Iterable«DashboardResource»']
-    update:
-      type: object
-      required:
-        - content
-        - page
-      properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/DashboardResource'
-        page:
-          $ref: '#/components/schemas/PageMetadata'
-  - target: $.components.schemas['Iterable«LaunchResource»']
-    update:
-      type: object
-      required:
-        - content
-        - page
-      properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/LaunchResource'
-        page:
-          $ref: '#/components/schemas/PageMetadata'
-  - target: $.components.schemas['Iterable«LogResource»']
-    update:
-      type: object
-      required:
-        - content
-        - page
-      properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/LogResource'
-        page:
-          $ref: '#/components/schemas/PageMetadata'
-  - target: $.components.schemas['Iterable«OwnedEntityResource»']
-    update:
-      type: object
-      required:
-        - content
-        - page
-      properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/OwnedEntityResource'
-        page:
-          $ref: '#/components/schemas/PageMetadata'
-  - target: $.components.schemas['Iterable«ProjectInfoResource»']
-    update:
-      type: object
-      required:
-        - content
-        - page
-      properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/ProjectInfoResource'
-        page:
-          $ref: '#/components/schemas/PageMetadata'
-  - target: $.components.schemas['Iterable«SearchLogRs»']
-    update:
-      type: object
-      required:
-        - content
-        - page
-      properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/SearchLogRs'
-        page:
-          $ref: '#/components/schemas/PageMetadata'
-  - target: $.components.schemas['Iterable«SearchUserResource»']
-    update:
-      type: object
-      required:
-        - content
-        - page
-      properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/SearchUserResource'
-        page:
-          $ref: '#/components/schemas/PageMetadata'
-  - target: $.components.schemas['Iterable«TestItemHistoryElement»']
-    update:
-      type: object
-      required:
-        - content
-        - page
-      properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/TestItemHistoryElement'
-        page:
-          $ref: '#/components/schemas/PageMetadata'
-  - target: $.components.schemas['Iterable«TestItemResource»']
-    update:
-      type: object
-      required:
-        - content
-        - page
-      properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/TestItemResource'
-        page:
-          $ref: '#/components/schemas/PageMetadata'
-  - target: $.components.schemas['Iterable«UserFilterResource»']
-    update:
-      type: object
-      required:
-        - content
-        - page
-      properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/UserFilterResource'
-        page:
-          $ref: '#/components/schemas/PageMetadata'
-  - target: $.components.schemas['Iterable«UserResource»']
-    update:
-      type: object
-      required:
-        - content
-        - page
-      properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/UserResource'
-        page:
-          $ref: '#/components/schemas/PageMetadata'
-  - target: $.components.schemas['Iterable«object»']
-    update:
-      type: object
-      required:
-        - content
-        - page
-      properties:
-        content:
-          type: array
-          items:
-            type: object
-        page:
-          $ref: '#/components/schemas/PageMetadata'
-  - target: $.components.schemas
-    update:
+          content:
+            type: array
+            items:
+              $ref: 'components.openapi.yaml#/components/schemas/ActivityEventResource'
+          page:
+            $ref: 'components.openapi.yaml#/components/schemas/PageMetadata'
       WidgetNamesIterable:
         type: object
         required:
@@ -237,7 +36,7 @@ actions:
             items:
               type: string
           page:
-            $ref: '#/components/schemas/PageMetadata'
+            $ref: 'components.openapi.yaml#/components/schemas/PageMetadata'
   # Fix ErrorRS schema to match actual API responses. The API returns integer error codes (e.g. 4041, 40011), not the
   # string enum values defined in the original spec.
   - target: $.components.schemas.ErrorRS.properties.errorCode
@@ -249,9 +48,3 @@ actions:
       required:
         - errorCode
         - message
-  # /v1/project/names and /v1/project/names/search return a plain JSON string array in RP 5.11.
-  - target: $.components.schemas['Iterable«string»']
-    update:
-      type: array
-      items:
-        type: string

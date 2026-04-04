@@ -18,8 +18,8 @@ type itemListEntry struct {
 	Name      *string `json:"name"`
 	Type      *string `json:"type"`
 	Status    *string `json:"status"`
-	StartTime *int64  `json:"startTime"`
-	EndTime   *int64  `json:"endTime"`
+	StartTime *string `json:"startTime"`
+	EndTime   *string `json:"endTime"`
 	LaunchID  *int64  `json:"launchId"`
 	Parent    *int64  `json:"parent"`
 }
@@ -40,7 +40,8 @@ var _ = Describe("CLI: get item", Label("cli", "items"), func() {
 		By("seeding one launch with suite and child test items")
 		seededTestData, err = seedTestItems(ctx, baseURL, bearerToken, projectName)
 		Expect(err).To(Succeed(), "failed to seed test items into %q", projectName)
-	}, NodeTimeout(90*time.Second))
+		// RP 5.15 async indexing requires longer startup for item/log hierarchy
+	}, NodeTimeout(240*time.Second))
 
 	AfterEach(func(ctx SpecContext) {
 		if projectName == "" {

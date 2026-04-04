@@ -20,14 +20,14 @@ func (s *SettingsScope) GetServerSettings(ctx context.Context) (map[string]strin
 	logger := s.client.logger.With(slog.String("operation", "GetServerSettings"))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.client.raw.GetServerSettingsUsingGETWithResponse(ctx)
+	response, err := s.client.raw.GetServerSettingsWithResponse(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get server settings: %w", err)
 	}
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get server settings: %w", err)
 	}
@@ -48,14 +48,14 @@ func (s *SettingsScope) UpdateAnalytics(
 	logger := s.client.logger.With(slog.String("operation", "UpdateAnalytics"))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.client.raw.SaveAnalyticsSettingsUsingPUTWithResponse(ctx, analyticsConfig)
+	response, err := s.client.raw.SaveAnalyticsSettingsWithResponse(ctx, analyticsConfig)
 	if err != nil {
 		return nil, fmt.Errorf("update analytics settings: %w", err)
 	}
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("update analytics settings: %w", err)
 	}

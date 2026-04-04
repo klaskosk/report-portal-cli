@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/klaskosk/report-portal-cli/pkg/internal/api"
 	"github.com/klaskosk/report-portal-cli/pkg/types"
@@ -18,17 +19,17 @@ type UserFilterScope struct {
 func (f *UserFilterScope) List(
 	ctx context.Context,
 	options ...ListFiltersOption,
-) (*types.IterableUserFilterResource, error) {
+) (*types.PageUserFilterResource, error) {
 	logger := f.project.operationLogger("ListFilters")
 
-	params := &api.GetAllFiltersUsingGETParams{}
+	params := &api.GetAllFiltersParams{}
 	for _, option := range options {
 		option.applyListFilters(params)
 	}
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := f.project.client.raw.GetAllFiltersUsingGETWithResponse(
+	response, err := f.project.client.raw.GetAllFiltersWithResponse(
 		ctx,
 		f.project.projectName,
 		params,
@@ -39,7 +40,7 @@ func (f *UserFilterScope) List(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("list filters: %w", err)
 	}
@@ -55,7 +56,7 @@ func (f *UserFilterScope) GetByID(
 	logger := f.project.operationLogger("GetFilterByID", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := f.project.client.raw.GetFilterUsingGETWithResponse(
+	response, err := f.project.client.raw.GetFilterWithResponse(
 		ctx,
 		f.project.projectName,
 		id,
@@ -66,7 +67,7 @@ func (f *UserFilterScope) GetByID(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get filter by id: %w", err)
 	}
@@ -83,7 +84,7 @@ func (f *UserFilterScope) Create(
 	logger := f.project.operationLogger("CreateFilter")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := f.project.client.raw.CreateFilterUsingPOSTWithResponse(
+	response, err := f.project.client.raw.CreateFilterWithResponse(
 		ctx,
 		f.project.projectName,
 		request,
@@ -94,7 +95,7 @@ func (f *UserFilterScope) Create(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON201)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON201, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("create filter: %w", err)
 	}
@@ -111,7 +112,7 @@ func (f *UserFilterScope) Update(
 	logger := f.project.operationLogger("UpdateFilter", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := f.project.client.raw.UpdateUserFilterUsingPUTWithResponse(
+	response, err := f.project.client.raw.UpdateUserFilterWithResponse(
 		ctx,
 		f.project.projectName,
 		id,
@@ -123,7 +124,7 @@ func (f *UserFilterScope) Update(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("update filter: %w", err)
 	}
@@ -139,7 +140,7 @@ func (f *UserFilterScope) Delete(
 	logger := f.project.operationLogger("DeleteFilter", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := f.project.client.raw.DeleteFilterUsingDELETEWithResponse(
+	response, err := f.project.client.raw.DeleteFilterWithResponse(
 		ctx,
 		f.project.projectName,
 		id,
@@ -150,7 +151,7 @@ func (f *UserFilterScope) Delete(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("delete filter: %w", err)
 	}
@@ -166,10 +167,10 @@ func (f *UserFilterScope) GetByIds(
 	logger := f.project.operationLogger("GetFiltersByIds")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := f.project.client.raw.GetUserFiltersUsingGETWithResponse(
+	response, err := f.project.client.raw.GetUserFiltersWithResponse(
 		ctx,
 		f.project.projectName,
-		&api.GetUserFiltersUsingGETParams{
+		&api.GetUserFiltersParams{
 			Ids: ids,
 		},
 	)
@@ -179,7 +180,7 @@ func (f *UserFilterScope) GetByIds(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get filters by ids: %w", err)
 	}
@@ -191,22 +192,22 @@ func (f *UserFilterScope) GetByIds(
 	return *result, nil
 }
 
-// GetNames returns filter names (for autocomplete). The returned IterableOwnedEntityResource
+// GetNames returns filter names (for autocomplete). The returned PageOwnedEntityResource
 // contains OwnedEntityResource items with name, owner, and description fields.
 func (f *UserFilterScope) GetNames(
 	ctx context.Context,
 	filter string,
-) (*types.IterableOwnedEntityResource, error) {
+) (*types.PageOwnedEntityResource, error) {
 	logger := f.project.operationLogger("GetFilterNames", slog.String("filter", filter))
 
-	params := &api.GetAllFiltersNamesUsingGETParams{}
+	params := &api.GetAllFiltersNamesParams{}
 	if filter != "" {
 		params.FilterEqName = &filter
 	}
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := f.project.client.raw.GetAllFiltersNamesUsingGETWithResponse(
+	response, err := f.project.client.raw.GetAllFiltersNamesWithResponse(
 		ctx,
 		f.project.projectName,
 		params,
@@ -217,15 +218,17 @@ func (f *UserFilterScope) GetNames(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200)
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get filter names: %w", err)
 	}
 
 	if result == nil {
-		return &types.IterableOwnedEntityResource{
-			Content: []types.OwnedEntityResource{},
-			Page:    types.PageMetadata{},
+		empty := []types.OwnedEntityResource{}
+
+		return &types.PageOwnedEntityResource{
+			Content: &empty,
+			Page:    &types.PageMetadata{},
 		}, nil
 	}
 
@@ -234,32 +237,39 @@ func (f *UserFilterScope) GetNames(
 
 // ListFiltersOption configures the filter and pagination parameters for listing user filters.
 type ListFiltersOption interface {
-	applyListFilters(*api.GetAllFiltersUsingGETParams)
+	applyListFilters(*api.GetAllFiltersParams)
 }
 
-type listFiltersOptionFunc func(*api.GetAllFiltersUsingGETParams)
+type listFiltersOptionFunc func(*api.GetAllFiltersParams)
 
-func (f listFiltersOptionFunc) applyListFilters(params *api.GetAllFiltersUsingGETParams) {
+func (f listFiltersOptionFunc) applyListFilters(params *api.GetAllFiltersParams) {
 	f(params)
 }
 
 // WithFilterPageNumber sets the page number (0-based) for filter listing.
 func WithFilterPageNumber(n int32) ListFiltersOption {
-	return listFiltersOptionFunc(func(params *api.GetAllFiltersUsingGETParams) {
+	return listFiltersOptionFunc(func(params *api.GetAllFiltersParams) {
 		params.PagePage = &n
 	})
 }
 
 // WithFilterPageSize sets the number of results per page for filter listing.
 func WithFilterPageSize(size int32) ListFiltersOption {
-	return listFiltersOptionFunc(func(params *api.GetAllFiltersUsingGETParams) {
+	return listFiltersOptionFunc(func(params *api.GetAllFiltersParams) {
 		params.PageSize = &size
 	})
 }
 
 // WithFilterSort sets the sorting criteria for filter listing (e.g. "name,asc").
 func WithFilterSort(fields ...string) ListFiltersOption {
-	return listFiltersOptionFunc(func(params *api.GetAllFiltersUsingGETParams) {
-		params.PageSort = &fields
+	return listFiltersOptionFunc(func(params *api.GetAllFiltersParams) {
+		if len(fields) == 0 {
+			params.PageSort = nil
+
+			return
+		}
+
+		s := strings.Join(fields, ",")
+		params.PageSort = &s
 	})
 }
