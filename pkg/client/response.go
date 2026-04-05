@@ -43,6 +43,20 @@ func handleResponse[R apiResponse, T any](
 	return success, nil
 }
 
+// handleVoidResponse checks for API errors on endpoints that return no success body (e.g. DELETE).
+func handleVoidResponse[R apiResponse](response R, jsonDefault *types.ErrorRS, body []byte) error {
+	if jsonDefault != nil {
+		return newAPIError(response.StatusCode(), jsonDefault)
+	}
+
+	code := response.StatusCode()
+	if code < 200 || code >= 300 {
+		return newUnexpectedStatusError(code, body)
+	}
+
+	return nil
+}
+
 // handleV2Response handles responses from endpoints that negotiate a versioned
 // (v2) content type but may fall back to the legacy JSON shape. It returns the
 // v2 success value when present, rejects the legacy shape with an error, and
