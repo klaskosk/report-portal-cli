@@ -33,8 +33,8 @@ Report Portal 5.15 splits reporting APIs into synchronous `v1` tags (`Launch`, `
   - Implemented: Start/finish/get/list/update/delete, bulk operations, compare, analyze, latest/debug listings, report retrieval, clusters, names, owners, statuses, and attribute autocomplete.
   - Not implemented: `Launch Async` wrappers. `LaunchScope.Import` currently returns an unsupported error because the 5.15 OpenAPI spec does not define a launch import operation.
 - `Log` (`LogScope`):
-  - Implemented: Create single/batch, get by ID/UUID, list, delete, search, and get logs under an item hierarchy.
-  - Not implemented: Log page numbers, location navigation, location search, nested logs, and all `Log Async` wrappers.
+  - Implemented: Create single/batch, get by ID/UUID, list, delete, search, get logs under an item hierarchy, page number lookup, location navigation, location search, and nested log retrieval.
+  - Not implemented: All `Log Async` wrappers.
 - `Project` (`ProjectsScope`):
   - Implemented: Create/get/update/delete/list, list/search names, get project info, assign/unassign users, and list project users.
   - Not implemented: Export, analyzer status, notification config, preferences, indexing, assignable users, usernames helpers, and widget-by-code.
