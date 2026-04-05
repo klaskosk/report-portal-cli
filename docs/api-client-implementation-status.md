@@ -2,7 +2,7 @@
 
 Against the `5.15.0` OpenAPI spec in `pkg/internal/openapi/openapi.yaml`, the public client in `pkg/client` remains strongest on project-scoped reporting APIs. Core day-to-day workflows are covered across launches, test items, logs, dashboards, widgets, filters, project settings, integrations, demo data, onboarding, and activity APIs.
 
-The biggest remaining gaps are still instance-admin APIs (`User`, `File Storage`, parts of `Project`, `Settings`, and `Plugin`) and, new in the 5.15 spec, the `groups` and `projects` tags for instance groups, project-group membership, and project log types.
+The biggest remaining gaps are still instance-admin APIs (`User`, `File Storage`, parts of `Project`, and `Plugin`) and, new in the 5.15 spec, the `groups` and `projects` tags for instance groups, project-group membership, and project log types.
 
 ## Scope Of This Document
 
@@ -19,6 +19,7 @@ Report Portal 5.15 splits reporting APIs into synchronous `v1` tags (`Launch`, `
 - `Demo Data` (`DemoDataScope`): Generate demo data for a project.
 - `Onboarding` (`OnboardingScope`): Get onboarding status.
 - `Project Settings` (`ProjectSettingsScope`): Get project settings plus full CRUD for notifications, pattern templates, and custom issue sub-types.
+- `Settings` (`SettingsScope`): Get server settings, update server settings, and update analytics settings. The `PUT /v1/settings/analytics` variant (`SaveAnalyticsSettings1`) is deliberately excluded; it is functionally identical to the `POST` variant already wrapped by `UpdateAnalytics`.
 - `User Filter` (`UserFilterScope`): Create/get/list/update/delete, get names, get by IDs, and bulk update.
 
 ## Mostly Implemented Tags
@@ -41,9 +42,6 @@ Report Portal 5.15 splits reporting APIs into synchronous `v1` tags (`Launch`, `
 - `Project` (`ProjectsScope`):
   - Implemented: Create/get/update/delete/list, list/search names, get project info, assign/unassign users, and list project users.
   - Not implemented: Export, analyzer status, notification config, preferences, indexing, assignable users, usernames helpers, and widget-by-code.
-- `Settings` (`SettingsScope`):
-  - Implemented: Get server settings and update analytics settings.
-  - Not implemented: Update server settings and the duplicate analytics write variant in the spec.
 - `Test Item` (`TestItemScope`):
   - Implemented: Start root/child items, finish, get by ID/UUID/IDs, list, update/delete, bulk issue/update/delete operations, attribute autocomplete, history, statistics, suggestions, suggest choice handling, and external issue link/unlink.
   - Not implemented: `/v1/{projectName}/item/search`, `/v1/{projectName}/item/v2`, and all `Test Item Async` wrappers.
