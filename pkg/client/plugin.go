@@ -1,9 +1,14 @@
 package client
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
+	"mime/multipart"
+	"net/textproto"
 
 	"github.com/klaskosk/report-portal-cli/pkg/types"
 )
@@ -116,6 +121,166 @@ func (s *PluginScope) Delete(
 	return result, nil
 }
 
+// Upload uploads a plugin archive. Requires admin privileges.
+// The filename is used for the multipart form field and data provides the file
+// contents.
+func (s *PluginScope) Upload(
+	ctx context.Context,
+	filename string,
+	data io.Reader,
+) (*types.EntryCreatedRS, error) {
+	logger := s.client.logger.With(
+		slog.String("operation", "UploadPlugin"),
+		slog.String("filename", filename),
+	)
+	logger.InfoContext(ctx, "API request")
+
+	body, contentType, err := buildPluginUploadMultipart(filename, data)
+	if err != nil {
+		return nil, fmt.Errorf("upload plugin: %w", err)
+	}
+
+	response, err := s.client.raw.UploadPluginWithBodyWithResponse(ctx, contentType, body)
+	if err != nil {
+		return nil, fmt.Errorf("upload plugin: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, response.JSONDefault, response.JSON201, response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("upload plugin: %w", err)
+	}
+
+	return result, nil
+}
+
+// ExecuteCommand executes a named command on a plugin within a project.
+// The body is an arbitrary JSON object whose schema depends on the plugin
+// and command. The projectName parameter identifies the project context.
+func (s *PluginScope) ExecuteCommand(
+	ctx context.Context,
+	projectName, pluginName, command string,
+	body map[string]any,
+) (map[string]any, error) {
+	logger := s.client.logger.With(
+		slog.String("operation", "ExecutePluginCommand"),
+		slog.String("project", projectName),
+		slog.String("pluginName", pluginName),
+		slog.String("command", command),
+	)
+	logger.InfoContext(ctx, "API request")
+
+	if body == nil {
+		body = map[string]any{}
+	}
+
+	response, err := s.client.raw.ExecutePluginCommandWithResponse(
+		ctx, projectName, pluginName, command, body,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("execute plugin command: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("execute plugin command: %w", err)
+	}
+
+	if result == nil || *result == nil {
+		return map[string]any{}, nil
+	}
+
+	return *result, nil
+}
+
+// Import imports data through a plugin within a project using a multipart
+// upload. The file part is required; launchImportRQ is optional metadata
+// for the import (pass nil to omit). The projectName parameter identifies
+// the project context.
+func (s *PluginScope) Import(
+	ctx context.Context,
+	projectName, pluginName string,
+	filename string,
+	data io.Reader,
+	launchImportRQ *types.LaunchImportRQ,
+) (map[string]any, error) {
+	logger := s.client.logger.With(
+		slog.String("operation", "ImportPlugin"),
+		slog.String("project", projectName),
+		slog.String("pluginName", pluginName),
+		slog.String("filename", filename),
+	)
+	logger.InfoContext(ctx, "API request")
+
+	body, contentType, err := buildPluginImportMultipart(filename, data, launchImportRQ)
+	if err != nil {
+		return nil, fmt.Errorf("import plugin: %w", err)
+	}
+
+	response, err := s.client.raw.ExecuteImportPluginCommandWithBodyWithResponse(
+		ctx, projectName, pluginName, contentType, body,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("import plugin: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("import plugin: %w", err)
+	}
+
+	if result == nil || *result == nil {
+		return map[string]any{}, nil
+	}
+
+	return *result, nil
+}
+
+// ExecutePublicCommand executes a named command on a plugin via the public
+// endpoint. The body is an arbitrary JSON object whose schema depends on the
+// plugin and command. Some deployments allow this without authentication.
+func (s *PluginScope) ExecutePublicCommand(
+	ctx context.Context,
+	pluginName, command string,
+	body map[string]any,
+) (map[string]any, error) {
+	logger := s.client.logger.With(
+		slog.String("operation", "ExecutePublicPluginCommand"),
+		slog.String("pluginName", pluginName),
+		slog.String("command", command),
+	)
+	logger.InfoContext(ctx, "API request")
+
+	if body == nil {
+		body = map[string]any{}
+	}
+
+	response, err := s.client.raw.ExecutePublicPluginCommandWithResponse(
+		ctx, pluginName, command, body,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("execute public plugin command: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("execute public plugin command: %w", err)
+	}
+
+	if result == nil || *result == nil {
+		return map[string]any{}, nil
+	}
+
+	return *result, nil
+}
+
 // GetPublicFile downloads a public file from a plugin (e.g., plugin icon).
 // Returns the raw file bytes. Some deployments allow this without authentication.
 func (s *PluginScope) GetPublicFile(
@@ -152,4 +317,70 @@ func (s *PluginScope) GetPublicFile(
 	}
 
 	return response.Body, nil
+}
+
+// buildPluginUploadMultipart assembles a multipart body containing a single
+// "file" form field for the plugin upload endpoint.
+func buildPluginUploadMultipart(filename string, data io.Reader) (*bytes.Buffer, string, error) {
+	var buf bytes.Buffer
+
+	writer := multipart.NewWriter(&buf)
+
+	filePart, err := writer.CreateFormFile("file", filename)
+	if err != nil {
+		return nil, "", fmt.Errorf("creating file part: %w", err)
+	}
+
+	if _, err := io.Copy(filePart, data); err != nil {
+		return nil, "", fmt.Errorf("writing file part: %w", err)
+	}
+
+	if err := writer.Close(); err != nil {
+		return nil, "", fmt.Errorf("closing multipart writer: %w", err)
+	}
+
+	return &buf, writer.FormDataContentType(), nil
+}
+
+// buildPluginImportMultipart assembles a multipart body for the plugin import
+// endpoint. It includes a required "file" part and an optional "launchImportRq"
+// JSON part.
+func buildPluginImportMultipart(
+	filename string,
+	data io.Reader,
+	launchImportRQ *types.LaunchImportRQ,
+) (*bytes.Buffer, string, error) {
+	var buf bytes.Buffer
+
+	writer := multipart.NewWriter(&buf)
+
+	filePart, err := writer.CreateFormFile("file", filename)
+	if err != nil {
+		return nil, "", fmt.Errorf("creating file part: %w", err)
+	}
+
+	if _, err := io.Copy(filePart, data); err != nil {
+		return nil, "", fmt.Errorf("writing file part: %w", err)
+	}
+
+	if launchImportRQ != nil {
+		jsonHeader := make(textproto.MIMEHeader)
+		jsonHeader.Set("Content-Disposition", `form-data; name="launchImportRq"`)
+		jsonHeader.Set("Content-Type", "application/json")
+
+		jsonPart, err := writer.CreatePart(jsonHeader)
+		if err != nil {
+			return nil, "", fmt.Errorf("creating launch import part: %w", err)
+		}
+
+		if err := json.NewEncoder(jsonPart).Encode(launchImportRQ); err != nil {
+			return nil, "", fmt.Errorf("writing launch import part: %w", err)
+		}
+	}
+
+	if err := writer.Close(); err != nil {
+		return nil, "", fmt.Errorf("closing multipart writer: %w", err)
+	}
+
+	return &buf, writer.FormDataContentType(), nil
 }
