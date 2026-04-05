@@ -52,3 +52,7 @@ Review changes with a **correctness-first, simplicity-first** mindset. This is a
   - **Fix**: Specific change or simpler alternative.
 
 **Verdict**: Approve / Approve with nits / Request changes.
+
+## Submitting the review
+
+If you are reviewing a pull request, not local changes, please submit your review using the `gh` CLI. You won't be able to approve or request changes, so comment and make clear your verdict in the comment itself.
