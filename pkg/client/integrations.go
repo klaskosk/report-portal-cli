@@ -204,6 +204,32 @@ func (s *IntegrationsScope) DeleteGlobal(
 	return result, nil
 }
 
+// DeleteAllByType removes all global integrations of the given type.
+func (s *IntegrationsScope) DeleteAllByType(
+	ctx context.Context,
+	pluginType string,
+) (*types.OperationCompletionRS, error) {
+	logger := s.client.logger.With(
+		slog.String("operation", "DeleteAllIntegrationsByType"),
+		slog.String("type", pluginType),
+	)
+	logger.InfoContext(ctx, "API request")
+
+	response, err := s.client.raw.DeleteAllIntegrationsWithResponse(ctx, pluginType)
+	if err != nil {
+		return nil, fmt.Errorf("delete all integrations by type: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("delete all integrations by type: %w", err)
+	}
+
+	return result, nil
+}
+
 // ProjectIntegrationsScope provides operations on integrations within a specific project.
 type ProjectIntegrationsScope struct {
 	project *ProjectScope
@@ -406,6 +432,35 @@ func (s *ProjectIntegrationsScope) Delete(
 	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("delete project integration: %w", err)
+	}
+
+	return result, nil
+}
+
+// DeleteAllByType removes all project integrations of the given type.
+func (s *ProjectIntegrationsScope) DeleteAllByType(
+	ctx context.Context,
+	pluginType string,
+) (*types.OperationCompletionRS, error) {
+	logger := s.project.operationLogger("DeleteAllProjectIntegrationsByType",
+		slog.String("type", pluginType),
+	)
+	logger.InfoContext(ctx, "API request")
+
+	response, err := s.project.client.raw.DeleteAllProjectIntegrationsWithResponse(
+		ctx,
+		s.project.projectName,
+		pluginType,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("delete all project integrations by type: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("delete all project integrations by type: %w", err)
 	}
 
 	return result, nil
