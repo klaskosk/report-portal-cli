@@ -39,8 +39,8 @@ Report Portal 5.15 splits reporting APIs into synchronous `v1` tags (`Launch`, `
   - Implemented: Create/get/update/delete/list, list/search names, get project info, assign/unassign users, and list project users.
   - Not implemented: Export, analyzer status, notification config, preferences, indexing, assignable users, usernames helpers, and widget-by-code.
 - `Test Item` (`TestItemScope`):
-  - Implemented: Start root/child items, finish, get by ID/UUID/IDs, list, update/delete, bulk issue/update/delete operations, attribute autocomplete, history, statistics, suggestions, suggest choice handling, and external issue link/unlink.
-  - Not implemented: `/v1/{projectName}/item/search`, `/v1/{projectName}/item/v2`, and all `Test Item Async` wrappers.
+  - Implemented: Start root/child items, finish, get by ID/UUID/IDs, list, search, list v2, update/delete, bulk issue/update/delete operations, attribute autocomplete, history, statistics, suggestions, suggest choice handling, and external issue link/unlink.
+  - Not implemented: All `Test Item Async` wrappers.
 - `Widget` (`WidgetScope`):
   - Implemented: Get/create/update widgets, get widget data (multilevel), and get widget names.
   - Not implemented: Widget preview.

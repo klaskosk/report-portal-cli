@@ -665,6 +665,188 @@ func (i *TestItemScope) GetStepAttributeValues(
 	return *values, nil
 }
 
+// SearchTestItemsOption configures filter and pagination parameters for searching test items.
+type SearchTestItemsOption interface {
+	applySearchTestItems(*api.GetTestItems2Params)
+}
+
+type searchTestItemsOptionFunc func(*api.GetTestItems2Params)
+
+func (f searchTestItemsOptionFunc) applySearchTestItems(params *api.GetTestItems2Params) {
+	f(params)
+}
+
+// Search returns a paginated list of test items matching the given search options.
+// It uses the /item/search endpoint which supports simplified filter parameters.
+func (i *TestItemScope) Search(
+	ctx context.Context,
+	options ...SearchTestItemsOption,
+) (*types.PageTestItemResource, error) {
+	logger := i.project.operationLogger("SearchTestItems")
+
+	params := &api.GetTestItems2Params{}
+	for _, option := range options {
+		option.applySearchTestItems(params)
+	}
+
+	logger.InfoContext(ctx, "API request")
+
+	response, err := i.project.client.raw.GetTestItems2WithResponse(
+		ctx,
+		i.project.projectName,
+		params,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("search test items: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("search test items: %w", err)
+	}
+
+	return result, nil
+}
+
+// WithSearchItemName filters search results by a contains-match on item name.
+func WithSearchItemName(name string) SearchTestItemsOption {
+	return searchTestItemsOptionFunc(func(params *api.GetTestItems2Params) {
+		params.FilterCntName = &name
+	})
+}
+
+// WithSearchItemAttribute filters search results by a composite attribute.
+func WithSearchItemAttribute(attr string) SearchTestItemsOption {
+	return searchTestItemsOptionFunc(func(params *api.GetTestItems2Params) {
+		params.FilterHasCompositeAttribute = &attr
+	})
+}
+
+// WithSearchItemStatus filters search results by status (using an "in" match).
+func WithSearchItemStatus(status string) SearchTestItemsOption {
+	return searchTestItemsOptionFunc(func(params *api.GetTestItems2Params) {
+		params.FilterInStatus = &status
+	})
+}
+
+// WithSearchItemPageNumber sets the page number (0-based) for search results.
+func WithSearchItemPageNumber(page int32) SearchTestItemsOption {
+	return searchTestItemsOptionFunc(func(params *api.GetTestItems2Params) {
+		params.PagePage = &page
+	})
+}
+
+// WithSearchItemPageSize sets the number of results per page for search results.
+func WithSearchItemPageSize(size int32) SearchTestItemsOption {
+	return searchTestItemsOptionFunc(func(params *api.GetTestItems2Params) {
+		params.PageSize = &size
+	})
+}
+
+// WithSearchItemSort sets the sorting criteria for search results (e.g. "startTime,desc").
+func WithSearchItemSort(sort string) SearchTestItemsOption {
+	return searchTestItemsOptionFunc(func(params *api.GetTestItems2Params) {
+		params.PageSort = &sort
+	})
+}
+
+// ListTestItemsV2Option configures filter and pagination parameters for listing
+// test items via the v2 endpoint.
+type ListTestItemsV2Option interface {
+	applyListTestItemsV2(*api.GetTestItemsV2Params)
+}
+
+type listTestItemsV2OptionFunc func(*api.GetTestItemsV2Params)
+
+func (f listTestItemsV2OptionFunc) applyListTestItemsV2(params *api.GetTestItemsV2Params) {
+	f(params)
+}
+
+// ListV2 returns a paginated list of test items using the v2 endpoint with
+// extended filter parameters.
+func (i *TestItemScope) ListV2(
+	ctx context.Context,
+	options ...ListTestItemsV2Option,
+) (*types.PageTestItemResource, error) {
+	logger := i.project.operationLogger("ListTestItemsV2")
+
+	params := &api.GetTestItemsV2Params{Params: map[string]string{}}
+	for _, option := range options {
+		option.applyListTestItemsV2(params)
+	}
+
+	logger.InfoContext(ctx, "API request")
+
+	response, err := i.project.client.raw.GetTestItemsV2WithResponse(
+		ctx,
+		i.project.projectName,
+		params,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list test items v2: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("list test items v2: %w", err)
+	}
+
+	return result, nil
+}
+
+// WithItemV2PageNumber sets the page number (0-based) for v2 list results.
+func WithItemV2PageNumber(page int32) ListTestItemsV2Option {
+	return listTestItemsV2OptionFunc(func(params *api.GetTestItemsV2Params) {
+		params.PagePage = &page
+	})
+}
+
+// WithItemV2PageSize sets the number of results per page for v2 list results.
+func WithItemV2PageSize(size int32) ListTestItemsV2Option {
+	return listTestItemsV2OptionFunc(func(params *api.GetTestItemsV2Params) {
+		params.PageSize = &size
+	})
+}
+
+// WithItemV2Sort sets the sorting criteria for v2 list results (e.g. "startTime,desc").
+func WithItemV2Sort(sort string) ListTestItemsV2Option {
+	return listTestItemsV2OptionFunc(func(params *api.GetTestItemsV2Params) {
+		params.PageSort = &sort
+	})
+}
+
+// WithItemV2Status filters v2 list results by status.
+func WithItemV2Status(status string) ListTestItemsV2Option {
+	return listTestItemsV2OptionFunc(func(params *api.GetTestItemsV2Params) {
+		params.FilterEqStatus = &status
+	})
+}
+
+// WithItemV2Name filters v2 list results by name.
+func WithItemV2Name(name string) ListTestItemsV2Option {
+	return listTestItemsV2OptionFunc(func(params *api.GetTestItemsV2Params) {
+		params.FilterEqName = &name
+	})
+}
+
+// WithItemV2LaunchID filters v2 list results by launch ID.
+func WithItemV2LaunchID(id int32) ListTestItemsV2Option {
+	return listTestItemsV2OptionFunc(func(params *api.GetTestItemsV2Params) {
+		params.FilterEqLaunchId = &id
+	})
+}
+
+// WithItemV2ParentID filters v2 list results by parent item ID.
+func WithItemV2ParentID(id int32) ListTestItemsV2Option {
+	return listTestItemsV2OptionFunc(func(params *api.GetTestItemsV2Params) {
+		params.FilterEqParentId = &id
+	})
+}
+
 // WithItemPageNumber sets the page number (0-based).
 func WithItemPageNumber(n int32) ListTestItemsOption {
 	return listTestItemsOptionFunc(func(params *api.GetTestItemsParams) {
