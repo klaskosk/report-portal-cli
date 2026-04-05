@@ -19,6 +19,7 @@ Report Portal 5.15 splits reporting APIs into synchronous `v1` tags (`Launch`, `
 - `Demo Data` (`DemoDataScope`): Generate demo data for a project.
 - `Onboarding` (`OnboardingScope`): Get onboarding status.
 - `Project Settings` (`ProjectSettingsScope`): Get project settings plus full CRUD for notifications, pattern templates, and custom issue sub-types.
+- `User Filter` (`UserFilterScope`): Create/get/list/update/delete, get names, get by IDs, and bulk update.
 
 ## Mostly Implemented Tags
 
@@ -46,9 +47,6 @@ Report Portal 5.15 splits reporting APIs into synchronous `v1` tags (`Launch`, `
 - `Test Item` (`TestItemScope`):
   - Implemented: Start root/child items, finish, get by ID/UUID/IDs, list, update/delete, bulk issue/update/delete operations, attribute autocomplete, history, statistics, suggestions, suggest choice handling, and external issue link/unlink.
   - Not implemented: `/v1/{projectName}/item/search`, `/v1/{projectName}/item/v2`, and all `Test Item Async` wrappers.
-- `User Filter` (`UserFilterScope`):
-  - Implemented: Create/get/list/update/delete, get names, and get by IDs.
-  - Not implemented: Bulk filter updates.
 - `Widget` (`WidgetScope`):
   - Implemented: Get/create/update widgets, preview widget data, and get widget names.
   - Not implemented: Multilevel widget retrieval.

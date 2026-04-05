@@ -299,6 +299,115 @@ func TestFilterScope_GetNames_Empty(t *testing.T) {
 	require.Empty(t, result.Content)
 }
 
+func TestUserFilterScope_BulkUpdate_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v1/my_project/filter")
+		assertMethod(t, r, http.MethodPut)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		elements, ok := payload["elements"].([]any)
+		require.True(t, ok)
+		assert.Len(t, elements, 2)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`[
+			{"message": "Filter 1 successfully updated."},
+			{"message": "Filter 2 successfully updated."}
+		]`))
+	}))
+
+	results, err := c.Project("my_project").Filters().BulkUpdate(t.Context(), types.CollectionsRQBulkUpdateFilterRQ{
+		Elements: []types.BulkUpdateFilterRQ{
+			{
+				Id:         "1",
+				Name:       "Filter 1",
+				Type:       types.BulkUpdateFilterRQTypeLaunch,
+				Conditions: []types.UserFilterCondition{},
+				Orders:     []types.Order{},
+			},
+			{
+				Id:         "2",
+				Name:       "Filter 2",
+				Type:       types.BulkUpdateFilterRQTypeLaunch,
+				Conditions: []types.UserFilterCondition{},
+				Orders:     []types.Order{},
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, results, 2)
+
+	require.NotNil(t, results[0].Message)
+	assert.Equal(t, "Filter 1 successfully updated.", *results[0].Message)
+	require.NotNil(t, results[1].Message)
+	assert.Equal(t, "Filter 2 successfully updated.", *results[1].Message)
+}
+
+func TestUserFilterScope_BulkUpdate_Unauthorized(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusUnauthorized,
+		`{"errorCode": 4001, "message": "Full authentication is required."}`))
+
+	_, err := c.Project("my_project").Filters().BulkUpdate(t.Context(), types.CollectionsRQBulkUpdateFilterRQ{
+		Elements: []types.BulkUpdateFilterRQ{
+			{
+				Id:         "1",
+				Name:       "Filter 1",
+				Type:       types.BulkUpdateFilterRQTypeLaunch,
+				Conditions: []types.UserFilterCondition{},
+				Orders:     []types.Order{},
+			},
+		},
+	})
+	require.Error(t, err)
+	assert.True(t, client.IsUnauthorized(err))
+}
+
+func TestUserFilterScope_BulkUpdate_EmptyResponse(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`[]`))
+	}))
+
+	results, err := c.Project("my_project").Filters().BulkUpdate(t.Context(), types.CollectionsRQBulkUpdateFilterRQ{
+		Elements: []types.BulkUpdateFilterRQ{},
+	})
+	require.NoError(t, err)
+	assert.Empty(t, results)
+	assert.NotNil(t, results)
+}
+
+func TestUserFilterScope_BulkUpdate_NullResponse(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`null`))
+	}))
+
+	results, err := c.Project("my_project").Filters().BulkUpdate(t.Context(), types.CollectionsRQBulkUpdateFilterRQ{
+		Elements: []types.BulkUpdateFilterRQ{},
+	})
+	require.NoError(t, err)
+	assert.Empty(t, results)
+	assert.NotNil(t, results)
+}
+
 func TestFilterScope_GetByIds_Success(t *testing.T) {
 	t.Parallel()
 
