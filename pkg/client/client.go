@@ -138,6 +138,11 @@ func (c *Client) Projects() *ProjectsScope {
 	return &ProjectsScope{client: c}
 }
 
+// Groups returns a GroupsScope for instance-level group operations.
+func (c *Client) Groups() *GroupsScope {
+	return &GroupsScope{client: c}
+}
+
 // Integrations returns an IntegrationsScope for instance-level global integration operations.
 func (c *Client) Integrations() *IntegrationsScope {
 	return &IntegrationsScope{client: c}
