@@ -158,6 +158,11 @@ func (c *Client) Settings() *SettingsScope {
 	return &SettingsScope{client: c}
 }
 
+// InstanceBugTracking returns an InstanceBugTrackingScope for instance-level BTS operations.
+func (c *Client) InstanceBugTracking() *InstanceBugTrackingScope {
+	return &InstanceBugTrackingScope{client: c}
+}
+
 // Plugins returns a PluginScope for instance-level plugin operations.
 func (c *Client) Plugins() *PluginScope {
 	return &PluginScope{client: c}
