@@ -44,8 +44,8 @@ Report Portal 5.15 splits reporting APIs into synchronous `v1` tags (`Launch`, `
   - Implemented: Start root/child items, finish, get by ID/UUID/IDs, list, update/delete, bulk issue/update/delete operations, attribute autocomplete, history, statistics, suggestions, suggest choice handling, and external issue link/unlink.
   - Not implemented: `/v1/{projectName}/item/search`, `/v1/{projectName}/item/v2`, and all `Test Item Async` wrappers.
 - `Widget` (`WidgetScope`):
-  - Implemented: Get/create/update widgets, preview widget data, and get widget names.
-  - Not implemented: Multilevel widget retrieval.
+  - Implemented: Get/create/update widgets, get widget data (multilevel), and get widget names.
+  - Not implemented: Widget preview.
 
 ## Partially Implemented Tags
 

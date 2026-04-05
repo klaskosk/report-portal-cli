@@ -15,7 +15,7 @@ This backlog sketches PR-sized work to reach full public client coverage in `pkg
 | 1 | Settings completion | `pkg/client/settings.go`, `settings_test.go` | Add server settings update and resolve the duplicate analytics write variant in the spec. | Safe to run in parallel with most other PRs. |
 | 2 | Dashboard completion | `pkg/client/dashboard.go`, `dashboard_test.go` | Add dashboard config retrieval and preconfigured dashboard creation. | Safe to run in parallel with most other PRs. |
 | 3 | User filter bulk updates | `pkg/client/filter.go`, `filter_test.go` | Add bulk filter update support. | Safe to run in parallel with most other PRs. |
-| 4 | Widget multilevel retrieval | `pkg/client/widget.go`, `widget_test.go` | Add multilevel widget retrieval. | Safe to run in parallel with most other PRs. |
+| 4 | ~~Widget multilevel retrieval~~ | `pkg/client/widget.go`, `widget_test.go` | Already covered by `GetData` (wraps the multilevel endpoint). No new code needed. Widget preview (`POST .../widget/preview`) remains unwrapped. | N/A |
 | 5 | Integrations bulk delete-by-type | `pkg/client/integrations.go`, `integrations_test.go` | Add delete-all-by-type for global and project integrations. | Safe to run in parallel with most other PRs. |
 | 6 | Log sync navigation gaps | `pkg/client/log.go`, `log_test.go` | Add page lookup, location navigation, location search, and nested logs. | Keep these together to avoid splitting one cohesive log-navigation slice. |
 | 7 | Test item sync gaps | `pkg/client/item.go`, `item_test.go` | Add `/v1/{projectName}/item/search` and `/v1/{projectName}/item/v2`. | Safe to run in parallel with Wave 1 PRs. |
@@ -37,7 +37,6 @@ Run these in parallel:
 - PR 1: Settings completion
 - PR 2: Dashboard completion
 - PR 3: User filter bulk updates
-- PR 4: Widget multilevel retrieval
 - PR 5: Integrations bulk delete-by-type
 - PR 6: Log sync navigation gaps
 - PR 7: Test item sync gaps
