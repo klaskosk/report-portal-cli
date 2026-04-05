@@ -601,3 +601,504 @@ func TestProjectsScope_ListUsers_Unauthorized(t *testing.T) {
 	require.Error(t, err)
 	assert.True(t, client.IsUnauthorized(err))
 }
+
+func TestProjectsScope_Export_Success(t *testing.T) {
+	t.Parallel()
+
+	expectedBody := []byte("project-id,project-name\n1,my_project\n")
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertMethod(t, r, http.MethodGet)
+		assertPath(t, r, "/api/v1/project/export")
+
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write(expectedBody)
+	}))
+
+	data, err := c.Projects().Export(t.Context())
+	require.NoError(t, err)
+	assert.Equal(t, expectedBody, data)
+}
+
+func TestProjectsScope_Export_WithOptions(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		query := r.URL.Query()
+		assert.Equal(t, "csv", query.Get("view"))
+		assert.Equal(t, "my_project", query.Get("filter.eq.name"))
+		assert.Equal(t, "INTERNAL", query.Get("filter.eq.type"))
+
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte("data"))
+	}))
+
+	_, err := c.Projects().Export(t.Context(),
+		client.WithExportView("csv"),
+		client.WithExportFilterName("my_project"),
+		client.WithExportFilterType("INTERNAL"),
+	)
+	require.NoError(t, err)
+}
+
+func TestProjectsScope_Export_Unauthorized(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusUnauthorized,
+		`{"errorCode": 4001, "message": "Full authentication is required."}`))
+
+	_, err := c.Projects().Export(t.Context())
+	require.Error(t, err)
+	assert.True(t, client.IsUnauthorized(err))
+}
+
+func TestProjectsScope_GetAnalyzerStatus_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertMethod(t, r, http.MethodGet)
+		assertPath(t, r, "/api/v1/project/analyzer/status")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{"my_project": true, "other_project": false}`))
+	}))
+
+	result, err := c.Projects().GetAnalyzerStatus(t.Context())
+	require.NoError(t, err)
+	assert.True(t, result["my_project"])
+	assert.False(t, result["other_project"])
+}
+
+func TestProjectsScope_GetAnalyzerStatus_Unauthorized(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusUnauthorized,
+		`{"errorCode": 4001, "message": "Full authentication is required."}`))
+
+	_, err := c.Projects().GetAnalyzerStatus(t.Context())
+	require.Error(t, err)
+	assert.True(t, client.IsUnauthorized(err))
+}
+
+func TestProjectsScope_UpdateNotificationConfig_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertMethod(t, r, http.MethodPut)
+		assertPath(t, r, "/api/v1/project/my_project/notification")
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+		assert.Contains(t, payload, "enabled")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"Notification config updated."}`))
+	}))
+
+	enabled := true
+	result, err := c.Projects().UpdateNotificationConfig(t.Context(), "my_project",
+		types.ProjectNotificationConfigDTO{Enabled: &enabled},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Message)
+	assert.Equal(t, "Notification config updated.", *result.Message)
+}
+
+func TestProjectsScope_UpdateNotificationConfig_NotFound(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusNotFound,
+		`{"errorCode": 40410, "message": "Project not found."}`))
+
+	_, err := c.Projects().UpdateNotificationConfig(t.Context(), "nonexistent",
+		types.ProjectNotificationConfigDTO{},
+	)
+	require.Error(t, err)
+	assert.True(t, client.IsNotFound(err))
+}
+
+func TestProjectsScope_GetPreference_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertMethod(t, r, http.MethodGet)
+		assertPath(t, r, "/api/v1/project/my_project/preference")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"projectId": 1,
+			"filters": [{"id": 10, "name": "my-filter"}]
+		}`))
+	}))
+
+	result, err := c.Projects().GetPreference(t.Context(), "my_project")
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, int64(1), result.ProjectId)
+	require.NotNil(t, result.Filters)
+	require.Len(t, *result.Filters, 1)
+}
+
+func TestProjectsScope_GetPreference_NotFound(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusNotFound,
+		`{"errorCode": 40410, "message": "Project not found."}`))
+
+	_, err := c.Projects().GetPreference(t.Context(), "nonexistent")
+	require.Error(t, err)
+	assert.True(t, client.IsNotFound(err))
+}
+
+func TestProjectsScope_AddPreference_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertMethod(t, r, http.MethodPut)
+		assertPath(t, r, "/api/v1/project/my_project/preference/42")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"Preference added."}`))
+	}))
+
+	result, err := c.Projects().AddPreference(t.Context(), "my_project", 42)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Message)
+	assert.Equal(t, "Preference added.", *result.Message)
+}
+
+func TestProjectsScope_AddPreference_NotFound(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusNotFound,
+		`{"errorCode": 40410, "message": "Filter not found."}`))
+
+	_, err := c.Projects().AddPreference(t.Context(), "my_project", 999)
+	require.Error(t, err)
+	assert.True(t, client.IsNotFound(err))
+}
+
+func TestProjectsScope_RemovePreference_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertMethod(t, r, http.MethodDelete)
+		assertPath(t, r, "/api/v1/project/my_project/preference/42")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"Preference removed."}`))
+	}))
+
+	result, err := c.Projects().RemovePreference(t.Context(), "my_project", 42)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Message)
+	assert.Equal(t, "Preference removed.", *result.Message)
+}
+
+func TestProjectsScope_RemovePreference_NotFound(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusNotFound,
+		`{"errorCode": 40410, "message": "Filter not found."}`))
+
+	_, err := c.Projects().RemovePreference(t.Context(), "my_project", 999)
+	require.Error(t, err)
+	assert.True(t, client.IsNotFound(err))
+}
+
+func TestProjectsScope_DeleteIndex_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertMethod(t, r, http.MethodDelete)
+		assertPath(t, r, "/api/v1/project/my_project/index")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"Index deleted."}`))
+	}))
+
+	result, err := c.Projects().DeleteIndex(t.Context(), "my_project")
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Message)
+	assert.Equal(t, "Index deleted.", *result.Message)
+}
+
+func TestProjectsScope_DeleteIndex_NotFound(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusNotFound,
+		`{"errorCode": 40410, "message": "Project not found."}`))
+
+	_, err := c.Projects().DeleteIndex(t.Context(), "nonexistent")
+	require.Error(t, err)
+	assert.True(t, client.IsNotFound(err))
+}
+
+func TestProjectsScope_IndexData_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertMethod(t, r, http.MethodPut)
+		assertPath(t, r, "/api/v1/project/my_project/index")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"Index started."}`))
+	}))
+
+	result, err := c.Projects().IndexData(t.Context(), "my_project")
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Message)
+	assert.Equal(t, "Index started.", *result.Message)
+}
+
+func TestProjectsScope_IndexData_NotFound(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusNotFound,
+		`{"errorCode": 40410, "message": "Project not found."}`))
+
+	_, err := c.Projects().IndexData(t.Context(), "nonexistent")
+	require.Error(t, err)
+	assert.True(t, client.IsNotFound(err))
+}
+
+func TestProjectsScope_ListAssignableUsers_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertMethod(t, r, http.MethodGet)
+		assertPath(t, r, "/api/v1/project/my_project/assignable")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"content": [
+				{
+					"id": 1,
+					"userId": "user1",
+					"email": "user1@example.com",
+					"fullName": "User One"
+				}
+			],
+			"page": {"number": 0, "size": 20, "totalElements": 1, "totalPages": 1}
+		}`))
+	}))
+
+	result, err := c.Projects().ListAssignableUsers(t.Context(), "my_project")
+	require.NoError(t, err)
+	require.NotNil(t, result.Content)
+	require.Len(t, *result.Content, 1)
+	assert.Equal(t, "user1", (*result.Content)[0].UserId)
+}
+
+func TestProjectsScope_ListAssignableUsers_WithOptions(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		query := r.URL.Query()
+		assert.Equal(t, "0", query.Get("page.page"))
+		assert.Equal(t, "5", query.Get("page.size"))
+		assert.Equal(t, "userId,asc", query.Get("page.sort"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"content": [],
+			"page": {"number": 0, "size": 5, "totalElements": 0, "totalPages": 0}
+		}`))
+	}))
+
+	_, err := c.Projects().ListAssignableUsers(t.Context(), "my_project",
+		client.WithAssignableUserPageNumber(0),
+		client.WithAssignableUserPageSize(5),
+		client.WithAssignableUserSort("userId", "asc"),
+	)
+	require.NoError(t, err)
+}
+
+func TestProjectsScope_ListAssignableUsers_Unauthorized(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusUnauthorized,
+		`{"errorCode": 4001, "message": "Full authentication is required."}`))
+
+	_, err := c.Projects().ListAssignableUsers(t.Context(), "my_project")
+	require.Error(t, err)
+	assert.True(t, client.IsUnauthorized(err))
+}
+
+func TestProjectsScope_ListUsernames_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertMethod(t, r, http.MethodGet)
+		assertPath(t, r, "/api/v1/project/my_project/usernames")
+		assert.Equal(t, "adm", r.URL.Query().Get("filter.cnt.users"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`["admin", "admin2"]`))
+	}))
+
+	result, err := c.Projects().ListUsernames(t.Context(), "my_project", "adm")
+	require.NoError(t, err)
+	require.Len(t, result, 2)
+	assert.Equal(t, "admin", result[0])
+	assert.Equal(t, "admin2", result[1])
+}
+
+func TestProjectsScope_ListUsernames_Unauthorized(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusUnauthorized,
+		`{"errorCode": 4001, "message": "Full authentication is required."}`))
+
+	_, err := c.Projects().ListUsernames(t.Context(), "my_project", "adm")
+	require.Error(t, err)
+	assert.True(t, client.IsUnauthorized(err))
+}
+
+func TestProjectsScope_SearchUsernames_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertMethod(t, r, http.MethodGet)
+		assertPath(t, r, "/api/v1/project/my_project/usernames/search")
+		assert.Equal(t, "admin", r.URL.Query().Get("term"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"content": [
+				{"login": "admin", "fullName": "Admin User"}
+			],
+			"page": {"number": 0, "size": 20, "totalElements": 1, "totalPages": 1}
+		}`))
+	}))
+
+	result, err := c.Projects().SearchUsernames(t.Context(), "my_project", "admin")
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Content)
+	require.Len(t, *result.Content, 1)
+}
+
+func TestProjectsScope_SearchUsernames_WithOptions(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		query := r.URL.Query()
+		assert.Equal(t, "user", query.Get("term"))
+		assert.Equal(t, "0", query.Get("page.page"))
+		assert.Equal(t, "10", query.Get("page.size"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"content": [],
+			"page": {"number": 0, "size": 10, "totalElements": 0, "totalPages": 0}
+		}`))
+	}))
+
+	_, err := c.Projects().SearchUsernames(t.Context(), "my_project", "user",
+		client.WithSearchUsernamesPageNumber(0),
+		client.WithSearchUsernamesPageSize(10),
+	)
+	require.NoError(t, err)
+}
+
+func TestProjectsScope_SearchUsernames_Unauthorized(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusUnauthorized,
+		`{"errorCode": 4001, "message": "Full authentication is required."}`))
+
+	_, err := c.Projects().SearchUsernames(t.Context(), "my_project", "admin")
+	require.Error(t, err)
+	assert.True(t, client.IsUnauthorized(err))
+}
+
+func TestProjectsScope_GetWidgetByCode_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertMethod(t, r, http.MethodGet)
+		assertPath(t, r, "/api/v1/project/my_project/widget/launchesPerUser")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{"result": [{"user": "admin", "count": 5}]}`))
+	}))
+
+	result, err := c.Projects().GetWidgetByCode(t.Context(), "my_project", "launchesPerUser")
+	require.NoError(t, err)
+	assert.Contains(t, result, "result")
+}
+
+func TestProjectsScope_GetWidgetByCode_WithOptions(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "3M", r.URL.Query().Get("interval"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{}`))
+	}))
+
+	_, err := c.Projects().GetWidgetByCode(t.Context(), "my_project", "launchesPerUser",
+		client.WithWidgetInterval("3M"),
+	)
+	require.NoError(t, err)
+}
+
+func TestProjectsScope_GetWidgetByCode_NotFound(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusNotFound,
+		`{"errorCode": 40410, "message": "Widget not found."}`))
+
+	_, err := c.Projects().GetWidgetByCode(t.Context(), "my_project", "nonexistent")
+	require.Error(t, err)
+	assert.True(t, client.IsNotFound(err))
+}
