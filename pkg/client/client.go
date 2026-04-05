@@ -143,6 +143,11 @@ func (c *Client) Integrations() *IntegrationsScope {
 	return &IntegrationsScope{client: c}
 }
 
+// Files returns a FileStorageScope for instance-level file storage operations.
+func (c *Client) Files() *FileStorageScope {
+	return &FileStorageScope{client: c}
+}
+
 // Settings returns a SettingsScope for server-level settings operations.
 func (c *Client) Settings() *SettingsScope {
 	return &SettingsScope{client: c}
