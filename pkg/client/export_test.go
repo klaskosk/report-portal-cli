@@ -26,3 +26,13 @@ var NewTestActivityEventsScope = func(c *Client) *ActivityEventsScope {
 var NewTestInstanceBugTrackingScope = func(c *Client) *InstanceBugTrackingScope {
 	return c.InstanceBugTracking()
 }
+
+// NewTestProjectGroupsScope creates a ProjectGroupsScope for testing without requiring a full Client setup.
+var NewTestProjectGroupsScope = func(c *Client, projectName string) *ProjectGroupsScope {
+	return c.Project(projectName).Groups()
+}
+
+// NewTestLogTypesScope creates a LogTypesScope for testing without requiring a full Client setup.
+var NewTestLogTypesScope = func(c *Client, projectName string) *LogTypesScope {
+	return c.Project(projectName).LogTypes()
+}
