@@ -21,3 +21,8 @@ var NewTestActivityScope = func(c *Client, projectName string) *ActivityScope {
 var NewTestActivityEventsScope = func(c *Client) *ActivityEventsScope {
 	return c.ActivityEvents()
 }
+
+// NewTestInstanceBugTrackingScope creates an InstanceBugTrackingScope for testing without requiring a full Client setup.
+var NewTestInstanceBugTrackingScope = func(c *Client) *InstanceBugTrackingScope {
+	return c.InstanceBugTracking()
+}
