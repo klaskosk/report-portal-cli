@@ -190,6 +190,66 @@ func (d *DashboardScope) AddWidget(
 	return result, nil
 }
 
+// GetConfig retrieves the widget configuration for a specific dashboard.
+// The returned DashboardConfigResource always has a non-nil Widgets slice
+// to avoid nil-pointer surprises for callers.
+func (d *DashboardScope) GetConfig(
+	ctx context.Context,
+	dashboardID int64,
+) (*types.DashboardConfigResource, error) {
+	logger := d.project.operationLogger("GetDashboardConfig", slog.Int64("id", dashboardID))
+	logger.InfoContext(ctx, "API request")
+
+	response, err := d.project.client.raw.GetDashboardConfigWithResponse(
+		ctx,
+		d.project.projectName,
+		dashboardID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get dashboard config: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("get dashboard config: %w", err)
+	}
+
+	if result.Widgets == nil {
+		result.Widgets = &[]types.WidgetConfigResource{}
+	}
+
+	return result, nil
+}
+
+// CreatePreconfigured creates a dashboard from a preconfigured template.
+func (d *DashboardScope) CreatePreconfigured(
+	ctx context.Context,
+	request types.DashboardPreconfiguredRq,
+) (*types.EntryCreatedRS, error) {
+	logger := d.project.operationLogger("CreatePreconfiguredDashboard", slog.String("name", request.Name))
+	logger.InfoContext(ctx, "API request")
+
+	response, err := d.project.client.raw.CreatePreconfiguredWithResponse(
+		ctx,
+		d.project.projectName,
+		request,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("create preconfigured dashboard: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("create preconfigured dashboard: %w", err)
+	}
+
+	return result, nil
+}
+
 // RemoveWidget removes a widget from a dashboard.
 func (d *DashboardScope) RemoveWidget(
 	ctx context.Context,
