@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/klaskosk/report-portal-cli/pkg/types"
 )
@@ -26,16 +25,6 @@ func (s *DemoDataScope) Generate(
 		s.project.projectName,
 		demoDataRequest,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("generate demo data: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("generate demo data: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "generate demo data", response, err)
 }

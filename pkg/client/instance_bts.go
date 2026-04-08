@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 
 	"github.com/klaskosk/report-portal-cli/pkg/internal/api"
@@ -37,18 +36,13 @@ func (s *InstanceBugTrackingScope) GetSystemFields(
 			IssueType: issueType,
 		},
 	)
+
+	result, err := execute(ctx, logger, "get instance bts system fields", response, err)
 	if err != nil {
-		return nil, fmt.Errorf("get instance bts system fields: %w", err)
+		return nil, err
 	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get instance bts system fields: %w", err)
-	}
-
-	if result == nil || *result == nil {
+	if *result == nil {
 		return []types.PostFormField{}, nil
 	}
 
@@ -71,18 +65,13 @@ func (s *InstanceBugTrackingScope) GetAllowableIssueTypes(
 		ctx,
 		integrationID,
 	)
+
+	result, err := execute(ctx, logger, "get instance bts allowable issue types", response, err)
 	if err != nil {
-		return nil, fmt.Errorf("get instance bts allowable issue types: %w", err)
+		return nil, err
 	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get instance bts allowable issue types: %w", err)
-	}
-
-	if result == nil || *result == nil {
+	if *result == nil {
 		return []string{}, nil
 	}
 

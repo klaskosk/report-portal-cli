@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 
 	"github.com/klaskosk/report-portal-cli/pkg/internal/api"
@@ -31,19 +30,10 @@ func (s *BugTrackingScope) GetSystemFields(
 		integrationID,
 		&api.GetSetOfIntegrationSystemFieldsParams{},
 	)
+
+	result, err := execute(ctx, logger, "get bts system fields", response, err)
 	if err != nil {
-		return nil, fmt.Errorf("get bts system fields: %w", err)
-	}
-
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get bts system fields: %w", err)
-	}
-
-	if result == nil {
-		return []types.PostFormField{}, nil
+		return nil, err
 	}
 
 	return *result, nil
@@ -65,19 +55,10 @@ func (s *BugTrackingScope) GetAllowableIssueTypes(
 		s.project.projectName,
 		integrationID,
 	)
+
+	result, err := execute(ctx, logger, "get bts allowable issue types", response, err)
 	if err != nil {
-		return nil, fmt.Errorf("get bts allowable issue types: %w", err)
-	}
-
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get bts allowable issue types: %w", err)
-	}
-
-	if result == nil {
-		return []string{}, nil
+		return nil, err
 	}
 
 	return *result, nil
@@ -107,18 +88,8 @@ func (s *BugTrackingScope) GetTicket(
 			BtsProject: btsProject,
 		},
 	)
-	if err != nil {
-		return nil, fmt.Errorf("get bts ticket: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get bts ticket: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "get bts ticket", response, err)
 }
 
 // CreateIssue creates a new issue in the BTS for the given integration.
@@ -139,18 +110,8 @@ func (s *BugTrackingScope) CreateIssue(
 		integrationID,
 		request,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("create bts issue: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON201, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("create bts issue: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "create bts issue", response, err)
 }
 
 // GetTicketIds returns ticket IDs matching the given term within a launch.
@@ -173,19 +134,10 @@ func (s *BugTrackingScope) GetTicketIds(
 			Term:   term,
 		},
 	)
+
+	result, err := execute(ctx, logger, "get bts ticket ids", response, err)
 	if err != nil {
-		return nil, fmt.Errorf("get bts ticket ids: %w", err)
-	}
-
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get bts ticket ids: %w", err)
-	}
-
-	if result == nil {
-		return []string{}, nil
+		return nil, err
 	}
 
 	return *result, nil
@@ -208,19 +160,10 @@ func (s *BugTrackingScope) GetTicketIdsForProject(
 			Term: term,
 		},
 	)
+
+	result, err := execute(ctx, logger, "get bts ticket ids for project", response, err)
 	if err != nil {
-		return nil, fmt.Errorf("get bts ticket ids for project: %w", err)
-	}
-
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get bts ticket ids for project: %w", err)
-	}
-
-	if result == nil {
-		return []string{}, nil
+		return nil, err
 	}
 
 	return *result, nil
