@@ -23,23 +23,9 @@ func (i *TestItemScope) StartRoot(
 	logger := i.project.operationLogger("StartRootTestItem", slog.String("name", request.Name))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.StartRootItemWithResponse(
-		ctx,
-		i.project.projectName,
-		request,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("start root test item: %w", err)
-	}
+	resp, err := i.project.client.raw.StartRootItemWithResponse(ctx, i.project.projectName, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON201, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("start root test item: %w", err)
-	}
-
-	return result, nil
+	return execute[types.EntryCreatedAsyncRS](ctx, logger, "start root test item", resp, err)
 }
 
 // StartChild creates a child test item under the given parent item's UUID as
@@ -56,24 +42,9 @@ func (i *TestItemScope) StartChild(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.StartChildItem2WithResponse(
-		ctx,
-		i.project.projectName,
-		parentItemUUID,
-		request,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("start child test item: %w", err)
-	}
+	resp, err := i.project.client.raw.StartChildItem2WithResponse(ctx, i.project.projectName, parentItemUUID, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON201, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("start child test item: %w", err)
-	}
-
-	return result, nil
+	return execute[types.EntryCreatedAsyncRS](ctx, logger, "start child test item", resp, err)
 }
 
 // Finish marks an existing test item as finished using the item UUID returned by
@@ -86,24 +57,9 @@ func (i *TestItemScope) Finish(
 	logger := i.project.operationLogger("FinishTestItem", slog.String("itemUuid", itemUUID))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.FinishTestItem2WithResponse(
-		ctx,
-		i.project.projectName,
-		itemUUID,
-		request,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("finish test item: %w", err)
-	}
+	resp, err := i.project.client.raw.FinishTestItem2WithResponse(ctx, i.project.projectName, itemUUID, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("finish test item: %w", err)
-	}
-
-	return result, nil
+	return execute[types.OperationCompletionRS](ctx, logger, "finish test item", resp, err)
 }
 
 // GetByID returns a single test item by its numeric ID.
@@ -114,23 +70,9 @@ func (i *TestItemScope) GetByID(
 	logger := i.project.operationLogger("GetTestItemByID", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.GetTestItemWithResponse(
-		ctx,
-		i.project.projectName,
-		id,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get test item by id: %w", err)
-	}
+	resp, err := i.project.client.raw.GetTestItemWithResponse(ctx, i.project.projectName, id)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get test item by id: %w", err)
-	}
-
-	return result, nil
+	return execute[types.TestItemResource](ctx, logger, "get test item by id", resp, err)
 }
 
 // GetByUUID returns a single test item by its UUID. It prefers the versioned v2
@@ -194,23 +136,9 @@ func (i *TestItemScope) List(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.GetTestItemsWithResponse(
-		ctx,
-		i.project.projectName,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("list test items: %w", err)
-	}
+	resp, err := i.project.client.raw.GetTestItemsWithResponse(ctx, i.project.projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("list test items: %w", err)
-	}
-
-	return result, nil
+	return execute[types.PageTestItemResource](ctx, logger, "list test items", resp, err)
 }
 
 // GetByIDs returns test items for the given numeric IDs.
@@ -228,20 +156,11 @@ func (i *TestItemScope) GetByIDs(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.GetTestItems3WithResponse(
-		ctx,
-		i.project.projectName,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get test items by ids: %w", err)
-	}
+	resp, err := i.project.client.raw.GetTestItems3WithResponse(ctx, i.project.projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	items, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	items, err := execute[[]types.TestItemResource](ctx, logger, "get test items by ids", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("get test items by ids: %w", err)
+		return nil, err
 	}
 
 	if items == nil {
@@ -260,24 +179,9 @@ func (i *TestItemScope) Update(
 	logger := i.project.operationLogger("UpdateTestItem", slog.Int64("itemId", itemID))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.UpdateTestItemWithResponse(
-		ctx,
-		i.project.projectName,
-		itemID,
-		request,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("update test item: %w", err)
-	}
+	resp, err := i.project.client.raw.UpdateTestItemWithResponse(ctx, i.project.projectName, itemID, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("update test item: %w", err)
-	}
-
-	return result, nil
+	return execute[types.OperationCompletionRS](ctx, logger, "update test item", resp, err)
 }
 
 // Delete removes a single test item by its numeric ID.
@@ -288,23 +192,9 @@ func (i *TestItemScope) Delete(
 	logger := i.project.operationLogger("DeleteTestItem", slog.Int64("itemId", itemID))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.DeleteTestItemWithResponse(
-		ctx,
-		i.project.projectName,
-		itemID,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("delete test item: %w", err)
-	}
+	resp, err := i.project.client.raw.DeleteTestItemWithResponse(ctx, i.project.projectName, itemID)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("delete test item: %w", err)
-	}
-
-	return result, nil
+	return execute[types.OperationCompletionRS](ctx, logger, "delete test item", resp, err)
 }
 
 // DefineIssueType bulk-updates the defect classification on multiple test items.
@@ -315,20 +205,11 @@ func (i *TestItemScope) DefineIssueType(
 	logger := i.project.operationLogger("DefineTestItemIssueType")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.DefineTestItemIssueTypeWithResponse(
-		ctx,
-		i.project.projectName,
-		request,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("define test item issue type: %w", err)
-	}
+	resp, err := i.project.client.raw.DefineTestItemIssueTypeWithResponse(ctx, i.project.projectName, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	issues, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	issues, err := execute[[]types.Issue](ctx, logger, "define test item issue type", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("define test item issue type: %w", err)
+		return nil, err
 	}
 
 	if issues == nil {
@@ -346,20 +227,11 @@ func (i *TestItemScope) DeleteBulk(
 	logger := i.project.operationLogger("DeleteTestItemsBulk")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.DeleteTestItemsWithResponse(
-		ctx,
-		i.project.projectName,
-		&api.DeleteTestItemsParams{Ids: ids},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("delete test items bulk: %w", err)
-	}
+	resp, err := i.project.client.raw.DeleteTestItemsWithResponse(ctx, i.project.projectName, &api.DeleteTestItemsParams{Ids: ids})
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	results, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	results, err := execute[[]types.OperationCompletionRS](ctx, logger, "delete test items bulk", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("delete test items bulk: %w", err)
+		return nil, err
 	}
 
 	if results == nil {
@@ -377,23 +249,9 @@ func (i *TestItemScope) BulkUpdate(
 	logger := i.project.operationLogger("BulkUpdateTestItems")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.BulkUpdate1WithResponse(
-		ctx,
-		i.project.projectName,
-		request,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("bulk update test items: %w", err)
-	}
+	resp, err := i.project.client.raw.BulkUpdate1WithResponse(ctx, i.project.projectName, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("bulk update test items: %w", err)
-	}
-
-	return result, nil
+	return execute[types.OperationCompletionRS](ctx, logger, "bulk update test items", resp, err)
 }
 
 // GetAttributeKeys returns unique test item attribute keys within a specific launch.
@@ -417,20 +275,11 @@ func (i *TestItemScope) GetAttributeKeys(
 		Launch:                &launch,
 	}
 
-	response, err := i.project.client.raw.GetUniqueAttributeKeysWithResponse(
-		ctx,
-		i.project.projectName,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get item attribute keys: %w", err)
-	}
+	resp, err := i.project.client.raw.GetUniqueAttributeKeysWithResponse(ctx, i.project.projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	keys, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	keys, err := execute[[]string](ctx, logger, "get item attribute keys", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("get item attribute keys: %w", err)
+		return nil, err
 	}
 
 	if keys == nil {
@@ -492,20 +341,11 @@ func (i *TestItemScope) GetAttributeKeysForProject(
 		option.applyGetAttributeKeysForProject(params)
 	}
 
-	response, err := i.project.client.raw.GetAttributeKeysForProjectWithResponse(
-		ctx,
-		i.project.projectName,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get item attribute keys for project: %w", err)
-	}
+	resp, err := i.project.client.raw.GetAttributeKeysForProjectWithResponse(ctx, i.project.projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	keys, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	keys, err := execute[[]string](ctx, logger, "get item attribute keys for project", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("get item attribute keys for project: %w", err)
+		return nil, err
 	}
 
 	if keys == nil {
@@ -543,20 +383,11 @@ func (i *TestItemScope) GetAttributeValues(
 		Launch:                  &launch,
 	}
 
-	response, err := i.project.client.raw.GetAttributeValues2WithResponse(
-		ctx,
-		i.project.projectName,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get item attribute values: %w", err)
-	}
+	resp, err := i.project.client.raw.GetAttributeValues2WithResponse(ctx, i.project.projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	values, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	values, err := execute[[]string](ctx, logger, "get item attribute values", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("get item attribute values: %w", err)
+		return nil, err
 	}
 
 	if values == nil {
@@ -589,20 +420,11 @@ func (i *TestItemScope) GetStepAttributeKeys(
 		FilterEqName:          stepName,
 	}
 
-	response, err := i.project.client.raw.GetAttributeKeys1WithResponse(
-		ctx,
-		i.project.projectName,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get step attribute keys: %w", err)
-	}
+	resp, err := i.project.client.raw.GetAttributeKeys1WithResponse(ctx, i.project.projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	keys, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	keys, err := execute[[]string](ctx, logger, "get step attribute keys", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("get step attribute keys: %w", err)
+		return nil, err
 	}
 
 	if keys == nil {
@@ -642,20 +464,11 @@ func (i *TestItemScope) GetStepAttributeValues(
 		FilterEqName:            stepName,
 	}
 
-	response, err := i.project.client.raw.GetAttributeValues1WithResponse(
-		ctx,
-		i.project.projectName,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get step attribute values: %w", err)
-	}
+	resp, err := i.project.client.raw.GetAttributeValues1WithResponse(ctx, i.project.projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	values, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	values, err := execute[[]string](ctx, logger, "get step attribute values", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("get step attribute values: %w", err)
+		return nil, err
 	}
 
 	if values == nil {
@@ -691,23 +504,9 @@ func (i *TestItemScope) Search(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.GetTestItems2WithResponse(
-		ctx,
-		i.project.projectName,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("search test items: %w", err)
-	}
+	resp, err := i.project.client.raw.GetTestItems2WithResponse(ctx, i.project.projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("search test items: %w", err)
-	}
-
-	return result, nil
+	return execute[types.PageTestItemResource](ctx, logger, "search test items", resp, err)
 }
 
 // WithSearchItemName filters search results by a contains-match on item name.
@@ -779,23 +578,9 @@ func (i *TestItemScope) ListV2(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.GetTestItemsV2WithResponse(
-		ctx,
-		i.project.projectName,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("list test items v2: %w", err)
-	}
+	resp, err := i.project.client.raw.GetTestItemsV2WithResponse(ctx, i.project.projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("list test items v2: %w", err)
-	}
-
-	return result, nil
+	return execute[types.PageTestItemResource](ctx, logger, "list test items v2", resp, err)
 }
 
 // WithItemV2PageNumber sets the page number (0-based) for v2 list results.
@@ -954,23 +739,9 @@ func (i *TestItemScope) GetHistory(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.GetItemsHistoryWithResponse(
-		ctx,
-		i.project.projectName,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get items history: %w", err)
-	}
+	resp, err := i.project.client.raw.GetItemsHistoryWithResponse(ctx, i.project.projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get items history: %w", err)
-	}
-
-	return result, nil
+	return execute[types.PageTestItemHistoryElement](ctx, logger, "get items history", resp, err)
 }
 
 // WithHistoryDepth sets the number of previous launches to include in history.
@@ -1070,23 +841,9 @@ func (i *TestItemScope) GetStatistics(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.GetTestItems1WithResponse(
-		ctx,
-		i.project.projectName,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get test item statistics: %w", err)
-	}
+	resp, err := i.project.client.raw.GetTestItems1WithResponse(ctx, i.project.projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get test item statistics: %w", err)
-	}
-
-	return result, nil
+	return execute[types.StatisticsResource](ctx, logger, "get test item statistics", resp, err)
 }
 
 // WithStatisticsLaunchID filters statistics by launch ID.
@@ -1141,20 +898,11 @@ func (i *TestItemScope) GetSuggestedItems(
 	logger := i.project.operationLogger("GetSuggestedItems", slog.Int64("itemId", itemID))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.GetSuggestedItemsWithResponse(
-		ctx,
-		i.project.projectName,
-		itemID,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get suggested items: %w", err)
-	}
+	resp, err := i.project.client.raw.GetSuggestedItemsWithResponse(ctx, i.project.projectName, itemID)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	items, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	items, err := execute[[]types.SuggestedItem](ctx, logger, "get suggested items", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("get suggested items: %w", err)
+		return nil, err
 	}
 
 	if items == nil {
@@ -1175,20 +923,11 @@ func (i *TestItemScope) GetSuggestedClusterItems(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.GetSuggestedClusterItemsWithResponse(
-		ctx,
-		i.project.projectName,
-		clusterID,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get suggested cluster items: %w", err)
-	}
+	resp, err := i.project.client.raw.GetSuggestedClusterItemsWithResponse(ctx, i.project.projectName, clusterID)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	items, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	items, err := execute[[]types.SuggestedItem](ctx, logger, "get suggested cluster items", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("get suggested cluster items: %w", err)
+		return nil, err
 	}
 
 	if items == nil {
@@ -1206,23 +945,9 @@ func (i *TestItemScope) HandleSuggestChoice(
 	logger := i.project.operationLogger("HandleSuggestChoice")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.HandleSuggestChooseWithResponse(
-		ctx,
-		i.project.projectName,
-		choices,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("handle suggest choice: %w", err)
-	}
+	resp, err := i.project.client.raw.HandleSuggestChooseWithResponse(ctx, i.project.projectName, choices)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("handle suggest choice: %w", err)
-	}
-
-	return result, nil
+	return execute[types.OperationCompletionRS](ctx, logger, "handle suggest choice", resp, err)
 }
 
 // LinkExternalIssues links external bug tracking system issues to test items.
@@ -1233,20 +958,11 @@ func (i *TestItemScope) LinkExternalIssues(
 	logger := i.project.operationLogger("LinkExternalIssues")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.LinkExternalIssuesWithResponse(
-		ctx,
-		i.project.projectName,
-		request,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("link external issues: %w", err)
-	}
+	resp, err := i.project.client.raw.LinkExternalIssuesWithResponse(ctx, i.project.projectName, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	results, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	results, err := execute[[]types.OperationCompletionRS](ctx, logger, "link external issues", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("link external issues: %w", err)
+		return nil, err
 	}
 
 	if results == nil {
@@ -1264,20 +980,11 @@ func (i *TestItemScope) UnlinkExternalIssues(
 	logger := i.project.operationLogger("UnlinkExternalIssues")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := i.project.client.raw.UnlinkExternalIssuesWithResponse(
-		ctx,
-		i.project.projectName,
-		request,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("unlink external issues: %w", err)
-	}
+	resp, err := i.project.client.raw.UnlinkExternalIssuesWithResponse(ctx, i.project.projectName, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	results, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	results, err := execute[[]types.OperationCompletionRS](ctx, logger, "unlink external issues", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("unlink external issues: %w", err)
+		return nil, err
 	}
 
 	if results == nil {
