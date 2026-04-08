@@ -13,6 +13,8 @@ output-options:
   name-normalizer: ToCamelCaseWithDigits
   overlay:
     path: overlay.openapi.yaml
+  user-templates:
+    client-with-responses.tmpl: templates/client-with-responses.tmpl
 
 import-mapping:
   components.openapi.yaml: github.com/klaskosk/report-portal-cli/pkg/types
