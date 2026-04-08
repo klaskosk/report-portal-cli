@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 
 	"github.com/klaskosk/report-portal-cli/pkg/types"
@@ -20,16 +19,11 @@ func (s *SettingsScope) GetServerSettings(ctx context.Context) (map[string]strin
 	logger := s.client.logger.With(slog.String("operation", "GetServerSettings"))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.client.raw.GetServerSettingsWithResponse(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("get server settings: %w", err)
-	}
+	resp, err := s.client.raw.GetServerSettingsWithResponse(ctx)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	result, err := execute[map[string]string](ctx, logger, "get server settings", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("get server settings: %w", err)
+		return nil, err
 	}
 
 	if result == nil {
@@ -48,19 +42,9 @@ func (s *SettingsScope) UpdateAnalytics(
 	logger := s.client.logger.With(slog.String("operation", "UpdateAnalytics"))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.client.raw.SaveAnalyticsSettingsWithResponse(ctx, analyticsConfig)
-	if err != nil {
-		return nil, fmt.Errorf("update analytics settings: %w", err)
-	}
+	resp, err := s.client.raw.SaveAnalyticsSettingsWithResponse(ctx, analyticsConfig)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("update analytics settings: %w", err)
-	}
-
-	return result, nil
+	return execute[types.OperationCompletionRS](ctx, logger, "update analytics settings", resp, err)
 }
 
 // UpdateServerSettings updates a single server setting by key.
@@ -72,17 +56,7 @@ func (s *SettingsScope) UpdateServerSettings(
 	logger := s.client.logger.With(slog.String("operation", "UpdateServerSettings"))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.client.raw.UpdateServerSettingsWithResponse(ctx, request)
-	if err != nil {
-		return nil, fmt.Errorf("update server settings: %w", err)
-	}
+	resp, err := s.client.raw.UpdateServerSettingsWithResponse(ctx, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("update server settings: %w", err)
-	}
-
-	return result, nil
+	return execute[types.OperationCompletionRS](ctx, logger, "update server settings", resp, err)
 }
