@@ -1,0 +1,207 @@
+package client_test
+
+import (
+	"encoding/json"
+	"io"
+	"net/http"
+	"testing"
+
+	"github.com/klaskosk/report-portal-cli/pkg/client"
+	"github.com/klaskosk/report-portal-cli/pkg/types"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestLogTypesScope_List_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/projects/my_project/log-types")
+		assertMethod(t, r, http.MethodGet)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"items": [
+				{"id": 1, "name": "INFO", "level": 20000, "is_filterable": true, "is_system": true},
+				{"id": 2, "name": "CUSTOM", "level": 50000, "is_filterable": false, "is_system": false}
+			]
+		}`))
+	}))
+
+	result, err := c.Project("my_project").LogTypes().List(t.Context())
+	require.NoError(t, err)
+	require.Len(t, result, 2)
+	assert.Equal(t, int64(1), *result[0].Id)
+	assert.Equal(t, "INFO", result[0].Name)
+	assert.Equal(t, int32(20000), result[0].Level)
+	assert.True(t, result[0].IsFilterable)
+	assert.Equal(t, true, *result[0].IsSystem)
+}
+
+func TestLogTypesScope_List_Empty(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"items": []}`))
+	}))
+
+	result, err := c.Project("my_project").LogTypes().List(t.Context())
+	require.NoError(t, err)
+	assert.Empty(t, result)
+	assert.NotNil(t, result)
+}
+
+func TestLogTypesScope_List_NilItems(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{}`))
+	}))
+
+	result, err := c.Project("my_project").LogTypes().List(t.Context())
+	require.NoError(t, err)
+	assert.Empty(t, result)
+	assert.NotNil(t, result)
+}
+
+func TestLogTypesScope_List_Unauthorized(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusUnauthorized,
+		`{"errorCode": 4001, "message": "Full authentication is required."}`))
+
+	_, err := c.Project("my_project").LogTypes().List(t.Context())
+	require.Error(t, err)
+	assert.True(t, client.IsUnauthorized(err))
+}
+
+func TestLogTypesScope_Create_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertMethod(t, r, http.MethodPost)
+		assertPath(t, r, "/api/projects/my_project/log-types")
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var req types.LogTypeRequest
+		require.NoError(t, json.Unmarshal(body, &req))
+		assert.Equal(t, "CUSTOM", req.Name)
+		assert.Equal(t, int32(50000), req.Level)
+		assert.True(t, req.IsFilterable)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{
+			"id": 10,
+			"name": "CUSTOM",
+			"level": 50000,
+			"is_filterable": true,
+			"is_system": false
+		}`))
+	}))
+
+	result, err := c.Project("my_project").LogTypes().Create(t.Context(), types.LogTypeRequest{
+		Name:         "CUSTOM",
+		Level:        50000,
+		IsFilterable: true,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, int64(10), *result.Id)
+	assert.Equal(t, "CUSTOM", result.Name)
+	assert.Equal(t, int32(50000), result.Level)
+}
+
+func TestLogTypesScope_Create_Forbidden(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusForbidden,
+		`{"errorCode": 4003, "message": "You do not have enough permissions."}`))
+
+	_, err := c.Project("my_project").LogTypes().Create(t.Context(), types.LogTypeRequest{
+		Name:  "CUSTOM",
+		Level: 50000,
+	})
+	require.Error(t, err)
+	assert.True(t, client.IsForbidden(err))
+}
+
+func TestLogTypesScope_Update_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertMethod(t, r, http.MethodPut)
+		assertPath(t, r, "/api/projects/my_project/log-types/10")
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var req types.LogTypeRequest
+		require.NoError(t, json.Unmarshal(body, &req))
+		assert.Equal(t, "UPDATED", req.Name)
+		assert.Equal(t, int32(60000), req.Level)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message": "Log type has been updated successfully."}`))
+	}))
+
+	result, err := c.Project("my_project").LogTypes().Update(t.Context(), 10, types.LogTypeRequest{
+		Name:  "UPDATED",
+		Level: 60000,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, "Log type has been updated successfully.", *result.Message)
+}
+
+func TestLogTypesScope_Update_NotFound(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusNotFound,
+		`{"errorCode": 40410, "message": "Log type not found."}`))
+
+	_, err := c.Project("my_project").LogTypes().Update(t.Context(), 999, types.LogTypeRequest{
+		Name:  "UPDATED",
+		Level: 60000,
+	})
+	require.Error(t, err)
+	assert.True(t, client.IsNotFound(err))
+}
+
+func TestLogTypesScope_Delete_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertMethod(t, r, http.MethodDelete)
+		assertPath(t, r, "/api/projects/my_project/log-types/10")
+
+		w.WriteHeader(http.StatusNoContent)
+	}))
+
+	err := c.Project("my_project").LogTypes().Delete(t.Context(), 10)
+	require.NoError(t, err)
+}
+
+func TestLogTypesScope_Delete_NotFound(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusNotFound,
+		`{"errorCode": 40410, "message": "Log type not found."}`))
+
+	err := c.Project("my_project").LogTypes().Delete(t.Context(), 999)
+	require.Error(t, err)
+	assert.True(t, client.IsNotFound(err))
+}

@@ -128,8 +128,8 @@ func TestHandleResponse_NonJSONErrorPreservesBody(t *testing.T) {
 func TestHandleResponse_2xxWithNilJSON(t *testing.T) {
 	t.Parallel()
 
-	// 204 No Content still falls under the nil check in this client, because
-	// Report Portal doesn't actually return 204s in any supported endpoints.
+	// 204 No Content falls through to the nil-success check in handleResponse.
+	// Endpoints returning 204 should use handleVoidResponse instead.
 	resp := fakeResponse{statusCode: 204, JSON200: nil}
 
 	got, err := handleResponse(resp, resp.JSONDefault, resp.JSON200, resp.Body)

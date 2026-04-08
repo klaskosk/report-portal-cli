@@ -63,6 +63,16 @@ func (p *ProjectScope) Activities() *ActivityScope {
 	return &ActivityScope{project: p}
 }
 
+// Groups returns a ProjectGroupsScope for managing group-project associations in this project.
+func (p *ProjectScope) Groups() *ProjectGroupsScope {
+	return &ProjectGroupsScope{project: p}
+}
+
+// LogTypes returns a LogTypesScope for managing log types in this project.
+func (p *ProjectScope) LogTypes() *LogTypesScope {
+	return &LogTypesScope{project: p}
+}
+
 // logger returns a logger scoped to this project.
 func (p *ProjectScope) logger() *slog.Logger {
 	return p.client.logger.With("project", p.projectName)
