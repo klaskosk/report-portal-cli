@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"strings"
 
@@ -24,23 +23,9 @@ func (a *ActivityScope) GetByID(
 	logger := a.project.operationLogger("GetActivityByID", slog.Int64("activityId", activityID))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := a.project.client.raw.GetActivityWithResponse(
-		ctx,
-		a.project.projectName,
-		activityID,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get activity by id: %w", err)
-	}
+	resp, err := a.project.client.raw.GetActivityWithResponse(ctx, a.project.projectName, activityID)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get activity by id: %w", err)
-	}
-
-	return result, nil
+	return execute[types.ActivityResource](ctx, logger, "get activity by id", resp, err)
 }
 
 // ListForItem returns a paginated list of activity events for a specific test item.
@@ -58,24 +43,9 @@ func (a *ActivityScope) ListForItem(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := a.project.client.raw.GetTestItemActivitiesWithResponse(
-		ctx,
-		a.project.projectName,
-		itemID,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("list activities for item: %w", err)
-	}
+	resp, err := a.project.client.raw.GetTestItemActivitiesWithResponse(ctx, a.project.projectName, itemID, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("list activities for item: %w", err)
-	}
-
-	return result, nil
+	return execute[types.PageActivityEventResource](ctx, logger, "list activities for item", resp, err)
 }
 
 // ListActivitiesOption configures the filter and pagination parameters for listing item activities.

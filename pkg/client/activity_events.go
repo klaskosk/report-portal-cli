@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 
 	"github.com/klaskosk/report-portal-cli/pkg/internal/api"
@@ -37,23 +36,9 @@ func (a *ActivityEventsScope) Search(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := a.client.raw.GetActivitiesWithResponse(
-		ctx,
-		params,
-		criteria,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("search activity events: %w", err)
-	}
+	resp, err := a.client.raw.GetActivitiesWithResponse(ctx, params, criteria)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("search activity events: %w", err)
-	}
-
-	return result, nil
+	return execute[types.PagedResponseActivityEventResource](ctx, logger, "search activity events", resp, err)
 }
 
 // GetProjectSubjectNames returns the subject names (users) that have generated
@@ -71,20 +56,11 @@ func (a *ActivityEventsScope) GetProjectSubjectNames(
 
 	params := &api.GetProjectSubjectNameParams{}
 
-	response, err := a.client.raw.GetProjectSubjectNameWithResponse(
-		ctx,
-		projectName,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get project subject names: %w", err)
-	}
+	resp, err := a.client.raw.GetProjectSubjectNameWithResponse(ctx, projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	result, err := execute[[]string](ctx, logger, "get project subject names", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("get project subject names: %w", err)
+		return nil, err
 	}
 
 	if result == nil {

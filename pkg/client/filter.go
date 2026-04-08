@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"strings"
 
@@ -29,23 +28,9 @@ func (f *UserFilterScope) List(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := f.project.client.raw.GetAllFiltersWithResponse(
-		ctx,
-		f.project.projectName,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("list filters: %w", err)
-	}
+	resp, err := f.project.client.raw.GetAllFiltersWithResponse(ctx, f.project.projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("list filters: %w", err)
-	}
-
-	return result, nil
+	return execute[types.PageUserFilterResource](ctx, logger, "list filters", resp, err)
 }
 
 // GetByID returns a single filter by its numeric ID.
@@ -56,23 +41,9 @@ func (f *UserFilterScope) GetByID(
 	logger := f.project.operationLogger("GetFilterByID", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := f.project.client.raw.GetFilterWithResponse(
-		ctx,
-		f.project.projectName,
-		id,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get filter by id: %w", err)
-	}
+	resp, err := f.project.client.raw.GetFilterWithResponse(ctx, f.project.projectName, id)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get filter by id: %w", err)
-	}
-
-	return result, nil
+	return execute[types.UserFilterResource](ctx, logger, "get filter by id", resp, err)
 }
 
 // Create creates a new filter in the project. The API uses UpdateUserFilterRQ as the
@@ -84,23 +55,9 @@ func (f *UserFilterScope) Create(
 	logger := f.project.operationLogger("CreateFilter")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := f.project.client.raw.CreateFilterWithResponse(
-		ctx,
-		f.project.projectName,
-		request,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("create filter: %w", err)
-	}
+	resp, err := f.project.client.raw.CreateFilterWithResponse(ctx, f.project.projectName, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON201, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("create filter: %w", err)
-	}
-
-	return result, nil
+	return execute[types.EntryCreatedRS](ctx, logger, "create filter", resp, err)
 }
 
 // Update modifies an existing filter.
@@ -112,24 +69,9 @@ func (f *UserFilterScope) Update(
 	logger := f.project.operationLogger("UpdateFilter", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := f.project.client.raw.UpdateUserFilterWithResponse(
-		ctx,
-		f.project.projectName,
-		id,
-		request,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("update filter: %w", err)
-	}
+	resp, err := f.project.client.raw.UpdateUserFilterWithResponse(ctx, f.project.projectName, id, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("update filter: %w", err)
-	}
-
-	return result, nil
+	return execute[types.OperationCompletionRS](ctx, logger, "update filter", resp, err)
 }
 
 // Delete removes a filter by its numeric ID.
@@ -140,23 +82,9 @@ func (f *UserFilterScope) Delete(
 	logger := f.project.operationLogger("DeleteFilter", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := f.project.client.raw.DeleteFilterWithResponse(
-		ctx,
-		f.project.projectName,
-		id,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("delete filter: %w", err)
-	}
+	resp, err := f.project.client.raw.DeleteFilterWithResponse(ctx, f.project.projectName, id)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("delete filter: %w", err)
-	}
-
-	return result, nil
+	return execute[types.OperationCompletionRS](ctx, logger, "delete filter", resp, err)
 }
 
 // GetByIds returns multiple filters by their numeric IDs.
@@ -167,22 +95,17 @@ func (f *UserFilterScope) GetByIds(
 	logger := f.project.operationLogger("GetFiltersByIds")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := f.project.client.raw.GetUserFiltersWithResponse(
+	resp, err := f.project.client.raw.GetUserFiltersWithResponse(
 		ctx,
 		f.project.projectName,
 		&api.GetUserFiltersParams{
 			Ids: ids,
 		},
 	)
-	if err != nil {
-		return nil, fmt.Errorf("get filters by ids: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	result, err := execute[[]types.UserFilterResource](ctx, logger, "get filters by ids", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("get filters by ids: %w", err)
+		return nil, err
 	}
 
 	if result == nil {
@@ -207,20 +130,11 @@ func (f *UserFilterScope) GetNames(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := f.project.client.raw.GetAllFiltersNamesWithResponse(
-		ctx,
-		f.project.projectName,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get filter names: %w", err)
-	}
+	resp, err := f.project.client.raw.GetAllFiltersNamesWithResponse(ctx, f.project.projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	result, err := execute[types.PageOwnedEntityResource](ctx, logger, "get filter names", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("get filter names: %w", err)
+		return nil, err
 	}
 
 	if result == nil {
@@ -243,20 +157,11 @@ func (f *UserFilterScope) BulkUpdate(
 	logger := f.project.operationLogger("BulkUpdateFilters")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := f.project.client.raw.UpdateUserFiltersWithResponse(
-		ctx,
-		f.project.projectName,
-		request,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("bulk update filters: %w", err)
-	}
+	resp, err := f.project.client.raw.UpdateUserFiltersWithResponse(ctx, f.project.projectName, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	result, err := execute[[]types.OperationCompletionRS](ctx, logger, "bulk update filters", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("bulk update filters: %w", err)
+		return nil, err
 	}
 
 	if result == nil || *result == nil {
