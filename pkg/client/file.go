@@ -76,18 +76,8 @@ func (s *FileStorageScope) UploadPhoto(ctx context.Context, filename string, dat
 	}
 
 	response, err := s.client.raw.UploadPhotoWithBodyWithResponse(ctx, contentType, body)
-	if err != nil {
-		return nil, fmt.Errorf("upload photo: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("upload photo: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "upload photo", response, err)
 }
 
 // DeletePhoto deletes the current user's profile photo.
@@ -96,18 +86,8 @@ func (s *FileStorageScope) DeletePhoto(ctx context.Context) (*types.OperationCom
 	logger.InfoContext(ctx, "API request")
 
 	response, err := s.client.raw.DeletePhotoWithResponse(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("delete photo: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("delete photo: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "delete photo", response, err)
 }
 
 // CleanAttachments removes attachments referenced in a CSV file. The filename
@@ -122,18 +102,8 @@ func (s *FileStorageScope) CleanAttachments(ctx context.Context, filename string
 	}
 
 	response, err := s.client.raw.RemoveAttachmentsByCsvWithBodyWithResponse(ctx, contentType, body)
-	if err != nil {
-		return nil, fmt.Errorf("clean attachments: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("clean attachments: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "clean attachments", response, err)
 }
 
 // GetUserPhotoOption configures optional parameters for GetUserPhoto.

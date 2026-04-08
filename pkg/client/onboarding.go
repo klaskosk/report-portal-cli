@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 
 	"github.com/klaskosk/report-portal-cli/pkg/internal/api"
@@ -24,18 +23,13 @@ func (s *OnboardingScope) GetStatus(ctx context.Context, page *string) (map[stri
 	}
 
 	response, err := s.client.raw.OnBoardingWithResponse(ctx, params)
+
+	result, err := execute(ctx, logger, "get onboarding status", response, err)
 	if err != nil {
-		return nil, fmt.Errorf("get onboarding status: %w", err)
+		return nil, err
 	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get onboarding status: %w", err)
-	}
-
-	if result == nil {
+	if *result == nil {
 		return map[string]any{}, nil
 	}
 
