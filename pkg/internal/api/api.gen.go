@@ -27206,6 +27206,21 @@ func (r GetGroupsResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetGroupsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetGroupsResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetGroupsResponse) GetSuccess() *externalRef0.GroupPage {
+	return r.JSON200
+}
+
 type CreateGroupResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -27229,6 +27244,21 @@ func (r CreateGroupResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r CreateGroupResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r CreateGroupResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r CreateGroupResponse) GetSuccess() *externalRef0.GroupInfo {
+	return r.JSON201
 }
 
 type DeleteGroupResponse struct {
@@ -27255,6 +27285,16 @@ func (r DeleteGroupResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r DeleteGroupResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r DeleteGroupResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
 type GetGroupByIdResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -27278,6 +27318,21 @@ func (r GetGroupByIdResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetGroupByIdResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetGroupByIdResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetGroupByIdResponse) GetSuccess() *externalRef0.GroupInfo {
+	return r.JSON200
 }
 
 type UpdateGroupResponse struct {
@@ -27306,6 +27361,21 @@ func (r UpdateGroupResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r UpdateGroupResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r UpdateGroupResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r UpdateGroupResponse) GetSuccess() *externalRef0.SuccessfulUpdate {
+	return r.JSON200
+}
+
 type GetGroupProjectsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -27331,6 +27401,21 @@ func (r GetGroupProjectsResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetGroupProjectsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetGroupProjectsResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetGroupProjectsResponse) GetSuccess() *externalRef0.GroupProjectsPage {
+	return r.JSON200
+}
+
 type DeleteProjectFromGroupByIdResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -27353,6 +27438,16 @@ func (r DeleteProjectFromGroupByIdResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r DeleteProjectFromGroupByIdResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r DeleteProjectFromGroupByIdResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
 }
 
 type GetGroupProjectByIdResponse struct {
@@ -27380,6 +27475,21 @@ func (r GetGroupProjectByIdResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetGroupProjectByIdResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetGroupProjectByIdResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetGroupProjectByIdResponse) GetSuccess() *externalRef0.GroupProjectInfo {
+	return r.JSON200
+}
+
 type AddProjectToGroupByIdResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -27403,6 +27513,21 @@ func (r AddProjectToGroupByIdResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r AddProjectToGroupByIdResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r AddProjectToGroupByIdResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r AddProjectToGroupByIdResponse) GetSuccess() *externalRef0.SuccessfulUpdate {
+	return r.JSON200
 }
 
 type GetGroupUsersResponse struct {
@@ -27430,6 +27555,21 @@ func (r GetGroupUsersResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetGroupUsersResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetGroupUsersResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetGroupUsersResponse) GetSuccess() *externalRef0.GroupUsersPage {
+	return r.JSON200
+}
+
 type DeleteUserFromGroupByIdResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -27452,6 +27592,16 @@ func (r DeleteUserFromGroupByIdResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r DeleteUserFromGroupByIdResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r DeleteUserFromGroupByIdResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
 }
 
 type GetGroupUserByIdResponse struct {
@@ -27479,6 +27629,21 @@ func (r GetGroupUserByIdResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetGroupUserByIdResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetGroupUserByIdResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetGroupUserByIdResponse) GetSuccess() *externalRef0.GroupUserInfo {
+	return r.JSON200
+}
+
 type AddUserToGroupByIdResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -27502,6 +27667,21 @@ func (r AddUserToGroupByIdResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r AddUserToGroupByIdResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r AddUserToGroupByIdResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r AddUserToGroupByIdResponse) GetSuccess() *externalRef0.SuccessfulUpdate {
+	return r.JSON200
 }
 
 type GetGroupsOfProjectResponse struct {
@@ -27529,6 +27709,21 @@ func (r GetGroupsOfProjectResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetGroupsOfProjectResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetGroupsOfProjectResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetGroupsOfProjectResponse) GetSuccess() *externalRef0.ProjectGroupsPage {
+	return r.JSON200
+}
+
 type DeleteGroupFromProjectByIdResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -27551,6 +27746,16 @@ func (r DeleteGroupFromProjectByIdResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r DeleteGroupFromProjectByIdResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r DeleteGroupFromProjectByIdResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
 }
 
 type GetProjectGroupByIdResponse struct {
@@ -27578,6 +27783,21 @@ func (r GetProjectGroupByIdResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetProjectGroupByIdResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetProjectGroupByIdResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetProjectGroupByIdResponse) GetSuccess() *externalRef0.ProjectGroupInfo {
+	return r.JSON200
+}
+
 type AddGroupToProjectByIdResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -27601,6 +27821,21 @@ func (r AddGroupToProjectByIdResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r AddGroupToProjectByIdResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r AddGroupToProjectByIdResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r AddGroupToProjectByIdResponse) GetSuccess() *externalRef0.SuccessfulUpdate {
+	return r.JSON200
 }
 
 type GetLogTypesResponse struct {
@@ -27628,6 +27863,21 @@ func (r GetLogTypesResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetLogTypesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetLogTypesResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetLogTypesResponse) GetSuccess() *externalRef0.GetLogTypes200Response {
+	return r.JSON200
+}
+
 type CreateLogTypeResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -27653,6 +27903,21 @@ func (r CreateLogTypeResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r CreateLogTypeResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r CreateLogTypeResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r CreateLogTypeResponse) GetSuccess() *externalRef0.LogTypeResponse {
+	return r.JSON200
+}
+
 type DeleteLogTypeByIdResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -27675,6 +27940,16 @@ func (r DeleteLogTypeByIdResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r DeleteLogTypeByIdResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r DeleteLogTypeByIdResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
 }
 
 type UpdateLogTypeByIdResponse struct {
@@ -27702,6 +27977,21 @@ func (r UpdateLogTypeByIdResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r UpdateLogTypeByIdResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r UpdateLogTypeByIdResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r UpdateLogTypeByIdResponse) GetSuccess() *externalRef0.SuccessfulUpdate {
+	return r.JSON200
+}
+
 type DeleteUsersResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -27723,6 +28013,21 @@ func (r DeleteUsersResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r DeleteUsersResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r DeleteUsersResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r DeleteUsersResponse) GetSuccess() *externalRef0.DeleteBulkRS {
+	return r.JSON200
 }
 
 type GetMyselfResponse struct {
@@ -27748,6 +28053,21 @@ func (r GetMyselfResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetMyselfResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetMyselfResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetMyselfResponse) GetSuccess() *externalRef0.UserResource {
+	return r.JSON200
+}
+
 type CreateUserByAdminResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -27769,6 +28089,21 @@ func (r CreateUserByAdminResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r CreateUserByAdminResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r CreateUserByAdminResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r CreateUserByAdminResponse) GetSuccess() *externalRef0.CreateUserRS {
+	return r.JSON201
 }
 
 type GetMyself1Response struct {
@@ -27794,6 +28129,21 @@ func (r GetMyself1Response) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetMyself1Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetMyself1Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetMyself1Response) GetSuccess() *externalRef0.UserResource {
+	return r.JSON200
+}
+
 type GetUsersResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -27815,6 +28165,21 @@ func (r GetUsersResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetUsersResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetUsersResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetUsersResponse) GetSuccess() *externalRef0.PageUserResource {
+	return r.JSON200
 }
 
 type CreateUserBidResponse struct {
@@ -27840,6 +28205,21 @@ func (r CreateUserBidResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r CreateUserBidResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r CreateUserBidResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r CreateUserBidResponse) GetSuccess() *externalRef0.CreateUserBidRS {
+	return r.JSON201
+}
+
 type ExportResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -27860,6 +28240,16 @@ func (r ExportResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r ExportResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r ExportResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
 }
 
 type ChangePasswordResponse struct {
@@ -27885,6 +28275,21 @@ func (r ChangePasswordResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r ChangePasswordResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r ChangePasswordResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r ChangePasswordResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type ResetPasswordResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -27906,6 +28311,21 @@ func (r ResetPasswordResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r ResetPasswordResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r ResetPasswordResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r ResetPasswordResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type IsRestorePasswordBidExistResponse struct {
@@ -27931,6 +28351,21 @@ func (r IsRestorePasswordBidExistResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r IsRestorePasswordBidExistResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r IsRestorePasswordBidExistResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r IsRestorePasswordBidExistResponse) GetSuccess() *externalRef0.YesNoRS {
+	return r.JSON200
+}
+
 type RestorePasswordResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -27952,6 +28387,21 @@ func (r RestorePasswordResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r RestorePasswordResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r RestorePasswordResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r RestorePasswordResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type GetUserBidInfoResponse struct {
@@ -27977,6 +28427,21 @@ func (r GetUserBidInfoResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetUserBidInfoResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetUserBidInfoResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetUserBidInfoResponse) GetSuccess() *externalRef0.UserBidRS {
+	return r.JSON200
+}
+
 type CreateUserResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -27998,6 +28463,21 @@ func (r CreateUserResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r CreateUserResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r CreateUserResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r CreateUserResponse) GetSuccess() *externalRef0.CreateUserRS {
+	return r.JSON201
 }
 
 type FindUsersResponse struct {
@@ -28023,6 +28503,21 @@ func (r FindUsersResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r FindUsersResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r FindUsersResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r FindUsersResponse) GetSuccess() *externalRef0.PageUserResource {
+	return r.JSON200
+}
+
 type DeleteUserResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -28044,6 +28539,21 @@ func (r DeleteUserResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r DeleteUserResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r DeleteUserResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r DeleteUserResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type GetUserResponse struct {
@@ -28069,6 +28579,21 @@ func (r GetUserResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetUserResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetUserResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetUserResponse) GetSuccess() *externalRef0.UserResource {
+	return r.JSON200
+}
+
 type EditUserResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -28090,6 +28615,21 @@ func (r EditUserResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r EditUserResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r EditUserResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r EditUserResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type GetUsersApiKeysResponse struct {
@@ -28115,6 +28655,21 @@ func (r GetUsersApiKeysResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetUsersApiKeysResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetUsersApiKeysResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetUsersApiKeysResponse) GetSuccess() *externalRef0.ApiKeysRS {
+	return r.JSON200
+}
+
 type CreateApiKeyResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -28136,6 +28691,21 @@ func (r CreateApiKeyResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r CreateApiKeyResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r CreateApiKeyResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r CreateApiKeyResponse) GetSuccess() *externalRef0.ApiKeyRS {
+	return r.JSON201
 }
 
 type DeleteApiKeyResponse struct {
@@ -28161,6 +28731,21 @@ func (r DeleteApiKeyResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r DeleteApiKeyResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r DeleteApiKeyResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r DeleteApiKeyResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type GetUserProjectsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -28182,6 +28767,21 @@ func (r GetUserProjectsResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetUserProjectsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetUserProjectsResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetUserProjectsResponse) GetSuccess() *map[string]externalRef0.AssignedProject {
+	return r.JSON200
 }
 
 type GetActivitiesResponse struct {
@@ -28207,6 +28807,21 @@ func (r GetActivitiesResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetActivitiesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetActivitiesResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetActivitiesResponse) GetSuccess() *externalRef0.PagedResponseActivityEventResource {
+	return r.JSON200
+}
+
 type GetProjectSubjectNameResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -28228,6 +28843,21 @@ func (r GetProjectSubjectNameResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetProjectSubjectNameResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetProjectSubjectNameResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetProjectSubjectNameResponse) GetSuccess() *[]string {
+	return r.JSON200
 }
 
 type GetSetOfIntegrationSystemFields1Response struct {
@@ -28253,6 +28883,21 @@ func (r GetSetOfIntegrationSystemFields1Response) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetSetOfIntegrationSystemFields1Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetSetOfIntegrationSystemFields1Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetSetOfIntegrationSystemFields1Response) GetSuccess() *[]externalRef0.PostFormField {
+	return r.JSON200
+}
+
 type GetAllowableIssueTypes1Response struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -28274,6 +28919,21 @@ func (r GetAllowableIssueTypes1Response) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetAllowableIssueTypes1Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetAllowableIssueTypes1Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetAllowableIssueTypes1Response) GetSuccess() *[]string {
+	return r.JSON200
 }
 
 type GetTicketResponse struct {
@@ -28299,6 +28959,21 @@ func (r GetTicketResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetTicketResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetTicketResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetTicketResponse) GetSuccess() *externalRef0.Ticket {
+	return r.JSON200
+}
+
 type GetSetOfIntegrationSystemFieldsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -28320,6 +28995,21 @@ func (r GetSetOfIntegrationSystemFieldsResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetSetOfIntegrationSystemFieldsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetSetOfIntegrationSystemFieldsResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetSetOfIntegrationSystemFieldsResponse) GetSuccess() *[]externalRef0.PostFormField {
+	return r.JSON200
 }
 
 type GetAllowableIssueTypesResponse struct {
@@ -28345,6 +29035,21 @@ func (r GetAllowableIssueTypesResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetAllowableIssueTypesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetAllowableIssueTypesResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetAllowableIssueTypesResponse) GetSuccess() *[]string {
+	return r.JSON200
+}
+
 type CreateIssueResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -28366,6 +29071,21 @@ func (r CreateIssueResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r CreateIssueResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r CreateIssueResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r CreateIssueResponse) GetSuccess() *externalRef0.Ticket {
+	return r.JSON201
 }
 
 type RemoveAttachmentsByCsvResponse struct {
@@ -28391,6 +29111,21 @@ func (r RemoveAttachmentsByCsvResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r RemoveAttachmentsByCsvResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r RemoveAttachmentsByCsvResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r RemoveAttachmentsByCsvResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type DeletePhotoResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -28414,6 +29149,21 @@ func (r DeletePhotoResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r DeletePhotoResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r DeletePhotoResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r DeletePhotoResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type GetMyPhotoResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -28434,6 +29184,16 @@ func (r GetMyPhotoResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetMyPhotoResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetMyPhotoResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
 }
 
 type UploadPhotoResponse struct {
@@ -28459,6 +29219,21 @@ func (r UploadPhotoResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r UploadPhotoResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r UploadPhotoResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r UploadPhotoResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type GetUserPhotoResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -28481,6 +29256,16 @@ func (r GetUserPhotoResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetUserPhotoResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetUserPhotoResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
 type GetFileResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -28501,6 +29286,16 @@ func (r GetFileResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetFileResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetFileResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
 }
 
 type GenerateResponse struct {
@@ -28526,6 +29321,21 @@ func (r GenerateResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GenerateResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GenerateResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GenerateResponse) GetSuccess() *externalRef0.DemoDataRs {
+	return r.JSON200
+}
+
 type DeleteAllIntegrationsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -28547,6 +29357,21 @@ func (r DeleteAllIntegrationsResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r DeleteAllIntegrationsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r DeleteAllIntegrationsResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r DeleteAllIntegrationsResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type GetGlobalIntegrations1Response struct {
@@ -28572,6 +29397,21 @@ func (r GetGlobalIntegrations1Response) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetGlobalIntegrations1Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetGlobalIntegrations1Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetGlobalIntegrations1Response) GetSuccess() *[]externalRef0.IntegrationResource {
+	return r.JSON200
+}
+
 type GetGlobalIntegrations2Response struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -28593,6 +29433,21 @@ func (r GetGlobalIntegrations2Response) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetGlobalIntegrations2Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetGlobalIntegrations2Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetGlobalIntegrations2Response) GetSuccess() *[]externalRef0.IntegrationResource {
+	return r.JSON200
 }
 
 type GetGlobalIntegrationsResponse struct {
@@ -28618,6 +29473,21 @@ func (r GetGlobalIntegrationsResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetGlobalIntegrationsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetGlobalIntegrationsResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetGlobalIntegrationsResponse) GetSuccess() *[]externalRef0.IntegrationResource {
+	return r.JSON200
+}
+
 type GetProjectIntegrationsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -28639,6 +29509,21 @@ func (r GetProjectIntegrationsResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetProjectIntegrationsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetProjectIntegrationsResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetProjectIntegrationsResponse) GetSuccess() *[]externalRef0.IntegrationResource {
+	return r.JSON200
 }
 
 type GetProjectIntegrations1Response struct {
@@ -28664,6 +29549,21 @@ func (r GetProjectIntegrations1Response) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetProjectIntegrations1Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetProjectIntegrations1Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetProjectIntegrations1Response) GetSuccess() *[]externalRef0.IntegrationResource {
+	return r.JSON200
+}
+
 type DeleteGlobalIntegrationResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -28685,6 +29585,21 @@ func (r DeleteGlobalIntegrationResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r DeleteGlobalIntegrationResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r DeleteGlobalIntegrationResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r DeleteGlobalIntegrationResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type GetGlobalIntegrationResponse struct {
@@ -28710,6 +29625,21 @@ func (r GetGlobalIntegrationResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetGlobalIntegrationResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetGlobalIntegrationResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetGlobalIntegrationResponse) GetSuccess() *externalRef0.IntegrationResource {
+	return r.JSON200
+}
+
 type UpdateGlobalIntegrationResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -28731,6 +29661,21 @@ func (r UpdateGlobalIntegrationResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r UpdateGlobalIntegrationResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r UpdateGlobalIntegrationResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r UpdateGlobalIntegrationResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type TestIntegrationConnection1Response struct {
@@ -28756,6 +29701,21 @@ func (r TestIntegrationConnection1Response) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r TestIntegrationConnection1Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r TestIntegrationConnection1Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r TestIntegrationConnection1Response) GetSuccess() *bool {
+	return r.JSON200
+}
+
 type CreateGlobalIntegrationResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -28777,6 +29737,21 @@ func (r CreateGlobalIntegrationResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r CreateGlobalIntegrationResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r CreateGlobalIntegrationResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r CreateGlobalIntegrationResponse) GetSuccess() *externalRef0.EntryCreatedRS {
+	return r.JSON201
 }
 
 type DeleteAllProjectIntegrationsResponse struct {
@@ -28802,6 +29777,21 @@ func (r DeleteAllProjectIntegrationsResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r DeleteAllProjectIntegrationsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r DeleteAllProjectIntegrationsResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r DeleteAllProjectIntegrationsResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type DeleteProjectIntegrationResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -28823,6 +29813,21 @@ func (r DeleteProjectIntegrationResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r DeleteProjectIntegrationResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r DeleteProjectIntegrationResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r DeleteProjectIntegrationResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type GetProjectIntegrationResponse struct {
@@ -28848,6 +29853,21 @@ func (r GetProjectIntegrationResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetProjectIntegrationResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetProjectIntegrationResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetProjectIntegrationResponse) GetSuccess() *externalRef0.IntegrationResource {
+	return r.JSON200
+}
+
 type UpdateProjectIntegrationResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -28869,6 +29889,21 @@ func (r UpdateProjectIntegrationResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r UpdateProjectIntegrationResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r UpdateProjectIntegrationResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r UpdateProjectIntegrationResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type TestIntegrationConnectionResponse struct {
@@ -28894,6 +29929,21 @@ func (r TestIntegrationConnectionResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r TestIntegrationConnectionResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r TestIntegrationConnectionResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r TestIntegrationConnectionResponse) GetSuccess() *bool {
+	return r.JSON200
+}
+
 type ExecuteIntegrationCommandResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -28915,6 +29965,21 @@ func (r ExecuteIntegrationCommandResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r ExecuteIntegrationCommandResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r ExecuteIntegrationCommandResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r ExecuteIntegrationCommandResponse) GetSuccess() *map[string]interface{} {
+	return r.JSON200
 }
 
 type CreateProjectIntegrationResponse struct {
@@ -28940,6 +30005,21 @@ func (r CreateProjectIntegrationResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r CreateProjectIntegrationResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r CreateProjectIntegrationResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r CreateProjectIntegrationResponse) GetSuccess() *externalRef0.EntryCreatedRS {
+	return r.JSON201
+}
+
 type OnBoardingResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -28961,6 +30041,21 @@ func (r OnBoardingResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r OnBoardingResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r OnBoardingResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r OnBoardingResponse) GetSuccess() *map[string]interface{} {
+	return r.JSON200
 }
 
 type GetPluginsResponse struct {
@@ -28986,6 +30081,21 @@ func (r GetPluginsResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetPluginsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetPluginsResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetPluginsResponse) GetSuccess() *[]externalRef0.IntegrationTypeResource {
+	return r.JSON200
+}
+
 type UploadPluginResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -29007,6 +30117,21 @@ func (r UploadPluginResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r UploadPluginResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r UploadPluginResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r UploadPluginResponse) GetSuccess() *externalRef0.EntryCreatedRS {
+	return r.JSON201
 }
 
 type GetPlugins1Response struct {
@@ -29032,6 +30157,21 @@ func (r GetPlugins1Response) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetPlugins1Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetPlugins1Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetPlugins1Response) GetSuccess() *[]externalRef0.IntegrationTypeResource {
+	return r.JSON200
+}
+
 type GetPublicFileResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -29052,6 +30192,16 @@ func (r GetPublicFileResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetPublicFileResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetPublicFileResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
 }
 
 type ExecutePublicPluginCommandResponse struct {
@@ -29077,6 +30227,21 @@ func (r ExecutePublicPluginCommandResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r ExecutePublicPluginCommandResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r ExecutePublicPluginCommandResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r ExecutePublicPluginCommandResponse) GetSuccess() *map[string]interface{} {
+	return r.JSON200
+}
+
 type DeletePluginResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -29098,6 +30263,21 @@ func (r DeletePluginResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r DeletePluginResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r DeletePluginResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r DeletePluginResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type UpdatePluginStateResponse struct {
@@ -29123,6 +30303,21 @@ func (r UpdatePluginStateResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r UpdatePluginStateResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r UpdatePluginStateResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r UpdatePluginStateResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type ExecutePluginCommandResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -29144,6 +30339,21 @@ func (r ExecutePluginCommandResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r ExecutePluginCommandResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r ExecutePluginCommandResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r ExecutePluginCommandResponse) GetSuccess() *map[string]interface{} {
+	return r.JSON200
 }
 
 type ExecuteImportPluginCommandResponse struct {
@@ -29169,6 +30379,21 @@ func (r ExecuteImportPluginCommandResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r ExecuteImportPluginCommandResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r ExecuteImportPluginCommandResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r ExecuteImportPluginCommandResponse) GetSuccess() *map[string]interface{} {
+	return r.JSON200
+}
+
 type DeleteProjectResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -29190,6 +30415,21 @@ func (r DeleteProjectResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r DeleteProjectResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r DeleteProjectResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r DeleteProjectResponse) GetSuccess() *externalRef0.DeleteBulkRS {
+	return r.JSON200
 }
 
 type CreateProjectResponse struct {
@@ -29215,6 +30455,21 @@ func (r CreateProjectResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r CreateProjectResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r CreateProjectResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r CreateProjectResponse) GetSuccess() *externalRef0.EntryCreatedRS {
+	return r.JSON201
+}
+
 type GetAnalyzerIndexingStatusResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -29238,6 +30493,21 @@ func (r GetAnalyzerIndexingStatusResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetAnalyzerIndexingStatusResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetAnalyzerIndexingStatusResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetAnalyzerIndexingStatusResponse) GetSuccess() *map[string]bool {
+	return r.JSON200
+}
+
 type ExportProjectsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -29258,6 +30528,16 @@ func (r ExportProjectsResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r ExportProjectsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r ExportProjectsResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
 }
 
 type GetAllProjectsInfoResponse struct {
@@ -29283,6 +30563,21 @@ func (r GetAllProjectsInfoResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetAllProjectsInfoResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetAllProjectsInfoResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetAllProjectsInfoResponse) GetSuccess() *externalRef0.PageProjectInfoResource {
+	return r.JSON200
+}
+
 type GetProjectInfoResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -29304,6 +30599,21 @@ func (r GetProjectInfoResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetProjectInfoResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetProjectInfoResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetProjectInfoResponse) GetSuccess() *externalRef0.ProjectInfoResource {
+	return r.JSON200
 }
 
 type GetAllProjectNamesResponse struct {
@@ -29329,6 +30639,21 @@ func (r GetAllProjectNamesResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetAllProjectNamesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetAllProjectNamesResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetAllProjectNamesResponse) GetSuccess() *[]string {
+	return r.JSON200
+}
+
 type SearchProjectNamesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -29350,6 +30675,21 @@ func (r SearchProjectNamesResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r SearchProjectNamesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r SearchProjectNamesResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r SearchProjectNamesResponse) GetSuccess() *[]string {
+	return r.JSON200
 }
 
 type DeleteProject1Response struct {
@@ -29375,6 +30715,21 @@ func (r DeleteProject1Response) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r DeleteProject1Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r DeleteProject1Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r DeleteProject1Response) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type GetProjectResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -29396,6 +30751,21 @@ func (r GetProjectResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetProjectResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetProjectResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetProjectResponse) GetSuccess() *externalRef0.ProjectResource {
+	return r.JSON200
 }
 
 type UpdateProjectResponse struct {
@@ -29421,6 +30791,21 @@ func (r UpdateProjectResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r UpdateProjectResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r UpdateProjectResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r UpdateProjectResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type AssignProjectUsersResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -29442,6 +30827,21 @@ func (r AssignProjectUsersResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r AssignProjectUsersResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r AssignProjectUsersResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r AssignProjectUsersResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type GetUsersForAssignResponse struct {
@@ -29467,6 +30867,21 @@ func (r GetUsersForAssignResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetUsersForAssignResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetUsersForAssignResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetUsersForAssignResponse) GetSuccess() *externalRef0.PageUserResource {
+	return r.JSON200
+}
+
 type DeleteProjectIndexResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -29488,6 +30903,21 @@ func (r DeleteProjectIndexResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r DeleteProjectIndexResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r DeleteProjectIndexResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r DeleteProjectIndexResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type IndexProjectDataResponse struct {
@@ -29513,6 +30943,21 @@ func (r IndexProjectDataResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r IndexProjectDataResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r IndexProjectDataResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r IndexProjectDataResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type UpdateProjectNotificationConfigResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -29534,6 +30979,21 @@ func (r UpdateProjectNotificationConfigResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r UpdateProjectNotificationConfigResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r UpdateProjectNotificationConfigResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r UpdateProjectNotificationConfigResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type GetUserPreferenceResponse struct {
@@ -29559,6 +31019,21 @@ func (r GetUserPreferenceResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetUserPreferenceResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetUserPreferenceResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetUserPreferenceResponse) GetSuccess() *externalRef0.PreferenceResource {
+	return r.JSON200
+}
+
 type GetUserPreference1Response struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -29580,6 +31055,21 @@ func (r GetUserPreference1Response) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetUserPreference1Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetUserPreference1Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetUserPreference1Response) GetSuccess() *externalRef0.PreferenceResource {
+	return r.JSON200
 }
 
 type RemoveUserPreferenceResponse struct {
@@ -29605,6 +31095,21 @@ func (r RemoveUserPreferenceResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r RemoveUserPreferenceResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r RemoveUserPreferenceResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r RemoveUserPreferenceResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type AddUserPreferenceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -29626,6 +31131,21 @@ func (r AddUserPreferenceResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r AddUserPreferenceResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r AddUserPreferenceResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r AddUserPreferenceResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type UnassignProjectUsersResponse struct {
@@ -29651,6 +31171,21 @@ func (r UnassignProjectUsersResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r UnassignProjectUsersResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r UnassignProjectUsersResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r UnassignProjectUsersResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type GetProjectUsers1Response struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -29672,6 +31207,21 @@ func (r GetProjectUsers1Response) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetProjectUsers1Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetProjectUsers1Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetProjectUsers1Response) GetSuccess() *[]string {
+	return r.JSON200
 }
 
 type SearchForUserResponse struct {
@@ -29697,6 +31247,21 @@ func (r SearchForUserResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r SearchForUserResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r SearchForUserResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r SearchForUserResponse) GetSuccess() *externalRef0.PageSearchUserResource {
+	return r.JSON200
+}
+
 type GetProjectUsersResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -29718,6 +31283,21 @@ func (r GetProjectUsersResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetProjectUsersResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetProjectUsersResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetProjectUsersResponse) GetSuccess() *externalRef0.PageUserResource {
+	return r.JSON200
 }
 
 type GetProjectWidgetResponse struct {
@@ -29743,6 +31323,21 @@ func (r GetProjectWidgetResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetProjectWidgetResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetProjectWidgetResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetProjectWidgetResponse) GetSuccess() *map[string]interface{} {
+	return r.JSON200
+}
+
 type GetServerSettingsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -29764,6 +31359,21 @@ func (r GetServerSettingsResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetServerSettingsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetServerSettingsResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetServerSettingsResponse) GetSuccess() *map[string]string {
+	return r.JSON200
 }
 
 type UpdateServerSettingsResponse struct {
@@ -29789,6 +31399,21 @@ func (r UpdateServerSettingsResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r UpdateServerSettingsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r UpdateServerSettingsResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r UpdateServerSettingsResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type SaveAnalyticsSettingsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -29812,6 +31437,21 @@ func (r SaveAnalyticsSettingsResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r SaveAnalyticsSettingsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r SaveAnalyticsSettingsResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r SaveAnalyticsSettingsResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type SaveAnalyticsSettings1Response struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -29833,6 +31473,21 @@ func (r SaveAnalyticsSettings1Response) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r SaveAnalyticsSettings1Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r SaveAnalyticsSettings1Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r SaveAnalyticsSettings1Response) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type GetTestItemActivitiesResponse struct {
@@ -29859,6 +31514,21 @@ func (r GetTestItemActivitiesResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetTestItemActivitiesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetTestItemActivitiesResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetTestItemActivitiesResponse) GetSuccess() *externalRef0.PageActivityEventResource {
+	return r.JSON200
+}
+
 type GetActivityResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -29881,6 +31551,21 @@ func (r GetActivityResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetActivityResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetActivityResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetActivityResponse) GetSuccess() *externalRef0.ActivityResource {
+	return r.JSON200
 }
 
 type GetAllDashboardsResponse struct {
@@ -29906,6 +31591,21 @@ func (r GetAllDashboardsResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetAllDashboardsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetAllDashboardsResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetAllDashboardsResponse) GetSuccess() *externalRef0.PageDashboardResource {
+	return r.JSON200
+}
+
 type CreateDashboardResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -29927,6 +31627,21 @@ func (r CreateDashboardResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r CreateDashboardResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r CreateDashboardResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r CreateDashboardResponse) GetSuccess() *externalRef0.EntryCreatedRS {
+	return r.JSON201
 }
 
 type CreatePreconfiguredResponse struct {
@@ -29952,6 +31667,21 @@ func (r CreatePreconfiguredResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r CreatePreconfiguredResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r CreatePreconfiguredResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r CreatePreconfiguredResponse) GetSuccess() *externalRef0.EntryCreatedRS {
+	return r.JSON200
+}
+
 type DeleteDashboardResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -29973,6 +31703,21 @@ func (r DeleteDashboardResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r DeleteDashboardResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r DeleteDashboardResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r DeleteDashboardResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type GetDashboardResponse struct {
@@ -29998,6 +31743,21 @@ func (r GetDashboardResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetDashboardResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetDashboardResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetDashboardResponse) GetSuccess() *externalRef0.DashboardResource {
+	return r.JSON200
+}
+
 type UpdateDashboardResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -30019,6 +31779,21 @@ func (r UpdateDashboardResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r UpdateDashboardResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r UpdateDashboardResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r UpdateDashboardResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type AddWidgetResponse struct {
@@ -30044,6 +31819,21 @@ func (r AddWidgetResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r AddWidgetResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r AddWidgetResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r AddWidgetResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type GetDashboardConfigResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -30065,6 +31855,21 @@ func (r GetDashboardConfigResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetDashboardConfigResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetDashboardConfigResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetDashboardConfigResponse) GetSuccess() *externalRef0.DashboardConfigResource {
+	return r.JSON200
 }
 
 type RemoveWidgetResponse struct {
@@ -30090,6 +31895,21 @@ func (r RemoveWidgetResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r RemoveWidgetResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r RemoveWidgetResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r RemoveWidgetResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type GetAllFiltersResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -30111,6 +31931,21 @@ func (r GetAllFiltersResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetAllFiltersResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetAllFiltersResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetAllFiltersResponse) GetSuccess() *externalRef0.PageUserFilterResource {
+	return r.JSON200
 }
 
 type CreateFilterResponse struct {
@@ -30136,6 +31971,21 @@ func (r CreateFilterResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r CreateFilterResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r CreateFilterResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r CreateFilterResponse) GetSuccess() *externalRef0.EntryCreatedRS {
+	return r.JSON201
+}
+
 type UpdateUserFiltersResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -30157,6 +32007,21 @@ func (r UpdateUserFiltersResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r UpdateUserFiltersResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r UpdateUserFiltersResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r UpdateUserFiltersResponse) GetSuccess() *[]externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type GetUserFiltersResponse struct {
@@ -30182,6 +32047,21 @@ func (r GetUserFiltersResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetUserFiltersResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetUserFiltersResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetUserFiltersResponse) GetSuccess() *[]externalRef0.UserFilterResource {
+	return r.JSON200
+}
+
 type GetAllFiltersNamesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -30203,6 +32083,21 @@ func (r GetAllFiltersNamesResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetAllFiltersNamesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetAllFiltersNamesResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetAllFiltersNamesResponse) GetSuccess() *externalRef0.PageOwnedEntityResource {
+	return r.JSON200
 }
 
 type DeleteFilterResponse struct {
@@ -30228,6 +32123,21 @@ func (r DeleteFilterResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r DeleteFilterResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r DeleteFilterResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r DeleteFilterResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type GetFilterResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -30249,6 +32159,21 @@ func (r GetFilterResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetFilterResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetFilterResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetFilterResponse) GetSuccess() *externalRef0.UserFilterResource {
+	return r.JSON200
 }
 
 type UpdateUserFilterResponse struct {
@@ -30274,6 +32199,21 @@ func (r UpdateUserFilterResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r UpdateUserFilterResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r UpdateUserFilterResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r UpdateUserFilterResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type DeleteTestItemsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -30295,6 +32235,21 @@ func (r DeleteTestItemsResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r DeleteTestItemsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r DeleteTestItemsResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r DeleteTestItemsResponse) GetSuccess() *[]externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type GetTestItemsResponse struct {
@@ -30320,6 +32275,21 @@ func (r GetTestItemsResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetTestItemsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetTestItemsResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetTestItemsResponse) GetSuccess() *externalRef0.PageTestItemResource {
+	return r.JSON200
+}
+
 type StartRootItemResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -30341,6 +32311,21 @@ func (r StartRootItemResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r StartRootItemResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r StartRootItemResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r StartRootItemResponse) GetSuccess() *externalRef0.EntryCreatedAsyncRS {
+	return r.JSON201
 }
 
 type DefineTestItemIssueTypeResponse struct {
@@ -30366,6 +32351,21 @@ func (r DefineTestItemIssueTypeResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r DefineTestItemIssueTypeResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r DefineTestItemIssueTypeResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r DefineTestItemIssueTypeResponse) GetSuccess() *[]externalRef0.Issue {
+	return r.JSON200
+}
+
 type StartRootItem3Response struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -30387,6 +32387,21 @@ func (r StartRootItem3Response) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r StartRootItem3Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r StartRootItem3Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r StartRootItem3Response) GetSuccess() *externalRef0.EntryCreatedAsyncRS {
+	return r.JSON201
 }
 
 type GetUniqueAttributeKeysResponse struct {
@@ -30412,6 +32427,21 @@ func (r GetUniqueAttributeKeysResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetUniqueAttributeKeysResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetUniqueAttributeKeysResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetUniqueAttributeKeysResponse) GetSuccess() *[]string {
+	return r.JSON200
+}
+
 type GetAttributeKeysForProjectResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -30433,6 +32463,21 @@ func (r GetAttributeKeysForProjectResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetAttributeKeysForProjectResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetAttributeKeysForProjectResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetAttributeKeysForProjectResponse) GetSuccess() *[]string {
+	return r.JSON200
 }
 
 type GetAttributeValues2Response struct {
@@ -30458,6 +32503,21 @@ func (r GetAttributeValues2Response) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetAttributeValues2Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetAttributeValues2Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetAttributeValues2Response) GetSuccess() *[]string {
+	return r.JSON200
+}
+
 type GetItemsHistoryResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -30479,6 +32539,21 @@ func (r GetItemsHistoryResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetItemsHistoryResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetItemsHistoryResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetItemsHistoryResponse) GetSuccess() *externalRef0.PageTestItemHistoryElement {
+	return r.JSON200
 }
 
 type BulkUpdate1Response struct {
@@ -30504,6 +32579,21 @@ func (r BulkUpdate1Response) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r BulkUpdate1Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r BulkUpdate1Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r BulkUpdate1Response) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type LinkExternalIssuesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -30525,6 +32615,21 @@ func (r LinkExternalIssuesResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r LinkExternalIssuesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r LinkExternalIssuesResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r LinkExternalIssuesResponse) GetSuccess() *[]externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type UnlinkExternalIssuesResponse struct {
@@ -30550,6 +32655,21 @@ func (r UnlinkExternalIssuesResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r UnlinkExternalIssuesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r UnlinkExternalIssuesResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r UnlinkExternalIssuesResponse) GetSuccess() *[]externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type GetTestItems3Response struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -30571,6 +32691,21 @@ func (r GetTestItems3Response) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetTestItems3Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetTestItems3Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetTestItems3Response) GetSuccess() *[]externalRef0.TestItemResource {
+	return r.JSON200
 }
 
 type GetTestItems2Response struct {
@@ -30596,6 +32731,21 @@ func (r GetTestItems2Response) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetTestItems2Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetTestItems2Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetTestItems2Response) GetSuccess() *externalRef0.PageTestItemResource {
+	return r.JSON200
+}
+
 type GetTestItems1Response struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -30617,6 +32767,21 @@ func (r GetTestItems1Response) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetTestItems1Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetTestItems1Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetTestItems1Response) GetSuccess() *externalRef0.StatisticsResource {
+	return r.JSON200
 }
 
 type GetAttributeKeys1Response struct {
@@ -30642,6 +32807,21 @@ func (r GetAttributeKeys1Response) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetAttributeKeys1Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetAttributeKeys1Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetAttributeKeys1Response) GetSuccess() *[]string {
+	return r.JSON200
+}
+
 type GetAttributeValues1Response struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -30663,6 +32843,21 @@ func (r GetAttributeValues1Response) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetAttributeValues1Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetAttributeValues1Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetAttributeValues1Response) GetSuccess() *[]string {
+	return r.JSON200
 }
 
 type HandleSuggestChooseResponse struct {
@@ -30688,6 +32883,21 @@ func (r HandleSuggestChooseResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r HandleSuggestChooseResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r HandleSuggestChooseResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r HandleSuggestChooseResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type GetSuggestedClusterItemsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -30709,6 +32919,21 @@ func (r GetSuggestedClusterItemsResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetSuggestedClusterItemsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetSuggestedClusterItemsResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetSuggestedClusterItemsResponse) GetSuccess() *[]externalRef0.SuggestedItem {
+	return r.JSON200
 }
 
 type GetSuggestedItemsResponse struct {
@@ -30734,6 +32959,21 @@ func (r GetSuggestedItemsResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetSuggestedItemsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetSuggestedItemsResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetSuggestedItemsResponse) GetSuccess() *[]externalRef0.SuggestedItem {
+	return r.JSON200
+}
+
 type GetTicketIdsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -30757,6 +32997,21 @@ func (r GetTicketIdsResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetTicketIdsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetTicketIdsResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetTicketIdsResponse) GetSuccess() *[]string {
+	return r.JSON200
+}
+
 type GetTicketIdsForProjectResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -30778,6 +33033,21 @@ func (r GetTicketIdsForProjectResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetTicketIdsForProjectResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetTicketIdsForProjectResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetTicketIdsForProjectResponse) GetSuccess() *[]string {
+	return r.JSON200
 }
 
 type GetTestItemByUuidTimestampResponse struct {
@@ -30804,6 +33074,16 @@ func (r GetTestItemByUuidTimestampResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetTestItemByUuidTimestampResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetTestItemByUuidTimestampResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
 type GetTestItemsV2Response struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -30825,6 +33105,21 @@ func (r GetTestItemsV2Response) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetTestItemsV2Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetTestItemsV2Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetTestItemsV2Response) GetSuccess() *externalRef0.PageTestItemResource {
+	return r.JSON200
 }
 
 type DeleteTestItemResponse struct {
@@ -30850,6 +33145,21 @@ func (r DeleteTestItemResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r DeleteTestItemResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r DeleteTestItemResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r DeleteTestItemResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type GetTestItemResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -30871,6 +33181,21 @@ func (r GetTestItemResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetTestItemResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetTestItemResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetTestItemResponse) GetSuccess() *externalRef0.TestItemResource {
+	return r.JSON200
 }
 
 type UpdateTestItemResponse struct {
@@ -30896,6 +33221,21 @@ func (r UpdateTestItemResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r UpdateTestItemResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r UpdateTestItemResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r UpdateTestItemResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type StartChildItem2Response struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -30917,6 +33257,21 @@ func (r StartChildItem2Response) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r StartChildItem2Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r StartChildItem2Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r StartChildItem2Response) GetSuccess() *externalRef0.EntryCreatedAsyncRS {
+	return r.JSON201
 }
 
 type StartChildItem3Response struct {
@@ -30942,6 +33297,21 @@ func (r StartChildItem3Response) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r StartChildItem3Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r StartChildItem3Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r StartChildItem3Response) GetSuccess() *externalRef0.EntryCreatedAsyncRS {
+	return r.JSON201
+}
+
 type FinishTestItem2Response struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -30963,6 +33333,21 @@ func (r FinishTestItem2Response) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r FinishTestItem2Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r FinishTestItem2Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r FinishTestItem2Response) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type FinishTestItem3Response struct {
@@ -30988,6 +33373,21 @@ func (r FinishTestItem3Response) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r FinishTestItem3Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r FinishTestItem3Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r FinishTestItem3Response) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type DeleteLaunchesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -31009,6 +33409,21 @@ func (r DeleteLaunchesResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r DeleteLaunchesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r DeleteLaunchesResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r DeleteLaunchesResponse) GetSuccess() *externalRef0.DeleteBulkRS {
+	return r.JSON200
 }
 
 type GetProjectLaunchesResponse struct {
@@ -31034,6 +33449,21 @@ func (r GetProjectLaunchesResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetProjectLaunchesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetProjectLaunchesResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetProjectLaunchesResponse) GetSuccess() *externalRef0.PageLaunchResource {
+	return r.JSON200
+}
+
 type StartLaunch1Response struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -31055,6 +33485,21 @@ func (r StartLaunch1Response) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r StartLaunch1Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r StartLaunch1Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r StartLaunch1Response) GetSuccess() *externalRef0.StartLaunchRS {
+	return r.JSON201
 }
 
 type StartLaunchAnalyzerResponse struct {
@@ -31080,6 +33525,21 @@ func (r StartLaunchAnalyzerResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r StartLaunchAnalyzerResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r StartLaunchAnalyzerResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r StartLaunchAnalyzerResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type GetAttributeKeysResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -31101,6 +33561,21 @@ func (r GetAttributeKeysResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetAttributeKeysResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetAttributeKeysResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetAttributeKeysResponse) GetSuccess() *[]string {
+	return r.JSON200
 }
 
 type GetAttributeValuesResponse struct {
@@ -31126,6 +33601,21 @@ func (r GetAttributeValuesResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetAttributeValuesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetAttributeValuesResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetAttributeValuesResponse) GetSuccess() *[]string {
+	return r.JSON200
+}
+
 type CreateClustersResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -31147,6 +33637,21 @@ func (r CreateClustersResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r CreateClustersResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r CreateClustersResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r CreateClustersResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type GetClustersResponse struct {
@@ -31172,6 +33677,21 @@ func (r GetClustersResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetClustersResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetClustersResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetClustersResponse) GetSuccess() *externalRef0.PageClusterInfoResource {
+	return r.JSON200
+}
+
 type CompareLaunchesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -31193,6 +33713,21 @@ func (r CompareLaunchesResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r CompareLaunchesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r CompareLaunchesResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r CompareLaunchesResponse) GetSuccess() *map[string][]externalRef0.ChartStatisticsContent {
+	return r.JSON200
 }
 
 type BulkUpdateResponse struct {
@@ -31218,6 +33753,21 @@ func (r BulkUpdateResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r BulkUpdateResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r BulkUpdateResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r BulkUpdateResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type GetLatestLaunchesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -31239,6 +33789,21 @@ func (r GetLatestLaunchesResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetLatestLaunchesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetLatestLaunchesResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetLatestLaunchesResponse) GetSuccess() *externalRef0.PageLaunchResource {
+	return r.JSON200
 }
 
 type MergeLaunchesOldUuid1Response struct {
@@ -31265,6 +33830,16 @@ func (r MergeLaunchesOldUuid1Response) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r MergeLaunchesOldUuid1Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r MergeLaunchesOldUuid1Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
 type GetDebugLaunchesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -31286,6 +33861,21 @@ func (r GetDebugLaunchesResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetDebugLaunchesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetDebugLaunchesResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetDebugLaunchesResponse) GetSuccess() *externalRef0.PageLaunchResource {
+	return r.JSON200
 }
 
 type GetAllLaunchNamesResponse struct {
@@ -31311,6 +33901,21 @@ func (r GetAllLaunchNamesResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetAllLaunchNamesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetAllLaunchNamesResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetAllLaunchNamesResponse) GetSuccess() *[]string {
+	return r.JSON200
+}
+
 type GetAllOwnersResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -31332,6 +33937,21 @@ func (r GetAllOwnersResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetAllOwnersResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetAllOwnersResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetAllOwnersResponse) GetSuccess() *[]string {
+	return r.JSON200
 }
 
 type GetStatusesResponse struct {
@@ -31357,6 +33977,21 @@ func (r GetStatusesResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetStatusesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetStatusesResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetStatusesResponse) GetSuccess() *map[string]string {
+	return r.JSON200
+}
+
 type BulkForceFinishResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -31380,6 +34015,21 @@ func (r BulkForceFinishResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r BulkForceFinishResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r BulkForceFinishResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r BulkForceFinishResponse) GetSuccess() *[]externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type UpdateLaunchesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -31401,6 +34051,21 @@ func (r UpdateLaunchesResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r UpdateLaunchesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r UpdateLaunchesResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r UpdateLaunchesResponse) GetSuccess() *[]externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type GetLaunchByUuidOldTimestampResponse struct {
@@ -31427,6 +34092,16 @@ func (r GetLaunchByUuidOldTimestampResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetLaunchByUuidOldTimestampResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetLaunchByUuidOldTimestampResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
 type DeleteLaunchResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -31448,6 +34123,21 @@ func (r DeleteLaunchResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r DeleteLaunchResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r DeleteLaunchResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r DeleteLaunchResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type GetLaunchResponse struct {
@@ -31473,6 +34163,21 @@ func (r GetLaunchResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetLaunchResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetLaunchResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetLaunchResponse) GetSuccess() *externalRef0.LaunchResource {
+	return r.JSON200
+}
+
 type FinishLaunch1Response struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -31496,6 +34201,21 @@ func (r FinishLaunch1Response) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r FinishLaunch1Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r FinishLaunch1Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r FinishLaunch1Response) GetSuccess() *externalRef0.FinishLaunchRS {
+	return r.JSON200
+}
+
 type GetLaunchReportResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -31516,6 +34236,16 @@ func (r GetLaunchReportResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetLaunchReportResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetLaunchReportResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
 }
 
 type ForceFinishLaunchResponse struct {
@@ -31541,6 +34271,21 @@ func (r ForceFinishLaunchResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r ForceFinishLaunchResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r ForceFinishLaunchResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r ForceFinishLaunchResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type UpdateLaunchResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -31562,6 +34307,21 @@ func (r UpdateLaunchResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r UpdateLaunchResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r UpdateLaunchResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r UpdateLaunchResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type GetLogsResponse struct {
@@ -31587,6 +34347,21 @@ func (r GetLogsResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetLogsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetLogsResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetLogsResponse) GetSuccess() *externalRef0.PageLogResource {
+	return r.JSON200
+}
+
 type CreateLog1Response struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -31608,6 +34383,21 @@ func (r CreateLog1Response) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r CreateLog1Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r CreateLog1Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r CreateLog1Response) GetSuccess() *externalRef0.BatchSaveOperatingRS {
+	return r.JSON200
 }
 
 type CreateLogEntry1Response struct {
@@ -31633,6 +34423,21 @@ func (r CreateLogEntry1Response) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r CreateLogEntry1Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r CreateLogEntry1Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r CreateLogEntry1Response) GetSuccess() *externalRef0.EntryCreatedAsyncRS {
+	return r.JSON201
+}
+
 type GetLogsWithLocationBySearchResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -31654,6 +34459,21 @@ func (r GetLogsWithLocationBySearchResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetLogsWithLocationBySearchResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetLogsWithLocationBySearchResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetLogsWithLocationBySearchResponse) GetSuccess() *externalRef0.PagePagedLogResource {
+	return r.JSON200
 }
 
 type GetErrorPageResponse struct {
@@ -31679,6 +34499,21 @@ func (r GetErrorPageResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetErrorPageResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetErrorPageResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetErrorPageResponse) GetSuccess() *[]externalRef0.PagedLogResource {
+	return r.JSON200
+}
+
 type GetNestedItemsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -31700,6 +34535,21 @@ func (r GetNestedItemsResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetNestedItemsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetNestedItemsResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetNestedItemsResponse) GetSuccess() *externalRef0.PageObject {
+	return r.JSON200
 }
 
 type SearchLogsResponse struct {
@@ -31725,6 +34575,21 @@ func (r SearchLogsResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r SearchLogsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r SearchLogsResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r SearchLogsResponse) GetSuccess() *[]externalRef0.SearchLogRs {
+	return r.JSON200
+}
+
 type GetLogsUnderResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -31746,6 +34611,21 @@ func (r GetLogsUnderResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetLogsUnderResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetLogsUnderResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetLogsUnderResponse) GetSuccess() *map[string][]externalRef0.LogResource {
+	return r.JSON200
 }
 
 type GetLogByUuidResponse struct {
@@ -31771,6 +34651,21 @@ func (r GetLogByUuidResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetLogByUuidResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetLogByUuidResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetLogByUuidResponse) GetSuccess() *externalRef0.LogResource {
+	return r.JSON200
+}
+
 type DeleteLogResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -31792,6 +34687,21 @@ func (r DeleteLogResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r DeleteLogResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r DeleteLogResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r DeleteLogResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type GetLogResponse struct {
@@ -31817,6 +34727,21 @@ func (r GetLogResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetLogResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetLogResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetLogResponse) GetSuccess() *externalRef0.LogResource {
+	return r.JSON200
+}
+
 type GetPageNumberResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -31838,6 +34763,21 @@ func (r GetPageNumberResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetPageNumberResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetPageNumberResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetPageNumberResponse) GetSuccess() *map[string]interface{} {
+	return r.JSON200
 }
 
 type GetProjectSettingsResponse struct {
@@ -31863,6 +34803,21 @@ func (r GetProjectSettingsResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetProjectSettingsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetProjectSettingsResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetProjectSettingsResponse) GetSuccess() *externalRef0.ProjectSettingsResource {
+	return r.JSON200
+}
+
 type GetNotificationsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -31884,6 +34839,21 @@ func (r GetNotificationsResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetNotificationsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetNotificationsResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetNotificationsResponse) GetSuccess() *[]externalRef0.SenderCaseDTO {
+	return r.JSON200
 }
 
 type CreateNotificationResponse struct {
@@ -31909,6 +34879,21 @@ func (r CreateNotificationResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r CreateNotificationResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r CreateNotificationResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r CreateNotificationResponse) GetSuccess() *externalRef0.EntryCreatedRS {
+	return r.JSON201
+}
+
 type UpdateNotificationResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -31930,6 +34915,21 @@ func (r UpdateNotificationResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r UpdateNotificationResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r UpdateNotificationResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r UpdateNotificationResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON201
 }
 
 type DeleteNotificationResponse struct {
@@ -31955,6 +34955,21 @@ func (r DeleteNotificationResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r DeleteNotificationResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r DeleteNotificationResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r DeleteNotificationResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type CreatePatternTemplateResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -31976,6 +34991,21 @@ func (r CreatePatternTemplateResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r CreatePatternTemplateResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r CreatePatternTemplateResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r CreatePatternTemplateResponse) GetSuccess() *externalRef0.EntryCreatedRS {
+	return r.JSON201
 }
 
 type DeletePatternTemplateResponse struct {
@@ -32001,6 +35031,21 @@ func (r DeletePatternTemplateResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r DeletePatternTemplateResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r DeletePatternTemplateResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r DeletePatternTemplateResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type UpdatePatternTemplateResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -32022,6 +35067,21 @@ func (r UpdatePatternTemplateResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r UpdatePatternTemplateResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r UpdatePatternTemplateResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r UpdatePatternTemplateResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type CreateProjectIssueSubTypeResponse struct {
@@ -32047,6 +35107,21 @@ func (r CreateProjectIssueSubTypeResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r CreateProjectIssueSubTypeResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r CreateProjectIssueSubTypeResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r CreateProjectIssueSubTypeResponse) GetSuccess() *externalRef0.IssueSubTypeCreatedRS {
+	return r.JSON201
+}
+
 type UpdateProjectIssueSubTypeResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -32068,6 +35143,21 @@ func (r UpdateProjectIssueSubTypeResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r UpdateProjectIssueSubTypeResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r UpdateProjectIssueSubTypeResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r UpdateProjectIssueSubTypeResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type DeleteProjectIssueSubTypeResponse struct {
@@ -32093,6 +35183,21 @@ func (r DeleteProjectIssueSubTypeResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r DeleteProjectIssueSubTypeResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r DeleteProjectIssueSubTypeResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r DeleteProjectIssueSubTypeResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type CreateWidgetResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -32114,6 +35219,21 @@ func (r CreateWidgetResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r CreateWidgetResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r CreateWidgetResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r CreateWidgetResponse) GetSuccess() *externalRef0.EntryCreatedRS {
+	return r.JSON201
 }
 
 type GetWidget1Response struct {
@@ -32139,6 +35259,21 @@ func (r GetWidget1Response) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetWidget1Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetWidget1Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetWidget1Response) GetSuccess() *externalRef0.WidgetResource {
+	return r.JSON200
+}
+
 type GetWidgetNamesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -32160,6 +35295,21 @@ func (r GetWidgetNamesResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetWidgetNamesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetWidgetNamesResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetWidgetNamesResponse) GetSuccess() *externalRef0.WidgetNamesIterable {
+	return r.JSON200
 }
 
 type GetWidgetPreviewResponse struct {
@@ -32185,6 +35335,21 @@ func (r GetWidgetPreviewResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r GetWidgetPreviewResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetWidgetPreviewResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetWidgetPreviewResponse) GetSuccess() *map[string]interface{} {
+	return r.JSON200
+}
+
 type GetWidgetResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -32206,6 +35371,21 @@ func (r GetWidgetResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetWidgetResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetWidgetResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetWidgetResponse) GetSuccess() *externalRef0.WidgetResource {
+	return r.JSON200
 }
 
 type UpdateWidgetResponse struct {
@@ -32231,6 +35411,21 @@ func (r UpdateWidgetResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r UpdateWidgetResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r UpdateWidgetResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r UpdateWidgetResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type StartRootItem1Response struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -32252,6 +35447,21 @@ func (r StartRootItem1Response) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r StartRootItem1Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r StartRootItem1Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r StartRootItem1Response) GetSuccess() *externalRef0.EntryCreatedAsyncRS {
+	return r.JSON201
 }
 
 type StartRootItem2Response struct {
@@ -32277,6 +35487,21 @@ func (r StartRootItem2Response) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r StartRootItem2Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r StartRootItem2Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r StartRootItem2Response) GetSuccess() *externalRef0.EntryCreatedAsyncRS {
+	return r.JSON201
+}
+
 type StartChildItemResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -32298,6 +35523,21 @@ func (r StartChildItemResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r StartChildItemResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r StartChildItemResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r StartChildItemResponse) GetSuccess() *externalRef0.EntryCreatedAsyncRS {
+	return r.JSON201
 }
 
 type StartChildItem1Response struct {
@@ -32323,6 +35563,21 @@ func (r StartChildItem1Response) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r StartChildItem1Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r StartChildItem1Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r StartChildItem1Response) GetSuccess() *externalRef0.EntryCreatedAsyncRS {
+	return r.JSON201
+}
+
 type FinishTestItemResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -32344,6 +35599,21 @@ func (r FinishTestItemResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r FinishTestItemResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r FinishTestItemResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r FinishTestItemResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
 }
 
 type FinishTestItem1Response struct {
@@ -32369,6 +35639,21 @@ func (r FinishTestItem1Response) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r FinishTestItem1Response) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r FinishTestItem1Response) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r FinishTestItem1Response) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type StartLaunchResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -32390,6 +35675,21 @@ func (r StartLaunchResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r StartLaunchResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r StartLaunchResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r StartLaunchResponse) GetSuccess() *externalRef0.StartLaunchRS {
+	return r.JSON201
 }
 
 type MergeLaunchesOldUuidResponse struct {
@@ -32416,6 +35716,16 @@ func (r MergeLaunchesOldUuidResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r MergeLaunchesOldUuidResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r MergeLaunchesOldUuidResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
 type FinishLaunchResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -32437,6 +35747,21 @@ func (r FinishLaunchResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r FinishLaunchResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r FinishLaunchResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r FinishLaunchResponse) GetSuccess() *externalRef0.FinishLaunchRS {
+	return r.JSON200
 }
 
 type CreateLogResponse struct {
@@ -32462,6 +35787,21 @@ func (r CreateLogResponse) StatusCode() int {
 	return 0
 }
 
+// GetBody returns the raw response body bytes.
+func (r CreateLogResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r CreateLogResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r CreateLogResponse) GetSuccess() *externalRef0.BatchSaveOperatingRS {
+	return r.JSON200
+}
+
 type CreateLogEntryResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -32483,6 +35823,21 @@ func (r CreateLogEntryResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r CreateLogEntryResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r CreateLogEntryResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r CreateLogEntryResponse) GetSuccess() *externalRef0.EntryCreatedAsyncRS {
+	return r.JSON201
 }
 
 // GetGroupsWithResponse request returning *GetGroupsResponse
