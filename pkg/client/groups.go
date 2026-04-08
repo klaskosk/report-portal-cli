@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 
 	"github.com/klaskosk/report-portal-cli/pkg/internal/api"
@@ -25,19 +24,9 @@ func (g *GroupsScope) List(ctx context.Context, options ...ListGroupsOption) (*t
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := g.client.raw.GetGroupsWithResponse(ctx, params)
-	if err != nil {
-		return nil, fmt.Errorf("list groups: %w", err)
-	}
+	resp, err := g.client.raw.GetGroupsWithResponse(ctx, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("list groups: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "list groups", resp, err)
 }
 
 // Get returns a single group by its numeric ID.
@@ -48,19 +37,9 @@ func (g *GroupsScope) Get(ctx context.Context, groupID int64) (*types.GroupInfo,
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := g.client.raw.GetGroupByIdWithResponse(ctx, groupID)
-	if err != nil {
-		return nil, fmt.Errorf("get group: %w", err)
-	}
+	resp, err := g.client.raw.GetGroupByIdWithResponse(ctx, groupID)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get group: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "get group", resp, err)
 }
 
 // Create creates a new group and returns the created group info.
@@ -71,19 +50,9 @@ func (g *GroupsScope) Create(ctx context.Context, request types.CreateGroupReque
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := g.client.raw.CreateGroupWithResponse(ctx, request)
-	if err != nil {
-		return nil, fmt.Errorf("create group: %w", err)
-	}
+	resp, err := g.client.raw.CreateGroupWithResponse(ctx, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON201, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("create group: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "create group", resp, err)
 }
 
 // Update modifies an existing group by its numeric ID.
@@ -98,19 +67,9 @@ func (g *GroupsScope) Update(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := g.client.raw.UpdateGroupWithResponse(ctx, groupID, request)
-	if err != nil {
-		return nil, fmt.Errorf("update group: %w", err)
-	}
+	resp, err := g.client.raw.UpdateGroupWithResponse(ctx, groupID, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("update group: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "update group", resp, err)
 }
 
 // Delete deletes a group by its numeric ID.
@@ -121,18 +80,9 @@ func (g *GroupsScope) Delete(ctx context.Context, groupID int64) error {
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := g.client.raw.DeleteGroupWithResponse(ctx, groupID)
-	if err != nil {
-		return fmt.Errorf("delete group: %w", err)
-	}
+	resp, err := g.client.raw.DeleteGroupWithResponse(ctx, groupID)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	if err := handleVoidResponse(response, response.JSONDefault, response.Body); err != nil {
-		return fmt.Errorf("delete group: %w", err)
-	}
-
-	return nil
+	return executeVoid(ctx, logger, "delete group", resp, err)
 }
 
 // ListProjects returns a paginated list of projects assigned to a group.
@@ -153,19 +103,9 @@ func (g *GroupsScope) ListProjects(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := g.client.raw.GetGroupProjectsWithResponse(ctx, groupID, params)
-	if err != nil {
-		return nil, fmt.Errorf("list group projects: %w", err)
-	}
+	resp, err := g.client.raw.GetGroupProjectsWithResponse(ctx, groupID, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("list group projects: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "list group projects", resp, err)
 }
 
 // GetProject returns a single project-group link by group and project IDs.
@@ -180,19 +120,9 @@ func (g *GroupsScope) GetProject(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := g.client.raw.GetGroupProjectByIdWithResponse(ctx, groupID, projectID)
-	if err != nil {
-		return nil, fmt.Errorf("get group project: %w", err)
-	}
+	resp, err := g.client.raw.GetGroupProjectByIdWithResponse(ctx, groupID, projectID)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get group project: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "get group project", resp, err)
 }
 
 // AddProject adds a project to a group with optional permission configuration.
@@ -208,19 +138,9 @@ func (g *GroupsScope) AddProject(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := g.client.raw.AddProjectToGroupByIdWithResponse(ctx, groupID, projectID, request)
-	if err != nil {
-		return nil, fmt.Errorf("add project to group: %w", err)
-	}
+	resp, err := g.client.raw.AddProjectToGroupByIdWithResponse(ctx, groupID, projectID, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("add project to group: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "add project to group", resp, err)
 }
 
 // RemoveProject removes a project from a group.
@@ -232,18 +152,9 @@ func (g *GroupsScope) RemoveProject(ctx context.Context, groupID, projectID int6
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := g.client.raw.DeleteProjectFromGroupByIdWithResponse(ctx, groupID, projectID)
-	if err != nil {
-		return fmt.Errorf("remove project from group: %w", err)
-	}
+	resp, err := g.client.raw.DeleteProjectFromGroupByIdWithResponse(ctx, groupID, projectID)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	if err := handleVoidResponse(response, response.JSONDefault, response.Body); err != nil {
-		return fmt.Errorf("remove project from group: %w", err)
-	}
-
-	return nil
+	return executeVoid(ctx, logger, "remove project from group", resp, err)
 }
 
 // ListUsers returns a paginated list of users in a group.
@@ -264,19 +175,9 @@ func (g *GroupsScope) ListUsers(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := g.client.raw.GetGroupUsersWithResponse(ctx, groupID, params)
-	if err != nil {
-		return nil, fmt.Errorf("list group users: %w", err)
-	}
+	resp, err := g.client.raw.GetGroupUsersWithResponse(ctx, groupID, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("list group users: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "list group users", resp, err)
 }
 
 // GetUser returns a single user-group link by group and user IDs.
@@ -291,19 +192,9 @@ func (g *GroupsScope) GetUser(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := g.client.raw.GetGroupUserByIdWithResponse(ctx, groupID, userID)
-	if err != nil {
-		return nil, fmt.Errorf("get group user: %w", err)
-	}
+	resp, err := g.client.raw.GetGroupUserByIdWithResponse(ctx, groupID, userID)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get group user: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "get group user", resp, err)
 }
 
 // AddUser adds a user to a group.
@@ -318,19 +209,9 @@ func (g *GroupsScope) AddUser(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := g.client.raw.AddUserToGroupByIdWithResponse(ctx, groupID, userID)
-	if err != nil {
-		return nil, fmt.Errorf("add user to group: %w", err)
-	}
+	resp, err := g.client.raw.AddUserToGroupByIdWithResponse(ctx, groupID, userID)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("add user to group: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "add user to group", resp, err)
 }
 
 // RemoveUser removes a user from a group.
@@ -342,18 +223,9 @@ func (g *GroupsScope) RemoveUser(ctx context.Context, groupID, userID int64) err
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := g.client.raw.DeleteUserFromGroupByIdWithResponse(ctx, groupID, userID)
-	if err != nil {
-		return fmt.Errorf("remove user from group: %w", err)
-	}
+	resp, err := g.client.raw.DeleteUserFromGroupByIdWithResponse(ctx, groupID, userID)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	if err := handleVoidResponse(response, response.JSONDefault, response.Body); err != nil {
-		return fmt.Errorf("remove user from group: %w", err)
-	}
-
-	return nil
+	return executeVoid(ctx, logger, "remove user from group", resp, err)
 }
 
 // ListGroupsOption configures the pagination parameters for listing groups.

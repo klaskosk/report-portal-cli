@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 
 	"github.com/klaskosk/report-portal-cli/pkg/types"
@@ -18,16 +17,11 @@ func (s *LogTypesScope) List(ctx context.Context) ([]types.LogTypeResponse, erro
 	logger := s.project.operationLogger("ListLogTypes")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.GetLogTypesWithResponse(ctx, s.project.projectName)
-	if err != nil {
-		return nil, fmt.Errorf("list log types: %w", err)
-	}
+	resp, err := s.project.client.raw.GetLogTypesWithResponse(ctx, s.project.projectName)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	result, err := execute(ctx, logger, "list log types", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("list log types: %w", err)
+		return nil, err
 	}
 
 	if result.Items == nil || len(*result.Items) == 0 {
@@ -42,19 +36,9 @@ func (s *LogTypesScope) Create(ctx context.Context, request types.LogTypeRequest
 	logger := s.project.operationLogger("CreateLogType", slog.String("name", request.Name))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.CreateLogTypeWithResponse(ctx, s.project.projectName, request)
-	if err != nil {
-		return nil, fmt.Errorf("create log type: %w", err)
-	}
+	resp, err := s.project.client.raw.CreateLogTypeWithResponse(ctx, s.project.projectName, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("create log type: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "create log type", resp, err)
 }
 
 // Update modifies an existing log type by its ID.
@@ -66,21 +50,11 @@ func (s *LogTypesScope) Update(
 	logger := s.project.operationLogger("UpdateLogType", slog.Int64("logTypeId", logTypeID))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.UpdateLogTypeByIdWithResponse(
+	resp, err := s.project.client.raw.UpdateLogTypeByIdWithResponse(
 		ctx, s.project.projectName, logTypeID, request,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("update log type: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("update log type: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "update log type", resp, err)
 }
 
 // Delete removes a log type by its ID.
@@ -88,16 +62,7 @@ func (s *LogTypesScope) Delete(ctx context.Context, logTypeID int64) error {
 	logger := s.project.operationLogger("DeleteLogType", slog.Int64("logTypeId", logTypeID))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.DeleteLogTypeByIdWithResponse(ctx, s.project.projectName, logTypeID)
-	if err != nil {
-		return fmt.Errorf("delete log type: %w", err)
-	}
+	resp, err := s.project.client.raw.DeleteLogTypeByIdWithResponse(ctx, s.project.projectName, logTypeID)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	if err := handleVoidResponse(response, response.JSONDefault, response.Body); err != nil {
-		return fmt.Errorf("delete log type: %w", err)
-	}
-
-	return nil
+	return executeVoid(ctx, logger, "delete log type", resp, err)
 }
