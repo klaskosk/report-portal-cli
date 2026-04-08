@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 
 	"github.com/klaskosk/report-portal-cli/pkg/internal/api"
@@ -25,19 +24,9 @@ func (s *ProjectGroupsScope) List(ctx context.Context, options ...ListProjectGro
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.GetGroupsOfProjectWithResponse(ctx, s.project.projectName, params)
-	if err != nil {
-		return nil, fmt.Errorf("list project groups: %w", err)
-	}
+	resp, err := s.project.client.raw.GetGroupsOfProjectWithResponse(ctx, s.project.projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("list project groups: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "list project groups", resp, err)
 }
 
 // Get returns a single group-project association by group ID.
@@ -45,19 +34,9 @@ func (s *ProjectGroupsScope) Get(ctx context.Context, groupID int64) (*types.Pro
 	logger := s.project.operationLogger("GetProjectGroup", slog.Int64("groupId", groupID))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.GetProjectGroupByIdWithResponse(ctx, s.project.projectName, groupID)
-	if err != nil {
-		return nil, fmt.Errorf("get project group: %w", err)
-	}
+	resp, err := s.project.client.raw.GetProjectGroupByIdWithResponse(ctx, s.project.projectName, groupID)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get project group: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "get project group", resp, err)
 }
 
 // AddOrUpdate adds or updates a group-project association. This is a PUT with upsert semantics.
@@ -69,21 +48,11 @@ func (s *ProjectGroupsScope) AddOrUpdate(
 	logger := s.project.operationLogger("AddOrUpdateProjectGroup", slog.Int64("groupId", groupID))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.AddGroupToProjectByIdWithResponse(
+	resp, err := s.project.client.raw.AddGroupToProjectByIdWithResponse(
 		ctx, s.project.projectName, groupID, request,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("add or update project group: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("add or update project group: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "add or update project group", resp, err)
 }
 
 // Delete removes a group-project association by group ID.
@@ -91,18 +60,9 @@ func (s *ProjectGroupsScope) Delete(ctx context.Context, groupID int64) error {
 	logger := s.project.operationLogger("DeleteProjectGroup", slog.Int64("groupId", groupID))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.DeleteGroupFromProjectByIdWithResponse(ctx, s.project.projectName, groupID)
-	if err != nil {
-		return fmt.Errorf("delete project group: %w", err)
-	}
+	resp, err := s.project.client.raw.DeleteGroupFromProjectByIdWithResponse(ctx, s.project.projectName, groupID)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	if err := handleVoidResponse(response, response.JSONDefault, response.Body); err != nil {
-		return fmt.Errorf("delete project group: %w", err)
-	}
-
-	return nil
+	return executeVoid(ctx, logger, "delete project group", resp, err)
 }
 
 // ListProjectGroupsOption configures the pagination parameters for listing project groups.

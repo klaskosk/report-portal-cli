@@ -20,19 +20,9 @@ func (u *UsersScope) GetMyself(ctx context.Context) (*types.UserResource, error)
 	logger := u.client.logger.With(slog.String("operation", "GetMyself"))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := u.client.raw.GetMyselfWithResponse(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("get myself: %w", err)
-	}
+	resp, err := u.client.raw.GetMyselfWithResponse(ctx)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get myself: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "get myself", resp, err)
 }
 
 // GetByLogin returns a user by their login name via GetUserWithResponse.
@@ -43,19 +33,9 @@ func (u *UsersScope) GetByLogin(ctx context.Context, login string) (*types.UserR
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := u.client.raw.GetUserWithResponse(ctx, login)
-	if err != nil {
-		return nil, fmt.Errorf("get user by login: %w", err)
-	}
+	resp, err := u.client.raw.GetUserWithResponse(ctx, login)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get user by login: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "get user by login", resp, err)
 }
 
 // ListProjects returns the projects accessible to the given user.
@@ -70,21 +50,11 @@ func (u *UsersScope) ListProjects(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := u.client.raw.GetUserProjectsWithResponse(ctx, username)
-	if err != nil {
-		return nil, fmt.Errorf("list user projects: %w", err)
-	}
+	resp, err := u.client.raw.GetUserProjectsWithResponse(ctx, username)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(
-		response,
-		response.JSONDefault,
-		response.JSON200,
-		response.Body,
-	)
+	result, err := execute(ctx, logger, "list user projects", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("list user projects: %w", err)
+		return nil, err
 	}
 
 	if result == nil {
@@ -105,19 +75,9 @@ func (u *UsersScope) List(ctx context.Context, options ...ListUsersOption) (*typ
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := u.client.raw.GetUsersWithResponse(ctx, params)
-	if err != nil {
-		return nil, fmt.Errorf("list users: %w", err)
-	}
+	resp, err := u.client.raw.GetUsersWithResponse(ctx, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("list users: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "list users", resp, err)
 }
 
 // Search searches for users by a term with optional pagination.
@@ -138,19 +98,9 @@ func (u *UsersScope) Search(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := u.client.raw.FindUsersWithResponse(ctx, params)
-	if err != nil {
-		return nil, fmt.Errorf("search users: %w", err)
-	}
+	resp, err := u.client.raw.FindUsersWithResponse(ctx, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("search users: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "search users", resp, err)
 }
 
 // Export returns the user list as raw bytes (typically CSV).
@@ -193,19 +143,9 @@ func (u *UsersScope) Create(ctx context.Context, request types.CreateUserRQFull)
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := u.client.raw.CreateUserByAdminWithResponse(ctx, request)
-	if err != nil {
-		return nil, fmt.Errorf("create user: %w", err)
-	}
+	resp, err := u.client.raw.CreateUserByAdminWithResponse(ctx, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON201, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("create user: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "create user", resp, err)
 }
 
 // Edit updates an existing user by login.
@@ -220,19 +160,9 @@ func (u *UsersScope) Edit(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := u.client.raw.EditUserWithResponse(ctx, login, request)
-	if err != nil {
-		return nil, fmt.Errorf("edit user: %w", err)
-	}
+	resp, err := u.client.raw.EditUserWithResponse(ctx, login, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("edit user: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "edit user", resp, err)
 }
 
 // Delete deletes a user by numeric ID.
@@ -243,19 +173,9 @@ func (u *UsersScope) Delete(ctx context.Context, id int64) (*types.OperationComp
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := u.client.raw.DeleteUserWithResponse(ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("delete user: %w", err)
-	}
+	resp, err := u.client.raw.DeleteUserWithResponse(ctx, id)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("delete user: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "delete user", resp, err)
 }
 
 // DeleteBulk deletes multiple users by their numeric IDs.
@@ -265,19 +185,9 @@ func (u *UsersScope) DeleteBulk(ctx context.Context, ids []int64) (*types.Delete
 
 	params := &api.DeleteUsersParams{Ids: ids}
 
-	response, err := u.client.raw.DeleteUsersWithResponse(ctx, params)
-	if err != nil {
-		return nil, fmt.Errorf("delete users: %w", err)
-	}
+	resp, err := u.client.raw.DeleteUsersWithResponse(ctx, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("delete users: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "delete users", resp, err)
 }
 
 // CreateInvitation creates an invitation bid for a new user.
@@ -291,19 +201,9 @@ func (u *UsersScope) CreateInvitation(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := u.client.raw.CreateUserBidWithResponse(ctx, request)
-	if err != nil {
-		return nil, fmt.Errorf("create invitation: %w", err)
-	}
+	resp, err := u.client.raw.CreateUserBidWithResponse(ctx, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON201, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("create invitation: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "create invitation", resp, err)
 }
 
 // GetInvitation retrieves invitation bid info by UUID.
@@ -316,19 +216,9 @@ func (u *UsersScope) GetInvitation(ctx context.Context, uuid string) (*types.Use
 
 	params := &api.GetUserBidInfoParams{Uuid: uuid}
 
-	response, err := u.client.raw.GetUserBidInfoWithResponse(ctx, params)
-	if err != nil {
-		return nil, fmt.Errorf("get invitation: %w", err)
-	}
+	resp, err := u.client.raw.GetUserBidInfoWithResponse(ctx, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get invitation: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "get invitation", resp, err)
 }
 
 // Register activates an invitation and creates the user.
@@ -346,19 +236,9 @@ func (u *UsersScope) Register(
 
 	params := &api.CreateUserParams{Uuid: uuid}
 
-	response, err := u.client.raw.CreateUserWithResponse(ctx, params, request)
-	if err != nil {
-		return nil, fmt.Errorf("register user: %w", err)
-	}
+	resp, err := u.client.raw.CreateUserWithResponse(ctx, params, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON201, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("register user: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "register user", resp, err)
 }
 
 // ChangePassword changes the currently authenticated user's password.
@@ -366,19 +246,9 @@ func (u *UsersScope) ChangePassword(ctx context.Context, request types.ChangePas
 	logger := u.client.logger.With(slog.String("operation", "ChangePassword"))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := u.client.raw.ChangePasswordWithResponse(ctx, api.ChangePasswordJSONRequestBody(request))
-	if err != nil {
-		return nil, fmt.Errorf("change password: %w", err)
-	}
+	resp, err := u.client.raw.ChangePasswordWithResponse(ctx, api.ChangePasswordJSONRequestBody(request))
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("change password: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "change password", resp, err)
 }
 
 // RestorePassword initiates a password restore flow by sending a reset link to the given email address.
@@ -386,19 +256,9 @@ func (u *UsersScope) RestorePassword(ctx context.Context, request types.RestoreP
 	logger := u.client.logger.With(slog.String("operation", "RestorePassword"))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := u.client.raw.RestorePasswordWithResponse(ctx, api.RestorePasswordJSONRequestBody(request))
-	if err != nil {
-		return nil, fmt.Errorf("restore password: %w", err)
-	}
+	resp, err := u.client.raw.RestorePasswordWithResponse(ctx, api.RestorePasswordJSONRequestBody(request))
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("restore password: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "restore password", resp, err)
 }
 
 // IsRestorePasswordBidExist checks whether a password reset bid with the given UUID exists.
@@ -409,16 +269,11 @@ func (u *UsersScope) IsRestorePasswordBidExist(ctx context.Context, uuid string)
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := u.client.raw.IsRestorePasswordBidExistWithResponse(ctx, uuid)
-	if err != nil {
-		return false, fmt.Errorf("check restore password bid: %w", err)
-	}
+	resp, err := u.client.raw.IsRestorePasswordBidExistWithResponse(ctx, uuid)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	result, err := execute(ctx, logger, "check restore password bid", resp, err)
 	if err != nil {
-		return false, fmt.Errorf("check restore password bid: %w", err)
+		return false, err
 	}
 
 	if result == nil || result.Is == nil {
@@ -433,19 +288,9 @@ func (u *UsersScope) ResetPassword(ctx context.Context, request types.ResetPassw
 	logger := u.client.logger.With(slog.String("operation", "ResetPassword"))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := u.client.raw.ResetPasswordWithResponse(ctx, api.ResetPasswordJSONRequestBody(request))
-	if err != nil {
-		return nil, fmt.Errorf("reset password: %w", err)
-	}
+	resp, err := u.client.raw.ResetPasswordWithResponse(ctx, api.ResetPasswordJSONRequestBody(request))
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("reset password: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "reset password", resp, err)
 }
 
 // ListAPIKeys returns the API keys for the given user.
@@ -456,16 +301,11 @@ func (u *UsersScope) ListAPIKeys(ctx context.Context, userID int64) ([]types.Api
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := u.client.raw.GetUsersApiKeysWithResponse(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("list api keys: %w", err)
-	}
+	resp, err := u.client.raw.GetUsersApiKeysWithResponse(ctx, userID)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	result, err := execute(ctx, logger, "list api keys", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("list api keys: %w", err)
+		return nil, err
 	}
 
 	if result == nil || result.Items == nil {
@@ -485,19 +325,9 @@ func (u *UsersScope) CreateAPIKey(ctx context.Context, userID int64, request typ
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := u.client.raw.CreateApiKeyWithResponse(ctx, userID, api.CreateApiKeyJSONRequestBody(request))
-	if err != nil {
-		return nil, fmt.Errorf("create api key: %w", err)
-	}
+	resp, err := u.client.raw.CreateApiKeyWithResponse(ctx, userID, api.CreateApiKeyJSONRequestBody(request))
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON201, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("create api key: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "create api key", resp, err)
 }
 
 // DeleteAPIKey deletes the API key with the given ID for the given user.
@@ -509,20 +339,11 @@ func (u *UsersScope) DeleteAPIKey(ctx context.Context, userID int64, keyID int64
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := u.client.raw.DeleteApiKeyWithResponse(ctx, userID, keyID)
-	if err != nil {
-		return nil, fmt.Errorf("delete api key: %w", err)
-	}
+	resp, err := u.client.raw.DeleteApiKeyWithResponse(ctx, userID, keyID)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("delete api key: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "delete api key", resp, err)
 }
+
 func listUsersParamsToExportParams(p *api.GetUsersParams) *api.ExportParams {
 	return &api.ExportParams{
 		FilterEqType:                p.FilterEqType,
