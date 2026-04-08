@@ -25,23 +25,9 @@ func (l *LaunchScope) Start(
 	logger := l.project.operationLogger("StartLaunch", slog.String("name", request.Name))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.StartLaunch1WithResponse(
-		ctx,
-		l.project.projectName,
-		request,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("start launch: %w", err)
-	}
+	response, err := l.project.client.raw.StartLaunch1WithResponse(ctx, l.project.projectName, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON201, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("start launch: %w", err)
-	}
-
-	return result, nil
+	return execute[types.StartLaunchRS](ctx, logger, "start launch", response, err)
 }
 
 // Finish marks an existing launch as finished using the launch UUID returned by
@@ -55,24 +41,9 @@ func (l *LaunchScope) Finish(
 	logger := l.project.operationLogger("FinishLaunch", slog.String("launchUuid", launchUUID))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.FinishLaunch1WithResponse(
-		ctx,
-		l.project.projectName,
-		launchUUID,
-		request,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("finish launch: %w", err)
-	}
+	response, err := l.project.client.raw.FinishLaunch1WithResponse(ctx, l.project.projectName, launchUUID, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("finish launch: %w", err)
-	}
-
-	return result, nil
+	return execute[types.FinishLaunchRS](ctx, logger, "finish launch", response, err)
 }
 
 // GetByUUID returns a single launch by its UUID. It sends the versioned v2
@@ -123,23 +94,9 @@ func (l *LaunchScope) GetByID(
 	logger := l.project.operationLogger("GetLaunchByID", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.GetLaunchWithResponse(
-		ctx,
-		l.project.projectName,
-		id,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get launch by id: %w", err)
-	}
+	response, err := l.project.client.raw.GetLaunchWithResponse(ctx, l.project.projectName, id)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get launch by id: %w", err)
-	}
-
-	return result, nil
+	return execute[types.LaunchResource](ctx, logger, "get launch by id", response, err)
 }
 
 // ListLaunchesOption configures the filter and pagination parameters for listing launches.
@@ -167,23 +124,9 @@ func (l *LaunchScope) List(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.GetProjectLaunchesWithResponse(
-		ctx,
-		l.project.projectName,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("list launches: %w", err)
-	}
+	response, err := l.project.client.raw.GetProjectLaunchesWithResponse(ctx, l.project.projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("list launches: %w", err)
-	}
-
-	return result, nil
+	return execute[types.PageLaunchResource](ctx, logger, "list launches", response, err)
 }
 
 // WithLaunchName filters launches by name.
@@ -311,23 +254,9 @@ func (l *LaunchScope) GetLatest(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.GetLatestLaunchesWithResponse(
-		ctx,
-		l.project.projectName,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get latest launches: %w", err)
-	}
+	response, err := l.project.client.raw.GetLatestLaunchesWithResponse(ctx, l.project.projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get latest launches: %w", err)
-	}
-
-	return result, nil
+	return execute[types.PageLaunchResource](ctx, logger, "get latest launches", response, err)
 }
 
 // GetDebug returns debug-mode launches (uses /launch/mode endpoint).
@@ -347,23 +276,9 @@ func (l *LaunchScope) GetDebug(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.GetDebugLaunchesWithResponse(
-		ctx,
-		l.project.projectName,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get debug launches: %w", err)
-	}
+	response, err := l.project.client.raw.GetDebugLaunchesWithResponse(ctx, l.project.projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get debug launches: %w", err)
-	}
-
-	return result, nil
+	return execute[types.PageLaunchResource](ctx, logger, "get debug launches", response, err)
 }
 
 // Update modifies a single launch's attributes, description, or mode.
@@ -375,24 +290,9 @@ func (l *LaunchScope) Update(
 	logger := l.project.operationLogger("UpdateLaunch", slog.Int64("launchId", launchID))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.UpdateLaunchWithResponse(
-		ctx,
-		l.project.projectName,
-		launchID,
-		request,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("update launch: %w", err)
-	}
+	response, err := l.project.client.raw.UpdateLaunchWithResponse(ctx, l.project.projectName, launchID, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("update launch: %w", err)
-	}
-
-	return result, nil
+	return execute[types.OperationCompletionRS](ctx, logger, "update launch", response, err)
 }
 
 // Delete removes a single launch by its numeric ID.
@@ -403,23 +303,9 @@ func (l *LaunchScope) Delete(
 	logger := l.project.operationLogger("DeleteLaunch", slog.Int64("launchId", launchID))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.DeleteLaunchWithResponse(
-		ctx,
-		l.project.projectName,
-		launchID,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("delete launch: %w", err)
-	}
+	response, err := l.project.client.raw.DeleteLaunchWithResponse(ctx, l.project.projectName, launchID)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("delete launch: %w", err)
-	}
-
-	return result, nil
+	return execute[types.OperationCompletionRS](ctx, logger, "delete launch", response, err)
 }
 
 // DeleteBulk removes multiple launches by their numeric IDs.
@@ -430,23 +316,9 @@ func (l *LaunchScope) DeleteBulk(
 	logger := l.project.operationLogger("DeleteLaunchesBulk")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.DeleteLaunchesWithResponse(
-		ctx,
-		l.project.projectName,
-		&api.DeleteLaunchesParams{Ids: ids},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("delete launches bulk: %w", err)
-	}
+	response, err := l.project.client.raw.DeleteLaunchesWithResponse(ctx, l.project.projectName, &api.DeleteLaunchesParams{Ids: ids})
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("delete launches bulk: %w", err)
-	}
-
-	return result, nil
+	return execute[types.DeleteBulkRS](ctx, logger, "delete launches bulk", response, err)
 }
 
 // ForceFinish stops a stuck launch that cannot be finished normally.
@@ -458,24 +330,9 @@ func (l *LaunchScope) ForceFinish(
 	logger := l.project.operationLogger("ForceFinishLaunch", slog.Int64("launchId", launchID))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.ForceFinishLaunchWithResponse(
-		ctx,
-		l.project.projectName,
-		launchID,
-		request,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("force finish launch: %w", err)
-	}
+	response, err := l.project.client.raw.ForceFinishLaunchWithResponse(ctx, l.project.projectName, launchID, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("force finish launch: %w", err)
-	}
-
-	return result, nil
+	return execute[types.OperationCompletionRS](ctx, logger, "force finish launch", response, err)
 }
 
 // Merge combines multiple launches into a single launch. If MergeType is not
@@ -525,23 +382,9 @@ func (l *LaunchScope) Analyze(
 	logger := l.project.operationLogger("AnalyzeLaunch")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.StartLaunchAnalyzerWithResponse(
-		ctx,
-		l.project.projectName,
-		request,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("analyze launch: %w", err)
-	}
+	response, err := l.project.client.raw.StartLaunchAnalyzerWithResponse(ctx, l.project.projectName, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("analyze launch: %w", err)
-	}
-
-	return result, nil
+	return execute[types.OperationCompletionRS](ctx, logger, "analyze launch", response, err)
 }
 
 // BulkUpdate modifies attributes and/or description for multiple launches at once.
@@ -552,23 +395,9 @@ func (l *LaunchScope) BulkUpdate(
 	logger := l.project.operationLogger("BulkUpdateLaunches")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.BulkUpdateWithResponse(
-		ctx,
-		l.project.projectName,
-		request,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("bulk update launches: %w", err)
-	}
+	response, err := l.project.client.raw.BulkUpdateWithResponse(ctx, l.project.projectName, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("bulk update launches: %w", err)
-	}
-
-	return result, nil
+	return execute[types.OperationCompletionRS](ctx, logger, "bulk update launches", response, err)
 }
 
 // BulkForceFinish stops multiple stuck launches that cannot be finished normally.
@@ -579,20 +408,11 @@ func (l *LaunchScope) BulkForceFinish(
 	logger := l.project.operationLogger("BulkForceFinishLaunches")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.BulkForceFinishWithResponse(
-		ctx,
-		l.project.projectName,
-		request,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("bulk force finish launches: %w", err)
-	}
+	response, err := l.project.client.raw.BulkForceFinishWithResponse(ctx, l.project.projectName, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	results, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	results, err := execute[[]types.OperationCompletionRS](ctx, logger, "bulk force finish launches", response, err)
 	if err != nil {
-		return nil, fmt.Errorf("bulk force finish launches: %w", err)
+		return nil, err
 	}
 
 	if results == nil {
@@ -616,20 +436,11 @@ func (l *LaunchScope) GetNames(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.GetAllLaunchNamesWithResponse(
-		ctx,
-		l.project.projectName,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get launch names: %w", err)
-	}
+	response, err := l.project.client.raw.GetAllLaunchNamesWithResponse(ctx, l.project.projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	names, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	names, err := execute[[]string](ctx, logger, "get launch names", response, err)
 	if err != nil {
-		return nil, fmt.Errorf("get launch names: %w", err)
+		return nil, err
 	}
 
 	if names == nil {
@@ -656,20 +467,11 @@ func (l *LaunchScope) GetAttributeKeys(
 		FilterCntAttributeKey: keySubstring,
 	}
 
-	response, err := l.project.client.raw.GetAttributeKeysWithResponse(
-		ctx,
-		l.project.projectName,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get launch attribute keys: %w", err)
-	}
+	response, err := l.project.client.raw.GetAttributeKeysWithResponse(ctx, l.project.projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	keys, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	keys, err := execute[[]string](ctx, logger, "get launch attribute keys", response, err)
 	if err != nil {
-		return nil, fmt.Errorf("get launch attribute keys: %w", err)
+		return nil, err
 	}
 
 	if keys == nil {
@@ -702,20 +504,11 @@ func (l *LaunchScope) GetAttributeValues(
 		FilterEqAttributeKey:    attributeKey,
 	}
 
-	response, err := l.project.client.raw.GetAttributeValuesWithResponse(
-		ctx,
-		l.project.projectName,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get launch attribute values: %w", err)
-	}
+	response, err := l.project.client.raw.GetAttributeValuesWithResponse(ctx, l.project.projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	values, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	values, err := execute[[]string](ctx, logger, "get launch attribute values", response, err)
 	if err != nil {
-		return nil, fmt.Errorf("get launch attribute values: %w", err)
+		return nil, err
 	}
 
 	if values == nil {
@@ -736,20 +529,11 @@ func (l *LaunchScope) Compare(
 
 	params := &api.CompareLaunchesParams{Ids: ids}
 
-	response, err := l.project.client.raw.CompareLaunchesWithResponse(
-		ctx,
-		l.project.projectName,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("compare launches: %w", err)
-	}
+	response, err := l.project.client.raw.CompareLaunchesWithResponse(ctx, l.project.projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	result, err := execute[map[string][]types.ChartStatisticsContent](ctx, logger, "compare launches", response, err)
 	if err != nil {
-		return nil, fmt.Errorf("compare launches: %w", err)
+		return nil, err
 	}
 
 	if result == nil {
@@ -829,24 +613,9 @@ func (l *LaunchScope) GetClusters(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.GetClustersWithResponse(
-		ctx,
-		l.project.projectName,
-		launchID,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get clusters: %w", err)
-	}
+	response, err := l.project.client.raw.GetClustersWithResponse(ctx, l.project.projectName, launchID, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get clusters: %w", err)
-	}
-
-	return result, nil
+	return execute[types.PageClusterInfoResource](ctx, logger, "get clusters", response, err)
 }
 
 // CreateClusters triggers ML cluster creation for a launch.
@@ -857,23 +626,9 @@ func (l *LaunchScope) CreateClusters(
 	logger := l.project.operationLogger("CreateClusters", slog.Int64("launchId", request.LaunchId))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.CreateClustersWithResponse(
-		ctx,
-		l.project.projectName,
-		request,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("create clusters: %w", err)
-	}
+	response, err := l.project.client.raw.CreateClustersWithResponse(ctx, l.project.projectName, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("create clusters: %w", err)
-	}
-
-	return result, nil
+	return execute[types.OperationCompletionRS](ctx, logger, "create clusters", response, err)
 }
 
 // GetOwners returns unique launch owner usernames matching the filter.
@@ -888,20 +643,11 @@ func (l *LaunchScope) GetOwners(
 		FilterCntUser: userFilter,
 	}
 
-	response, err := l.project.client.raw.GetAllOwnersWithResponse(
-		ctx,
-		l.project.projectName,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get launch owners: %w", err)
-	}
+	response, err := l.project.client.raw.GetAllOwnersWithResponse(ctx, l.project.projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	owners, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	owners, err := execute[[]string](ctx, logger, "get launch owners", response, err)
 	if err != nil {
-		return nil, fmt.Errorf("get launch owners: %w", err)
+		return nil, err
 	}
 
 	if owners == nil {
@@ -922,20 +668,11 @@ func (l *LaunchScope) GetStatuses(
 
 	params := &api.GetStatusesParams{Ids: ids}
 
-	response, err := l.project.client.raw.GetStatusesWithResponse(
-		ctx,
-		l.project.projectName,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get launch statuses: %w", err)
-	}
+	response, err := l.project.client.raw.GetStatusesWithResponse(ctx, l.project.projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	statuses, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	statuses, err := execute[map[string]string](ctx, logger, "get launch statuses", response, err)
 	if err != nil {
-		return nil, fmt.Errorf("get launch statuses: %w", err)
+		return nil, err
 	}
 
 	if statuses == nil {

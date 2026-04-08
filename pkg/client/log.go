@@ -41,23 +41,9 @@ func (l *LogScope) GetByID(
 	logger := l.project.operationLogger("GetLogByID", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.GetLogWithResponse(
-		ctx,
-		l.project.projectName,
-		id,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get log by id: %w", err)
-	}
+	response, err := l.project.client.raw.GetLogWithResponse(ctx, l.project.projectName, id)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get log by id: %w", err)
-	}
-
-	return result, nil
+	return execute[types.LogResource](ctx, logger, "get log by id", response, err)
 }
 
 // GetByUUID returns a single log entry by its UUID.
@@ -68,23 +54,9 @@ func (l *LogScope) GetByUUID(
 	logger := l.project.operationLogger("GetLogByUUID", slog.String("uuid", uuid))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.GetLogByUuidWithResponse(
-		ctx,
-		l.project.projectName,
-		uuid,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get log by uuid: %w", err)
-	}
+	response, err := l.project.client.raw.GetLogByUuidWithResponse(ctx, l.project.projectName, uuid)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get log by uuid: %w", err)
-	}
-
-	return result, nil
+	return execute[types.LogResource](ctx, logger, "get log by uuid", response, err)
 }
 
 // ListLogsOption configures filter and pagination parameters for listing logs.
@@ -112,23 +84,9 @@ func (l *LogScope) List(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.GetLogsWithResponse(
-		ctx,
-		l.project.projectName,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("list logs: %w", err)
-	}
+	response, err := l.project.client.raw.GetLogsWithResponse(ctx, l.project.projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("list logs: %w", err)
-	}
-
-	return result, nil
+	return execute[types.PageLogResource](ctx, logger, "list logs", response, err)
 }
 
 // Create creates a single log entry (JSON body, no file attachment).
@@ -139,23 +97,9 @@ func (l *LogScope) Create(
 	logger := l.project.operationLogger("CreateLogEntry")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.CreateLogEntry1WithResponse(
-		ctx,
-		l.project.projectName,
-		request,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("create log entry: %w", err)
-	}
+	response, err := l.project.client.raw.CreateLogEntry1WithResponse(ctx, l.project.projectName, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON201, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("create log entry: %w", err)
-	}
-
-	return result, nil
+	return execute[types.EntryCreatedAsyncRS](ctx, logger, "create log entry", response, err)
 }
 
 // Delete removes a single log entry by its numeric ID.
@@ -166,23 +110,9 @@ func (l *LogScope) Delete(
 	logger := l.project.operationLogger("DeleteLog", slog.Int64("logId", logID))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.DeleteLogWithResponse(
-		ctx,
-		l.project.projectName,
-		logID,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("delete log: %w", err)
-	}
+	response, err := l.project.client.raw.DeleteLogWithResponse(ctx, l.project.projectName, logID)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("delete log: %w", err)
-	}
-
-	return result, nil
+	return execute[types.OperationCompletionRS](ctx, logger, "delete log", response, err)
 }
 
 // CreateBatch creates multiple log entries in a single multipart request,
@@ -220,12 +150,23 @@ func (l *LogScope) CreateBatch(
 		}
 	}
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("create log batch: %w", err)
+	if response.JSONDefault != nil {
+		return nil, fmt.Errorf("create log batch: %w", newAPIError(response.StatusCode(), response.JSONDefault))
 	}
 
-	return result, nil
+	code := response.StatusCode()
+	if code < 200 || code >= 300 {
+		return nil, fmt.Errorf("create log batch: %w", newUnexpectedStatusError(code, response.Body))
+	}
+
+	if response.JSON200 != nil {
+		return response.JSON200, nil
+	}
+
+	return nil, fmt.Errorf(
+		"create log batch: API returned success status (%d) but no valid response body was parsed",
+		code,
+	)
 }
 
 // batchLogJSON is the JSON representation of a single log entry within the
@@ -372,21 +313,11 @@ func (l *LogScope) Search(
 		request.SearchMode = types.CurrentLaunch
 	}
 
-	response, err := l.project.client.raw.SearchLogsWithResponse(
-		ctx,
-		l.project.projectName,
-		itemID,
-		request,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("search logs: %w", err)
-	}
+	response, err := l.project.client.raw.SearchLogsWithResponse(ctx, l.project.projectName, itemID, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	result, err := execute[[]types.SearchLogRs](ctx, logger, "search logs", response, err)
 	if err != nil {
-		return nil, fmt.Errorf("search logs: %w", err)
+		return nil, err
 	}
 
 	if result == nil {
@@ -449,24 +380,20 @@ func (l *LogScope) GetPageNumber(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	if response.JSON200 == nil && response.JSONDefault == nil {
-		if code := response.StatusCode(); code < 200 || code >= 300 {
-			return nil, fmt.Errorf("get log page number: %w", newUnexpectedStatusError(code, response.Body))
-		}
+	if response.JSONDefault != nil {
+		return nil, fmt.Errorf("get log page number: %w", newAPIError(response.StatusCode(), response.JSONDefault))
+	}
 
+	code := response.StatusCode()
+	if code < 200 || code >= 300 {
+		return nil, fmt.Errorf("get log page number: %w", newUnexpectedStatusError(code, response.Body))
+	}
+
+	if response.JSON200 == nil || *response.JSON200 == nil {
 		return map[string]any{}, nil
 	}
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get log page number: %w", err)
-	}
-
-	if *result == nil {
-		return map[string]any{}, nil
-	}
-
-	return *result, nil
+	return *response.JSON200, nil
 }
 
 // GetLogLocationsOption configures parameters for retrieving log locations.
@@ -524,24 +451,20 @@ func (l *LogScope) GetLogLocations(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	if response.JSON200 == nil && response.JSONDefault == nil {
-		if code := response.StatusCode(); code < 200 || code >= 300 {
-			return nil, fmt.Errorf("get log locations: %w", newUnexpectedStatusError(code, response.Body))
-		}
+	if response.JSONDefault != nil {
+		return nil, fmt.Errorf("get log locations: %w", newAPIError(response.StatusCode(), response.JSONDefault))
+	}
 
+	code := response.StatusCode()
+	if code < 200 || code >= 300 {
+		return nil, fmt.Errorf("get log locations: %w", newUnexpectedStatusError(code, response.Body))
+	}
+
+	if response.JSON200 == nil || *response.JSON200 == nil {
 		return []types.PagedLogResource{}, nil
 	}
 
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get log locations: %w", err)
-	}
-
-	if *result == nil {
-		return []types.PagedLogResource{}, nil
-	}
-
-	return *result, nil
+	return *response.JSON200, nil
 }
 
 // SearchLogLocationsOption configures parameters for searching log locations.
@@ -586,24 +509,9 @@ func (l *LogScope) SearchLogLocations(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.GetLogsWithLocationBySearchWithResponse(
-		ctx,
-		l.project.projectName,
-		parentID,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("search log locations: %w", err)
-	}
+	response, err := l.project.client.raw.GetLogsWithLocationBySearchWithResponse(ctx, l.project.projectName, parentID, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("search log locations: %w", err)
-	}
-
-	return result, nil
+	return execute[types.PagePagedLogResource](ctx, logger, "search log locations", response, err)
 }
 
 // GetNestedLogsOption configures parameters for retrieving nested log entries.
@@ -648,24 +556,9 @@ func (l *LogScope) GetNestedLogs(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.GetNestedItemsWithResponse(
-		ctx,
-		l.project.projectName,
-		parentID,
-		params,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get nested logs: %w", err)
-	}
+	response, err := l.project.client.raw.GetNestedItemsWithResponse(ctx, l.project.projectName, parentID, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get nested logs: %w", err)
-	}
-
-	return result, nil
+	return execute[types.PageObject](ctx, logger, "get nested logs", response, err)
 }
 
 // GetLogsUnder retrieves log entries grouped by item ID for the specified
@@ -682,20 +575,11 @@ func (l *LogScope) GetLogsUnder(
 		request.LogLevel = "INFO"
 	}
 
-	response, err := l.project.client.raw.GetLogsUnderWithResponse(
-		ctx,
-		l.project.projectName,
-		request,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get logs under: %w", err)
-	}
+	response, err := l.project.client.raw.GetLogsUnderWithResponse(ctx, l.project.projectName, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	result, err := execute[map[string][]types.LogResource](ctx, logger, "get logs under", response, err)
 	if err != nil {
-		return nil, fmt.Errorf("get logs under: %w", err)
+		return nil, err
 	}
 
 	if result == nil {
