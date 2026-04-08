@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"strings"
 
@@ -29,23 +28,13 @@ func (d *DashboardScope) List(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := d.project.client.raw.GetAllDashboardsWithResponse(
+	resp, err := d.project.client.raw.GetAllDashboardsWithResponse(
 		ctx,
 		d.project.projectName,
 		params,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("list dashboards: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("list dashboards: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "list dashboards", resp, err)
 }
 
 // GetByID returns a single dashboard by its numeric ID.
@@ -56,23 +45,13 @@ func (d *DashboardScope) GetByID(
 	logger := d.project.operationLogger("GetDashboardByID", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := d.project.client.raw.GetDashboardWithResponse(
+	resp, err := d.project.client.raw.GetDashboardWithResponse(
 		ctx,
 		d.project.projectName,
 		id,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("get dashboard by id: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get dashboard by id: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "get dashboard by id", resp, err)
 }
 
 // Create creates a new dashboard in the project.
@@ -83,23 +62,13 @@ func (d *DashboardScope) Create(
 	logger := d.project.operationLogger("CreateDashboard", slog.String("name", request.Name))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := d.project.client.raw.CreateDashboardWithResponse(
+	resp, err := d.project.client.raw.CreateDashboardWithResponse(
 		ctx,
 		d.project.projectName,
 		request,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("create dashboard: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON201, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("create dashboard: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "create dashboard", resp, err)
 }
 
 // Update modifies an existing dashboard.
@@ -111,24 +80,14 @@ func (d *DashboardScope) Update(
 	logger := d.project.operationLogger("UpdateDashboard", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := d.project.client.raw.UpdateDashboardWithResponse(
+	resp, err := d.project.client.raw.UpdateDashboardWithResponse(
 		ctx,
 		d.project.projectName,
 		id,
 		request,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("update dashboard: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("update dashboard: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "update dashboard", resp, err)
 }
 
 // Delete removes a dashboard by its numeric ID.
@@ -139,23 +98,13 @@ func (d *DashboardScope) Delete(
 	logger := d.project.operationLogger("DeleteDashboard", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := d.project.client.raw.DeleteDashboardWithResponse(
+	resp, err := d.project.client.raw.DeleteDashboardWithResponse(
 		ctx,
 		d.project.projectName,
 		id,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("delete dashboard: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("delete dashboard: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "delete dashboard", resp, err)
 }
 
 // AddWidget adds a widget to a dashboard.
@@ -170,24 +119,14 @@ func (d *DashboardScope) AddWidget(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := d.project.client.raw.AddWidgetWithResponse(
+	resp, err := d.project.client.raw.AddWidgetWithResponse(
 		ctx,
 		d.project.projectName,
 		dashboardID,
 		request,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("add widget to dashboard: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("add widget to dashboard: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "add widget to dashboard", resp, err)
 }
 
 // GetConfig retrieves the widget configuration for a specific dashboard.
@@ -200,20 +139,15 @@ func (d *DashboardScope) GetConfig(
 	logger := d.project.operationLogger("GetDashboardConfig", slog.Int64("id", dashboardID))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := d.project.client.raw.GetDashboardConfigWithResponse(
+	resp, err := d.project.client.raw.GetDashboardConfigWithResponse(
 		ctx,
 		d.project.projectName,
 		dashboardID,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("get dashboard config: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	result, err := execute(ctx, logger, "get dashboard config", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("get dashboard config: %w", err)
+		return nil, err
 	}
 
 	if result.Widgets == nil {
@@ -231,23 +165,13 @@ func (d *DashboardScope) CreatePreconfigured(
 	logger := d.project.operationLogger("CreatePreconfiguredDashboard", slog.String("name", request.Name))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := d.project.client.raw.CreatePreconfiguredWithResponse(
+	resp, err := d.project.client.raw.CreatePreconfiguredWithResponse(
 		ctx,
 		d.project.projectName,
 		request,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("create preconfigured dashboard: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("create preconfigured dashboard: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "create preconfigured dashboard", resp, err)
 }
 
 // RemoveWidget removes a widget from a dashboard.
@@ -262,24 +186,14 @@ func (d *DashboardScope) RemoveWidget(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := d.project.client.raw.RemoveWidgetWithResponse(
+	resp, err := d.project.client.raw.RemoveWidgetWithResponse(
 		ctx,
 		d.project.projectName,
 		dashboardID,
 		widgetID,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("remove widget from dashboard: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("remove widget from dashboard: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "remove widget from dashboard", resp, err)
 }
 
 // ListDashboardsOption configures the filter and pagination parameters for listing dashboards.

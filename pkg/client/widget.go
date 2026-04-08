@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 
 	"github.com/klaskosk/report-portal-cli/pkg/internal/api"
@@ -22,23 +21,13 @@ func (w *WidgetScope) GetByID(
 	logger := w.project.operationLogger("GetWidgetByID", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := w.project.client.raw.GetWidgetWithResponse(
+	resp, err := w.project.client.raw.GetWidgetWithResponse(
 		ctx,
 		w.project.projectName,
 		id,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("get widget by id: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get widget by id: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "get widget by id", resp, err)
 }
 
 // Create creates a new widget in the project.
@@ -49,23 +38,13 @@ func (w *WidgetScope) Create(
 	logger := w.project.operationLogger("CreateWidget", slog.String("name", request.Name))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := w.project.client.raw.CreateWidgetWithResponse(
+	resp, err := w.project.client.raw.CreateWidgetWithResponse(
 		ctx,
 		w.project.projectName,
 		request,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("create widget: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON201, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("create widget: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "create widget", resp, err)
 }
 
 // Update modifies an existing widget.
@@ -77,24 +56,14 @@ func (w *WidgetScope) Update(
 	logger := w.project.operationLogger("UpdateWidget", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := w.project.client.raw.UpdateWidgetWithResponse(
+	resp, err := w.project.client.raw.UpdateWidgetWithResponse(
 		ctx,
 		w.project.projectName,
 		id,
 		request,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("update widget: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("update widget: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "update widget", resp, err)
 }
 
 // GetData returns a widget's computed data by its numeric ID.
@@ -115,24 +84,14 @@ func (w *WidgetScope) GetData(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := w.project.client.raw.GetWidget1WithResponse(
+	resp, err := w.project.client.raw.GetWidget1WithResponse(
 		ctx,
 		w.project.projectName,
 		id,
 		params,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("get widget data: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get widget data: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "get widget data", resp, err)
 }
 
 // GetWidgetDataOption configures the parameters for getting widget data.
@@ -167,20 +126,15 @@ func (w *WidgetScope) GetNames(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := w.project.client.raw.GetWidgetNamesWithResponse(
+	resp, err := w.project.client.raw.GetWidgetNamesWithResponse(
 		ctx,
 		w.project.projectName,
 		params,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("get widget names: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	result, err := execute(ctx, logger, "get widget names", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("get widget names: %w", err)
+		return nil, err
 	}
 
 	if result == nil {

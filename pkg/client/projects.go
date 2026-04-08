@@ -28,19 +28,9 @@ func (p *ProjectsScope) Get(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.GetProjectWithResponse(ctx, projectName)
-	if err != nil {
-		return nil, fmt.Errorf("get project: %w", err)
-	}
+	resp, err := p.client.raw.GetProjectWithResponse(ctx, projectName)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get project: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "get project", resp, err)
 }
 
 // ListNames returns all project names in the Report Portal instance. The underlying
@@ -50,21 +40,11 @@ func (p *ProjectsScope) ListNames(ctx context.Context) ([]string, error) {
 	logger := p.client.logger.With(slog.String("operation", "ListProjectNames"))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.GetAllProjectNamesWithResponse(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("list project names: %w", err)
-	}
+	resp, err := p.client.raw.GetAllProjectNamesWithResponse(ctx)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(
-		response,
-		response.JSONDefault,
-		response.JSON200,
-		response.Body,
-	)
+	result, err := execute(ctx, logger, "list project names", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("list project names: %w", err)
+		return nil, err
 	}
 
 	return []string(*result), nil
@@ -137,19 +117,9 @@ func (p *ProjectsScope) List(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.GetAllProjectsInfoWithResponse(ctx, params)
-	if err != nil {
-		return nil, fmt.Errorf("list projects: %w", err)
-	}
+	resp, err := p.client.raw.GetAllProjectsInfoWithResponse(ctx, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("list projects: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "list projects", resp, err)
 }
 
 // SearchNames searches for project names matching the given term.
@@ -165,16 +135,11 @@ func (p *ProjectsScope) SearchNames(
 
 	params := &api.SearchProjectNamesParams{Term: term}
 
-	response, err := p.client.raw.SearchProjectNamesWithResponse(ctx, params)
-	if err != nil {
-		return nil, fmt.Errorf("search project names: %w", err)
-	}
+	resp, err := p.client.raw.SearchProjectNamesWithResponse(ctx, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	result, err := execute(ctx, logger, "search project names", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("search project names: %w", err)
+		return nil, err
 	}
 
 	return []string(*result), nil
@@ -198,19 +163,9 @@ func (p *ProjectsScope) GetInfo(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.GetProjectInfoWithResponse(ctx, projectName, params)
-	if err != nil {
-		return nil, fmt.Errorf("get project info: %w", err)
-	}
+	resp, err := p.client.raw.GetProjectInfoWithResponse(ctx, projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get project info: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "get project info", resp, err)
 }
 
 // GetProjectInfoOption configures the parameters for getting project info.
@@ -242,19 +197,9 @@ func (p *ProjectsScope) Create(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.CreateProjectWithResponse(ctx, request)
-	if err != nil {
-		return nil, fmt.Errorf("create project: %w", err)
-	}
+	resp, err := p.client.raw.CreateProjectWithResponse(ctx, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON201, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("create project: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "create project", resp, err)
 }
 
 // Delete deletes a project by its numeric ID.
@@ -268,22 +213,12 @@ func (p *ProjectsScope) Delete(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.DeleteProjectWithResponse(
+	resp, err := p.client.raw.DeleteProjectWithResponse(
 		ctx,
 		&api.DeleteProjectParams{Ids: []int64{projectID}},
 	)
-	if err != nil {
-		return nil, fmt.Errorf("delete project: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("delete project: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "delete project", resp, err)
 }
 
 // Update modifies the configuration of an existing project.
@@ -298,19 +233,9 @@ func (p *ProjectsScope) Update(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.UpdateProjectWithResponse(ctx, projectName, request)
-	if err != nil {
-		return nil, fmt.Errorf("update project: %w", err)
-	}
+	resp, err := p.client.raw.UpdateProjectWithResponse(ctx, projectName, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("update project: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "update project", resp, err)
 }
 
 // AssignUsers assigns users to a project with specified roles.
@@ -325,19 +250,9 @@ func (p *ProjectsScope) AssignUsers(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.AssignProjectUsersWithResponse(ctx, projectName, request)
-	if err != nil {
-		return nil, fmt.Errorf("assign project users: %w", err)
-	}
+	resp, err := p.client.raw.AssignProjectUsersWithResponse(ctx, projectName, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("assign project users: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "assign project users", resp, err)
 }
 
 // UnassignUsers removes users from a project.
@@ -352,23 +267,13 @@ func (p *ProjectsScope) UnassignUsers(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.UnassignProjectUsersWithResponse(
+	resp, err := p.client.raw.UnassignProjectUsersWithResponse(
 		ctx,
 		projectName,
 		request,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("unassign project users: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("unassign project users: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "unassign project users", resp, err)
 }
 
 // ListUsers returns a paginated list of users assigned to a project.
@@ -389,19 +294,9 @@ func (p *ProjectsScope) ListUsers(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.GetProjectUsersWithResponse(ctx, projectName, params)
-	if err != nil {
-		return nil, fmt.Errorf("list project users: %w", err)
-	}
+	resp, err := p.client.raw.GetProjectUsersWithResponse(ctx, projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("list project users: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "list project users", resp, err)
 }
 
 // ListProjectUsersOption configures the filter and pagination parameters for listing project users.
@@ -529,16 +424,11 @@ func (p *ProjectsScope) GetAnalyzerStatus(
 	logger := p.client.logger.With(slog.String("operation", "GetAnalyzerIndexingStatus"))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.GetAnalyzerIndexingStatusWithResponse(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("get analyzer status: %w", err)
-	}
+	resp, err := p.client.raw.GetAnalyzerIndexingStatusWithResponse(ctx)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	result, err := execute(ctx, logger, "get analyzer status", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("get analyzer status: %w", err)
+		return nil, err
 	}
 
 	if result == nil {
@@ -560,23 +450,13 @@ func (p *ProjectsScope) UpdateNotificationConfig(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.UpdateProjectNotificationConfigWithResponse(
+	resp, err := p.client.raw.UpdateProjectNotificationConfigWithResponse(
 		ctx,
 		projectName,
 		request,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("update notification config: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("update notification config: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "update notification config", resp, err)
 }
 
 // GetPreference returns the current user's preference for the specified project.
@@ -590,19 +470,9 @@ func (p *ProjectsScope) GetPreference(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.GetUserPreferenceWithResponse(ctx, projectName)
-	if err != nil {
-		return nil, fmt.Errorf("get user preference: %w", err)
-	}
+	resp, err := p.client.raw.GetUserPreferenceWithResponse(ctx, projectName)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get user preference: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "get user preference", resp, err)
 }
 
 // AddPreference adds a filter to the current user's preferences for the specified project.
@@ -618,19 +488,9 @@ func (p *ProjectsScope) AddPreference(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.AddUserPreferenceWithResponse(ctx, projectName, filterID)
-	if err != nil {
-		return nil, fmt.Errorf("add user preference: %w", err)
-	}
+	resp, err := p.client.raw.AddUserPreferenceWithResponse(ctx, projectName, filterID)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("add user preference: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "add user preference", resp, err)
 }
 
 // RemovePreference removes a filter from the current user's preferences for the specified project.
@@ -646,19 +506,9 @@ func (p *ProjectsScope) RemovePreference(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.RemoveUserPreferenceWithResponse(ctx, projectName, filterID)
-	if err != nil {
-		return nil, fmt.Errorf("remove user preference: %w", err)
-	}
+	resp, err := p.client.raw.RemoveUserPreferenceWithResponse(ctx, projectName, filterID)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("remove user preference: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "remove user preference", resp, err)
 }
 
 // DeleteIndex deletes the analyzer index for the specified project.
@@ -672,19 +522,9 @@ func (p *ProjectsScope) DeleteIndex(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.DeleteProjectIndexWithResponse(ctx, projectName)
-	if err != nil {
-		return nil, fmt.Errorf("delete project index: %w", err)
-	}
+	resp, err := p.client.raw.DeleteProjectIndexWithResponse(ctx, projectName)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("delete project index: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "delete project index", resp, err)
 }
 
 // IndexData triggers re-indexing of the specified project's data.
@@ -698,19 +538,9 @@ func (p *ProjectsScope) IndexData(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.IndexProjectDataWithResponse(ctx, projectName)
-	if err != nil {
-		return nil, fmt.Errorf("index project data: %w", err)
-	}
+	resp, err := p.client.raw.IndexProjectDataWithResponse(ctx, projectName)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("index project data: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "index project data", resp, err)
 }
 
 // ListAssignableUsersOption configures the filter and pagination parameters
@@ -771,19 +601,9 @@ func (p *ProjectsScope) ListAssignableUsers(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.GetUsersForAssignWithResponse(ctx, projectName, params)
-	if err != nil {
-		return nil, fmt.Errorf("list assignable users: %w", err)
-	}
+	resp, err := p.client.raw.GetUsersForAssignWithResponse(ctx, projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("list assignable users: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "list assignable users", resp, err)
 }
 
 // ListUsernames returns usernames assigned to a project, filtered by the given term.
@@ -801,16 +621,11 @@ func (p *ProjectsScope) ListUsernames(
 
 	params := &api.GetProjectUsers1Params{FilterCntUsers: term}
 
-	response, err := p.client.raw.GetProjectUsers1WithResponse(ctx, projectName, params)
-	if err != nil {
-		return nil, fmt.Errorf("list project usernames: %w", err)
-	}
+	resp, err := p.client.raw.GetProjectUsers1WithResponse(ctx, projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	result, err := execute(ctx, logger, "list project usernames", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("list project usernames: %w", err)
+		return nil, err
 	}
 
 	if result == nil {
@@ -879,19 +694,9 @@ func (p *ProjectsScope) SearchUsernames(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.SearchForUserWithResponse(ctx, projectName, params)
-	if err != nil {
-		return nil, fmt.Errorf("search project usernames: %w", err)
-	}
+	resp, err := p.client.raw.SearchForUserWithResponse(ctx, projectName, params)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("search project usernames: %w", err)
-	}
-
-	return result, nil
+	return execute(ctx, logger, "search project usernames", resp, err)
 }
 
 // GetWidgetByCodeOption configures the query parameters for getting a project widget.
@@ -932,21 +737,16 @@ func (p *ProjectsScope) GetWidgetByCode(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := p.client.raw.GetProjectWidgetWithResponse(
+	resp, err := p.client.raw.GetProjectWidgetWithResponse(
 		ctx,
 		projectName,
 		widgetCode,
 		params,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("get project widget: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	result, err := execute(ctx, logger, "get project widget", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("get project widget: %w", err)
+		return nil, err
 	}
 
 	if result == nil {
