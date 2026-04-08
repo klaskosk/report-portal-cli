@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -12,6 +13,23 @@ import (
 // apiResponse is implemented by all oapi-codegen response types that carry a JSONDefault error body.
 type apiResponse interface {
 	StatusCode() int
+}
+
+// typedResponse is implemented by generated response structs that have a
+// single 2xx success field. The codegen template generates these methods.
+type typedResponse[T any] interface {
+	StatusCode() int
+	GetBody() []byte
+	GetJSONDefault() *types.ErrorRS
+	GetSuccess() *T
+}
+
+// voidResponse is implemented by generated response structs for endpoints
+// that return no success body (e.g. DELETE with 204 No Content).
+type voidResponse interface {
+	StatusCode() int
+	GetBody() []byte
+	GetJSONDefault() *types.ErrorRS
 }
 
 // handleResponse checks the error response body and returns the success value. It handles the "check JSONDefault, then
@@ -52,6 +70,71 @@ func handleVoidResponse[R apiResponse](response R, jsonDefault *types.ErrorRS, b
 	code := response.StatusCode()
 	if code < 200 || code >= 300 {
 		return newUnexpectedStatusError(code, body)
+	}
+
+	return nil
+}
+
+// execute handles the full lifecycle of a typed API call: it wraps transport
+// errors, logs the response status, checks for structured and unstructured
+// error bodies, and validates the success payload. All returned errors are
+// prefixed with opName so callers don't need an additional wrapping layer.
+func execute[T any](
+	ctx context.Context,
+	logger *slog.Logger,
+	opName string,
+	resp typedResponse[T],
+	err error,
+) (*T, error) {
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", opName, err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", resp.StatusCode())
+
+	if jsonDefault := resp.GetJSONDefault(); jsonDefault != nil {
+		return nil, fmt.Errorf("%s: %w", opName, newAPIError(resp.StatusCode(), jsonDefault))
+	}
+
+	code := resp.StatusCode()
+	if code < 200 || code >= 300 {
+		return nil, fmt.Errorf("%s: %w", opName, newUnexpectedStatusError(code, resp.GetBody()))
+	}
+
+	success := resp.GetSuccess()
+	if success == nil {
+		return nil, fmt.Errorf(
+			"%s: API returned success status (%d) but no valid response body was parsed",
+			opName, code,
+		)
+	}
+
+	return success, nil
+}
+
+// executeVoid handles the full lifecycle of a void API call (e.g. DELETE
+// returning 204 No Content). It mirrors execute but skips success-body
+// validation since no response payload is expected.
+func executeVoid(
+	ctx context.Context,
+	logger *slog.Logger,
+	opName string,
+	resp voidResponse,
+	err error,
+) error {
+	if err != nil {
+		return fmt.Errorf("%s: %w", opName, err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", resp.StatusCode())
+
+	if jsonDefault := resp.GetJSONDefault(); jsonDefault != nil {
+		return fmt.Errorf("%s: %w", opName, newAPIError(resp.StatusCode(), jsonDefault))
+	}
+
+	code := resp.StatusCode()
+	if code < 200 || code >= 300 {
+		return fmt.Errorf("%s: %w", opName, newUnexpectedStatusError(code, resp.GetBody()))
 	}
 
 	return nil
