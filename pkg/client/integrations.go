@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 
 	"github.com/klaskosk/report-portal-cli/pkg/types"
@@ -18,16 +17,11 @@ func (s *IntegrationsScope) ListGlobal(ctx context.Context) ([]types.Integration
 	logger := s.client.logger.With(slog.String("operation", "ListGlobalIntegrations"))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.client.raw.GetGlobalIntegrations1WithResponse(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("list global integrations: %w", err)
-	}
+	resp, err := s.client.raw.GetGlobalIntegrations1WithResponse(ctx)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	result, err := execute[[]types.IntegrationResource](ctx, logger, "list global integrations", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("list global integrations: %w", err)
+		return nil, err
 	}
 
 	if result == nil {
@@ -48,16 +42,11 @@ func (s *IntegrationsScope) ListGlobalByPlugin(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.client.raw.GetGlobalIntegrationsWithResponse(ctx, pluginName)
-	if err != nil {
-		return nil, fmt.Errorf("list global integrations by plugin: %w", err)
-	}
+	resp, err := s.client.raw.GetGlobalIntegrationsWithResponse(ctx, pluginName)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	result, err := execute[[]types.IntegrationResource](ctx, logger, "list global integrations by plugin", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("list global integrations by plugin: %w", err)
+		return nil, err
 	}
 
 	if result == nil {
@@ -78,19 +67,9 @@ func (s *IntegrationsScope) GetGlobal(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.client.raw.GetGlobalIntegrationWithResponse(ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("get global integration: %w", err)
-	}
+	resp, err := s.client.raw.GetGlobalIntegrationWithResponse(ctx, id)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get global integration: %w", err)
-	}
-
-	return result, nil
+	return execute[types.IntegrationResource](ctx, logger, "get global integration", resp, err)
 }
 
 // TestGlobalConnection tests connectivity for a global integration.
@@ -101,16 +80,11 @@ func (s *IntegrationsScope) TestGlobalConnection(ctx context.Context, id int64) 
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.client.raw.TestIntegrationConnection1WithResponse(ctx, id)
-	if err != nil {
-		return false, fmt.Errorf("test global integration connection: %w", err)
-	}
+	resp, err := s.client.raw.TestIntegrationConnection1WithResponse(ctx, id)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	result, err := execute[bool](ctx, logger, "test global integration connection", resp, err)
 	if err != nil {
-		return false, fmt.Errorf("test global integration connection: %w", err)
+		return false, err
 	}
 
 	if result == nil {
@@ -132,23 +106,9 @@ func (s *IntegrationsScope) CreateGlobal(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.client.raw.CreateGlobalIntegrationWithResponse(
-		ctx,
-		pluginName,
-		request,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("create global integration: %w", err)
-	}
+	resp, err := s.client.raw.CreateGlobalIntegrationWithResponse(ctx, pluginName, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON201, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("create global integration: %w", err)
-	}
-
-	return result, nil
+	return execute[types.EntryCreatedRS](ctx, logger, "create global integration", resp, err)
 }
 
 // UpdateGlobal updates an existing global integration.
@@ -163,19 +123,9 @@ func (s *IntegrationsScope) UpdateGlobal(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.client.raw.UpdateGlobalIntegrationWithResponse(ctx, id, request)
-	if err != nil {
-		return nil, fmt.Errorf("update global integration: %w", err)
-	}
+	resp, err := s.client.raw.UpdateGlobalIntegrationWithResponse(ctx, id, request)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("update global integration: %w", err)
-	}
-
-	return result, nil
+	return execute[types.OperationCompletionRS](ctx, logger, "update global integration", resp, err)
 }
 
 // DeleteGlobal removes a global integration by its numeric ID.
@@ -189,19 +139,9 @@ func (s *IntegrationsScope) DeleteGlobal(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.client.raw.DeleteGlobalIntegrationWithResponse(ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("delete global integration: %w", err)
-	}
+	resp, err := s.client.raw.DeleteGlobalIntegrationWithResponse(ctx, id)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("delete global integration: %w", err)
-	}
-
-	return result, nil
+	return execute[types.OperationCompletionRS](ctx, logger, "delete global integration", resp, err)
 }
 
 // DeleteAllByType removes all global integrations of the given type.
@@ -215,19 +155,9 @@ func (s *IntegrationsScope) DeleteAllByType(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.client.raw.DeleteAllIntegrationsWithResponse(ctx, pluginType)
-	if err != nil {
-		return nil, fmt.Errorf("delete all integrations by type: %w", err)
-	}
+	resp, err := s.client.raw.DeleteAllIntegrationsWithResponse(ctx, pluginType)
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("delete all integrations by type: %w", err)
-	}
-
-	return result, nil
+	return execute[types.OperationCompletionRS](ctx, logger, "delete all integrations by type", resp, err)
 }
 
 // ProjectIntegrationsScope provides operations on integrations within a specific project.
@@ -240,19 +170,13 @@ func (s *ProjectIntegrationsScope) List(ctx context.Context) ([]types.Integratio
 	logger := s.project.operationLogger("ListProjectIntegrations")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.GetProjectIntegrationsWithResponse(
-		ctx,
-		s.project.projectName,
+	resp, err := s.project.client.raw.GetProjectIntegrationsWithResponse(
+		ctx, s.project.projectName,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("list project integrations: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	result, err := execute[[]types.IntegrationResource](ctx, logger, "list project integrations", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("list project integrations: %w", err)
+		return nil, err
 	}
 
 	if result == nil {
@@ -272,20 +196,13 @@ func (s *ProjectIntegrationsScope) ListByPlugin(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.GetProjectIntegrations1WithResponse(
-		ctx,
-		s.project.projectName,
-		pluginName,
+	resp, err := s.project.client.raw.GetProjectIntegrations1WithResponse(
+		ctx, s.project.projectName, pluginName,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("list project integrations by plugin: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	result, err := execute[[]types.IntegrationResource](ctx, logger, "list project integrations by plugin", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("list project integrations by plugin: %w", err)
+		return nil, err
 	}
 
 	if result == nil {
@@ -303,23 +220,11 @@ func (s *ProjectIntegrationsScope) Get(
 	logger := s.project.operationLogger("GetProjectIntegration", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.GetProjectIntegrationWithResponse(
-		ctx,
-		s.project.projectName,
-		id,
+	resp, err := s.project.client.raw.GetProjectIntegrationWithResponse(
+		ctx, s.project.projectName, id,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("get project integration: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("get project integration: %w", err)
-	}
-
-	return result, nil
+	return execute[types.IntegrationResource](ctx, logger, "get project integration", resp, err)
 }
 
 // TestConnection tests connectivity for a project integration.
@@ -327,20 +232,13 @@ func (s *ProjectIntegrationsScope) TestConnection(ctx context.Context, id int64)
 	logger := s.project.operationLogger("TestProjectIntegrationConnection", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.TestIntegrationConnectionWithResponse(
-		ctx,
-		s.project.projectName,
-		id,
+	resp, err := s.project.client.raw.TestIntegrationConnectionWithResponse(
+		ctx, s.project.projectName, id,
 	)
-	if err != nil {
-		return false, fmt.Errorf("test project integration connection: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	result, err := execute[bool](ctx, logger, "test project integration connection", resp, err)
 	if err != nil {
-		return false, fmt.Errorf("test project integration connection: %w", err)
+		return false, err
 	}
 
 	if result == nil {
@@ -361,24 +259,11 @@ func (s *ProjectIntegrationsScope) Create(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.CreateProjectIntegrationWithResponse(
-		ctx,
-		s.project.projectName,
-		pluginName,
-		request,
+	resp, err := s.project.client.raw.CreateProjectIntegrationWithResponse(
+		ctx, s.project.projectName, pluginName, request,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("create project integration: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON201, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("create project integration: %w", err)
-	}
-
-	return result, nil
+	return execute[types.EntryCreatedRS](ctx, logger, "create project integration", resp, err)
 }
 
 // Update modifies an existing project integration.
@@ -390,24 +275,11 @@ func (s *ProjectIntegrationsScope) Update(
 	logger := s.project.operationLogger("UpdateProjectIntegration", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.UpdateProjectIntegrationWithResponse(
-		ctx,
-		s.project.projectName,
-		id,
-		request,
+	resp, err := s.project.client.raw.UpdateProjectIntegrationWithResponse(
+		ctx, s.project.projectName, id, request,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("update project integration: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("update project integration: %w", err)
-	}
-
-	return result, nil
+	return execute[types.OperationCompletionRS](ctx, logger, "update project integration", resp, err)
 }
 
 // Delete removes a project integration by its numeric ID.
@@ -418,23 +290,11 @@ func (s *ProjectIntegrationsScope) Delete(
 	logger := s.project.operationLogger("DeleteProjectIntegration", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.DeleteProjectIntegrationWithResponse(
-		ctx,
-		s.project.projectName,
-		id,
+	resp, err := s.project.client.raw.DeleteProjectIntegrationWithResponse(
+		ctx, s.project.projectName, id,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("delete project integration: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("delete project integration: %w", err)
-	}
-
-	return result, nil
+	return execute[types.OperationCompletionRS](ctx, logger, "delete project integration", resp, err)
 }
 
 // DeleteAllByType removes all project integrations of the given type.
@@ -447,23 +307,11 @@ func (s *ProjectIntegrationsScope) DeleteAllByType(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.DeleteAllProjectIntegrationsWithResponse(
-		ctx,
-		s.project.projectName,
-		pluginType,
+	resp, err := s.project.client.raw.DeleteAllProjectIntegrationsWithResponse(
+		ctx, s.project.projectName, pluginType,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("delete all project integrations by type: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("delete all project integrations by type: %w", err)
-	}
-
-	return result, nil
+	return execute[types.OperationCompletionRS](ctx, logger, "delete all project integrations by type", resp, err)
 }
 
 // ExecuteCommand executes a command on a project integration.
@@ -479,22 +327,13 @@ func (s *ProjectIntegrationsScope) ExecuteCommand(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	response, err := s.project.client.raw.ExecuteIntegrationCommandWithResponse(
-		ctx,
-		s.project.projectName,
-		integrationID,
-		command,
-		body,
+	resp, err := s.project.client.raw.ExecuteIntegrationCommandWithResponse(
+		ctx, s.project.projectName, integrationID, command, body,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("execute integration command: %w", err)
-	}
 
-	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
-
-	result, err := handleResponse(response, response.JSONDefault, response.JSON200, response.Body)
+	result, err := execute[map[string]any](ctx, logger, "execute integration command", resp, err)
 	if err != nil {
-		return nil, fmt.Errorf("execute integration command: %w", err)
+		return nil, err
 	}
 
 	if result == nil {
