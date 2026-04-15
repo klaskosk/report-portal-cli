@@ -431,6 +431,271 @@ func TestTestItemScope_Finish_Errors(t *testing.T) {
 	}
 }
 
+func TestTestItemScope_StartRootAsync_Success(t *testing.T) {
+	t.Parallel()
+
+	startTime := time.UnixMilli(1700000000000).UTC()
+	itemType := types.StartTestItemRQType("SUITE")
+	hasStats := true
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v2/my_project/item")
+		assertMethod(t, r, http.MethodPost)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		assert.Equal(t, "launch-uuid-1", payload["launchUuid"])
+		assert.Equal(t, "Async Suite", payload["name"])
+		assert.Equal(t, startTime.UTC().Format(time.RFC3339Nano), payload["startTime"])
+		assert.Equal(t, string(itemType), payload["type"])
+		assert.Equal(t, true, payload["hasStats"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"id":"async-suite-uuid-1"}`))
+	}))
+
+	result, err := c.Project("my_project").Items().StartRootAsync(
+		t.Context(),
+		types.StartTestItemRQ{
+			LaunchUuid: "launch-uuid-1",
+			Name:       "Async Suite",
+			StartTime:  startTime,
+			Type:       itemType,
+			HasStats:   &hasStats,
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Id)
+	assert.Equal(t, "async-suite-uuid-1", *result.Id)
+}
+
+func TestTestItemScope_StartRootAsync_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "BadRequest",
+			statusCode: http.StatusBadRequest,
+			body:       `{"errorCode": 4001, "message": "Invalid test item payload."}`,
+			check:      client.IsBadRequest,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			itemType := types.StartTestItemRQType("SUITE")
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Items().StartRootAsync(
+				t.Context(),
+				types.StartTestItemRQ{
+					LaunchUuid: "launch-uuid-1",
+					Name:       "Async Suite",
+					StartTime:  time.Now(),
+					Type:       itemType,
+				},
+			)
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestTestItemScope_StartChildAsync_Success(t *testing.T) {
+	t.Parallel()
+
+	startTime := time.UnixMilli(1700000001000).UTC()
+	itemType := types.StartTestItemRQType("TEST")
+	hasStats := true
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v2/my_project/item/suite-uuid-1")
+		assertMethod(t, r, http.MethodPost)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		assert.Equal(t, "launch-uuid-1", payload["launchUuid"])
+		assert.Equal(t, "Async Test", payload["name"])
+		assert.Equal(t, startTime.UTC().Format(time.RFC3339Nano), payload["startTime"])
+		assert.Equal(t, string(itemType), payload["type"])
+		assert.Equal(t, true, payload["hasStats"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"id":"async-test-uuid-1"}`))
+	}))
+
+	result, err := c.Project("my_project").Items().StartChildAsync(
+		t.Context(),
+		"suite-uuid-1",
+		types.StartTestItemRQ{
+			LaunchUuid: "launch-uuid-1",
+			Name:       "Async Test",
+			StartTime:  startTime,
+			Type:       itemType,
+			HasStats:   &hasStats,
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Id)
+	assert.Equal(t, "async-test-uuid-1", *result.Id)
+}
+
+func TestTestItemScope_StartChildAsync_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "NotFound",
+			statusCode: http.StatusNotFound,
+			body:       `{"errorCode": 40440, "message": "Parent item not found."}`,
+			check:      client.IsNotFound,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			itemType := types.StartTestItemRQType("TEST")
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Items().StartChildAsync(
+				t.Context(),
+				"missing-parent",
+				types.StartTestItemRQ{
+					LaunchUuid: "launch-uuid-1",
+					Name:       "Async Test",
+					StartTime:  time.Now(),
+					Type:       itemType,
+				},
+			)
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestTestItemScope_FinishAsync_Success(t *testing.T) {
+	t.Parallel()
+
+	endTime := time.UnixMilli(1700000005000).UTC()
+	status := types.FinishTestItemRQStatusPASSED
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v2/my_project/item/test-uuid-1")
+		assertMethod(t, r, http.MethodPut)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		assert.Equal(t, "launch-uuid-1", payload["launchUuid"])
+		assert.Equal(t, endTime.UTC().Format(time.RFC3339Nano), payload["endTime"])
+		assert.Equal(t, string(status), payload["status"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"Test item finished."}`))
+	}))
+
+	result, err := c.Project("my_project").Items().FinishAsync(
+		t.Context(),
+		"test-uuid-1",
+		types.FinishTestItemRQ{
+			LaunchUuid: "launch-uuid-1",
+			EndTime:    endTime,
+			Status:     &status,
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Message)
+	assert.Equal(t, "Test item finished.", *result.Message)
+}
+
+func TestTestItemScope_FinishAsync_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "NotFound",
+			statusCode: http.StatusNotFound,
+			body:       `{"errorCode": 40440, "message": "Test item not found."}`,
+			check:      client.IsNotFound,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			status := types.FinishTestItemRQStatusPASSED
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Items().FinishAsync(
+				t.Context(),
+				"missing-item",
+				types.FinishTestItemRQ{
+					LaunchUuid: "launch-uuid-1",
+					EndTime:    time.Now(),
+					Status:     &status,
+				},
+			)
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
 func TestTestItemScope_List_Success(t *testing.T) {
 	t.Parallel()
 

@@ -1862,6 +1862,290 @@ func TestLaunchScope_GetReport_Success(t *testing.T) {
 	assert.Equal(t, expectedBody, string(result))
 }
 
+func TestLaunchScope_StartAsync_Success(t *testing.T) {
+	t.Parallel()
+
+	startTime := time.UnixMilli(1700000000000).UTC()
+	mode := types.StartLaunchRQModeDEFAULT
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v2/my_project/launch")
+		assertMethod(t, r, http.MethodPost)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		assert.Equal(t, "Async Launch", payload["name"])
+		assert.Equal(t, startTime.UTC().Format(time.RFC3339Nano), payload["startTime"])
+		assert.Equal(t, string(mode), payload["mode"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"id":"async-launch-uuid","number":3}`))
+	}))
+
+	result, err := c.Project("my_project").Launches().StartAsync(t.Context(), types.StartLaunchRQ{
+		Name:      "Async Launch",
+		StartTime: startTime,
+		Mode:      &mode,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Id)
+	require.NotNil(t, result.Number)
+
+	assert.Equal(t, "async-launch-uuid", *result.Id)
+	assert.Equal(t, int64(3), *result.Number)
+}
+
+func TestLaunchScope_StartAsync_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "BadRequest",
+			statusCode: http.StatusBadRequest,
+			body:       `{"errorCode": 4001, "message": "Invalid launch payload."}`,
+			check:      client.IsBadRequest,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Launches().StartAsync(
+				t.Context(),
+				types.StartLaunchRQ{
+					Name:      "Async Launch",
+					StartTime: time.Now(),
+				},
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestLaunchScope_FinishAsync_Success(t *testing.T) {
+	t.Parallel()
+
+	endTime := time.UnixMilli(1700000007000).UTC()
+	status := types.FinishExecutionRQStatusPASSED
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v2/my_project/launch/launch-uuid-1/finish")
+		assertMethod(t, r, http.MethodPut)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		assert.Equal(t, endTime.UTC().Format(time.RFC3339Nano), payload["endTime"])
+		assert.Equal(t, string(status), payload["status"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"id":"launch-uuid-1","link":"http://rp/launch/1","number":7}`))
+	}))
+
+	result, err := c.Project("my_project").Launches().FinishAsync(
+		t.Context(),
+		"launch-uuid-1",
+		types.FinishExecutionRQ{
+			EndTime: endTime,
+			Status:  &status,
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Id)
+	require.NotNil(t, result.Link)
+	require.NotNil(t, result.Number)
+
+	assert.Equal(t, "launch-uuid-1", *result.Id)
+	assert.Equal(t, "http://rp/launch/1", *result.Link)
+	assert.Equal(t, int64(7), *result.Number)
+}
+
+func TestLaunchScope_FinishAsync_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "NotFound",
+			statusCode: http.StatusNotFound,
+			body:       `{"errorCode": 40410, "message": "Launch not found."}`,
+			check:      client.IsNotFound,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			status := types.FinishExecutionRQStatusPASSED
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Launches().FinishAsync(
+				t.Context(),
+				"missing-launch",
+				types.FinishExecutionRQ{
+					EndTime: time.Now(),
+					Status:  &status,
+				},
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestLaunchScope_MergeAsync_PrefersV2Response(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v2/my_project/launch/merge")
+		assertMethod(t, r, http.MethodPost)
+		assertHeader(t, r, "Accept", "application/x.reportportal.launch.v2+json")
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		assert.Equal(t, "Merged Launch", payload["name"])
+		assert.Equal(t, "BASIC", payload["mergeType"], "should default to BASIC merge type")
+
+		launches := payload["launches"].([]any)
+		assert.Len(t, launches, 2)
+
+		w.Header().Set("Content-Type", "application/x.reportportal.launch.v2+json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{
+			"id": 100,
+			"uuid": "merged-uuid",
+			"name": "Merged Launch",
+			"status": "PASSED",
+			"startTime": "2023-11-14T22:13:20Z",
+			"number": 10
+		}`))
+	}))
+
+	result, err := c.Project("my_project").Launches().MergeAsync(
+		t.Context(),
+		types.MergeLaunchesRQ{
+			Name:     "Merged Launch",
+			Launches: []int64{1, 2},
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, "Merged Launch", result.Name)
+	assert.Equal(t, int64(100), result.Id)
+}
+
+func TestLaunchScope_MergeAsync_LegacyJSONReturnsError(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v2/my_project/launch/merge")
+		assertMethod(t, r, http.MethodPost)
+		assertHeader(t, r, "Accept", "application/x.reportportal.launch.v2+json")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{
+			"id": 100,
+			"uuid": "merged-uuid",
+			"name": "Merged Launch",
+			"status": "PASSED",
+			"startTime": "2023-11-14T22:13:20Z",
+			"number": 10
+		}`))
+	}))
+
+	_, err := c.Project("my_project").Launches().MergeAsync(
+		t.Context(),
+		types.MergeLaunchesRQ{
+			Name:     "Merged Launch",
+			Launches: []int64{1, 2},
+		},
+	)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "legacy JSON shape")
+}
+
+func TestLaunchScope_MergeAsync_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "BadRequest",
+			statusCode: http.StatusBadRequest,
+			body:       `{"errorCode": 4001, "message": "Invalid merge configuration."}`,
+			check:      client.IsBadRequest,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Launches().MergeAsync(
+				t.Context(),
+				types.MergeLaunchesRQ{
+					Name:     "Bad Merge",
+					Launches: []int64{1, 2},
+				},
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
 func TestLaunchScope_GetReport_Errors(t *testing.T) {
 	t.Parallel()
 

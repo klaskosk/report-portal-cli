@@ -62,6 +62,57 @@ func (i *TestItemScope) Finish(
 	return execute[types.OperationCompletionRS](ctx, logger, "finish test item", resp, err)
 }
 
+// StartRootAsync creates a root test item under an existing launch using the
+// asynchronous v2 API endpoint. The server accepts the request immediately and
+// processes it in the background.
+func (i *TestItemScope) StartRootAsync(
+	ctx context.Context,
+	request types.StartTestItemRQ,
+) (*types.EntryCreatedAsyncRS, error) {
+	logger := i.project.operationLogger("StartRootTestItemAsync", slog.String("name", request.Name))
+	logger.InfoContext(ctx, "API request")
+
+	resp, err := i.project.client.raw.StartRootItem1WithResponse(ctx, i.project.projectName, request)
+
+	return execute[types.EntryCreatedAsyncRS](ctx, logger, "start root test item async", resp, err)
+}
+
+// StartChildAsync creates a child test item under the given parent item's UUID
+// using the asynchronous v2 API endpoint. The server accepts the request
+// immediately and processes it in the background.
+func (i *TestItemScope) StartChildAsync(
+	ctx context.Context,
+	parentItemUUID string,
+	request types.StartTestItemRQ,
+) (*types.EntryCreatedAsyncRS, error) {
+	logger := i.project.operationLogger(
+		"StartChildTestItemAsync",
+		slog.String("parentItemUuid", parentItemUUID),
+		slog.String("name", request.Name),
+	)
+	logger.InfoContext(ctx, "API request")
+
+	resp, err := i.project.client.raw.StartChildItemWithResponse(ctx, i.project.projectName, parentItemUUID, request)
+
+	return execute[types.EntryCreatedAsyncRS](ctx, logger, "start child test item async", resp, err)
+}
+
+// FinishAsync marks an existing test item as finished using the asynchronous v2
+// API endpoint. The server accepts the request immediately and processes it in
+// the background.
+func (i *TestItemScope) FinishAsync(
+	ctx context.Context,
+	itemUUID string,
+	request types.FinishTestItemRQ,
+) (*types.OperationCompletionRS, error) {
+	logger := i.project.operationLogger("FinishTestItemAsync", slog.String("itemUuid", itemUUID))
+	logger.InfoContext(ctx, "API request")
+
+	resp, err := i.project.client.raw.FinishTestItemWithResponse(ctx, i.project.projectName, itemUUID, request)
+
+	return execute[types.OperationCompletionRS](ctx, logger, "finish test item async", resp, err)
+}
+
 // GetByID returns a single test item by its numeric ID.
 func (i *TestItemScope) GetByID(
 	ctx context.Context,

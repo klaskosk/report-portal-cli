@@ -303,6 +303,232 @@ func TestLogScope_Create_Errors(t *testing.T) {
 	}
 }
 
+func TestLogScope_CreateAsync_Success(t *testing.T) {
+	t.Parallel()
+
+	message := "Async log message"
+	level := "INFO"
+	itemUUID := "item-uuid-1"
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v2/my_project/log/entry")
+		assertMethod(t, r, http.MethodPost)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+
+		assert.Equal(t, "launch-uuid-1", payload["launchUuid"])
+		assert.Equal(t, "item-uuid-1", payload["itemUuid"])
+		assert.Equal(t, "Async log message", payload["message"])
+		assert.Equal(t, "INFO", payload["level"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"id":"async-log-entry-uuid"}`))
+	}))
+
+	result, err := c.Project("my_project").Logs().CreateAsync(
+		t.Context(),
+		types.SaveLogRQ{
+			LaunchUuid: "launch-uuid-1",
+			ItemUuid:   &itemUUID,
+			Message:    &message,
+			Level:      &level,
+			Time:       time.UnixMilli(1700000000000).UTC(),
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Id)
+	assert.Equal(t, "async-log-entry-uuid", *result.Id)
+}
+
+func TestLogScope_CreateAsync_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "BadRequest",
+			statusCode: http.StatusBadRequest,
+			body:       `{"errorCode": 4001, "message": "Missing required fields."}`,
+			check:      client.IsBadRequest,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Logs().CreateAsync(
+				t.Context(),
+				types.SaveLogRQ{
+					LaunchUuid: "launch-uuid-1",
+					Time:       time.Now(),
+				},
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
+func TestLogScope_CreateBatchAsync_Success(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v2/my_project/log")
+		assertMethod(t, r, http.MethodPost)
+
+		contentType := r.Header.Get("Content-Type")
+		assert.Contains(t, contentType, "multipart/form-data")
+		assert.Contains(t, contentType, "boundary=")
+
+		err := r.ParseMultipartForm(10 << 20)
+		require.NoError(t, err)
+
+		jsonPart := r.FormValue("json_request_part")
+		assert.NotEmpty(t, jsonPart)
+
+		var entries []map[string]any
+		require.NoError(t, json.Unmarshal([]byte(jsonPart), &entries))
+		assert.Len(t, entries, 1)
+		assert.Equal(t, "launch-uuid-1", entries[0]["launchUuid"])
+		assert.Equal(t, "item-uuid-1", entries[0]["itemUuid"])
+		assert.Equal(t, "Async batch log", entries[0]["message"])
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"responses":[{"id":"async-log-batch-1"}]}`))
+	}))
+
+	result, err := c.Project("my_project").Logs().CreateBatchAsync(
+		t.Context(),
+		client.BatchLogEntry{
+			LaunchUUID: "launch-uuid-1",
+			ItemUUID:   "item-uuid-1",
+			Level:      "INFO",
+			Message:    "Async batch log",
+			Time:       time.UnixMilli(1700000000000).UTC(),
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Responses)
+	require.Len(t, *result.Responses, 1)
+	assert.Equal(t, "async-log-batch-1", *(*result.Responses)[0].Id)
+}
+
+func TestLogScope_CreateBatchAsync_WithAttachment(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertBearerToken(t, r, "test-token")
+		assertPath(t, r, "/api/v2/my_project/log")
+		assertMethod(t, r, http.MethodPost)
+
+		err := r.ParseMultipartForm(10 << 20)
+		require.NoError(t, err)
+
+		jsonPart := r.FormValue("json_request_part")
+		assert.NotEmpty(t, jsonPart)
+
+		var entries []map[string]any
+		require.NoError(t, json.Unmarshal([]byte(jsonPart), &entries))
+		assert.Len(t, entries, 1)
+
+		file, ok := entries[0]["file"].(map[string]any)
+		require.True(t, ok, "entry should have a file field")
+		assert.Equal(t, "test.txt", file["name"])
+
+		_, header, err := r.FormFile("file")
+		require.NoError(t, err)
+		assert.Equal(t, "test.txt", header.Filename)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"responses":[{"id":"async-log-batch-attachment"}]}`))
+	}))
+
+	result, err := c.Project("my_project").Logs().CreateBatchAsync(
+		t.Context(),
+		client.BatchLogEntry{
+			LaunchUUID:     "launch-uuid-1",
+			ItemUUID:       "item-uuid-1",
+			Level:          "INFO",
+			Message:        "Async log with attachment",
+			Time:           time.UnixMilli(1700000000000).UTC(),
+			AttachmentName: "test.txt",
+			AttachmentData: []byte("file content here"),
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Responses)
+	require.Len(t, *result.Responses, 1)
+}
+
+func TestLogScope_CreateBatchAsync_Errors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(error) bool
+	}{
+		{
+			name:       "BadRequest",
+			statusCode: http.StatusBadRequest,
+			body:       `{"errorCode": 4001, "message": "Invalid log entry."}`,
+			check:      client.IsBadRequest,
+		},
+		{
+			name:       "Unauthorized",
+			statusCode: http.StatusUnauthorized,
+			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
+			check:      client.IsUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
+			_, err := testClient.Project("my_project").Logs().CreateBatchAsync(
+				t.Context(),
+				client.BatchLogEntry{
+					LaunchUUID: "launch-uuid-1",
+					Level:      "INFO",
+					Message:    "Test",
+					Time:       time.Now(),
+				},
+			)
+
+			require.Error(t, err)
+			assert.True(t, testCase.check(err))
+		})
+	}
+}
+
 func TestLogScope_Delete_Success(t *testing.T) {
 	t.Parallel()
 

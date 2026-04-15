@@ -102,6 +102,76 @@ func (l *LogScope) Create(
 	return execute[types.EntryCreatedAsyncRS](ctx, logger, "create log entry", response, err)
 }
 
+// CreateAsync creates a single log entry using the asynchronous v2 API
+// endpoint. The server accepts the request immediately and processes it in the
+// background.
+func (l *LogScope) CreateAsync(
+	ctx context.Context,
+	request types.SaveLogRQ,
+) (*types.EntryCreatedAsyncRS, error) {
+	logger := l.project.operationLogger("CreateLogEntryAsync")
+	logger.InfoContext(ctx, "API request")
+
+	response, err := l.project.client.raw.CreateLogEntryWithResponse(ctx, l.project.projectName, request)
+
+	return execute[types.EntryCreatedAsyncRS](ctx, logger, "create log entry async", response, err)
+}
+
+// CreateBatchAsync creates multiple log entries in a single multipart request
+// using the asynchronous v2 API endpoint, optionally including file
+// attachments.
+func (l *LogScope) CreateBatchAsync(
+	ctx context.Context,
+	entries ...BatchLogEntry,
+) (*types.BatchSaveOperatingRS, error) {
+	logger := l.project.operationLogger("CreateLogBatchAsync")
+	logger.InfoContext(ctx, "API request")
+
+	body, contentType, err := buildBatchLogMultipart(entries)
+	if err != nil {
+		return nil, fmt.Errorf("create log batch async: %w", err)
+	}
+
+	response, err := l.project.client.raw.CreateLogWithBodyWithResponse(
+		ctx,
+		l.project.projectName,
+		contentType,
+		body,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("create log batch async: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	if response.StatusCode() == http.StatusCreated {
+		var created types.BatchSaveOperatingRS
+
+		err := json.Unmarshal(response.Body, &created)
+		if err == nil {
+			return &created, nil
+		}
+	}
+
+	if response.JSONDefault != nil {
+		return nil, fmt.Errorf("create log batch async: %w", newAPIError(response.StatusCode(), response.JSONDefault))
+	}
+
+	code := response.StatusCode()
+	if code < 200 || code >= 300 {
+		return nil, fmt.Errorf("create log batch async: %w", newUnexpectedStatusError(code, response.Body))
+	}
+
+	if response.JSON200 != nil {
+		return response.JSON200, nil
+	}
+
+	return nil, fmt.Errorf(
+		"create log batch async: API returned success status (%d) but no valid response body was parsed",
+		code,
+	)
+}
+
 // Delete removes a single log entry by its numeric ID.
 func (l *LogScope) Delete(
 	ctx context.Context,
