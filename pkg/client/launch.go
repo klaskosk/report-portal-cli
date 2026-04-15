@@ -46,6 +46,37 @@ func (l *LaunchScope) Finish(
 	return execute[types.FinishLaunchRS](ctx, logger, "finish launch", response, err)
 }
 
+// StartAsync creates a new launch in the project using the asynchronous v2
+// API endpoint. The server accepts the request immediately and processes it
+// in the background.
+func (l *LaunchScope) StartAsync(
+	ctx context.Context,
+	request types.StartLaunchRQ,
+) (*types.StartLaunchRS, error) {
+	logger := l.project.operationLogger("StartLaunchAsync", slog.String("name", request.Name))
+	logger.InfoContext(ctx, "API request")
+
+	response, err := l.project.client.raw.StartLaunchWithResponse(ctx, l.project.projectName, request)
+
+	return execute[types.StartLaunchRS](ctx, logger, "start launch async", response, err)
+}
+
+// FinishAsync marks an existing launch as finished using the asynchronous v2
+// API endpoint. The server accepts the request immediately and processes it
+// in the background.
+func (l *LaunchScope) FinishAsync(
+	ctx context.Context,
+	launchUUID string,
+	request types.FinishExecutionRQ,
+) (*types.FinishLaunchRS, error) {
+	logger := l.project.operationLogger("FinishLaunchAsync", slog.String("launchUuid", launchUUID))
+	logger.InfoContext(ctx, "API request")
+
+	response, err := l.project.client.raw.FinishLaunchWithResponse(ctx, l.project.projectName, launchUUID, request)
+
+	return execute[types.FinishLaunchRS](ctx, logger, "finish launch async", response, err)
+}
+
 // GetByUUID returns a single launch by its UUID. It sends the versioned v2
 // Accept header (application/x.reportportal.launch.v2+json) so timestamp
 // fields arrive as ISO-8601 strings instead of epoch milliseconds. The
@@ -369,6 +400,45 @@ func (l *LaunchScope) Merge(
 	)
 	if err != nil {
 		return nil, fmt.Errorf("merge launches: %w", err)
+	}
+
+	return result, nil
+}
+
+// MergeAsync combines multiple launches into a single launch using the
+// asynchronous v2 API endpoint. If MergeType is not set, it defaults to BASIC.
+func (l *LaunchScope) MergeAsync(
+	ctx context.Context,
+	request types.MergeLaunchesRQ,
+) (*types.LaunchResource, error) {
+	logger := l.project.operationLogger("MergeLaunchesAsync")
+	logger.InfoContext(ctx, "API request")
+
+	if request.MergeType == "" {
+		request.MergeType = types.MergeLaunchesRQMergeTypeBASIC
+	}
+
+	response, err := l.project.client.raw.MergeLaunchesOldUuidWithResponse(
+		ctx,
+		l.project.projectName,
+		request,
+		withAcceptHeader(acceptReportPortalLaunchV2),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("merge launches async: %w", err)
+	}
+
+	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
+
+	result, err := handleV2Response(
+		response,
+		response.JSONDefault,
+		response.ApplicationXReportportalLaunchV2JSON200,
+		response.JSON200,
+		response.Body,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("merge launches async: %w", err)
 	}
 
 	return result, nil
