@@ -13,263 +13,109 @@ import (
 	"github.com/klaskosk/report-portal-cli/pkg/types"
 )
 
+const rpErrorCodePaymentRequired = 5000
+
+// Groups are an enterprise-only feature in Report Portal. The community
+// edition used by CI returns 402 Payment Required for all group endpoints.
+// These tests verify that the client surfaces the error correctly rather
+// than panicking or returning misleading results.
 var _ = Describe("Client: Groups", Label("client", "groups"), func() {
 	var c *client.Client
-	var groupID int64
-	var groupName string
 
-	BeforeEach(func(ctx SpecContext) {
+	BeforeEach(func() {
 		c = newClient()
-		groupName = fmt.Sprintf("test_group_%d", time.Now().UnixNano())
+	})
 
-		By("creating a test group: " + groupName)
-		created, err := c.Groups().Create(ctx, types.CreateGroupRequest{Name: groupName})
-		Expect(err).NotTo(HaveOccurred(), "failed to create test group")
-		Expect(created).NotTo(BeNil())
-		Expect(created.Id).NotTo(BeNil())
-		groupID = *created.Id
-	}, NodeTimeout(60*time.Second))
-
-	AfterEach(func(ctx SpecContext) {
-		if groupID != 0 {
-			err := c.Groups().Delete(ctx, groupID)
-			if err != nil {
-				GinkgoWriter.Printf("warning: failed to delete test group %d: %v\n", groupID, err)
-			}
-		}
-	}, NodeTimeout(15*time.Second))
+	expectPaymentRequired := func(err error) {
+		GinkgoHelper()
+		Expect(err).To(HaveOccurred(), "groups endpoint should fail on community edition")
+		Expect(client.HasErrorCode(err, rpErrorCodePaymentRequired)).To(BeTrue(),
+			"expected RP error code %d (payment required), got: %v", rpErrorCodePaymentRequired, err)
+	}
 
 	Context("CRUD Lifecycle", func() {
-		It("creates a group and retrieves it by ID", func(ctx SpecContext) {
-			group, err := c.Groups().Get(ctx, groupID)
-			Expect(err).NotTo(HaveOccurred(), "Get should not fail")
-			Expect(group).NotTo(BeNil())
-			Expect(group.Id).NotTo(BeNil())
-			Expect(*group.Id).To(Equal(groupID))
-			Expect(group.Name).NotTo(BeNil())
-			Expect(*group.Name).To(Equal(groupName))
+		It("returns payment required when creating a group", func(ctx SpecContext) {
+			_, err := c.Groups().Create(ctx, types.CreateGroupRequest{
+				Name: fmt.Sprintf("test_group_%d", time.Now().UnixNano()),
+			})
+			expectPaymentRequired(err)
 		})
 
-		It("updates a group name", func(ctx SpecContext) {
-			updatedName := fmt.Sprintf("updated_group_%d", time.Now().UnixNano())
-
-			By("updating the group")
-			_, err := c.Groups().Update(ctx, groupID, types.UpdateGroupRequest{Name: updatedName})
-			Expect(err).NotTo(HaveOccurred(), "Update should not fail")
-
-			By("verifying the update")
-			group, err := c.Groups().Get(ctx, groupID)
-			Expect(err).NotTo(HaveOccurred(), "Get should not fail after update")
-			Expect(group).NotTo(BeNil())
-			Expect(group.Name).NotTo(BeNil())
-			Expect(*group.Name).To(Equal(updatedName))
+		It("returns payment required when getting a group", func(ctx SpecContext) {
+			_, err := c.Groups().Get(ctx, 1)
+			expectPaymentRequired(err)
 		})
 
-		It("deletes a group", func(ctx SpecContext) {
-			deleteName := fmt.Sprintf("delete_group_%d", time.Now().UnixNano())
-
-			By("creating a group to delete")
-			created, err := c.Groups().Create(ctx, types.CreateGroupRequest{Name: deleteName})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(created).NotTo(BeNil())
-			Expect(created.Id).NotTo(BeNil())
-			deleteID := *created.Id
-
-			By("deleting the group")
-			err = c.Groups().Delete(ctx, deleteID)
-			Expect(err).NotTo(HaveOccurred(), "Delete should not fail")
-
-			By("verifying the group is gone")
-			_, err = c.Groups().Get(ctx, deleteID)
-			Expect(err).To(HaveOccurred(), "Get should fail after deletion")
-			Expect(client.IsNotFound(err)).To(BeTrue(),
-				"error should be not-found, got: %v", err)
+		It("returns payment required when updating a group", func(ctx SpecContext) {
+			_, err := c.Groups().Update(ctx, 1, types.UpdateGroupRequest{Name: "updated"})
+			expectPaymentRequired(err)
 		})
 
-		It("returns not found for a nonexistent group", func(ctx SpecContext) {
-			_, err := c.Groups().Get(ctx, 999999999)
-			Expect(err).To(HaveOccurred(), "Get should fail for nonexistent group")
-			Expect(client.IsNotFound(err)).To(BeTrue(),
-				"error should be not-found, got: %v", err)
+		It("returns payment required when deleting a group", func(ctx SpecContext) {
+			err := c.Groups().Delete(ctx, 1)
+			expectPaymentRequired(err)
 		})
 	})
 
 	Context("List", func() {
-		It("returns at least one group", func(ctx SpecContext) {
-			result, err := c.Groups().List(ctx)
-			Expect(err).NotTo(HaveOccurred(), "List should not fail")
-			Expect(result).NotTo(BeNil())
-			Expect(result.Items).NotTo(BeNil())
-			Expect(*result.Items).NotTo(BeEmpty(), "should have at least one group")
+		It("returns payment required when listing groups", func(ctx SpecContext) {
+			_, err := c.Groups().List(ctx)
+			expectPaymentRequired(err)
 		})
 
-		It("supports pagination options", func(ctx SpecContext) {
-			result, err := c.Groups().List(ctx,
+		It("returns payment required when listing with options", func(ctx SpecContext) {
+			_, err := c.Groups().List(ctx,
 				client.WithGroupPageSize(1),
 				client.WithGroupOffset(0),
 			)
-			Expect(err).NotTo(HaveOccurred(), "List with pagination should not fail")
-			Expect(result).NotTo(BeNil())
-			Expect(result.Items).NotTo(BeNil())
-			Expect(len(*result.Items)).To(BeNumerically("<=", 1),
-				"page size 1 should return at most 1 group")
+			expectPaymentRequired(err)
 		})
 	})
 
 	Context("User Management", func() {
-		var userID int64
-
-		BeforeEach(func(ctx SpecContext) {
-			By("resolving the admin user's numeric ID")
-			user, err := c.Users().GetMyself(ctx)
-			Expect(err).NotTo(HaveOccurred(), "GetMyself should not fail")
-			Expect(user).NotTo(BeNil())
-			userID = user.Id
-		}, NodeTimeout(15*time.Second))
-
-		It("adds and retrieves a user in a group", func(ctx SpecContext) {
-			By("adding the user to the group")
-			_, err := c.Groups().AddUser(ctx, groupID, userID)
-			Expect(err).NotTo(HaveOccurred(), "AddUser should not fail")
-
-			By("retrieving the user from the group")
-			groupUser, err := c.Groups().GetUser(ctx, groupID, userID)
-			Expect(err).NotTo(HaveOccurred(), "GetUser should not fail")
-			Expect(groupUser).NotTo(BeNil())
-			Expect(groupUser.Id).NotTo(BeNil())
-			Expect(*groupUser.Id).To(Equal(userID))
+		It("returns payment required when adding a user", func(ctx SpecContext) {
+			_, err := c.Groups().AddUser(ctx, 1, 1)
+			expectPaymentRequired(err)
 		})
 
-		It("lists users in a group", func(ctx SpecContext) {
-			By("adding the user to the group")
-			_, err := c.Groups().AddUser(ctx, groupID, userID)
-			Expect(err).NotTo(HaveOccurred(), "AddUser should not fail")
-
-			By("listing users in the group")
-			result, err := c.Groups().ListUsers(ctx, groupID)
-			Expect(err).NotTo(HaveOccurred(), "ListUsers should not fail")
-			Expect(result).NotTo(BeNil())
-			Expect(result.Items).NotTo(BeNil())
-			Expect(*result.Items).NotTo(BeEmpty(), "should have at least one user")
-
-			found := false
-			for _, u := range *result.Items {
-				if u.Id != nil && *u.Id == userID {
-					found = true
-
-					break
-				}
-			}
-			Expect(found).To(BeTrue(), "admin user should appear in group user list")
+		It("returns payment required when getting a user", func(ctx SpecContext) {
+			_, err := c.Groups().GetUser(ctx, 1, 1)
+			expectPaymentRequired(err)
 		})
 
-		It("removes a user from a group", func(ctx SpecContext) {
-			By("adding the user to the group")
-			_, err := c.Groups().AddUser(ctx, groupID, userID)
-			Expect(err).NotTo(HaveOccurred(), "AddUser should not fail")
+		It("returns payment required when listing users", func(ctx SpecContext) {
+			_, err := c.Groups().ListUsers(ctx, 1)
+			expectPaymentRequired(err)
+		})
 
-			By("removing the user from the group")
-			err = c.Groups().RemoveUser(ctx, groupID, userID)
-			Expect(err).NotTo(HaveOccurred(), "RemoveUser should not fail")
-
-			By("verifying the user is no longer in the group")
-			_, err = c.Groups().GetUser(ctx, groupID, userID)
-			Expect(err).To(HaveOccurred(), "GetUser should fail after removal")
-			Expect(client.IsNotFound(err)).To(BeTrue(),
-				"error should be not-found, got: %v", err)
+		It("returns payment required when removing a user", func(ctx SpecContext) {
+			err := c.Groups().RemoveUser(ctx, 1, 1)
+			expectPaymentRequired(err)
 		})
 	})
 
 	Context("Project Management", func() {
-		var projectName string
-		var projectID int64
-
-		BeforeEach(func(ctx SpecContext) {
-			projectName = fmt.Sprintf("group_proj_test_%d", time.Now().UnixNano())
-
-			By("creating a test project: " + projectName)
-			err := createProject(ctx, c, projectName)
-			Expect(err).To(Succeed(), "failed to create test project %q", projectName)
-
-			By("resolving the project's numeric ID")
-			project, err := c.Projects().Get(ctx, projectName)
-			Expect(err).NotTo(HaveOccurred(), "failed to get project %q", projectName)
-			projectID = project.ProjectId
-		}, NodeTimeout(60*time.Second))
-
-		AfterEach(func(ctx SpecContext) {
-			if projectName != "" {
-				deleteProject(ctx, c, projectName)
-			}
-		}, NodeTimeout(15*time.Second))
-
-		It("adds a project to a group", func(ctx SpecContext) {
+		It("returns payment required when adding a project", func(ctx SpecContext) {
 			permission := types.AddProjectToGroupByIdRequestPermissionMEMBER
-			_, err := c.Groups().AddProject(ctx, groupID, projectID, types.AddProjectToGroupByIdRequest{
+			_, err := c.Groups().AddProject(ctx, 1, 1, types.AddProjectToGroupByIdRequest{
 				Permission: &permission,
 			})
-			Expect(err).NotTo(HaveOccurred(), "AddProject should not fail")
+			expectPaymentRequired(err)
 		})
 
-		It("retrieves a project in a group", func(ctx SpecContext) {
-			By("adding the project to the group")
-			permission := types.AddProjectToGroupByIdRequestPermissionMEMBER
-			_, err := c.Groups().AddProject(ctx, groupID, projectID, types.AddProjectToGroupByIdRequest{
-				Permission: &permission,
-			})
-			Expect(err).NotTo(HaveOccurred(), "AddProject should not fail")
-
-			By("retrieving the project from the group")
-			groupProject, err := c.Groups().GetProject(ctx, groupID, projectID)
-			Expect(err).NotTo(HaveOccurred(), "GetProject should not fail")
-			Expect(groupProject).NotTo(BeNil())
-			Expect(groupProject.Id).NotTo(BeNil())
-			Expect(*groupProject.Id).To(Equal(projectID))
+		It("returns payment required when getting a project", func(ctx SpecContext) {
+			_, err := c.Groups().GetProject(ctx, 1, 1)
+			expectPaymentRequired(err)
 		})
 
-		It("lists projects in a group", func(ctx SpecContext) {
-			By("adding the project to the group")
-			permission := types.AddProjectToGroupByIdRequestPermissionMEMBER
-			_, err := c.Groups().AddProject(ctx, groupID, projectID, types.AddProjectToGroupByIdRequest{
-				Permission: &permission,
-			})
-			Expect(err).NotTo(HaveOccurred(), "AddProject should not fail")
-
-			By("listing projects in the group")
-			result, err := c.Groups().ListProjects(ctx, groupID)
-			Expect(err).NotTo(HaveOccurred(), "ListProjects should not fail")
-			Expect(result).NotTo(BeNil())
-			Expect(result.Items).NotTo(BeNil())
-			Expect(*result.Items).NotTo(BeEmpty(), "should have at least one project")
-
-			found := false
-			for _, p := range *result.Items {
-				if p.Id != nil && *p.Id == projectID {
-					found = true
-
-					break
-				}
-			}
-			Expect(found).To(BeTrue(), "test project should appear in group project list")
+		It("returns payment required when listing projects", func(ctx SpecContext) {
+			_, err := c.Groups().ListProjects(ctx, 1)
+			expectPaymentRequired(err)
 		})
 
-		It("removes a project from a group", func(ctx SpecContext) {
-			By("adding the project to the group")
-			permission := types.AddProjectToGroupByIdRequestPermissionMEMBER
-			_, err := c.Groups().AddProject(ctx, groupID, projectID, types.AddProjectToGroupByIdRequest{
-				Permission: &permission,
-			})
-			Expect(err).NotTo(HaveOccurred(), "AddProject should not fail")
-
-			By("removing the project from the group")
-			err = c.Groups().RemoveProject(ctx, groupID, projectID)
-			Expect(err).NotTo(HaveOccurred(), "RemoveProject should not fail")
-
-			By("verifying the project is no longer in the group")
-			_, err = c.Groups().GetProject(ctx, groupID, projectID)
-			Expect(err).To(HaveOccurred(), "GetProject should fail after removal")
-			Expect(client.IsNotFound(err)).To(BeTrue(),
-				"error should be not-found, got: %v", err)
+		It("returns payment required when removing a project", func(ctx SpecContext) {
+			err := c.Groups().RemoveProject(ctx, 1, 1)
+			expectPaymentRequired(err)
 		})
 	})
 })
