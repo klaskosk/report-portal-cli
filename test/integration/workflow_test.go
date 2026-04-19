@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/klaskosk/report-portal-cli/pkg/client"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -50,6 +51,7 @@ type workflowLog struct {
 
 var _ = Describe("End-to-end read workflow", Label("workflow"), Ordered, func() {
 	var (
+		c                   *client.Client
 		projectName         string
 		seededTestData      seededTestItems
 		attachmentDataID    int64
@@ -61,10 +63,11 @@ var _ = Describe("End-to-end read workflow", Label("workflow"), Ordered, func() 
 	)
 
 	BeforeAll(func(ctx SpecContext) {
+		c = newClient()
 		projectName = fmt.Sprintf("workflow_test_%d", time.Now().UnixNano())
 
 		By("creating isolated project " + projectName)
-		err := createProject(ctx, baseURL, bearerToken, projectName)
+		err := createProject(ctx, c, projectName)
 		Expect(err).To(Succeed(), "failed to create test project %q", projectName)
 
 		By("seeding one launch with suite and child test items")
@@ -72,11 +75,11 @@ var _ = Describe("End-to-end read workflow", Label("workflow"), Ordered, func() 
 		Expect(err).To(Succeed(), "failed to seed test items into %q", projectName)
 
 		By("seeding log entries")
-		_, err = seedTestLogEntries(ctx, baseURL, bearerToken, projectName, seededTestData, 2)
+		_, err = seedTestLogEntries(ctx, c, projectName, seededTestData, 2)
 		Expect(err).To(Succeed(), "failed to seed log entries into %q", projectName)
 
 		By("seeding a log entry with an attachment")
-		attachmentDataID, err = seedLogWithAttachment(ctx, baseURL, bearerToken, projectName, seededTestData)
+		attachmentDataID, err = seedLogWithAttachment(ctx, c, projectName, seededTestData)
 		if err != nil {
 			GinkgoWriter.Printf("warning: could not seed attachment: %v\n", err)
 		}
@@ -87,7 +90,7 @@ var _ = Describe("End-to-end read workflow", Label("workflow"), Ordered, func() 
 			return
 		}
 
-		deleteProject(ctx, baseURL, bearerToken, projectName)
+		deleteProject(ctx, c, projectName)
 	}, NodeTimeout(15*time.Second))
 
 	It("step 1: list launches in JSON", func() {

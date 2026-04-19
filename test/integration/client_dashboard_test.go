@@ -21,13 +21,13 @@ var _ = Describe("Client: Dashboards", Label("client", "dashboards"), func() {
 		projectName = fmt.Sprintf("client_dashboard_test_%d", time.Now().UnixNano())
 
 		By("creating isolated project " + projectName)
-		err := createProject(ctx, baseURL, bearerToken, projectName)
+		err := createProject(ctx, c, projectName)
 		Expect(err).To(Succeed(), "failed to create test project %q", projectName)
 	}, NodeTimeout(60*time.Second))
 
 	AfterEach(func(ctx SpecContext) {
 		if projectName != "" {
-			deleteProject(ctx, baseURL, bearerToken, projectName)
+			deleteProject(ctx, c, projectName)
 		}
 	}, NodeTimeout(15*time.Second))
 

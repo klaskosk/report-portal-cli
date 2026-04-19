@@ -17,11 +17,11 @@ var _ = Describe("Client: Bug Tracking", Label("client", "bts"), func() {
 			projectName := fmt.Sprintf("client_bts_test_%d", time.Now().UnixNano())
 
 			By("creating isolated project " + projectName)
-			err := createProject(ctx, baseURL, bearerToken, projectName)
+			err := createProject(ctx, c, projectName)
 			Expect(err).To(Succeed(), "failed to create test project %q", projectName)
 
 			DeferCleanup(func(ctx SpecContext) {
-				deleteProject(ctx, baseURL, bearerToken, projectName)
+				deleteProject(ctx, c, projectName)
 			})
 
 			By("searching for ticket IDs in the project")

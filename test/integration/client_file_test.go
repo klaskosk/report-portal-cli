@@ -23,7 +23,7 @@ var _ = Describe("Client: File Download", Label("client", "file"), func() {
 		projectName = fmt.Sprintf("client_file_test_%d", time.Now().UnixNano())
 
 		By("creating isolated project " + projectName)
-		err := createProject(ctx, baseURL, bearerToken, projectName)
+		err := createProject(ctx, c, projectName)
 		Expect(err).To(Succeed(), "failed to create test project %q", projectName)
 
 		By("seeding one launch with suite and child test items")
@@ -33,14 +33,14 @@ var _ = Describe("Client: File Download", Label("client", "file"), func() {
 
 	AfterEach(func(ctx SpecContext) {
 		if projectName != "" {
-			deleteProject(ctx, baseURL, bearerToken, projectName)
+			deleteProject(ctx, c, projectName)
 		}
 	}, NodeTimeout(15*time.Second))
 
 	Context("DownloadFile", func() {
 		It("downloads a known attachment", func(ctx SpecContext) {
 			By("seeding a log entry with an attachment")
-			attachID, err := seedLogWithAttachment(ctx, baseURL, bearerToken, projectName, seeded)
+			attachID, err := seedLogWithAttachment(ctx, c, projectName, seeded)
 			Expect(err).NotTo(HaveOccurred(), "seeding attachment should not fail")
 			Expect(attachID).NotTo(BeZero(), "expected seeded attachment ID")
 

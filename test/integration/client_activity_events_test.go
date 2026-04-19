@@ -21,7 +21,7 @@ var _ = Describe("Client: Activity Events", Label("client", "activity-events"), 
 		projectName = fmt.Sprintf("client_activity_events_test_%d", time.Now().UnixNano())
 
 		By("creating isolated project " + projectName)
-		err := createProject(ctx, baseURL, bearerToken, projectName)
+		err := createProject(ctx, c, projectName)
 		Expect(err).To(Succeed(), "failed to create test project %q", projectName)
 
 		By("seeding launches to generate activity events")
@@ -31,7 +31,7 @@ var _ = Describe("Client: Activity Events", Label("client", "activity-events"), 
 
 	AfterEach(func(ctx SpecContext) {
 		if projectName != "" {
-			deleteProject(ctx, baseURL, bearerToken, projectName)
+			deleteProject(ctx, c, projectName)
 		}
 	}, NodeTimeout(15*time.Second))
 

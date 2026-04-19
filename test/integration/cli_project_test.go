@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/klaskosk/report-portal-cli/pkg/client"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -29,17 +30,21 @@ var _ = Describe("CLI: get project", Label("cli", "project"), func() {
 	})
 
 	Context("getting a specific project", func() {
-		var projectName string
+		var (
+			c           *client.Client
+			projectName string
+		)
 
 		BeforeEach(func(ctx SpecContext) {
+			c = newClient()
 			projectName = fmt.Sprintf("cli_project_test_%d", time.Now().UnixNano())
-			err := createProject(ctx, baseURL, bearerToken, projectName)
+			err := createProject(ctx, c, projectName)
 			Expect(err).To(Succeed(), "failed to create test project %q", projectName)
 		}, NodeTimeout(30*time.Second))
 
 		AfterEach(func(ctx SpecContext) {
 			if projectName != "" {
-				deleteProject(ctx, baseURL, bearerToken, projectName)
+				deleteProject(ctx, c, projectName)
 			}
 		}, NodeTimeout(15*time.Second))
 

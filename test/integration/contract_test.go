@@ -8,22 +8,25 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/klaskosk/report-portal-cli/pkg/client"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func() {
 	var (
+		c              *client.Client
 		projectName    string
 		seededTestData seededTestItems
 		seededLogs     seededLogEntries
 	)
 
 	BeforeEach(func(ctx SpecContext) {
+		c = newClient()
 		projectName = fmt.Sprintf("contract_test_%d", time.Now().UnixNano())
 
 		By("creating isolated project " + projectName)
-		err := createProject(ctx, baseURL, bearerToken, projectName)
+		err := createProject(ctx, c, projectName)
 		Expect(err).To(Succeed(), "failed to create test project %q", projectName)
 
 		By("seeding launches, items, and logs")
@@ -33,13 +36,13 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 		seededTestData, err = seedTestItems(ctx, baseURL, bearerToken, projectName)
 		Expect(err).To(Succeed(), "failed to seed test items")
 
-		seededLogs, err = seedTestLogEntries(ctx, baseURL, bearerToken, projectName, seededTestData, 1)
+		seededLogs, err = seedTestLogEntries(ctx, c, projectName, seededTestData, 1)
 		Expect(err).To(Succeed(), "failed to seed log entries")
 	}, NodeTimeout(240*time.Second))
 
 	AfterEach(func(ctx SpecContext) {
 		if projectName != "" {
-			deleteProject(ctx, baseURL, bearerToken, projectName)
+			deleteProject(ctx, c, projectName)
 		}
 	}, NodeTimeout(15*time.Second))
 

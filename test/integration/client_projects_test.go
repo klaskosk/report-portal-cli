@@ -24,13 +24,13 @@ var _ = Describe("Client: Projects", Label("client", "projects"), func() {
 
 		BeforeEach(func(ctx SpecContext) {
 			projectName = fmt.Sprintf("client_project_test_%d", time.Now().UnixNano())
-			err := createProject(ctx, baseURL, bearerToken, projectName)
+			err := createProject(ctx, c, projectName)
 			Expect(err).To(Succeed(), "failed to create test project %q", projectName)
 		}, NodeTimeout(30*time.Second))
 
 		AfterEach(func(ctx SpecContext) {
 			if projectName != "" {
-				deleteProject(ctx, baseURL, bearerToken, projectName)
+				deleteProject(ctx, c, projectName)
 			}
 		}, NodeTimeout(15*time.Second))
 
@@ -146,13 +146,13 @@ var _ = Describe("Client: Projects Write", Label("client", "projects", "write"),
 
 		BeforeEach(func(ctx SpecContext) {
 			projectName = fmt.Sprintf("client_update_test_%d", time.Now().UnixNano())
-			err := createProject(ctx, baseURL, bearerToken, projectName)
+			err := createProject(ctx, c, projectName)
 			Expect(err).To(Succeed(), "failed to create test project %q", projectName)
 		}, NodeTimeout(30*time.Second))
 
 		AfterEach(func(ctx SpecContext) {
 			if projectName != "" {
-				deleteProject(ctx, baseURL, bearerToken, projectName)
+				deleteProject(ctx, c, projectName)
 			}
 		}, NodeTimeout(15*time.Second))
 

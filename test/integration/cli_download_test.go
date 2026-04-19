@@ -9,22 +9,25 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/klaskosk/report-portal-cli/pkg/client"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("CLI: download", Label("cli", "download"), func() {
 	var (
+		c                *client.Client
 		projectName      string
 		seededTestData   seededTestItems
 		attachmentDataID int64
 	)
 
 	BeforeEach(func(ctx SpecContext) {
+		c = newClient()
 		projectName = fmt.Sprintf("cli_download_test_%d", time.Now().UnixNano())
 
 		By("creating isolated project " + projectName)
-		err := createProject(ctx, baseURL, bearerToken, projectName)
+		err := createProject(ctx, c, projectName)
 		Expect(err).To(Succeed(), "failed to create test project %q", projectName)
 
 		By("seeding one launch with suite and child test items")
@@ -34,8 +37,7 @@ var _ = Describe("CLI: download", Label("cli", "download"), func() {
 		By("seeding a log entry with an attachment")
 		attachmentDataID, err = seedLogWithAttachment(
 			ctx,
-			baseURL,
-			bearerToken,
+			c,
 			projectName,
 			seededTestData,
 		)
@@ -50,7 +52,7 @@ var _ = Describe("CLI: download", Label("cli", "download"), func() {
 			return
 		}
 
-		deleteProject(ctx, baseURL, bearerToken, projectName)
+		deleteProject(ctx, c, projectName)
 	}, NodeTimeout(15*time.Second))
 
 	It("writes file to stdout", func() {

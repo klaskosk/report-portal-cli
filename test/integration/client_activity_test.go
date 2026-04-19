@@ -20,13 +20,13 @@ var _ = Describe("Client: Activities", Label("client", "activity"), func() {
 		projectName = fmt.Sprintf("client_activity_test_%d", time.Now().UnixNano())
 
 		By("creating isolated project " + projectName)
-		err := createProject(ctx, baseURL, bearerToken, projectName)
+		err := createProject(ctx, c, projectName)
 		Expect(err).To(Succeed(), "failed to create test project %q", projectName)
 	}, NodeTimeout(60*time.Second))
 
 	AfterEach(func(ctx SpecContext) {
 		if projectName != "" {
-			deleteProject(ctx, baseURL, bearerToken, projectName)
+			deleteProject(ctx, c, projectName)
 		}
 	}, NodeTimeout(15*time.Second))
 
@@ -37,7 +37,7 @@ var _ = Describe("Client: Activities", Label("client", "activity"), func() {
 			Expect(err).NotTo(HaveOccurred(), "seeding test items should succeed")
 
 			By("seeding item logs to generate activity records")
-			_, err = seedTestLogEntries(ctx, baseURL, bearerToken, projectName, seeded, 1)
+			_, err = seedTestLogEntries(ctx, c, projectName, seeded, 1)
 			Expect(err).NotTo(HaveOccurred(), "seeding test logs should succeed")
 
 			By("querying activities for the seeded test hierarchy")
