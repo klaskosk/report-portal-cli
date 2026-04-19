@@ -118,17 +118,21 @@ var _ = Describe("Client: Error predicates", Label("client", "errors"), func() {
 	})
 
 	Context("stable error response handling", func() {
-		var projectName string
+		var (
+			c           *client.Client
+			projectName string
+		)
 
 		BeforeEach(func(ctx SpecContext) {
+			c = newClient()
 			projectName = fmt.Sprintf("client_errors_test_%d", time.Now().UnixNano())
-			err := createProject(ctx, baseURL, bearerToken, projectName)
+			err := createProject(ctx, c, projectName)
 			Expect(err).To(Succeed())
 		}, NodeTimeout(30*time.Second))
 
 		AfterEach(func(ctx SpecContext) {
 			if projectName != "" {
-				deleteProject(ctx, baseURL, bearerToken, projectName)
+				deleteProject(ctx, c, projectName)
 			}
 		}, NodeTimeout(15*time.Second))
 

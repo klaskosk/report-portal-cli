@@ -25,7 +25,7 @@ var _ = Describe("Client: Logs", Label("client", "logs"), func() {
 		projectName = fmt.Sprintf("client_log_test_%d", time.Now().UnixNano())
 
 		By("creating isolated project " + projectName)
-		err := createProject(ctx, baseURL, bearerToken, projectName)
+		err := createProject(ctx, c, projectName)
 		Expect(err).To(Succeed(), "failed to create test project %q", projectName)
 
 		By("seeding one launch with suite and child test items")
@@ -33,13 +33,13 @@ var _ = Describe("Client: Logs", Label("client", "logs"), func() {
 		Expect(err).To(Succeed(), "failed to seed test items in %q", projectName)
 
 		By("seeding log entries for the suite item")
-		seededLogs, err = seedTestLogEntries(ctx, baseURL, bearerToken, projectName, seeded, 3)
+		seededLogs, err = seedTestLogEntries(ctx, c, projectName, seeded, 3)
 		Expect(err).To(Succeed(), "failed to seed log entries in %q", projectName)
 	}, NodeTimeout(240*time.Second))
 
 	AfterEach(func(ctx SpecContext) {
 		if projectName != "" {
-			deleteProject(ctx, baseURL, bearerToken, projectName)
+			deleteProject(ctx, c, projectName)
 		}
 	}, NodeTimeout(15*time.Second))
 

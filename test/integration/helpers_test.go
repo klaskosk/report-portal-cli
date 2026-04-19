@@ -524,59 +524,19 @@ func resolveLaunchIDByUUID(
 }
 
 // createProject creates a new Report Portal project with the given name.
-// It returns the project name for convenience.
-func createProject(ctx context.Context, rpBaseURL, token, projectName string) error {
-	projectURL := rpBaseURL + "/api/v1/project"
+func createProject(ctx context.Context, c *client.Client, projectName string) error {
+	_, err := c.Projects().Create(ctx, types.CreateProjectRQ{
+		ProjectName: projectName,
+		EntryType:   types.CreateProjectRQEntryTypeINTERNAL,
+	})
 
-	payload := fmt.Sprintf(`{"projectName":%q,"entryType":"INTERNAL"}`, projectName)
-
-	req, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodPost,
-		projectURL,
-		strings.NewReader(payload),
-	)
-	if err != nil {
-		return fmt.Errorf("creating project request: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("requesting project creation: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusCreated {
-		respBody, _ := io.ReadAll(resp.Body)
-
-		return fmt.Errorf(
-			"project creation failed with status %d: %s",
-			resp.StatusCode,
-			string(respBody),
-		)
-	}
-
-	return nil
+	return err
 }
 
 // deleteProject deletes the named Report Portal project by first resolving its
 // numeric ID, then calling the batch-delete endpoint. Errors are logged but not
 // returned so cleanup always proceeds.
-func deleteProject(ctx context.Context, rpBaseURL, token, projectName string) {
-	c, err := client.New(rpBaseURL, token)
-	if err != nil {
-		GinkgoWriter.Printf(
-			"warning: could not create client for delete-project %q: %v\n",
-			projectName,
-			err,
-		)
-
-		return
-	}
-
+func deleteProject(ctx context.Context, c *client.Client, projectName string) {
 	proj, err := c.Projects().Get(ctx, projectName)
 	if err != nil {
 		GinkgoWriter.Printf(
@@ -811,60 +771,25 @@ func expectJSONArrayObjects(jsonText string) {
 	Expect(objects).NotTo(BeEmpty(), "JSON array should contain at least one object")
 }
 
-// seedLogWithAttachment creates a log entry with a small text file attachment via multipart upload, then polls for the
-// log to appear and returns the binaryContent.id.
+// seedLogWithAttachment creates a log entry with a small text file attachment via the
+// client's batch log API, then polls for the log to appear and returns the binaryContent.id.
 func seedLogWithAttachment(
 	ctx context.Context,
-	rpBaseURL, token, projectName string,
+	c *client.Client,
+	projectName string,
 	seeded seededTestItems,
 ) (int64, error) {
-	logURL := fmt.Sprintf("%s/api/v1/%s/log", rpBaseURL, projectName)
-
-	jsonPart := fmt.Sprintf(
-		`[{"launchUuid":%q,"itemUuid":%q,"level":"INFO","message":"attachment test","time":%d,"file":{"name":"test.txt"}}]`,
-		seeded.LaunchUUID,
-		seeded.SuiteUUID,
-		time.Now().UnixMilli(),
-	)
-
-	fileContent := "integration test attachment content"
-
-	// Build a multipart request: json_request_part + a file part.
-	var body bytes.Buffer
-	boundary := "----TestBoundary123"
-	body.WriteString("--" + boundary + "\r\n")
-	body.WriteString("Content-Disposition: form-data; name=\"json_request_part\"\r\n")
-	body.WriteString("Content-Type: application/json\r\n\r\n")
-	body.WriteString(jsonPart + "\r\n")
-	body.WriteString("--" + boundary + "\r\n")
-	body.WriteString("Content-Disposition: form-data; name=\"file\"; filename=\"test.txt\"\r\n")
-	body.WriteString("Content-Type: text/plain\r\n\r\n")
-	body.WriteString(fileContent + "\r\n")
-	body.WriteString("--" + boundary + "--\r\n")
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, logURL, &body)
+	_, err := c.Project(projectName).Logs().CreateBatch(ctx, client.BatchLogEntry{
+		LaunchUUID:     seeded.LaunchUUID,
+		ItemUUID:       seeded.SuiteUUID,
+		Level:          "INFO",
+		Message:        "attachment test",
+		Time:           time.Now(),
+		AttachmentName: "test.txt",
+		AttachmentData: []byte("integration test attachment content"),
+	})
 	if err != nil {
-		return 0, fmt.Errorf("creating multipart log request: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "multipart/form-data; boundary="+boundary)
-	req.Header.Set("Authorization", "Bearer "+token)
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return 0, fmt.Errorf("posting multipart log: %w", err)
-	}
-
-	respBody, _ := io.ReadAll(resp.Body)
-	resp.Body.Close()
-
-	if resp.StatusCode != http.StatusCreated {
-		return 0, fmt.Errorf("multipart log POST returned status %d: %s", resp.StatusCode, respBody)
-	}
-
-	testClient, err := client.New(rpBaseURL, token)
-	if err != nil {
-		return 0, fmt.Errorf("creating client for attachment resolution: %w", err)
+		return 0, fmt.Errorf("creating log with attachment: %w", err)
 	}
 
 	const (
@@ -879,7 +804,7 @@ func seedLogWithAttachment(
 		attachmentResolutionAttempts,
 		attachmentResolutionInterval,
 		func() bool {
-			result, listErr := testClient.Project(projectName).Logs().List(
+			result, listErr := c.Project(projectName).Logs().List(
 				ctx,
 				client.WithLogItemID(seeded.SuiteID),
 				client.WithLogPageSize(50),
@@ -941,59 +866,34 @@ type seededLogEntries struct {
 	LogIDs []int64
 }
 
-// seedTestLogEntries creates log entries for a seeded item/launch via the Report Portal
-// log entry API, then waits for the entries to become visible in listing queries.
+// seedTestLogEntries creates log entries for a seeded item/launch via the client
+// library, then waits for the entries to become visible in listing queries.
 func seedTestLogEntries(
 	ctx context.Context,
-	rpBaseURL, token, projectName string,
+	c *client.Client,
+	projectName string,
 	seeded seededTestItems,
 	count int,
 ) (seededLogEntries, error) {
-	logURL := fmt.Sprintf("%s/api/v1/%s/log/entry", rpBaseURL, projectName)
-
+	entries := make([]client.BatchLogEntry, count)
 	for i := range count {
 		level := "INFO"
 		if i%2 == 1 {
 			level = "ERROR"
 		}
 
-		message := fmt.Sprintf("integration-test-log-message-%d", i+1)
-		payload := fmt.Sprintf(
-			`{"launchUuid":%q,"itemUuid":%q,"level":%q,"message":%q,"time":%d}`,
-			seeded.LaunchUUID, seeded.SuiteUUID, level, message, time.Now().UnixMilli(),
-		)
-
-		req, err := http.NewRequestWithContext(
-			ctx,
-			http.MethodPost,
-			logURL,
-			strings.NewReader(payload),
-		)
-		if err != nil {
-			return seededLogEntries{}, fmt.Errorf("creating log entry request: %w", err)
-		}
-
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+token)
-
-		resp, err := httpClient.Do(req)
-		if err != nil {
-			return seededLogEntries{}, fmt.Errorf("posting log entry: %w", err)
-		}
-		resp.Body.Close()
-
-		if resp.StatusCode != http.StatusCreated {
-			return seededLogEntries{}, fmt.Errorf(
-				"log entry POST returned status %d",
-				resp.StatusCode,
-			)
+		entries[i] = client.BatchLogEntry{
+			LaunchUUID: seeded.LaunchUUID,
+			ItemUUID:   seeded.SuiteUUID,
+			Level:      level,
+			Message:    fmt.Sprintf("integration-test-log-message-%d", i+1),
+			Time:       time.Now(),
 		}
 	}
 
-	// Wait for logs to be indexed and visible via listing.
-	testClient, err := client.New(rpBaseURL, token)
+	_, err := c.Project(projectName).Logs().CreateBatch(ctx, entries...)
 	if err != nil {
-		return seededLogEntries{}, fmt.Errorf("creating client for log resolution: %w", err)
+		return seededLogEntries{}, fmt.Errorf("creating log entries: %w", err)
 	}
 
 	var logIDs []int64
@@ -1003,7 +903,7 @@ func seedTestLogEntries(
 		seedResolutionAttempts,
 		seedResolutionInterval,
 		func() bool {
-			result, listErr := testClient.Project(projectName).Logs().List(
+			result, listErr := c.Project(projectName).Logs().List(
 				ctx,
 				client.WithLogItemID(seeded.SuiteID),
 				client.WithLogPageSize(int32(count+10)),

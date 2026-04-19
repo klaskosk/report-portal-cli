@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/klaskosk/report-portal-cli/pkg/client"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -23,16 +24,18 @@ type logListEntry struct {
 
 var _ = Describe("CLI: get log", Label("cli", "logs"), func() {
 	var (
+		c              *client.Client
 		projectName    string
 		seededTestData seededTestItems
 		seededLogs     seededLogEntries
 	)
 
 	BeforeEach(func(ctx SpecContext) {
+		c = newClient()
 		projectName = fmt.Sprintf("cli_log_test_%d", time.Now().UnixNano())
 
 		By("creating isolated project " + projectName)
-		err := createProject(ctx, baseURL, bearerToken, projectName)
+		err := createProject(ctx, c, projectName)
 		Expect(err).To(Succeed(), "failed to create test project %q", projectName)
 
 		By("seeding one launch with suite and child test items")
@@ -40,7 +43,7 @@ var _ = Describe("CLI: get log", Label("cli", "logs"), func() {
 		Expect(err).To(Succeed(), "failed to seed test items into %q", projectName)
 
 		By("seeding log entries")
-		seededLogs, err = seedTestLogEntries(ctx, baseURL, bearerToken, projectName, seededTestData, 3)
+		seededLogs, err = seedTestLogEntries(ctx, c, projectName, seededTestData, 3)
 		Expect(err).To(Succeed(), "failed to seed log entries into %q", projectName)
 		// RP 5.15 async indexing requires longer startup for item/log hierarchy
 	}, NodeTimeout(240*time.Second))
@@ -50,7 +53,7 @@ var _ = Describe("CLI: get log", Label("cli", "logs"), func() {
 			return
 		}
 
-		deleteProject(ctx, baseURL, bearerToken, projectName)
+		deleteProject(ctx, c, projectName)
 	}, NodeTimeout(15*time.Second))
 
 	Context("listing logs", func() {

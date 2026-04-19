@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/klaskosk/report-portal-cli/pkg/client"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -26,13 +27,17 @@ type launchListEntry struct {
 }
 
 var _ = Describe("CLI: get launch", Label("cli", "launches"), func() {
-	var projectName string
+	var (
+		c           *client.Client
+		projectName string
+	)
 
 	BeforeEach(func(ctx SpecContext) {
+		c = newClient()
 		projectName = fmt.Sprintf("cli_launch_test_%d", time.Now().UnixNano())
 
 		By("creating isolated project " + projectName)
-		err := createProject(ctx, baseURL, bearerToken, projectName)
+		err := createProject(ctx, c, projectName)
 		Expect(err).To(Succeed(), "failed to create test project %q", projectName)
 
 		By("seeding test launches into " + projectName)
@@ -45,7 +50,7 @@ var _ = Describe("CLI: get launch", Label("cli", "launches"), func() {
 			return
 		}
 
-		deleteProject(ctx, baseURL, bearerToken, projectName)
+		deleteProject(ctx, c, projectName)
 	}, NodeTimeout(15*time.Second))
 
 	Context("listing launches", func() {

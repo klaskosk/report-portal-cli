@@ -25,7 +25,7 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 		projectName = fmt.Sprintf("client_launch_test_%d", time.Now().UnixNano())
 
 		By("creating isolated project " + projectName)
-		err := createProject(ctx, baseURL, bearerToken, projectName)
+		err := createProject(ctx, c, projectName)
 		Expect(err).To(Succeed(), "failed to create test project %q", projectName)
 
 		By("seeding test launches into " + projectName)
@@ -35,7 +35,7 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 
 	AfterEach(func(ctx SpecContext) {
 		if projectName != "" {
-			deleteProject(ctx, baseURL, bearerToken, projectName)
+			deleteProject(ctx, c, projectName)
 		}
 	}, NodeTimeout(15*time.Second))
 
@@ -571,6 +571,9 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 	})
 
 	Context("Compare", func() {
+		// This test intentionally uses raw HTTP because it validates the JSON wire
+		// type of the startTime field (float64 epoch vs ISO string). The typed
+		// client wrapper parses these into time.Time, losing that information.
 		It("returns epoch millis startTime in raw response", func(ctx SpecContext) {
 			list, err := c.Project(projectName).Launches().List(ctx,
 				client.WithLaunchPageSize(2),
