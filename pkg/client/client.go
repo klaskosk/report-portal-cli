@@ -16,8 +16,9 @@ import (
 
 // Client is a high-level wrapper around the generated Report Portal API client.
 type Client struct {
-	raw    api.ClientWithResponsesInterface
-	logger *slog.Logger
+	raw       api.ClientWithResponsesInterface
+	rawClient api.ClientInterface
+	logger    *slog.Logger
 }
 
 // Option configures the Client during construction.
@@ -85,7 +86,7 @@ func New(baseURL, bearerToken string, opts ...Option) (*Client, error) {
 		logger = slog.New(slog.DiscardHandler)
 	}
 
-	return &Client{raw: raw, logger: logger}, nil
+	return &Client{raw: raw, rawClient: raw.ClientInterface, logger: logger}, nil
 }
 
 // normalizeBaseURL parses a user-provided Report Portal URL and returns a normalized API base URL with an explicit
