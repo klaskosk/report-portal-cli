@@ -1720,6 +1720,160 @@ func TestTestItemScope_GetHistory_Errors(t *testing.T) {
 	}
 }
 
+func TestTestItemScope_GetHistory_WithAdditionalOptions(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		option   client.HistoryOption
+		expected map[string]string
+	}{
+		{
+			name:   "WithHistoryFilterID",
+			option: client.WithHistoryFilterID(42),
+			expected: map[string]string{
+				"filterId": "42",
+			},
+		},
+		{
+			name:   "WithHistoryLaunchesLimit",
+			option: client.WithHistoryLaunchesLimit(10),
+			expected: map[string]string{
+				"launchesLimit": "10",
+			},
+		},
+		{
+			name:   "WithHistoryType",
+			option: client.WithHistoryType("line"),
+			expected: map[string]string{
+				"type": "line",
+			},
+		},
+		{
+			name:   "WithHistoryItemName",
+			option: client.WithHistoryItemName("login test"),
+			expected: map[string]string{
+				"filter.eq.name": "login test",
+			},
+		},
+		{
+			name:   "WithHistoryPageNumber",
+			option: client.WithHistoryPageNumber(3),
+			expected: map[string]string{
+				"page.page": "3",
+			},
+		},
+		{
+			name:   "WithHistoryPageSize",
+			option: client.WithHistoryPageSize(25),
+			expected: map[string]string{
+				"page.size": "25",
+			},
+		},
+		{
+			name:   "WithHistoryLatest",
+			option: client.WithHistoryLatest(true),
+			expected: map[string]string{
+				"isLatest": "true",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				query := r.URL.Query()
+
+				for key, expectedValue := range tt.expected {
+					assert.Equal(t, expectedValue, query.Get(key),
+						"query parameter mismatch for "+key)
+				}
+
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{
+					"content": [],
+					"page": {"number": 0, "size": 20, "totalElements": 0, "totalPages": 0}
+				}`))
+			}))
+
+			_, err := c.Project("my_project").Items().GetHistory(t.Context(), tt.option)
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestTestItemScope_GetStatistics_WithOptions(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		option   client.StatisticsOption
+		expected map[string]string
+	}{
+		{
+			name:   "WithStatisticsParentID",
+			option: client.WithStatisticsParentID(99),
+			expected: map[string]string{
+				"filter.eq.parentId": "99",
+			},
+		},
+		{
+			name:   "WithStatisticsStatus",
+			option: client.WithStatisticsStatus("PASSED"),
+			expected: map[string]string{
+				"filter.eq.status": "PASSED",
+			},
+		},
+		{
+			name:   "WithStatisticsName",
+			option: client.WithStatisticsName("suite A"),
+			expected: map[string]string{
+				"filter.eq.name": "suite A",
+			},
+		},
+		{
+			name:   "WithStatisticsType",
+			option: client.WithStatisticsType("SUITE"),
+			expected: map[string]string{
+				"filter.eq.type": "SUITE",
+			},
+		},
+		{
+			name:   "WithStatisticsHasChildren",
+			option: client.WithStatisticsHasChildren(true),
+			expected: map[string]string{
+				"filter.eq.hasChildren": "true",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				query := r.URL.Query()
+
+				for key, expectedValue := range tt.expected {
+					assert.Equal(t, expectedValue, query.Get(key),
+						"query parameter mismatch for "+key)
+				}
+
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{
+					"executions": {},
+					"defects": {}
+				}`))
+			}))
+
+			_, err := c.Project("my_project").Items().GetStatistics(t.Context(), tt.option)
+			require.NoError(t, err)
+		})
+	}
+}
+
 func TestTestItemScope_GetStatistics_Success(t *testing.T) {
 	t.Parallel()
 
