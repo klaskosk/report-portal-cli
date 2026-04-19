@@ -2146,6 +2146,67 @@ func TestLaunchScope_MergeAsync_Errors(t *testing.T) {
 	}
 }
 
+func TestLaunchScope_WithSortOptions(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		option   client.ListLaunchesOption
+		expected map[string]string
+	}{
+		{
+			name:   "WithLaunchSort",
+			option: client.WithLaunchSort("startTime", "desc"),
+			expected: map[string]string{
+				"page.sort": "startTime,desc",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				query := r.URL.Query()
+
+				for key, expectedValue := range tt.expected {
+					assert.Equal(t, expectedValue, query.Get(key),
+						"query parameter mismatch for "+key)
+				}
+
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"content":[],"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}}`))
+			}))
+
+			_, err := c.Project("my_project").Launches().List(t.Context(), tt.option)
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestLaunchScope_GetClusters_WithSortOption(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		query := r.URL.Query()
+		assert.Equal(t, "id,asc", query.Get("page.sort"))
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"content": [],
+			"page": {"number": 1, "size": 20, "totalElements": 0, "totalPages": 0}
+		}`))
+	}))
+
+	_, err := c.Project("my_project").Launches().GetClusters(
+		t.Context(),
+		"42",
+		client.WithClusterSort("id", "asc"),
+	)
+	require.NoError(t, err)
+}
+
 func TestLaunchScope_GetReport_Errors(t *testing.T) {
 	t.Parallel()
 

@@ -16,7 +16,6 @@ var _ = Describe("Client: File Download", Label("client", "file"), func() {
 		c           *client.Client
 		projectName string
 		seeded      seededTestItems
-		attachID    int64
 	)
 
 	BeforeEach(func(ctx SpecContext) {
@@ -30,13 +29,6 @@ var _ = Describe("Client: File Download", Label("client", "file"), func() {
 		By("seeding one launch with suite and child test items")
 		seeded, err = seedTestItems(ctx, baseURL, bearerToken, projectName)
 		Expect(err).To(Succeed(), "failed to seed test items in %q", projectName)
-
-		By("seeding a log entry with an attachment")
-		attachID, err = seedLogWithAttachment(ctx, baseURL, bearerToken, projectName, seeded)
-		if err != nil {
-			Skip("could not seed attachment: " + err.Error())
-		}
-		// RP 5.15 async indexing requires longer startup for item/log hierarchy
 	}, NodeTimeout(240*time.Second))
 
 	AfterEach(func(ctx SpecContext) {
@@ -47,6 +39,9 @@ var _ = Describe("Client: File Download", Label("client", "file"), func() {
 
 	Context("DownloadFile", func() {
 		It("downloads a known attachment", func(ctx SpecContext) {
+			By("seeding a log entry with an attachment")
+			attachID, err := seedLogWithAttachment(ctx, baseURL, bearerToken, projectName, seeded)
+			Expect(err).NotTo(HaveOccurred(), "seeding attachment should not fail")
 			Expect(attachID).NotTo(BeZero(), "expected seeded attachment ID")
 
 			content, err := c.Project(projectName).DownloadFile(ctx, attachID)
