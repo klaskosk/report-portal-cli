@@ -205,6 +205,69 @@ func TestUsersScope_List_WithOptions(t *testing.T) {
 	assert.Len(t, *page.Content, 1)
 }
 
+func TestUsersScope_List_WithAdditionalOptions(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		option   client.ListUsersOption
+		expected map[string]string
+	}{
+		{
+			name:   "WithUsersSort",
+			option: client.WithUsersSort("login", "desc"),
+			expected: map[string]string{
+				"page.sort": "login,desc",
+			},
+		},
+		{
+			name:   "WithUsersType",
+			option: client.WithUsersType("INTERNAL"),
+			expected: map[string]string{
+				"filter.eq.type": "INTERNAL",
+			},
+		},
+		{
+			name:   "WithUsersActive",
+			option: client.WithUsersActive(true),
+			expected: map[string]string{
+				"filter.eq.active": "true",
+			},
+		},
+		{
+			name:   "WithUsersEmail",
+			option: client.WithUsersEmail("user@example.com"),
+			expected: map[string]string{
+				"filter.eq.email": "user@example.com",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				query := r.URL.Query()
+				for key, want := range tt.expected {
+					assert.Equal(t, want, query.Get(key), "query param %s", key)
+				}
+
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+
+				_, _ = w.Write([]byte(`{
+					"content": [],
+					"page": {"number": 0, "size": 20, "totalElements": 0, "totalPages": 0}
+				}`))
+			}))
+
+			_, err := c.Users().List(t.Context(), tt.option)
+			require.NoError(t, err)
+		})
+	}
+}
+
 func TestUsersScope_List_EmptyPage(t *testing.T) {
 	t.Parallel()
 
@@ -292,6 +355,57 @@ func TestUsersScope_Search_WithPagination(t *testing.T) {
 	require.NotNil(t, page)
 	require.NotNil(t, page.Content)
 	assert.Empty(t, *page.Content)
+}
+
+func TestUsersScope_Search_WithAdditionalOptions(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		option   client.SearchUsersOption
+		expected map[string]string
+	}{
+		{
+			name:   "WithSearchUsersPageNumber",
+			option: client.WithSearchUsersPageNumber(2),
+			expected: map[string]string{
+				"page.page": "2",
+			},
+		},
+		{
+			name:   "WithSearchUsersSort",
+			option: client.WithSearchUsersSort("login", "asc"),
+			expected: map[string]string{
+				"page.sort": "login,asc",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				query := r.URL.Query()
+				assert.Equal(t, "test", query.Get("term"))
+
+				for key, want := range tt.expected {
+					assert.Equal(t, want, query.Get(key), "query param %s", key)
+				}
+
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+
+				_, _ = w.Write([]byte(`{
+					"content": [],
+					"page": {"number": 0, "size": 20, "totalElements": 0, "totalPages": 0}
+				}`))
+			}))
+
+			_, err := c.Users().Search(t.Context(), "test", tt.option)
+			require.NoError(t, err)
+		})
+	}
 }
 
 func TestUsersScope_Search_EmptyPage(t *testing.T) {
