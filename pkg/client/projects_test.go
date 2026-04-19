@@ -5,9 +5,11 @@ import (
 	"io"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/klaskosk/report-portal-cli/pkg/client"
 	"github.com/klaskosk/report-portal-cli/pkg/types"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -179,6 +181,55 @@ func TestProjectsScope_List_WithOptions(t *testing.T) {
 		client.WithProjectName("test_project"),
 	)
 	require.NoError(t, err)
+}
+
+func TestProjectsScope_List_WithAdditionalOptions(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		option   client.ListProjectsOption
+		expected map[string]string
+	}{
+		{
+			name:   "WithProjectType",
+			option: client.WithProjectType("INTERNAL"),
+			expected: map[string]string{
+				"filter.eq.type": "INTERNAL",
+			},
+		},
+		{
+			name:   "WithProjectSort",
+			option: client.WithProjectSort("name", "asc"),
+			expected: map[string]string{
+				"page.sort": "name,asc",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				query := r.URL.Query()
+				for key, want := range tt.expected {
+					assert.Equal(t, want, query.Get(key), "query param %s", key)
+				}
+
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+
+				_, _ = w.Write([]byte(`{
+					"content": [],
+					"page": {"number": 0, "size": 20, "totalElements": 0, "totalPages": 0}
+				}`))
+			}))
+
+			_, err := c.Projects().List(t.Context(), tt.option)
+			require.NoError(t, err)
+		})
+	}
 }
 
 func TestProjectsScope_List_Unauthorized(t *testing.T) {
@@ -591,6 +642,27 @@ func TestProjectsScope_ListUsers_WithOptions(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestProjectsScope_ListUsers_WithUserSort(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "login,desc", r.URL.Query().Get("page.sort"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"content": [],
+			"page": {"number": 0, "size": 20, "totalElements": 0, "totalPages": 0}
+		}`))
+	}))
+
+	_, err := c.Projects().ListUsers(t.Context(), "my_project",
+		client.WithUserSort("login", "desc"),
+	)
+	require.NoError(t, err)
+}
+
 func TestProjectsScope_ListUsers_Unauthorized(t *testing.T) {
 	t.Parallel()
 
@@ -642,6 +714,26 @@ func TestProjectsScope_Export_WithOptions(t *testing.T) {
 		client.WithExportView("csv"),
 		client.WithExportFilterName("my_project"),
 		client.WithExportFilterType("INTERNAL"),
+	)
+	require.NoError(t, err)
+}
+
+func TestProjectsScope_Export_WithExportFilterLastRun(t *testing.T) {
+	t.Parallel()
+
+	date := openapi_types.Date{Time: time.Date(2025, 6, 15, 0, 0, 0, 0, time.UTC)}
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "2025-06-15", r.URL.Query().Get("filter.eq.lastRun"))
+
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte("data"))
+	}))
+
+	_, err := c.Projects().Export(t.Context(),
+		client.WithExportFilterLastRun(date),
 	)
 	require.NoError(t, err)
 }
@@ -1040,6 +1132,28 @@ func TestProjectsScope_SearchUsernames_WithOptions(t *testing.T) {
 	_, err := c.Projects().SearchUsernames(t.Context(), "my_project", "user",
 		client.WithSearchUsernamesPageNumber(0),
 		client.WithSearchUsernamesPageSize(10),
+	)
+	require.NoError(t, err)
+}
+
+func TestProjectsScope_SearchUsernames_WithSort(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "admin", r.URL.Query().Get("term"))
+		assert.Equal(t, "login,asc", r.URL.Query().Get("page.sort"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"content": [],
+			"page": {"number": 0, "size": 20, "totalElements": 0, "totalPages": 0}
+		}`))
+	}))
+
+	_, err := c.Projects().SearchUsernames(t.Context(), "my_project", "admin",
+		client.WithSearchUsernamesSort("login", "asc"),
 	)
 	require.NoError(t, err)
 }

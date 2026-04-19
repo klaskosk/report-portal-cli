@@ -66,6 +66,27 @@ func TestFilterScope_List_WithOptions(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestFilterScope_List_WithFilterSort(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "name,asc", r.URL.Query().Get("page.sort"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{
+			"content": [],
+			"page": {"number": 0, "size": 20, "totalElements": 0, "totalPages": 0}
+		}`))
+	}))
+
+	_, err := c.Project("my_project").Filters().List(t.Context(),
+		client.WithFilterSort("name", "asc"),
+	)
+	require.NoError(t, err)
+}
+
 func TestFilterScope_List_Unauthorized(t *testing.T) {
 	t.Parallel()
 
