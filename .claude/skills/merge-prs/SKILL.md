@@ -21,5 +21,6 @@ This skill is used to merge all open pull requests in the repository. Note that 
 
 - Simple issues with rebasing should be resolved in this process.
 - You may pause and ask the user for help if a tricky issue arises. This is preferable to breaking something with merge conflicts.
+- If you encounter an auth issue, consider if that is due to a sandbox rather than a real auth issue. Retry with elevated privileges if possible.
 
 Thank you for your help!
