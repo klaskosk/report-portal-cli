@@ -1,6 +1,7 @@
 package client
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -147,6 +148,18 @@ func (e *UnexpectedStatusError) Error() string {
 	}
 
 	return fmt.Sprintf("unexpected HTTP %d: %s%s", e.statusCode, sanitizeBodyPreview(preview), suffix)
+}
+
+// parseErrorBody attempts to unmarshal body as an ErrorRS and returns an
+// APIError. If the body is not valid ErrorRS JSON, it falls back to an
+// UnexpectedStatusError.
+func parseErrorBody(statusCode int, body []byte) error {
+	var errRS types.ErrorRS
+	if err := json.Unmarshal(body, &errRS); err != nil {
+		return newUnexpectedStatusError(statusCode, body)
+	}
+
+	return newAPIError(statusCode, &errRS)
 }
 
 // newUnexpectedStatusError constructs an UnexpectedStatusError for non-2xx responses without a JSON body.

@@ -2,6 +2,8 @@ package client
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"log/slog"
 
 	"github.com/klaskosk/report-portal-cli/pkg/types"
@@ -31,14 +33,40 @@ func (s *LogTypesScope) List(ctx context.Context) ([]types.LogTypeResponse, erro
 	return *result.Items, nil
 }
 
-// Create creates a new log type in the project.
+// Create creates a new log type in the project. The RP API returns 201
+// Created, but the spec declares 200, so the generated parser misclassifies
+// the response. This method handles both status codes.
 func (s *LogTypesScope) Create(ctx context.Context, request types.LogTypeRequest) (*types.LogTypeResponse, error) {
 	logger := s.project.operationLogger("CreateLogType", slog.String("name", request.Name))
 	logger.InfoContext(ctx, "API request")
 
 	resp, err := s.project.client.raw.CreateLogTypeWithResponse(ctx, s.project.projectName, request)
+	if err != nil {
+		return nil, fmt.Errorf("create log type: %w", err)
+	}
 
-	return execute(ctx, logger, "create log type", resp, err)
+	logger.DebugContext(ctx, "API response", "status", resp.StatusCode())
+
+	if resp.JSON200 != nil {
+		return resp.JSON200, nil
+	}
+
+	if resp.StatusCode() == 201 {
+		var result types.LogTypeResponse
+		if err := json.Unmarshal(resp.Body, &result); err != nil {
+			return nil, fmt.Errorf("create log type: %w", err)
+		}
+
+		return &result, nil
+	}
+
+	if resp.JSONDefault != nil {
+		return nil, fmt.Errorf("create log type: %w",
+			newAPIError(resp.StatusCode(), resp.JSONDefault))
+	}
+
+	return nil, fmt.Errorf("create log type: %w",
+		newUnexpectedStatusError(resp.StatusCode(), resp.Body))
 }
 
 // Update modifies an existing log type by its ID.
