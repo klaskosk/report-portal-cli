@@ -570,6 +570,128 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 		})
 	})
 
+	Context("Advanced Filtering", func() {
+		It("filters by launch number", func(ctx SpecContext) {
+			By("listing launches to discover a known number")
+			all, err := c.Project(projectName).Launches().List(ctx,
+				client.WithLaunchPageSize(1),
+			)
+			Expect(err).NotTo(HaveOccurred())
+			content := expectContent(all.Content, "launch list for number discovery")
+
+			knownNumber := int32(content[0].Number)
+
+			By("filtering by that number")
+			filtered, err := c.Project(projectName).Launches().List(ctx,
+				client.WithLaunchNumber(knownNumber),
+			)
+			Expect(err).NotTo(HaveOccurred(),
+				"filtering launches by number %d should not fail", knownNumber)
+			Expect(filtered.Content).NotTo(BeNil())
+			for _, launch := range *filtered.Content {
+				Expect(launch.Number).To(Equal(int64(knownNumber)),
+					"filtered launch should have number %d but got %d", knownNumber, launch.Number)
+			}
+		})
+
+		It("filters by attribute key-value pair", func(ctx SpecContext) {
+			By("starting a launch with a known attribute")
+			attrKey := "env"
+			attrValue := fmt.Sprintf("integration-%d", time.Now().UnixNano())
+			debugMode := types.StartLaunchRQModeDEFAULT
+			started, err := c.Project(projectName).Launches().Start(ctx, types.StartLaunchRQ{
+				Name:      fmt.Sprintf("attr-test-%d", time.Now().UnixNano()),
+				StartTime: time.Now(),
+				Uuid:      uuid.NewString(),
+				Mode:      &debugMode,
+				Attributes: &[]types.ItemAttributesRQ{
+					{Key: &attrKey, Value: attrValue},
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(started.Id).NotTo(BeNil())
+
+			finishedStatus := types.FinishExecutionRQStatusPASSED
+			_, err = c.Project(projectName).Launches().Finish(ctx, *started.Id, types.FinishExecutionRQ{
+				EndTime: time.Now(),
+				Status:  &finishedStatus,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("waiting for the attribute to become filterable")
+			var content []types.LaunchResource
+			resolved := waitForSeedResolution(ctx, seedResolutionAttempts, seedResolutionInterval, func() bool {
+				filtered, listErr := c.Project(projectName).Launches().List(ctx,
+					client.WithLaunchAttribute(attrKey, attrValue),
+				)
+				if listErr != nil || filtered.Content == nil || len(*filtered.Content) == 0 {
+					return false
+				}
+				content = *filtered.Content
+				return true
+			})
+			Expect(resolved).To(BeTrue(),
+				"launch with attribute %s:%s should appear in filtered results", attrKey, attrValue)
+
+			By("verifying filtered launches have the expected attribute")
+			for _, launch := range content {
+				Expect(launch.Attributes).NotTo(BeNil(),
+					"filtered launch should have attributes")
+				found := false
+				for _, attr := range *launch.Attributes {
+					if attr.Key != nil && *attr.Key == attrKey && attr.Value == attrValue {
+						found = true
+						break
+					}
+				}
+				Expect(found).To(BeTrue(),
+					"filtered launch should have attribute %s:%s", attrKey, attrValue)
+			}
+		})
+
+		It("discovers attribute keys via GetAttributeKeys", func(ctx SpecContext) {
+			By("starting a launch with a known attribute key")
+			attrKey := fmt.Sprintf("unique-key-%d", time.Now().UnixNano())
+			started, err := c.Project(projectName).Launches().Start(ctx, types.StartLaunchRQ{
+				Name:      fmt.Sprintf("attrkey-test-%d", time.Now().UnixNano()),
+				StartTime: time.Now(),
+				Uuid:      uuid.NewString(),
+				Attributes: &[]types.ItemAttributesRQ{
+					{Key: &attrKey, Value: "some-value"},
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(started.Id).NotTo(BeNil())
+
+			finishedStatus := types.FinishExecutionRQStatusPASSED
+			_, err = c.Project(projectName).Launches().Finish(ctx, *started.Id, types.FinishExecutionRQ{
+				EndTime: time.Now(),
+				Status:  &finishedStatus,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("polling attribute keys until the new key is indexed")
+			var keys []string
+			resolved := waitForSeedResolution(ctx, seedResolutionAttempts, seedResolutionInterval, func() bool {
+				result, keysErr := c.Project(projectName).Launches().GetAttributeKeys(ctx, attrKey[:10])
+				if keysErr != nil {
+					return false
+				}
+				for _, k := range result {
+					if k == attrKey {
+						keys = result
+						return true
+					}
+				}
+				return false
+			})
+			Expect(resolved).To(BeTrue(),
+				"attribute key %q should appear in GetAttributeKeys results", attrKey)
+			Expect(keys).To(ContainElement(attrKey),
+				"attribute keys should include %q", attrKey)
+		})
+	})
+
 	Context("Compare", func() {
 		// This test intentionally uses raw HTTP because it validates the JSON wire
 		// type of the startTime field (float64 epoch vs ISO string). The typed
@@ -645,6 +767,115 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			result, err := c.Project(projectName).Launches().Compare(ctx, ids)
 			Expect(err).NotTo(HaveOccurred(), "comparing launches should not fail")
 			Expect(result).NotTo(BeNil(), "compare result should not be nil")
+		})
+
+		It("compares more than two launches", func(ctx SpecContext) {
+			list, err := c.Project(projectName).Launches().List(ctx,
+				client.WithLaunchPageSize(3),
+				client.WithLaunchSort("id,asc"),
+			)
+			Expect(err).NotTo(HaveOccurred(), "listing launches for compare should not fail")
+			content := expectContent(list.Content, "launches for three-way compare")
+			Expect(content).To(HaveLen(3), "need exactly 3 launches to compare")
+
+			ids := []int64{content[0].Id, content[1].Id, content[2].Id}
+			result, err := c.Project(projectName).Launches().Compare(ctx, ids)
+			Expect(err).NotTo(HaveOccurred(), "comparing 3 launches should not fail")
+			Expect(result).NotTo(BeNil(), "compare result should not be nil")
+
+			for _, entries := range result {
+				Expect(entries).To(HaveLen(3),
+					"each metric should have one data point per compared launch")
+			}
+		})
+
+		It("compares launches with different statuses", func(ctx SpecContext) {
+			By("starting a launch that will be stopped")
+			stoppedLaunch, err := c.Project(projectName).Launches().Start(ctx, types.StartLaunchRQ{
+				Name:      fmt.Sprintf("compare-stopped-%d", time.Now().UnixNano()),
+				StartTime: time.Now(),
+				Uuid:      uuid.NewString(),
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(stoppedLaunch.Id).NotTo(BeNil())
+
+			stoppedID, err := resolveLaunchIDByUUID(ctx, c.Project(projectName).Launches(), *stoppedLaunch.Id)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = c.Project(projectName).Launches().ForceFinish(ctx, stoppedID, types.FinishExecutionRQ{
+				EndTime: time.Now(),
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("waiting for the force-finished launch to reach a non-PASSED terminal status")
+			var stoppedStatus string
+			resolved := waitForSeedResolution(ctx, seedResolutionAttempts, seedResolutionInterval, func() bool {
+				launch, getErr := c.Project(projectName).Launches().GetByID(ctx, stoppedID)
+				if getErr != nil || launch == nil {
+					return false
+				}
+				s := string(launch.Status)
+				if s == "STOPPED" || s == "FAILED" || s == "INTERRUPTED" {
+					stoppedStatus = s
+					return true
+				}
+				return false
+			})
+			Expect(resolved).To(BeTrue(),
+				"force-finished launch should reach a non-PASSED terminal status")
+			Expect(stoppedStatus).NotTo(Equal("PASSED"),
+				"force-finished launch should not have PASSED status")
+
+			By("getting a seeded (PASSED) launch")
+			list, err := c.Project(projectName).Launches().List(ctx,
+				client.WithLaunchPageSize(1),
+				client.WithLaunchStatus("PASSED"),
+			)
+			Expect(err).NotTo(HaveOccurred())
+			content := expectContent(list.Content, "passed launch for compare")
+
+			By("comparing launches with different statuses")
+			ids := []int64{content[0].Id, stoppedID}
+			result, err := c.Project(projectName).Launches().Compare(ctx, ids)
+			Expect(err).NotTo(HaveOccurred(), "comparing launches with different statuses should not fail")
+			Expect(result).NotTo(BeNil())
+		})
+	})
+
+	Context("Clusters", func() {
+		It("returns clusters for a launch", func(ctx SpecContext) {
+			list, err := c.Project(projectName).Launches().List(ctx,
+				client.WithLaunchPageSize(1),
+			)
+			Expect(err).NotTo(HaveOccurred())
+			content := expectContent(list.Content, "launch for cluster query")
+
+			launchID := fmt.Sprintf("%d", content[0].Id)
+			result, err := c.Project(projectName).Launches().GetClusters(ctx, launchID)
+			Expect(err).NotTo(HaveOccurred(),
+				"getting clusters for launch %s should not fail", launchID)
+			Expect(result).NotTo(BeNil(),
+				"cluster result should not be nil")
+			Expect(result.Page).NotTo(BeNil(),
+				"cluster page metadata should not be nil")
+		})
+
+		It("supports pagination options", func(ctx SpecContext) {
+			list, err := c.Project(projectName).Launches().List(ctx,
+				client.WithLaunchPageSize(1),
+			)
+			Expect(err).NotTo(HaveOccurred())
+			content := expectContent(list.Content, "launch for cluster pagination")
+
+			launchID := fmt.Sprintf("%d", content[0].Id)
+			result, err := c.Project(projectName).Launches().GetClusters(ctx, launchID,
+				client.WithClusterPageSize(5),
+				client.WithClusterPageNumber(0),
+			)
+			Expect(err).NotTo(HaveOccurred(),
+				"getting clusters with pagination should not fail")
+			Expect(result).NotTo(BeNil())
+			Expect(result.Page).NotTo(BeNil())
 		})
 	})
 })
