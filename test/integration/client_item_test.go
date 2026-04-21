@@ -219,4 +219,270 @@ var _ = Describe("Client: Test Items", Label("client", "items"), func() {
 			Expect(result).NotTo(BeNil(), "history result should not be nil")
 		})
 	})
+
+	Context("GetByIDs", func() {
+		It("returns multiple items at once", func(ctx SpecContext) {
+			items, err := c.Project(projectName).Items().GetByIDs(
+				ctx,
+				seeded.SuiteID,
+				seeded.TestID,
+			)
+			Expect(err).NotTo(HaveOccurred(), "getting items by IDs should not fail")
+			Expect(items).NotTo(BeNil())
+			Expect(items).To(HaveLen(2), "should return both seeded items")
+
+			returnedIDs := make(map[int64]bool)
+			for _, item := range items {
+				Expect(item.Id).NotTo(BeNil())
+				returnedIDs[*item.Id] = true
+			}
+
+			Expect(returnedIDs).To(HaveKey(seeded.SuiteID))
+			Expect(returnedIDs).To(HaveKey(seeded.TestID))
+		})
+	})
+
+	Context("Advanced Filtering", func() {
+		It("filters items by name", func(ctx SpecContext) {
+			known, err := c.Project(projectName).Items().GetByID(ctx, seeded.SuiteID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(known).NotTo(BeNil())
+			Expect(known.Name).NotTo(BeNil())
+
+			result, err := c.Project(projectName).Items().List(
+				ctx,
+				client.WithItemLaunchID(seeded.LaunchID),
+				client.WithItemName(*known.Name),
+				client.WithItemPageSize(20),
+			)
+			Expect(err).NotTo(HaveOccurred(), "filtering items by name should not fail")
+			Expect(result).NotTo(BeNil())
+			Expect(result.Content).NotTo(BeNil())
+			Expect(*result.Content).NotTo(BeEmpty())
+
+			for _, item := range *result.Content {
+				Expect(item.Name).NotTo(BeNil())
+				Expect(*item.Name).To(Equal(*known.Name))
+			}
+		})
+
+		It("searches items by name substring", func(ctx SpecContext) {
+			searchTerm := "integration-suite"
+
+			result, err := c.Project(projectName).Items().Search(
+				ctx,
+				client.WithSearchItemName(searchTerm),
+				client.WithSearchItemSort("name,asc"),
+				client.WithSearchItemPageSize(20),
+			)
+			Expect(err).NotTo(HaveOccurred(), "searching items by name should not fail")
+			Expect(result).NotTo(BeNil())
+			Expect(result.Content).NotTo(BeNil())
+
+			// Search depends on async OpenSearch indexing which may not complete
+			// within the test window. When results are present, validate every
+			// returned item matches the search filter.
+			for _, item := range *result.Content {
+				Expect(item.Name).NotTo(BeNil())
+				Expect(*item.Name).To(ContainSubstring(searchTerm))
+			}
+		})
+
+		It("filters items with has-children flag", func(ctx SpecContext) {
+			result, err := c.Project(projectName).Items().List(
+				ctx,
+				client.WithItemLaunchID(seeded.LaunchID),
+				client.WithItemHasChildren(true),
+				client.WithItemPageSize(20),
+			)
+			Expect(err).NotTo(HaveOccurred(), "filtering items with has-children should not fail")
+			Expect(result).NotTo(BeNil())
+			Expect(result.Content).NotTo(BeNil())
+			Expect(*result.Content).NotTo(BeEmpty(), "suite item should have children")
+
+			for _, item := range *result.Content {
+				Expect(item.HasChildren).NotTo(BeNil())
+				Expect(*item.HasChildren).To(BeTrue())
+			}
+		})
+
+		It("filters items by status", func(ctx SpecContext) {
+			result, err := c.Project(projectName).Items().List(
+				ctx,
+				client.WithItemLaunchID(seeded.LaunchID),
+				client.WithItemStatus("PASSED"),
+				client.WithItemPageSize(20),
+			)
+			Expect(err).NotTo(HaveOccurred(), "filtering items by status should not fail")
+			Expect(result).NotTo(BeNil())
+			Expect(result.Content).NotTo(BeNil())
+			Expect(*result.Content).NotTo(BeEmpty())
+
+			for _, item := range *result.Content {
+				Expect(item.Status).NotTo(BeNil())
+				Expect(*item.Status).To(Equal("PASSED"))
+			}
+		})
+
+	})
+
+	Context("History with Options", func() {
+		It("retrieves history with a launches limit", func(ctx SpecContext) {
+			result, err := c.Project(projectName).Items().GetHistory(ctx,
+				client.WithHistoryLaunchID(seeded.LaunchID),
+				client.WithHistoryLaunchesLimit(5),
+				client.WithHistoryDepth(5),
+				client.WithHistoryPageSize(20),
+			)
+			Expect(err).NotTo(HaveOccurred(),
+				"getting history with launches limit should not fail")
+			Expect(result).NotTo(BeNil(), "history result should not be nil")
+		})
+
+		It("retrieves history filtered by item name", func(ctx SpecContext) {
+			known, err := c.Project(projectName).Items().GetByID(ctx, seeded.TestID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(known).NotTo(BeNil())
+			Expect(known.Name).NotTo(BeNil())
+
+			result, err := c.Project(projectName).Items().GetHistory(ctx,
+				client.WithHistoryLaunchID(seeded.LaunchID),
+				client.WithHistoryItemName(*known.Name),
+				client.WithHistoryDepth(5),
+				client.WithHistoryPageSize(20),
+			)
+			Expect(err).NotTo(HaveOccurred(),
+				"getting history filtered by item name should not fail")
+			Expect(result).NotTo(BeNil(), "history result should not be nil")
+		})
+
+		It("retrieves history with a filter ID", func(ctx SpecContext) {
+			By("creating a launch filter")
+			filterName := fmt.Sprintf("history-filter-%d", time.Now().UnixNano())
+			created, err := c.Project(projectName).Filters().Create(ctx,
+				types.UpdateUserFilterRQ{
+					Name: filterName,
+					Type: types.UpdateUserFilterRQTypeLaunch,
+					Conditions: []types.UserFilterCondition{
+						{
+							Condition:      "cnt",
+							FilteringField: "name",
+							Value:          "integration",
+						},
+					},
+					Orders: []types.Order{
+						{IsAsc: false, SortingColumn: "startTime"},
+					},
+				},
+			)
+			Expect(err).NotTo(HaveOccurred(), "creating filter should not fail")
+			Expect(created).NotTo(BeNil())
+			Expect(created.Id).NotTo(BeNil())
+
+			By("retrieving history using the filter ID")
+			result, err := c.Project(projectName).Items().GetHistory(ctx,
+				client.WithHistoryFilterID(*created.Id),
+				client.WithHistoryLaunchesLimit(10),
+				client.WithHistoryDepth(5),
+				client.WithHistoryPageSize(20),
+			)
+			Expect(err).NotTo(HaveOccurred(),
+				"getting history with filter ID should not fail")
+			Expect(result).NotTo(BeNil(), "history result should not be nil")
+		})
+
+		It("retrieves history with a specific history type", func(ctx SpecContext) {
+			result, err := c.Project(projectName).Items().GetHistory(ctx,
+				client.WithHistoryLaunchID(seeded.LaunchID),
+				client.WithHistoryType("line"),
+				client.WithHistoryDepth(5),
+				client.WithHistoryPageSize(20),
+			)
+			Expect(err).NotTo(HaveOccurred(),
+				"getting history with type should not fail")
+			Expect(result).NotTo(BeNil(), "history result should not be nil")
+		})
+	})
+
+	Context("Attribute Keys", func() {
+		It("returns attribute keys for a launch", func(ctx SpecContext) {
+			attrKey := "env"
+
+			By("adding an attribute to the seeded test item")
+			_, err := c.Project(projectName).Items().Update(
+				ctx,
+				seeded.TestID,
+				types.UpdateTestItemRQ{
+					Attributes: &[]types.ItemAttributeResource{
+						{Key: &attrKey, Value: "ci"},
+					},
+				},
+			)
+			Expect(err).NotTo(HaveOccurred(), "updating item with attributes should not fail")
+
+			By("retrieving attribute keys for the launch")
+			keys, err := c.Project(projectName).Items().GetAttributeKeys(
+				ctx,
+				seeded.LaunchID,
+				"",
+			)
+			Expect(err).NotTo(HaveOccurred(), "getting attribute keys should not fail")
+			Expect(keys).NotTo(BeNil(), "attribute keys result should not be nil")
+			Expect(keys).To(ContainElement(attrKey),
+				"attribute keys should include %q after it was added to an item", attrKey)
+		})
+
+		It("returns attribute keys for the project", func(ctx SpecContext) {
+			attrKey := "project-env"
+
+			By("adding an attribute to the seeded test item")
+			_, err := c.Project(projectName).Items().Update(
+				ctx,
+				seeded.TestID,
+				types.UpdateTestItemRQ{
+					Attributes: &[]types.ItemAttributeResource{
+						{Key: &attrKey, Value: "staging"},
+					},
+				},
+			)
+			Expect(err).NotTo(HaveOccurred(), "updating item with attribute should not fail")
+
+			By("creating a launch filter for the project")
+			filterName := fmt.Sprintf("item-attr-filter-%d", time.Now().UnixNano())
+			created, err := c.Project(projectName).Filters().Create(ctx,
+				types.UpdateUserFilterRQ{
+					Name: filterName,
+					Type: types.UpdateUserFilterRQTypeLaunch,
+					Conditions: []types.UserFilterCondition{
+						{
+							Condition:      "cnt",
+							FilteringField: "name",
+							Value:          "integration",
+						},
+					},
+					Orders: []types.Order{
+						{IsAsc: false, SortingColumn: "startTime"},
+					},
+				},
+			)
+			Expect(err).NotTo(HaveOccurred(), "creating filter should not fail")
+			Expect(created).NotTo(BeNil())
+			Expect(created.Id).NotTo(BeNil())
+
+			By("retrieving attribute keys for the project")
+			keys, err := c.Project(projectName).Items().GetAttributeKeysForProject(
+				ctx,
+				*created.Id,
+				"",
+				client.WithProjectKeysLaunchesLimit(10),
+			)
+			Expect(err).NotTo(HaveOccurred(),
+				"getting attribute keys for project should not fail")
+			Expect(keys).NotTo(BeNil(),
+				"attribute keys for project should not be nil")
+			Expect(keys).To(ContainElement(attrKey),
+				"attribute keys should include %q after it was added to an item", attrKey)
+		})
+	})
+
 })
