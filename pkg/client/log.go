@@ -423,6 +423,20 @@ func WithLogPageNumberPageSize(size int32) GetLogPageNumberOption {
 	})
 }
 
+// WithLogPageNumberSort sets the sorting criteria for the page number lookup (e.g. "logTime,desc").
+func WithLogPageNumberSort(sort string) GetLogPageNumberOption {
+	return getLogPageNumberOptionFunc(func(params *api.GetPageNumberParams) {
+		if sort == "" {
+			params.PageSort = nil
+
+			return
+		}
+
+		s := sort
+		params.PageSort = &s
+	})
+}
+
 // GetPageNumber looks up which page a specific log entry appears on.
 func (l *LogScope) GetPageNumber(
 	ctx context.Context,

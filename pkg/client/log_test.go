@@ -982,6 +982,30 @@ func TestLogScope_GetPageNumber_WithOptions(t *testing.T) {
 	assert.Equal(t, float64(5), result["number"])
 }
 
+func TestLogScope_GetPageNumber_WithSort(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertPath(t, r, "/api/v1/my_project/log/42/page")
+
+		query := r.URL.Query()
+		assert.Equal(t, "logTime,desc", query.Get("page.sort"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte(`{"number": 1}`))
+	}))
+
+	result, err := c.Project("my_project").Logs().GetPageNumber(
+		t.Context(),
+		42,
+		client.WithLogPageNumberSort("logTime,desc"),
+	)
+	require.NoError(t, err)
+	assert.Equal(t, float64(1), result["number"])
+}
+
 func TestLogScope_GetPageNumber_Unauthorized(t *testing.T) {
 	t.Parallel()
 
