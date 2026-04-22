@@ -232,6 +232,20 @@ func TestProjectsScope_List_WithAdditionalOptions(t *testing.T) {
 	}
 }
 
+func TestProjectsScope_List_WithSortCleared(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Empty(t, r.URL.Query().Get("page.sort"))
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"content":[],"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}}`))
+	}))
+
+	_, err := c.Projects().List(t.Context(), client.WithProjectSort())
+	require.NoError(t, err)
+}
+
 func TestProjectsScope_List_Unauthorized(t *testing.T) {
 	t.Parallel()
 
@@ -663,6 +677,20 @@ func TestProjectsScope_ListUsers_WithUserSort(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestProjectsScope_ListUsers_WithSortCleared(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Empty(t, r.URL.Query().Get("page.sort"))
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"content":[],"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}}`))
+	}))
+
+	_, err := c.Projects().ListUsers(t.Context(), "my_project", client.WithUserSort())
+	require.NoError(t, err)
+}
+
 func TestProjectsScope_ListUsers_Unauthorized(t *testing.T) {
 	t.Parallel()
 
@@ -1040,6 +1068,20 @@ func TestProjectsScope_ListAssignableUsers_WithOptions(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestProjectsScope_ListAssignableUsers_WithSortCleared(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Empty(t, r.URL.Query().Get("page.sort"))
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"content":[],"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}}`))
+	}))
+
+	_, err := c.Projects().ListAssignableUsers(t.Context(), "my_project", client.WithAssignableUserSort())
+	require.NoError(t, err)
+}
+
 func TestProjectsScope_ListAssignableUsers_Unauthorized(t *testing.T) {
 	t.Parallel()
 
@@ -1154,6 +1196,22 @@ func TestProjectsScope_SearchUsernames_WithSort(t *testing.T) {
 
 	_, err := c.Projects().SearchUsernames(t.Context(), "my_project", "admin",
 		client.WithSearchUsernamesSort("login", "asc"),
+	)
+	require.NoError(t, err)
+}
+
+func TestProjectsScope_SearchUsernames_WithSortCleared(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Empty(t, r.URL.Query().Get("page.sort"))
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"content":[],"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}}`))
+	}))
+
+	_, err := c.Projects().SearchUsernames(t.Context(), "my_project", "admin",
+		client.WithSearchUsernamesSort(),
 	)
 	require.NoError(t, err)
 }

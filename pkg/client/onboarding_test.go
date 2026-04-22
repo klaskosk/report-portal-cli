@@ -88,3 +88,44 @@ func TestOnboardingScope_GetStatus_Unauthorized(t *testing.T) {
 	require.Error(t, err)
 	assert.True(t, client.IsUnauthorized(err))
 }
+
+func TestOnboardingScope_GetStatus_NonJSONError(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.WriteHeader(http.StatusBadGateway)
+		_, _ = w.Write([]byte("<html>Bad Gateway</html>"))
+	}))
+
+	_, err := c.Onboarding().GetStatus(t.Context(), nil)
+	require.Error(t, err)
+	assert.True(t, client.HasStatusCode(err, http.StatusBadGateway))
+}
+
+func TestOnboardingScope_GetStatus_EmptyBody(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	result, err := c.Onboarding().GetStatus(t.Context(), nil)
+	require.NoError(t, err)
+	assert.Nil(t, result)
+}
+
+func TestOnboardingScope_GetStatus_NonJSONErrorWithJSONContentType(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte("not valid json"))
+	}))
+
+	_, err := c.Onboarding().GetStatus(t.Context(), nil)
+	require.Error(t, err)
+	assert.True(t, client.HasStatusCode(err, http.StatusInternalServerError))
+}

@@ -146,6 +146,18 @@ func TestUsersScope_ListProjects_EmptyList(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, projects)
 }
+
+func TestUsersScope_ListProjects_Unauthorized(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusUnauthorized,
+		`{"errorCode": 4001, "message": "Full authentication is required."}`))
+
+	_, err := c.Users().ListProjects(t.Context(), "superadmin")
+	require.Error(t, err)
+	assert.True(t, client.IsUnauthorized(err))
+}
+
 func TestUsersScope_List_Success(t *testing.T) {
 	t.Parallel()
 
@@ -266,6 +278,20 @@ func TestUsersScope_List_WithAdditionalOptions(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
+}
+
+func TestUsersScope_List_WithSortCleared(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Empty(t, r.URL.Query().Get("page.sort"))
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"content":[],"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}}`))
+	}))
+
+	_, err := c.Users().List(t.Context(), client.WithUsersSort())
+	require.NoError(t, err)
 }
 
 func TestUsersScope_List_EmptyPage(t *testing.T) {
@@ -406,6 +432,20 @@ func TestUsersScope_Search_WithAdditionalOptions(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
+}
+
+func TestUsersScope_Search_WithSortCleared(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Empty(t, r.URL.Query().Get("page.sort"))
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"content":[],"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}}`))
+	}))
+
+	_, err := c.Users().Search(t.Context(), "test", client.WithSearchUsersSort())
+	require.NoError(t, err)
 }
 
 func TestUsersScope_Search_EmptyPage(t *testing.T) {

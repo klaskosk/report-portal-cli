@@ -150,6 +150,38 @@ func TestActivityScope_ListForItem_EmptyResults(t *testing.T) {
 	assert.Empty(t, result.Content)
 }
 
+func TestActivityScope_ListForItem_WithSort(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "lastModified,desc", r.URL.Query().Get("page.sort"))
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"content":[],"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}}`))
+	}))
+
+	_, err := c.Project("my_project").Activities().ListForItem(
+		t.Context(), 100, client.WithActivitySort("lastModified", "desc"),
+	)
+	require.NoError(t, err)
+}
+
+func TestActivityScope_ListForItem_WithSortCleared(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Empty(t, r.URL.Query().Get("page.sort"))
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"content":[],"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}}`))
+	}))
+
+	_, err := c.Project("my_project").Activities().ListForItem(
+		t.Context(), 100, client.WithActivitySort(),
+	)
+	require.NoError(t, err)
+}
+
 func TestActivityScope_ListForItem_Unauthorized(t *testing.T) {
 	t.Parallel()
 

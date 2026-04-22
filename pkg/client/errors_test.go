@@ -1,6 +1,7 @@
 package client_test
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"net/http"
@@ -236,4 +237,71 @@ func TestPredicates_WrappedUnexpectedStatusError(t *testing.T) {
 
 	assert.True(t, client.IsNotFound(wrapped))
 	assert.True(t, client.HasStatusCode(wrapped, http.StatusNotFound))
+}
+
+func TestUnexpectedStatusError_ErrorWithBody(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		body     []byte
+		contains string
+	}{
+		{
+			name:     "short body is included verbatim",
+			body:     []byte("<html>Bad Gateway</html>"),
+			contains: "<html>Bad Gateway</html>",
+		},
+		{
+			name:     "long body is truncated with ellipsis",
+			body:     bytes.Repeat([]byte("x"), 300),
+			contains: "...",
+		},
+		{
+			name:     "invalid UTF-8 is quoted",
+			body:     []byte{0xff, 0xfe, 0xfd},
+			contains: `\xff\xfe\xfd`,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := client.NewTestUnexpectedStatusErrorWithBody(http.StatusBadGateway, test.body)
+			assert.Contains(t, err.Error(), test.contains)
+		})
+	}
+}
+
+func TestBodyOf_NonBodyError(t *testing.T) {
+	t.Parallel()
+
+	body, ok := client.BodyOf(errors.New("plain error"))
+	assert.False(t, ok)
+	assert.Nil(t, body)
+}
+
+func TestParseErrorBody_InvalidJSON(t *testing.T) {
+	t.Parallel()
+
+	err := client.ParseErrorBody(http.StatusBadGateway, []byte("not json"))
+	require.Error(t, err)
+
+	var unexpectedErr *client.UnexpectedStatusError
+	require.ErrorAs(t, err, &unexpectedErr)
+	assert.Equal(t, http.StatusBadGateway, unexpectedErr.StatusCode())
+
+	body, ok := client.BodyOf(err)
+	require.True(t, ok)
+	assert.Equal(t, []byte("not json"), body)
+}
+
+func TestParseErrorBody_ValidJSON(t *testing.T) {
+	t.Parallel()
+
+	err := client.ParseErrorBody(http.StatusNotFound,
+		[]byte(`{"errorCode": 40410, "message": "Not found."}`))
+	require.Error(t, err)
+	assert.True(t, client.IsNotFound(err))
 }

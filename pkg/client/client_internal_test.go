@@ -1,11 +1,63 @@
 package client
 
 import (
+	"errors"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type failingTransport struct {
+	err error
+}
+
+func (t *failingTransport) RoundTrip(_ *http.Request) (*http.Response, error) {
+	return nil, t.err
+}
+
+func TestEmptyJSONBodyNormalizer_TransportError(t *testing.T) {
+	t.Parallel()
+
+	wantErr := errors.New("connection refused")
+	normalizer := &emptyJSONBodyNormalizer{next: &failingTransport{err: wantErr}}
+
+	req := httptest.NewRequest(http.MethodGet, "http://example.com/api/test", nil)
+
+	resp, err := normalizer.RoundTrip(req)
+	require.Error(t, err)
+	assert.Nil(t, resp)
+	assert.ErrorIs(t, err, wantErr)
+}
+
+func TestEmptyJSONBodyNormalizer_NonJSONResponse(t *testing.T) {
+	t.Parallel()
+
+	normalizer := &emptyJSONBodyNormalizer{
+		next: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+			return &http.Response{
+				StatusCode:    200,
+				ContentLength: 0,
+				Header:        http.Header{"Content-Type": {"text/plain"}},
+				Body:          http.NoBody,
+			}, nil
+		}),
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "http://example.com/api/test", nil)
+
+	resp, err := normalizer.RoundTrip(req)
+	require.NoError(t, err)
+	assert.Equal(t, int64(0), resp.ContentLength)
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) {
+	return f(r)
+}
 
 func TestNormalizeBaseURL(t *testing.T) {
 	t.Parallel()

@@ -122,6 +122,68 @@ func TestLogTypesScope_Create_Success(t *testing.T) {
 	assert.Equal(t, int32(50000), result.Level)
 }
 
+func TestLogTypesScope_Create_201Response(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertMethod(t, r, http.MethodPost)
+		assertPath(t, r, "/api/projects/my_project/log-types")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{
+			"id": 11,
+			"name": "CUSTOM201",
+			"level": 55000,
+			"is_filterable": true,
+			"is_system": false
+		}`))
+	}))
+
+	result, err := c.Project("my_project").LogTypes().Create(t.Context(), types.LogTypeRequest{
+		Name:         "CUSTOM201",
+		Level:        55000,
+		IsFilterable: true,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, int64(11), *result.Id)
+	assert.Equal(t, "CUSTOM201", result.Name)
+}
+
+func TestLogTypesScope_Create_201BadJSON(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte("not json"))
+	}))
+
+	_, err := c.Project("my_project").LogTypes().Create(t.Context(), types.LogTypeRequest{
+		Name:  "CUSTOM",
+		Level: 50000,
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "create log type")
+}
+
+func TestLogTypesScope_Create_UnexpectedStatus(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+		_, _ = w.Write([]byte("<html>Bad Gateway</html>"))
+	}))
+
+	_, err := c.Project("my_project").LogTypes().Create(t.Context(), types.LogTypeRequest{
+		Name:  "CUSTOM",
+		Level: 50000,
+	})
+	require.Error(t, err)
+	assert.True(t, client.HasStatusCode(err, http.StatusBadGateway))
+}
+
 func TestLogTypesScope_Create_Forbidden(t *testing.T) {
 	t.Parallel()
 
