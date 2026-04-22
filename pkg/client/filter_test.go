@@ -87,6 +87,20 @@ func TestFilterScope_List_WithFilterSort(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestFilterScope_List_WithSortCleared(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Empty(t, r.URL.Query().Get("page.sort"))
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"content":[],"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}}`))
+	}))
+
+	_, err := c.Project("my_project").Filters().List(t.Context(), client.WithFilterSort())
+	require.NoError(t, err)
+}
+
 func TestFilterScope_List_Unauthorized(t *testing.T) {
 	t.Parallel()
 
@@ -318,6 +332,17 @@ func TestFilterScope_GetNames_Empty(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Empty(t, result.Content)
+}
+
+func TestFilterScope_GetNames_Unauthorized(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusUnauthorized,
+		`{"errorCode": 4001, "message": "Full authentication is required."}`))
+
+	_, err := c.Project("my_project").Filters().GetNames(t.Context(), "test")
+	require.Error(t, err)
+	assert.True(t, client.IsUnauthorized(err))
 }
 
 func TestUserFilterScope_BulkUpdate_Success(t *testing.T) {

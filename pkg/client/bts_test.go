@@ -241,6 +241,17 @@ func TestBugTrackingScope_GetTicketIds_Empty(t *testing.T) {
 	assert.Empty(t, ids)
 }
 
+func TestBugTrackingScope_GetTicketIds_Unauthorized(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, jsonResponse(http.StatusUnauthorized,
+		`{"errorCode": 4001, "message": "Full authentication is required."}`))
+
+	_, err := c.Project("my_project").BugTracking().GetTicketIds(t.Context(), 100, "PROJ")
+	require.Error(t, err)
+	assert.True(t, client.IsUnauthorized(err))
+}
+
 func TestBugTrackingScope_GetTicketIdsForProject_Success(t *testing.T) {
 	t.Parallel()
 

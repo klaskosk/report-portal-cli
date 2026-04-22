@@ -1,6 +1,15 @@
 package client
 
-import "github.com/klaskosk/report-portal-cli/pkg/types"
+import (
+	"github.com/klaskosk/report-portal-cli/pkg/types"
+)
+
+// FailingOption returns an Option that always returns the given error. Test-only.
+var FailingOption = func(err error) Option {
+	return func(_ *config) error {
+		return err
+	}
+}
 
 // NewTestAPIError exposes newAPIError for external test packages.
 var NewTestAPIError = func(statusCode int, resp *types.ErrorRS) error {
@@ -11,6 +20,15 @@ var NewTestAPIError = func(statusCode int, resp *types.ErrorRS) error {
 var NewTestUnexpectedStatusError = func(statusCode int) error {
 	return newUnexpectedStatusError(statusCode, nil)
 }
+
+// NewTestUnexpectedStatusErrorWithBody exposes newUnexpectedStatusError with a
+// body for external test packages.
+var NewTestUnexpectedStatusErrorWithBody = func(statusCode int, body []byte) error {
+	return newUnexpectedStatusError(statusCode, body)
+}
+
+// ParseErrorBody exposes parseErrorBody for external test packages.
+var ParseErrorBody = parseErrorBody
 
 // NewTestActivityScope creates an ActivityScope for testing without requiring a full Client setup.
 var NewTestActivityScope = func(c *Client, projectName string) *ActivityScope {

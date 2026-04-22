@@ -1319,3 +1319,172 @@ func TestLogScope_GetNestedLogs_Unauthorized(t *testing.T) {
 	require.Error(t, err)
 	assert.True(t, client.IsUnauthorized(err))
 }
+
+func TestLogScope_List_WithSortCleared(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Empty(t, r.URL.Query().Get("page.sort"))
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"content":[],"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}}`))
+	}))
+
+	_, err := c.Project("my_project").Logs().List(t.Context(), client.WithLogSort())
+	require.NoError(t, err)
+}
+
+func TestLogScope_GetPageNumber_WithSortCleared(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertPath(t, r, "/api/v1/my_project/log/42/page")
+		assert.Empty(t, r.URL.Query().Get("page.sort"))
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"number": 1}`))
+	}))
+
+	_, err := c.Project("my_project").Logs().GetPageNumber(
+		t.Context(), 42, client.WithLogPageNumberSort(""),
+	)
+	require.NoError(t, err)
+}
+
+func TestLogScope_CreateBatchAsync_201Response(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertPath(t, r, "/api/v2/my_project/log")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"responses":[{"id":"created-log-1"}]}`))
+	}))
+
+	result, err := c.Project("my_project").Logs().CreateBatchAsync(
+		t.Context(),
+		client.BatchLogEntry{
+			LaunchUUID: "launch-uuid-1",
+			Level:      "INFO",
+			Message:    "Test",
+			Time:       time.UnixMilli(1700000000000).UTC(),
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Responses)
+	require.Len(t, *result.Responses, 1)
+	assert.Equal(t, "created-log-1", *(*result.Responses)[0].Id)
+}
+
+func TestLogScope_CreateBatch_201Response(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertPath(t, r, "/api/v1/my_project/log")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"responses":[{"id":"created-log-2"}]}`))
+	}))
+
+	result, err := c.Project("my_project").Logs().CreateBatch(
+		t.Context(),
+		client.BatchLogEntry{
+			LaunchUUID: "launch-uuid-1",
+			Level:      "INFO",
+			Message:    "Test",
+			Time:       time.UnixMilli(1700000000000).UTC(),
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Responses)
+	require.Len(t, *result.Responses, 1)
+	assert.Equal(t, "created-log-2", *(*result.Responses)[0].Id)
+}
+
+func TestLogScope_CreateBatchAsync_NonJSONError(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+		_, _ = w.Write([]byte("<html>Bad Gateway</html>"))
+	}))
+
+	_, err := c.Project("my_project").Logs().CreateBatchAsync(
+		t.Context(),
+		client.BatchLogEntry{
+			LaunchUUID: "launch-uuid-1",
+			Level:      "INFO",
+			Message:    "Test",
+			Time:       time.UnixMilli(1700000000000).UTC(),
+		},
+	)
+	require.Error(t, err)
+	assert.True(t, client.HasStatusCode(err, http.StatusBadGateway))
+}
+
+func TestLogScope_CreateBatchAsync_201BadJSON(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte("not json"))
+	}))
+
+	_, err := c.Project("my_project").Logs().CreateBatchAsync(
+		t.Context(),
+		client.BatchLogEntry{
+			LaunchUUID: "launch-uuid-1",
+			Level:      "INFO",
+			Message:    "Test",
+			Time:       time.UnixMilli(1700000000000).UTC(),
+		},
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "create log batch async")
+}
+
+func TestLogScope_CreateBatch_201BadJSON(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte("not json"))
+	}))
+
+	_, err := c.Project("my_project").Logs().CreateBatch(
+		t.Context(),
+		client.BatchLogEntry{
+			LaunchUUID: "launch-uuid-1",
+			Level:      "INFO",
+			Message:    "Test",
+			Time:       time.UnixMilli(1700000000000).UTC(),
+		},
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "create log batch")
+}
+
+func TestLogScope_CreateBatch_NonJSONError(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+		_, _ = w.Write([]byte("<html>Bad Gateway</html>"))
+	}))
+
+	_, err := c.Project("my_project").Logs().CreateBatch(
+		t.Context(),
+		client.BatchLogEntry{
+			LaunchUUID: "launch-uuid-1",
+			Level:      "INFO",
+			Message:    "Test",
+			Time:       time.UnixMilli(1700000000000).UTC(),
+		},
+	)
+	require.Error(t, err)
+	assert.True(t, client.HasStatusCode(err, http.StatusBadGateway))
+}

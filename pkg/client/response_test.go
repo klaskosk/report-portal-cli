@@ -52,10 +52,16 @@ func TestHandleV2Response(t *testing.T) {
 			wantResult: ptr("v2-ok"),
 		},
 		{
-			name:          "legacy rejection",
+			name:          "legacy rejection with non-nil pointer",
 			statusCode:    200,
 			legacySuccess: ptr("legacy-ok"),
 			wantErr:       "API returned legacy JSON shape",
+		},
+		{
+			name:          "typed nil pointer is not legacy",
+			statusCode:    200,
+			legacySuccess: (*string)(nil),
+			wantErr:       "API returned success status (200) but no valid response body was parsed",
 		},
 		{
 			name:        "API error",
@@ -345,6 +351,34 @@ func TestExecuteVoid_NonJSONError(t *testing.T) {
 	require.Error(t, err)
 	assert.True(t, HasStatusCode(err, 502))
 	assert.Contains(t, err.Error(), "test op")
+}
+
+func TestLegacyPayloadPresent(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		input any
+		want  bool
+	}{
+		{"nil any", nil, false},
+		{"typed nil pointer", (*string)(nil), false},
+		{"non-nil pointer", ptr("value"), true},
+		{"string value (default kind)", "hello", true},
+		{"int value (default kind)", 42, true},
+		{"nil slice", ([]string)(nil), false},
+		{"non-nil slice", []string{"a"}, true},
+		{"nil map", (map[string]string)(nil), false},
+		{"non-nil map", map[string]string{"k": "v"}, true},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, test.want, legacyPayloadPresent(test.input))
+		})
+	}
 }
 
 func ptr[T any](v T) *T { return &v }

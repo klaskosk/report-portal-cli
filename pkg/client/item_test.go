@@ -770,6 +770,20 @@ func TestTestItemScope_List_WithFilterOptions(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestItemScope_List_WithSortCleared(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Empty(t, r.URL.Query().Get("page.sort"))
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"content":[],"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}}`))
+	}))
+
+	_, err := c.Project("my_project").Items().List(t.Context(), client.WithItemSort())
+	require.NoError(t, err)
+}
+
 type getByIDsTestCase struct {
 	name             string
 	ids              []int64

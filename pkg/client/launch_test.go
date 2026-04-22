@@ -2153,6 +2153,7 @@ func TestLaunchScope_WithSortOptions(t *testing.T) {
 		name     string
 		option   client.ListLaunchesOption
 		expected map[string]string
+		absent   []string
 	}{
 		{
 			name:   "WithLaunchSort",
@@ -2160,6 +2161,11 @@ func TestLaunchScope_WithSortOptions(t *testing.T) {
 			expected: map[string]string{
 				"page.sort": "startTime,desc",
 			},
+		},
+		{
+			name:   "WithLaunchSort clears sort",
+			option: client.WithLaunchSort(),
+			absent: []string{"page.sort"},
 		},
 	}
 
@@ -2175,6 +2181,10 @@ func TestLaunchScope_WithSortOptions(t *testing.T) {
 						"query parameter mismatch for "+key)
 				}
 
+				for _, key := range tt.absent {
+					assert.Empty(t, query.Get(key), "query parameter should be absent: "+key)
+				}
+
 				w.Header().Set("Content-Type", "application/json")
 				_, _ = w.Write([]byte(`{"content":[],"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}}`))
 			}))
@@ -2183,6 +2193,41 @@ func TestLaunchScope_WithSortOptions(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
+}
+
+func TestLaunchScope_WithLaunchAttribute_Multiple(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		query := r.URL.Query()
+		assert.Equal(t, "env:prod,team:backend", query.Get("filter.has.compositeAttribute"))
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"content":[],"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}}`))
+	}))
+
+	_, err := c.Project("my_project").Launches().List(
+		t.Context(),
+		client.WithLaunchAttribute("env", "prod"),
+		client.WithLaunchAttribute("team", "backend"),
+	)
+	require.NoError(t, err)
+}
+
+func TestLaunchScope_GetClusters_WithSortCleared(t *testing.T) {
+	t.Parallel()
+
+	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Empty(t, r.URL.Query().Get("page.sort"))
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"content":[],"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}}`))
+	}))
+
+	_, err := c.Project("my_project").Launches().GetClusters(
+		t.Context(), "42", client.WithClusterSort(),
+	)
+	require.NoError(t, err)
 }
 
 func TestLaunchScope_GetClusters_WithSortOption(t *testing.T) {
