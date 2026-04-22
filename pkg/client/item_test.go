@@ -2174,9 +2174,13 @@ func TestTestItemScope_LinkExternalIssues_Success(t *testing.T) {
 		testItemIds := payload["testItemIds"].([]any)
 		assert.Len(t, testItemIds, 1)
 
-		issues, ok := payload["issues"].(map[string]any)
+		issues, ok := payload["issues"].([]any)
 		require.True(t, ok)
-		assert.Equal(t, "JIRA-123", issues["ticketId"])
+		require.Len(t, issues, 1)
+
+		issue, ok := issues[0].(map[string]any)
+		require.True(t, ok)
+		assert.Equal(t, "JIRA-123", issue["ticketId"])
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)

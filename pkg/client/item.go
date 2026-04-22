@@ -1,7 +1,9 @@
 package client
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -1009,7 +1011,23 @@ func (i *TestItemScope) LinkExternalIssues(
 	logger := i.project.operationLogger("LinkExternalIssues")
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := i.project.client.raw.LinkExternalIssuesWithResponse(ctx, i.project.projectName, request)
+	payload, err := json.Marshal(struct {
+		Issues      []types.ExternalSystemIssue `json:"issues"`
+		TestItemIds []int64                     `json:"testItemIds"`
+	}{
+		Issues:      []types.ExternalSystemIssue{request.Issues},
+		TestItemIds: request.TestItemIds,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("link external issues: marshal request: %w", err)
+	}
+
+	resp, err := i.project.client.raw.LinkExternalIssuesWithBodyWithResponse(
+		ctx,
+		i.project.projectName,
+		"application/json",
+		bytes.NewReader(payload),
+	)
 
 	results, err := execute[[]types.OperationCompletionRS](ctx, logger, "link external issues", resp, err)
 	if err != nil {
