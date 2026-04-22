@@ -391,7 +391,7 @@ var _ = Describe("Client: Test Items", Label("client", "items"), func() {
 			Expect(err.Error()).To(ContainSubstring("operator does not exist: ltree = bigint"))
 		})
 
-		It("searches items by name substring", func(ctx SpecContext) {
+		It("smoke tests name-substring search while indexing catches up", func(ctx SpecContext) {
 			searchTerm := "suite"
 			var searchResult *types.PageTestItemResource
 
@@ -428,9 +428,8 @@ var _ = Describe("Client: Test Items", Label("client", "items"), func() {
 
 			content := *searchResult.Content
 			if len(content) == 0 {
-				// Search indexing is asynchronous in Report Portal 5.15 and may not complete
-				// during a short-lived integration run. Empty results are acceptable so long as
-				// the endpoint remains healthy; unit tests cover the exact query wiring.
+				// Report Portal 5.15 populates search asynchronously, so this integration case
+				// only guarantees that the endpoint stays healthy while indexing catches up.
 				return
 			}
 
@@ -445,7 +444,7 @@ var _ = Describe("Client: Test Items", Label("client", "items"), func() {
 			}
 
 			Expect(matchedSeededSuite).To(BeTrue(),
-				"indexed search results should include the seeded suite item")
+				"indexed results, when available, should include the seeded suite item")
 		})
 
 		It("filters items with has-children flag", func(ctx SpecContext) {
