@@ -1,11 +1,28 @@
 ---
 name: code-review
-description: Review pull requests, branches, or local diffs for correctness, simplicity, and conventions.
+description: Review local changes for correctness, simplicity, and conventions. Do not use for remote pull request reviews.
 ---
 
 # Code Review
 
-Review changes with a **correctness-first, simplicity-first** mindset. This is a modern Go codebase, priorizing idiomatic and effective Go. Simplicity and readability are paramount. The best solution frequently involves less code.
+Review local changes on the current branch with a **correctness-first, simplicity-first** mindset. This is a modern Go codebase, priorizing idiomatic and effective Go. Simplicity and readability are paramount. The best solution frequently involves less code.
+
+## Safety rails (critical)
+
+- Do not use `gh`.
+- Do not use `git worktree`.
+- Prefer read-only inspection: `git status`, `git diff`, `git show`, `git log`.
+
+## Scope (pick the smallest diff)
+
+- Unstaged: `git diff`
+- Staged: `git diff --staged`
+- Latest commit: `git show --patch --stat HEAD`
+- Range vs base: `git diff <base>...HEAD` (and `git log --oneline <base>..HEAD`)
+
+State what you reviewed (unstaged/staged/commit(s)/range).
+
+If a commit message references a prompt, read the corresponding file in `prompts/` (or `prompts/completed/`) and review against its definition of done.
 
 ## Priorities
 
@@ -40,18 +57,10 @@ Review changes with a **correctness-first, simplicity-first** mindset. This is a
 
 ## Verification Steps
 
-### For local changes
-
 1. If requested, run `make lint`, `make test`, and `make test-integration` to verify that PR checks will pass.
 2. If a prompt is mentioned in the commit message, verify that the changes meet the definition of done for that prompt in the `prompts/` directory.
 3. Thoroughly perform a code review of the changes. Review changes in the PR and ensure they are in line with the priorities and critical checks above.
 4. Give a report of your review following the output format below.
-
-### For pull requests
-
-1. Use the `gh` CLI to check out the pull request branch. Add the `--detach` flag to avoid checking out the pull request branch. This helps to avoid conflicts with worktrees.
-2. Follow the verification steps for local changes.
-3. Submit your review using the `gh` CLI and add the appropriate label to the PR based on your verdict.
 
 ## Output Format
 
@@ -64,16 +73,4 @@ Review changes with a **correctness-first, simplicity-first** mindset. This is a
   - **Issue**: Why it matters (correctness, simplicity, convention).
   - **Fix**: Specific change or simpler alternative.
 
-**Verdict**: Approve / Approve with nits / Request changes.
-
-## Submitting the PR review
-
-If you are reviewing a pull request, not local changes, please submit your review using the `gh` CLI. You won't be able to approve or request changes, so comment and make clear your verdict in the comment itself.
-
-Additionally, label the PR based on your verdict (and remove any existing `ai/` labels).
-
-- `ai/approved`: The PR is approved.
-- `ai/nits`: The PR is approved with nits or minor issues.
-- `ai/rejected`: The PR is rejected and changes are requested.
-
-Thank you for your help!
+**Verdict**: Approve / Request changes.
