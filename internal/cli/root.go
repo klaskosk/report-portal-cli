@@ -55,8 +55,10 @@ func newRootCmd() *cobra.Command {
 	flags.IntP("verbosity", "v", 0, "log verbosity level (0=off, 1=info, 2+=debug)")
 
 	cmd.AddCommand(newGetCmd())
+	cmd.AddCommand(newCreateCmd())
+	cmd.AddCommand(newUpdateCmd())
+	cmd.AddCommand(newDeleteCmd())
 	cmd.AddCommand(newDownloadCmd())
-	cmd.AddCommand(newUserCmd())
 	cmd.AddCommand(newWhoamiCmd())
 
 	return cmd

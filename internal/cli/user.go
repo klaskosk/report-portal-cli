@@ -84,34 +84,55 @@ Examples:
 	return cmd
 }
 
-// newUserCmd builds the top-level "user" command group for instance-level mutations.
-func newUserCmd() *cobra.Command {
+// newCreateCmd builds the top-level "create" command group.
+func newCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "user",
-		Short: "Manage instance users",
-		Long: `Create, update, and delete instance users.
-
-These commands operate at the instance level and do not require --project/-p.
-Most user-management endpoints require an administrator account.`,
+		Use:   "create",
+		Short: "Create resources",
 	}
 
-	cmd.AddCommand(newUserCreateCmd())
-	cmd.AddCommand(newUserUpdateCmd())
-	cmd.AddCommand(newUserDeleteCmd())
+	cmd.AddCommand(newCreateUserCmd())
 
 	return cmd
 }
 
-// newUserCreateCmd builds the "user create" subcommand.
-func newUserCreateCmd() *cobra.Command {
+// newUpdateCmd builds the top-level "update" command group.
+func newUpdateCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "create",
+		Use:   "update",
+		Short: "Update resources",
+	}
+
+	cmd.AddCommand(newUpdateUserCmd())
+
+	return cmd
+}
+
+// newDeleteCmd builds the top-level "delete" command group.
+func newDeleteCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "delete",
+		Short: "Delete resources",
+	}
+
+	cmd.AddCommand(newDeleteUserCmd())
+
+	return cmd
+}
+
+// newCreateUserCmd builds the "create user" subcommand.
+func newCreateUserCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "user",
 		Short: "Create a user",
 		Long: `Create a new instance user.
 
+This command operates at the instance level and does not require --project/-p.
+Most user-management endpoints require an administrator account.
+
 Examples:
-  rp user create --login jane --email jane@example.com --full-name "Jane Doe"
-  rp user create --login jane --email jane@example.com --full-name "Jane Doe" \
+  rp create user --login jane --email jane@example.com --full-name "Jane Doe"
+  rp create user --login jane --email jane@example.com --full-name "Jane Doe" \
     --password 'Secret123!' --account-role USER --project-role MEMBER`,
 		Args: cobra.NoArgs,
 		RunE: withPrintedErrors(runUserCreate),
@@ -122,10 +143,10 @@ Examples:
 	return cmd
 }
 
-// newUserUpdateCmd builds the "user update" subcommand.
-func newUserUpdateCmd() *cobra.Command {
+// newUpdateUserCmd builds the "update user" subcommand.
+func newUpdateUserCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "update <login>",
+		Use:   "user <login>",
 		Short: "Update a user",
 		Long: `Update an existing instance user by login.
 
@@ -133,9 +154,9 @@ If --full-name is omitted, the command fetches the current user first so it can
 preserve the required fullName field in the edit payload.
 
 Examples:
-  rp user update jane --email jane.doe@example.com
-  rp user update jane --full-name "Jane Doe" --active=false
-  rp user update jane --account-role ADMINISTRATOR --account-type INTERNAL`,
+  rp update user jane --email jane.doe@example.com
+  rp update user jane --full-name "Jane Doe" --active=false
+  rp update user jane --account-role ADMINISTRATOR --account-type INTERNAL`,
 		Args: cobra.ExactArgs(1),
 		RunE: withPrintedErrors(runUserUpdate),
 	}
@@ -145,10 +166,10 @@ Examples:
 	return cmd
 }
 
-// newUserDeleteCmd builds the "user delete" subcommand.
-func newUserDeleteCmd() *cobra.Command {
+// newDeleteUserCmd builds the "delete user" subcommand.
+func newDeleteUserCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "delete <login>",
+		Use:   "user <login>",
 		Short: "Delete a user",
 		Long: `Delete an existing instance user by login.
 
@@ -156,7 +177,7 @@ The underlying API deletes by numeric ID, so this command first resolves the
 given login to the current user ID to keep the CLI login-based.
 
 Examples:
-  rp user delete jane`,
+  rp delete user jane`,
 		Args: cobra.ExactArgs(1),
 		RunE: withPrintedErrors(runUserDelete),
 	}
@@ -195,7 +216,7 @@ func runGetUser(cmd *cobra.Command, args []string) error {
 	return listUsers(cmd, clientInstance, printer)
 }
 
-// runUserCreate executes the user create command.
+// runUserCreate executes the create user command.
 func runUserCreate(cmd *cobra.Command, _ []string) error {
 	logger := loggerFromCmd(cmd)
 	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
@@ -234,7 +255,7 @@ func runUserCreate(cmd *cobra.Command, _ []string) error {
 	return printer.Print(result, headers, [][]string{row})
 }
 
-// runUserUpdate executes the user update command.
+// runUserUpdate executes the update user command.
 func runUserUpdate(cmd *cobra.Command, args []string) error {
 	logger := loggerFromCmd(cmd)
 	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
@@ -289,7 +310,7 @@ func runUserUpdate(cmd *cobra.Command, args []string) error {
 	return printer.Print(result, operationResultHeaders(), operationResultRows(result))
 }
 
-// runUserDelete executes the user delete command.
+// runUserDelete executes the delete user command.
 func runUserDelete(cmd *cobra.Command, args []string) error {
 	logger := loggerFromCmd(cmd)
 	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
