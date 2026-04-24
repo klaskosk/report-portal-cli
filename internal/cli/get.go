@@ -13,6 +13,7 @@ func newGetCmd() *cobra.Command {
 	cmd.AddCommand(newGetItemCmd())
 	cmd.AddCommand(newGetLogCmd())
 	cmd.AddCommand(newGetProjectCmd())
+	cmd.AddCommand(newGetUserCmd())
 
 	return cmd
 }

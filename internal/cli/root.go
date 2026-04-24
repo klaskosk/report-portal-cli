@@ -56,6 +56,7 @@ func newRootCmd() *cobra.Command {
 
 	cmd.AddCommand(newGetCmd())
 	cmd.AddCommand(newDownloadCmd())
+	cmd.AddCommand(newUserCmd())
 	cmd.AddCommand(newWhoamiCmd())
 
 	return cmd
