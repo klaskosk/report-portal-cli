@@ -73,7 +73,7 @@ var _ = Describe("CLI: user", Label("cli", "user"), func() {
 		email := fmt.Sprintf("%s@example.com", username)
 
 		result := runCLI(
-			"user", "create",
+			"create", "user",
 			"--login", username,
 			"--email", email,
 			"--full-name", "CLI Create User",
@@ -82,7 +82,7 @@ var _ = Describe("CLI: user", Label("cli", "user"), func() {
 			"--account-role", "USER",
 			"--project-role", "MEMBER",
 		)
-		expectCLISuccess(result, "rp user create")
+		expectCLISuccess(result, "rp create user")
 		Expect(result.Stdout).To(ContainSubstring(username))
 
 		createdUser, err := c.Users().GetByLogin(ctx, username)
@@ -113,11 +113,11 @@ var _ = Describe("CLI: user", Label("cli", "user"), func() {
 		updatedEmail := fmt.Sprintf("%s-updated@example.com", user.UserId)
 
 		result := runCLI(
-			"user", "update", user.UserId,
+			"update", "user", user.UserId,
 			"--email", updatedEmail,
 			"--active=false",
 		)
-		expectCLISuccess(result, "rp user update <login>")
+		expectCLISuccess(result, "rp update user <login>")
 		Expect(result.Stdout).To(ContainSubstring("updated"))
 
 		updatedUser, err := c.Users().GetByLogin(ctx, user.UserId)
@@ -135,8 +135,8 @@ var _ = Describe("CLI: user", Label("cli", "user"), func() {
 			_, _ = c.Users().Delete(ctx, user.Id)
 		})
 
-		result := runCLI("user", "delete", user.UserId)
-		expectCLISuccess(result, "rp user delete <login>")
+		result := runCLI("delete", "user", user.UserId)
+		expectCLISuccess(result, "rp delete user <login>")
 		Expect(result.Stdout).To(ContainSubstring("deleted"))
 
 		_, err := c.Users().GetByLogin(ctx, user.UserId)

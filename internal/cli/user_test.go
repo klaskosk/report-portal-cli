@@ -92,18 +92,34 @@ func TestResolveUserListOptions_WithFilters(t *testing.T) {
 	assert.False(t, *options.active)
 }
 
-func TestNewUserCmd_Subcommands(t *testing.T) {
+func TestNewCreateCmd_Subcommands(t *testing.T) {
 	t.Parallel()
 
-	cmd := newUserCmd()
+	cmd := newCreateCmd()
 
-	assert.Equal(t, []string{"create", "delete", "update"}, commandNames(cmd))
+	assert.Equal(t, []string{"user"}, commandNames(cmd))
+}
+
+func TestNewUpdateCmd_Subcommands(t *testing.T) {
+	t.Parallel()
+
+	cmd := newUpdateCmd()
+
+	assert.Equal(t, []string{"user"}, commandNames(cmd))
+}
+
+func TestNewDeleteCmd_Subcommands(t *testing.T) {
+	t.Parallel()
+
+	cmd := newDeleteCmd()
+
+	assert.Equal(t, []string{"user"}, commandNames(cmd))
 }
 
 func TestResolveCreateUserRequest_MissingRequiredFlags(t *testing.T) {
 	t.Parallel()
 
-	cmd := newUserCreateCmd()
+	cmd := newCreateUserCmd()
 
 	_, err := resolveCreateUserRequest(cmd)
 	require.Error(t, err)
@@ -115,7 +131,7 @@ func TestResolveCreateUserRequest_MissingRequiredFlags(t *testing.T) {
 func TestResolveCreateUserRequest_MapsFlags(t *testing.T) {
 	t.Parallel()
 
-	cmd := newUserCreateCmd()
+	cmd := newCreateUserCmd()
 	err := cmd.ParseFlags([]string{
 		"--login", "newuser",
 		"--email", "new@example.com",
