@@ -2,7 +2,7 @@ module github.com/klaskosk/report-portal-cli/pkg
 
 go 1.26
 
-toolchain go1.26.1
+toolchain go1.26.2
 
 tool github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
 
