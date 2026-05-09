@@ -1,4 +1,4 @@
-name: Integration Tests
+name: CI
 
 on:
   push:
@@ -15,10 +15,10 @@ permissions:
   contents: read
 
 jobs:
-  integration:
-    name: Integration Tests
+  ci:
+    name: Lint, unit tests, and integration
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v6
 
@@ -29,6 +29,12 @@ jobs:
             go.sum
             pkg/go.sum
             test/integration/go.sum
+
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.11.4
+
+      - run: make test
 
       - name: Run integration tests and write Ginkgo report
         run: |
