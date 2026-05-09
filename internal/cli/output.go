@@ -21,10 +21,15 @@ type Printer struct {
 
 // newPrinter creates a Printer that writes to stdout/stderr in the given format.
 func newPrinter(format string) *Printer {
+	return newPrinterWithErrOut(format, os.Stderr)
+}
+
+// newPrinterWithErrOut creates a Printer that writes output to stdout and errors to errOut.
+func newPrinterWithErrOut(format string, errOut io.Writer) *Printer {
 	return &Printer{
 		format: format,
 		out:    os.Stdout,
-		errOut: os.Stderr,
+		errOut: errOut,
 	}
 }
 

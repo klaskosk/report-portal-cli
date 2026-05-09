@@ -25,7 +25,7 @@ type itemListEntry struct {
 	Parent    *int64  `json:"parent"`
 }
 
-var _ = Describe("CLI: get item", Label("cli", "items"), func() {
+var _ = Describe("CLI: item", Label("cli", "items"), func() {
 	var (
 		c              *client.Client
 		projectName    string
@@ -56,23 +56,23 @@ var _ = Describe("CLI: get item", Label("cli", "items"), func() {
 
 	Context("listing items", func() {
 		It("renders table output", func() {
-			result := runProjectItem(
+			result := runProjectItemList(
 				projectName,
 				"--launch",
 				strconv.FormatInt(seededTestData.LaunchID, 10),
 			)
-			expectCLISuccess(result, "rp get item --launch")
+			expectCLISuccess(result, "rp item list --launch")
 			Expect(result.Stdout).To(ContainSubstring("ID"))
 			Expect(result.Stdout).To(ContainSubstring("UUID"))
 			Expect(result.Stdout).To(ContainSubstring("TYPE"))
 		})
 
 		It("renders json output with expected contract fields", func() {
-			result := runProjectItem(projectName,
+			result := runProjectItemList(projectName,
 				"-o", "json",
 				"--launch", strconv.FormatInt(seededTestData.LaunchID, 10),
 			)
-			expectCLISuccess(result, "rp get item -o json --launch")
+			expectCLISuccess(result, "rp item list -o json --launch")
 			expectJSONArrayObjects(result.Stdout)
 			items := requireItemList(result)
 			for _, item := range items {
@@ -92,11 +92,11 @@ var _ = Describe("CLI: get item", Label("cli", "items"), func() {
 		})
 
 		It("renders go-template output", func() {
-			result := runProjectItem(projectName,
+			result := runProjectItemList(projectName,
 				"-o", `go-template={{len .}}`,
 				"--launch", strconv.FormatInt(seededTestData.LaunchID, 10),
 			)
-			expectCLISuccess(result, "rp get item -o go-template=... --launch")
+			expectCLISuccess(result, "rp item list -o go-template=... --launch")
 			Expect(result.Stdout).NotTo(BeEmpty(),
 				"go-template output should include rendered output")
 		})
@@ -104,20 +104,20 @@ var _ = Describe("CLI: get item", Label("cli", "items"), func() {
 
 	Context("getting a single item", func() {
 		It("returns an item by id", func() {
-			result := runProjectItem(projectName, strconv.FormatInt(seededTestData.SuiteID, 10))
-			expectCLISuccess(result, fmt.Sprintf("rp get item %d", seededTestData.SuiteID))
+			result := runProjectItemGet(projectName, strconv.FormatInt(seededTestData.SuiteID, 10))
+			expectCLISuccess(result, fmt.Sprintf("rp item get %d", seededTestData.SuiteID))
 			Expect(result.Stdout).To(ContainSubstring(strconv.FormatInt(seededTestData.SuiteID, 10)))
 		})
 
 		It("returns an item by uuid", func() {
-			result := runProjectItem(projectName, seededTestData.SuiteUUID)
-			expectCLISuccess(result, fmt.Sprintf("rp get item %s", seededTestData.SuiteUUID))
+			result := runProjectItemGet(projectName, seededTestData.SuiteUUID)
+			expectCLISuccess(result, fmt.Sprintf("rp item get %s", seededTestData.SuiteUUID))
 			Expect(result.Stdout).To(ContainSubstring(seededTestData.SuiteUUID))
 		})
 
 		It("returns json output with expected contract fields", func() {
-			result := runProjectItem(projectName, strconv.FormatInt(seededTestData.SuiteID, 10), "-o", "json")
-			expectCLISuccess(result, "rp get item <id> -o json")
+			result := runProjectItemGet(projectName, strconv.FormatInt(seededTestData.SuiteID, 10), "-o", "json")
+			expectCLISuccess(result, "rp item get <id> -o json")
 			expectJSONObject(result.Stdout)
 
 			var item itemListEntry
@@ -127,30 +127,30 @@ var _ = Describe("CLI: get item", Label("cli", "items"), func() {
 		})
 
 		It("exits non-zero for a missing item", func() {
-			result := runProjectItem(projectName, "999999")
-			expectCLIError(result, "rp get item 999999")
+			result := runProjectItemGet(projectName, "999999")
+			expectCLIError(result, "rp item get 999999")
 			Expect(result.Stderr).To(ContainSubstring("Error"))
 		})
 	})
 
 	Context("filter flags", func() {
 		It("filters items by launch id", func() {
-			result := runProjectItem(projectName,
+			result := runProjectItemList(projectName,
 				"-o", "json",
 				"--launch", strconv.FormatInt(seededTestData.LaunchID, 10),
 			)
-			expectCLISuccess(result, "rp get item --launch")
+			expectCLISuccess(result, "rp item list --launch")
 			items := requireItemList(result)
 			Expect(items).NotTo(BeEmpty())
 		})
 
 		It("filters suites with --suites shortcut", func() {
-			result := runProjectItem(projectName,
+			result := runProjectItemList(projectName,
 				"-o", "json",
 				"--launch", strconv.FormatInt(seededTestData.LaunchID, 10),
 				"--suites",
 			)
-			expectCLISuccess(result, "rp get item --launch --suites")
+			expectCLISuccess(result, "rp item list --launch --suites")
 			items := requireItemList(result)
 
 			for _, item := range items {
@@ -160,12 +160,12 @@ var _ = Describe("CLI: get item", Label("cli", "items"), func() {
 		})
 
 		It("filters by explicit type", func() {
-			result := runProjectItem(projectName,
+			result := runProjectItemList(projectName,
 				"-o", "json",
 				"--launch", strconv.FormatInt(seededTestData.LaunchID, 10),
 				"--type", "TEST",
 			)
-			expectCLISuccess(result, "rp get item --type TEST")
+			expectCLISuccess(result, "rp item list --type TEST")
 			items := requireItemList(result)
 			Expect(items).NotTo(BeEmpty())
 
@@ -176,12 +176,12 @@ var _ = Describe("CLI: get item", Label("cli", "items"), func() {
 		})
 
 		It("filters children by parent suite id", func() {
-			result := runProjectItem(projectName,
+			result := runProjectItemList(projectName,
 				"-o", "json",
 				"--launch", strconv.FormatInt(seededTestData.LaunchID, 10),
 				"--parent", strconv.FormatInt(seededTestData.SuiteID, 10),
 			)
-			expectCLISuccess(result, "rp get item --parent")
+			expectCLISuccess(result, "rp item list --parent")
 			items := requireItemList(result)
 			Expect(items).NotTo(BeEmpty())
 
@@ -193,18 +193,29 @@ var _ = Describe("CLI: get item", Label("cli", "items"), func() {
 	})
 
 	It("prints errors as JSON when -o json is set", func() {
-		result := runProjectItem(projectName, "-o", "json", "999999")
-		expectCLIError(result, "rp get item 999999 -o json")
+		result := runProjectItemGet(projectName, "999999", "-o", "json")
+		expectCLIError(result, "rp item get 999999 -o json")
 		expectJSONError(result, "not found")
 		Expect(result.Stdout).To(BeEmpty(), "stdout should be empty when JSON error goes to stderr")
 	})
 })
 
-// runProjectItem runs the CLI with "get item" for the given project and extra args.
-func runProjectItem(projectName string, args ...string) cliResult {
+// runProjectItemList runs the CLI with "item list" for the given project and extra args.
+func runProjectItemList(projectName string, args ...string) cliResult {
 	GinkgoHelper()
 
-	fullArgs := append([]string{"get", "item"}, args...)
+	fullArgs := append([]string{"item", "list"}, args...)
+	fullArgs = append(fullArgs, "-p", projectName)
+
+	return runCLI(fullArgs...)
+}
+
+// runProjectItemGet runs the CLI with "item get" for the given project and ID/UUID.
+func runProjectItemGet(projectName string, idOrUUID string, args ...string) cliResult {
+	GinkgoHelper()
+
+	fullArgs := []string{"item", "get", idOrUUID}
+	fullArgs = append(fullArgs, args...)
 	fullArgs = append(fullArgs, "-p", projectName)
 
 	return runCLI(fullArgs...)
@@ -214,7 +225,7 @@ func runProjectItem(projectName string, args ...string) cliResult {
 func requireItemList(result cliResult) []itemListEntry {
 	GinkgoHelper()
 
-	expectCLISuccess(result, "rp get item -o json")
+	expectCLISuccess(result, "rp item list -o json")
 
 	var items []itemListEntry
 	Expect(json.Unmarshal([]byte(result.Stdout), &items)).To(Succeed(),

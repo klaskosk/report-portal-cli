@@ -32,15 +32,15 @@ var _ = Describe("CLI: user", Label("cli", "user"), func() {
 	})
 
 	It("lists users in table format", func() {
-		result := runCLI("get", "user")
-		expectCLISuccess(result, "rp get user")
+		result := runCLI("user", "list")
+		expectCLISuccess(result, "rp user list")
 		Expect(result.Stdout).To(ContainSubstring("LOGIN"))
 		Expect(result.Stdout).To(ContainSubstring(testAdminUser))
 	})
 
 	It("lists users in JSON format", func() {
-		result := runCLI("get", "user", "-o", "json")
-		expectCLISuccess(result, "rp get user -o json")
+		result := runCLI("user", "list", "-o", "json")
+		expectCLISuccess(result, "rp user list -o json")
 
 		var users []cliUserResource
 		Expect(json.Unmarshal([]byte(result.Stdout), &users)).To(Succeed(),
@@ -51,15 +51,15 @@ var _ = Describe("CLI: user", Label("cli", "user"), func() {
 	})
 
 	It("gets a specific user in table format", func() {
-		result := runCLI("get", "user", testAdminUser)
-		expectCLISuccess(result, "rp get user "+testAdminUser)
+		result := runCLI("user", "get", testAdminUser)
+		expectCLISuccess(result, "rp user get "+testAdminUser)
 		Expect(result.Stdout).To(ContainSubstring(testAdminUser))
 		Expect(result.Stdout).To(ContainSubstring("FULL NAME"))
 	})
 
 	It("gets a specific user in JSON format", func() {
-		result := runCLI("get", "user", testAdminUser, "-o", "json")
-		expectCLISuccess(result, "rp get user <login> -o json")
+		result := runCLI("user", "get", testAdminUser, "-o", "json")
+		expectCLISuccess(result, "rp user get <login> -o json")
 		expectJSONObject(result.Stdout)
 
 		var user cliUserResource
@@ -73,7 +73,7 @@ var _ = Describe("CLI: user", Label("cli", "user"), func() {
 		email := fmt.Sprintf("%s@example.com", username)
 
 		result := runCLI(
-			"create", "user",
+			"user", "create",
 			"--login", username,
 			"--email", email,
 			"--full-name", "CLI Create User",
@@ -82,7 +82,7 @@ var _ = Describe("CLI: user", Label("cli", "user"), func() {
 			"--account-role", "USER",
 			"--project-role", "MEMBER",
 		)
-		expectCLISuccess(result, "rp create user")
+		expectCLISuccess(result, "rp user create")
 		Expect(result.Stdout).To(ContainSubstring(username))
 
 		createdUser, err := c.Users().GetByLogin(ctx, username)
@@ -95,8 +95,8 @@ var _ = Describe("CLI: user", Label("cli", "user"), func() {
 			_, _ = c.Users().Delete(ctx, createdUser.Id)
 		})
 
-		getResult := runCLI("get", "user", username, "-o", "json")
-		expectCLISuccess(getResult, "rp get user created-user -o json")
+		getResult := runCLI("user", "get", username, "-o", "json")
+		expectCLISuccess(getResult, "rp user get created-user -o json")
 
 		var fetched cliUserResource
 		Expect(json.Unmarshal([]byte(getResult.Stdout), &fetched)).To(Succeed())
@@ -113,11 +113,11 @@ var _ = Describe("CLI: user", Label("cli", "user"), func() {
 		updatedEmail := fmt.Sprintf("%s-updated@example.com", user.UserId)
 
 		result := runCLI(
-			"update", "user", user.UserId,
+			"user", "update", user.UserId,
 			"--email", updatedEmail,
 			"--active=false",
 		)
-		expectCLISuccess(result, "rp update user <login>")
+		expectCLISuccess(result, "rp user update <login>")
 		Expect(result.Stdout).To(ContainSubstring("updated"))
 
 		updatedUser, err := c.Users().GetByLogin(ctx, user.UserId)
@@ -135,8 +135,8 @@ var _ = Describe("CLI: user", Label("cli", "user"), func() {
 			_, _ = c.Users().Delete(ctx, user.Id)
 		})
 
-		result := runCLI("delete", "user", user.UserId)
-		expectCLISuccess(result, "rp delete user <login>")
+		result := runCLI("user", "delete", user.UserId)
+		expectCLISuccess(result, "rp user delete <login>")
 		Expect(result.Stdout).To(ContainSubstring("deleted"))
 
 		_, err := c.Users().GetByLogin(ctx, user.UserId)
@@ -146,13 +146,13 @@ var _ = Describe("CLI: user", Label("cli", "user"), func() {
 	})
 
 	It("exits non-zero for a non-existent user", func() {
-		result := runCLI("get", "user", "nonexistent_user_999999")
-		expectCLIError(result, "rp get user nonexistent_user_999999")
+		result := runCLI("user", "get", "nonexistent_user_999999")
+		expectCLIError(result, "rp user get nonexistent_user_999999")
 	})
 
 	It("prints errors as JSON when -o json is set", func() {
-		result := runCLI("get", "user", "nonexistent_user_999999", "-o", "json")
-		expectCLIError(result, "rp get user nonexistent_user_999999 -o json")
+		result := runCLI("user", "get", "nonexistent_user_999999", "-o", "json")
+		expectCLIError(result, "rp user get nonexistent_user_999999 -o json")
 		expectJSONError(result, "not found")
 		Expect(result.Stdout).To(BeEmpty(), "stdout should be empty when JSON error goes to stderr")
 	})

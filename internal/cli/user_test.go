@@ -44,10 +44,18 @@ func commandNames(cmd *cobra.Command) []string {
 	return names
 }
 
-func TestNewGetUserCmd_DefaultListOptions(t *testing.T) {
+func TestNewUserCmd_Subcommands(t *testing.T) {
 	t.Parallel()
 
-	cmd := newGetUserCmd()
+	cmd := newUserCmd()
+
+	assert.Equal(t, []string{"create", "delete", "get", "list", "update"}, commandNames(cmd))
+}
+
+func TestNewUserListCmd_DefaultListOptions(t *testing.T) {
+	t.Parallel()
+
+	cmd := newUserListCmd()
 
 	options, err := resolveUserListOptions(cmd)
 	require.NoError(t, err)
@@ -64,7 +72,7 @@ func TestNewGetUserCmd_DefaultListOptions(t *testing.T) {
 func TestResolveUserListOptions_WithFilters(t *testing.T) {
 	t.Parallel()
 
-	cmd := newGetUserCmd()
+	cmd := newUserListCmd()
 	err := cmd.ParseFlags([]string{
 		"--page-size", "25",
 		"--page", "3",
@@ -92,34 +100,28 @@ func TestResolveUserListOptions_WithFilters(t *testing.T) {
 	assert.False(t, *options.active)
 }
 
-func TestNewCreateCmd_Subcommands(t *testing.T) {
+func TestNewUserGetCmd_RequiresExactlyOneArg(t *testing.T) {
 	t.Parallel()
 
-	cmd := newCreateCmd()
+	cmd := newUserGetCmd()
 
-	assert.Equal(t, []string{"user"}, commandNames(cmd))
+	require.Error(t, cmd.Args(cmd, []string{}), "should reject zero args")
+	require.NoError(t, cmd.Args(cmd, []string{"somelogin"}), "should accept exactly one arg")
+	require.Error(t, cmd.Args(cmd, []string{"a", "b"}), "should reject two args")
 }
 
-func TestNewUpdateCmd_Subcommands(t *testing.T) {
+func TestNewUserListCmd_RejectsPositionalArgs(t *testing.T) {
 	t.Parallel()
 
-	cmd := newUpdateCmd()
+	cmd := newUserListCmd()
 
-	assert.Equal(t, []string{"user"}, commandNames(cmd))
-}
-
-func TestNewDeleteCmd_Subcommands(t *testing.T) {
-	t.Parallel()
-
-	cmd := newDeleteCmd()
-
-	assert.Equal(t, []string{"user"}, commandNames(cmd))
+	require.Error(t, cmd.Args(cmd, []string{"unexpected"}), "list should reject positional args")
 }
 
 func TestResolveCreateUserRequest_MissingRequiredFlags(t *testing.T) {
 	t.Parallel()
 
-	cmd := newCreateUserCmd()
+	cmd := newUserCreateCmd()
 
 	_, err := resolveCreateUserRequest(cmd)
 	require.Error(t, err)
@@ -131,7 +133,7 @@ func TestResolveCreateUserRequest_MissingRequiredFlags(t *testing.T) {
 func TestResolveCreateUserRequest_MapsFlags(t *testing.T) {
 	t.Parallel()
 
-	cmd := newCreateUserCmd()
+	cmd := newUserCreateCmd()
 	err := cmd.ParseFlags([]string{
 		"--login", "newuser",
 		"--email", "new@example.com",

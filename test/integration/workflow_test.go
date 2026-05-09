@@ -94,8 +94,8 @@ var _ = Describe("End-to-end read workflow", Label("workflow"), Ordered, func() 
 	}, NodeTimeout(15*time.Second))
 
 	It("step 1: list launches in JSON", func() {
-		result := runCLI("get", "launch", "-p", projectName, "-o", "json")
-		expectCLISuccess(result, "rp get launch -o json")
+		result := runCLI("launch", "list", "-p", projectName, "-o", "json")
+		expectCLISuccess(result, "rp launch list -o json")
 		expectJSONArrayObjects(result.Stdout)
 
 		var launches []workflowLaunch
@@ -118,8 +118,8 @@ var _ = Describe("End-to-end read workflow", Label("workflow"), Ordered, func() 
 	It("step 2: get single launch in JSON", func() {
 		Expect(discoveredLaunchID).NotTo(BeEmpty(), "discoveredLaunchID should have been set by step 1")
 
-		result := runCLI("get", "launch", discoveredLaunchID, "-p", projectName, "-o", "json")
-		expectCLISuccess(result, "rp get launch <id> -o json")
+		result := runCLI("launch", "get", discoveredLaunchID, "-p", projectName, "-o", "json")
+		expectCLISuccess(result, "rp launch get <id> -o json")
 		expectJSONObject(result.Stdout)
 
 		var launch workflowLaunch
@@ -135,8 +135,8 @@ var _ = Describe("End-to-end read workflow", Label("workflow"), Ordered, func() 
 	It("step 3: list items for launch in JSON", func() {
 		Expect(discoveredLaunchID).NotTo(BeEmpty(), "discoveredLaunchID should have been set by step 1")
 
-		result := runCLI("get", "item", "--launch", discoveredLaunchID, "-p", projectName, "-o", "json")
-		expectCLISuccess(result, "rp get item --launch <id> -o json")
+		result := runCLI("item", "list", "--launch", discoveredLaunchID, "-p", projectName, "-o", "json")
+		expectCLISuccess(result, "rp item list --launch <id> -o json")
 		expectJSONArrayObjects(result.Stdout)
 
 		var items []workflowItem
@@ -173,8 +173,8 @@ var _ = Describe("End-to-end read workflow", Label("workflow"), Ordered, func() 
 	It("step 4: get single item in JSON", func() {
 		Expect(discoveredItemID).NotTo(BeEmpty(), "discoveredItemID should have been set by step 3")
 
-		result := runCLI("get", "item", discoveredItemID, "-p", projectName, "-o", "json")
-		expectCLISuccess(result, "rp get item <id> -o json")
+		result := runCLI("item", "get", discoveredItemID, "-p", projectName, "-o", "json")
+		expectCLISuccess(result, "rp item get <id> -o json")
 		expectJSONObject(result.Stdout)
 
 		var item workflowItem
@@ -192,8 +192,8 @@ var _ = Describe("End-to-end read workflow", Label("workflow"), Ordered, func() 
 	It("step 5: list logs for item in JSON", func() {
 		Expect(discoveredItemID).NotTo(BeEmpty(), "discoveredItemID should have been set by step 3")
 
-		result := runCLI("get", "log", "--item", discoveredItemID, "-p", projectName, "-o", "json")
-		expectCLISuccess(result, "rp get log --item <id> -o json")
+		result := runCLI("log", "list", "--item", discoveredItemID, "-p", projectName, "-o", "json")
+		expectCLISuccess(result, "rp log list --item <id> -o json")
 		expectJSONArrayObjects(result.Stdout)
 
 		var logs []workflowLog
@@ -213,8 +213,8 @@ var _ = Describe("End-to-end read workflow", Label("workflow"), Ordered, func() 
 	It("step 6: get single log in JSON", func() {
 		Expect(discoveredLogID).NotTo(BeEmpty(), "discoveredLogID should have been set by step 5")
 
-		result := runCLI("get", "log", discoveredLogID, "-p", projectName, "-o", "json")
-		expectCLISuccess(result, "rp get log <id> -o json")
+		result := runCLI("log", "get", discoveredLogID, "-p", projectName, "-o", "json")
+		expectCLISuccess(result, "rp log get <id> -o json")
 		expectJSONObject(result.Stdout)
 
 		var log workflowLog

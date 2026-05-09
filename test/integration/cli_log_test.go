@@ -22,7 +22,7 @@ type logListEntry struct {
 	LaunchID *int64  `json:"launchId"`
 }
 
-var _ = Describe("CLI: get log", Label("cli", "logs"), func() {
+var _ = Describe("CLI: log", Label("cli", "logs"), func() {
 	var (
 		c              *client.Client
 		projectName    string
@@ -58,22 +58,22 @@ var _ = Describe("CLI: get log", Label("cli", "logs"), func() {
 
 	Context("listing logs", func() {
 		It("renders table output", func() {
-			result := runProjectLog(
+			result := runProjectLogList(
 				projectName,
 				"--item", strconv.FormatInt(seededTestData.SuiteID, 10),
 			)
-			expectCLISuccess(result, "rp get log --item")
+			expectCLISuccess(result, "rp log list --item")
 			Expect(result.Stdout).To(ContainSubstring("ID"))
 			Expect(result.Stdout).To(ContainSubstring("LEVEL"))
 			Expect(result.Stdout).To(ContainSubstring("MESSAGE"))
 		})
 
 		It("renders json output with expected contract fields", func() {
-			result := runProjectLog(projectName,
+			result := runProjectLogList(projectName,
 				"-o", "json",
 				"--item", strconv.FormatInt(seededTestData.SuiteID, 10),
 			)
-			expectCLISuccess(result, "rp get log -o json --item")
+			expectCLISuccess(result, "rp log list -o json --item")
 			expectJSONArrayObjects(result.Stdout)
 			logs := requireLogList(result)
 			for _, l := range logs {
@@ -84,8 +84,8 @@ var _ = Describe("CLI: get log", Label("cli", "logs"), func() {
 		})
 
 		It("errors when listing without --item or --launch", func() {
-			result := runProjectLog(projectName)
-			expectCLIError(result, "rp get log (no scope)")
+			result := runProjectLogList(projectName)
+			expectCLIError(result, "rp log list (no scope)")
 		})
 	})
 
@@ -94,8 +94,8 @@ var _ = Describe("CLI: get log", Label("cli", "logs"), func() {
 			Expect(seededLogs.LogIDs).NotTo(BeEmpty())
 
 			logID := strconv.FormatInt(seededLogs.LogIDs[0], 10)
-			result := runProjectLog(projectName, logID)
-			expectCLISuccess(result, fmt.Sprintf("rp get log %s", logID))
+			result := runProjectLogGet(projectName, logID)
+			expectCLISuccess(result, fmt.Sprintf("rp log get %s", logID))
 			Expect(result.Stdout).To(ContainSubstring(logID))
 		})
 
@@ -103,8 +103,8 @@ var _ = Describe("CLI: get log", Label("cli", "logs"), func() {
 			Expect(seededLogs.LogIDs).NotTo(BeEmpty())
 
 			logID := strconv.FormatInt(seededLogs.LogIDs[0], 10)
-			result := runProjectLog(projectName, logID, "-o", "json")
-			expectCLISuccess(result, "rp get log <id> -o json")
+			result := runProjectLogGet(projectName, logID, "-o", "json")
+			expectCLISuccess(result, "rp log get <id> -o json")
 			expectJSONObject(result.Stdout)
 
 			var single logListEntry
@@ -113,54 +113,65 @@ var _ = Describe("CLI: get log", Label("cli", "logs"), func() {
 		})
 
 		It("exits non-zero for a missing log", func() {
-			result := runProjectLog(projectName, "999999")
-			expectCLIError(result, "rp get log 999999")
+			result := runProjectLogGet(projectName, "999999")
+			expectCLIError(result, "rp log get 999999")
 		})
 	})
 
 	Context("error handling", func() {
 		It("exits non-zero with bad credentials", func() {
 			result := runCLIWithArgs("--url", baseURL, "--token", "invalid-token",
-				"get", "log",
+				"log", "list",
 				"--item", strconv.FormatInt(seededTestData.SuiteID, 10),
 				"-p", projectName)
-			expectCLIError(result, "rp get log (invalid token)")
+			expectCLIError(result, "rp log list (invalid token)")
 		})
 
 		It("exits non-zero with missing project", func() {
 			result := runCLIWithArgs(
 				"--url", baseURL, "--token", bearerToken,
-				"get", "log",
+				"log", "list",
 				"--item", strconv.FormatInt(seededTestData.SuiteID, 10))
-			expectCLIError(result, "rp get log (missing project)")
+			expectCLIError(result, "rp log list (missing project)")
 			Expect(result.Stderr).To(ContainSubstring("project"),
 				"error message should mention project")
 		})
 
 		It("exits non-zero for an invalid log level", func() {
-			result := runProjectLog(
+			result := runProjectLogList(
 				projectName,
 				"--item", strconv.FormatInt(seededTestData.SuiteID, 10),
 				"--level", "oops",
 			)
-			expectCLIError(result, "rp get log --level oops")
+			expectCLIError(result, "rp log list --level oops")
 			Expect(result.Stderr).To(ContainSubstring("invalid log level"))
 		})
 	})
 
 	It("prints errors as JSON when -o json is set", func() {
-		result := runProjectLog(projectName, "-o", "json", "999999")
-		expectCLIError(result, "rp get log 999999 -o json")
+		result := runProjectLogGet(projectName, "999999", "-o", "json")
+		expectCLIError(result, "rp log get 999999 -o json")
 		expectJSONError(result, "not found")
 		Expect(result.Stdout).To(BeEmpty(), "stdout should be empty when JSON error goes to stderr")
 	})
 })
 
-// runProjectLog runs the CLI with "get log" for the given project and extra args.
-func runProjectLog(projectName string, args ...string) cliResult {
+// runProjectLogList runs the CLI with "log list" for the given project and extra args.
+func runProjectLogList(projectName string, args ...string) cliResult {
 	GinkgoHelper()
 
-	fullArgs := append([]string{"get", "log"}, args...)
+	fullArgs := append([]string{"log", "list"}, args...)
+	fullArgs = append(fullArgs, "-p", projectName)
+
+	return runCLI(fullArgs...)
+}
+
+// runProjectLogGet runs the CLI with "log get" for the given project and ID/UUID.
+func runProjectLogGet(projectName string, idOrUUID string, args ...string) cliResult {
+	GinkgoHelper()
+
+	fullArgs := []string{"log", "get", idOrUUID}
+	fullArgs = append(fullArgs, args...)
 	fullArgs = append(fullArgs, "-p", projectName)
 
 	return runCLI(fullArgs...)
@@ -170,7 +181,7 @@ func runProjectLog(projectName string, args ...string) cliResult {
 func requireLogList(result cliResult) []logListEntry {
 	GinkgoHelper()
 
-	expectCLISuccess(result, "rp get log -o json")
+	expectCLISuccess(result, "rp log list -o json")
 
 	var logs []logListEntry
 	Expect(json.Unmarshal([]byte(result.Stdout), &logs)).To(Succeed(),

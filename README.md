@@ -42,34 +42,46 @@ make build        # produces ./rp
 | `--token` | | API bearer token (overrides profile) |
 | `--insecure-skip-verify` | | Skip TLS certificate verification |
 | `--output` | `-o` | Output format: `table`, `json`, `go-template=<tmpl>` |
+| `--json` | | Shorthand for `-o json` |
 | `--verbosity` | `-v` | Log verbosity (0=off, 1=info, 2+=debug) |
 
 ### Examples
 
 ```bash
 # List the 10 most recent launches (table output)
-rp get launch -p my_project
+rp launch list -p my_project
 
 # Get a single launch by numeric ID
-rp get launch 42 -p my_project
+rp launch get 42 -p my_project
 
 # Get a launch by UUID
-rp get launch abc-def-123 -p my_project
+rp launch get abc-def-123 -p my_project
 
-# JSON output
-rp get launch -p my_project -o json
+# JSON output (--json is shorthand for -o json)
+rp launch list -p my_project --json
 
 # Custom Go template
-rp get launch 42 -p my_project -o 'go-template={{.Name}} — {{.Status}}'
+rp launch get 42 -p my_project -o 'go-template={{.Name}} — {{.Status}}'
+
+# List users, create, update, delete
+rp user list
+rp user get superadmin
+rp user create --login jane --email jane@example.com --full-name "Jane Doe"
+rp user update jane --email jane.doe@example.com
+rp user delete jane
+
+# List or get projects
+rp project list
+rp project get my_project
 
 # Use env vars instead of flags
 export RP_URL=https://reportportal.example.com
 export RP_TOKEN=my-api-token
 export RP_PROJECT=my_project
-rp get launch
+rp launch list
 
 # Increase verbosity for debugging
-rp get launch -p my_project -vv
+rp launch list -p my_project -vv
 ```
 
 ## Configuration

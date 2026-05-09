@@ -48,8 +48,8 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 
 	Context("launch JSON output", func() {
 		It("list output contains all contracted fields", func() {
-			result := runProjectLaunch(projectName, "-o", "json")
-			expectCLISuccess(result, "rp get launch -o json")
+			result := runProjectLaunchList(projectName, "-o", "json")
+			expectCLISuccess(result, "rp launch list -o json")
 
 			var launches []map[string]any
 			Expect(json.Unmarshal([]byte(result.Stdout), &launches)).To(Succeed())
@@ -66,8 +66,8 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 
 		It("single launch output contains all contracted fields", func() {
 			launch := requireFirstLaunch(projectName)
-			result := runProjectLaunch(projectName, strconv.FormatInt(launch.ID, 10), "-o", "json")
-			expectCLISuccess(result, "rp get launch <id> -o json")
+			result := runProjectLaunchGet(projectName, strconv.FormatInt(launch.ID, 10), "-o", "json")
+			expectCLISuccess(result, "rp launch get <id> -o json")
 
 			var single map[string]any
 			Expect(json.Unmarshal([]byte(result.Stdout), &single)).To(Succeed())
@@ -79,8 +79,8 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 		})
 
 		It("contracted fields have stable value types", func() {
-			result := runProjectLaunch(projectName, "-o", "json")
-			expectCLISuccess(result, "rp get launch -o json")
+			result := runProjectLaunchList(projectName, "-o", "json")
+			expectCLISuccess(result, "rp launch list -o json")
 
 			var launches []map[string]any
 			Expect(json.Unmarshal([]byte(result.Stdout), &launches)).To(Succeed())
@@ -99,11 +99,11 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 
 	Context("item JSON output", func() {
 		It("list output contains all contracted fields", func() {
-			result := runProjectItem(projectName,
+			result := runProjectItemList(projectName,
 				"-o", "json",
 				"--launch", strconv.FormatInt(seededTestData.LaunchID, 10),
 			)
-			expectCLISuccess(result, "rp get item -o json")
+			expectCLISuccess(result, "rp item list -o json")
 
 			var items []map[string]any
 			Expect(json.Unmarshal([]byte(result.Stdout), &items)).To(Succeed())
@@ -119,10 +119,10 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 		})
 
 		It("single item output contains all contracted fields", func() {
-			result := runProjectItem(projectName,
+			result := runProjectItemGet(projectName,
 				strconv.FormatInt(seededTestData.SuiteID, 10), "-o", "json",
 			)
-			expectCLISuccess(result, "rp get item <id> -o json")
+			expectCLISuccess(result, "rp item get <id> -o json")
 
 			var single map[string]any
 			Expect(json.Unmarshal([]byte(result.Stdout), &single)).To(Succeed())
@@ -134,11 +134,11 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 		})
 
 		It("contracted fields have stable value types", func() {
-			result := runProjectItem(projectName,
+			result := runProjectItemList(projectName,
 				"-o", "json",
 				"--launch", strconv.FormatInt(seededTestData.LaunchID, 10),
 			)
-			expectCLISuccess(result, "rp get item -o json")
+			expectCLISuccess(result, "rp item list -o json")
 
 			var items []map[string]any
 			Expect(json.Unmarshal([]byte(result.Stdout), &items)).To(Succeed())
@@ -158,11 +158,11 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 
 	Context("log JSON output", func() {
 		It("list output contains all contracted fields", func() {
-			result := runProjectLog(projectName,
+			result := runProjectLogList(projectName,
 				"-o", "json",
 				"--item", strconv.FormatInt(seededTestData.SuiteID, 10),
 			)
-			expectCLISuccess(result, "rp get log -o json")
+			expectCLISuccess(result, "rp log list -o json")
 
 			var logs []map[string]any
 			Expect(json.Unmarshal([]byte(result.Stdout), &logs)).To(Succeed())
@@ -177,10 +177,10 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 		It("single log output contains all contracted fields", func() {
 			Expect(seededLogs.LogIDs).NotTo(BeEmpty())
 
-			result := runProjectLog(projectName,
+			result := runProjectLogGet(projectName,
 				strconv.FormatInt(seededLogs.LogIDs[0], 10), "-o", "json",
 			)
-			expectCLISuccess(result, "rp get log <id> -o json")
+			expectCLISuccess(result, "rp log get <id> -o json")
 
 			var single map[string]any
 			Expect(json.Unmarshal([]byte(result.Stdout), &single)).To(Succeed())
@@ -189,11 +189,11 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 		})
 
 		It("contracted fields have stable value types", func() {
-			result := runProjectLog(projectName,
+			result := runProjectLogList(projectName,
 				"-o", "json",
 				"--item", strconv.FormatInt(seededTestData.SuiteID, 10),
 			)
-			expectCLISuccess(result, "rp get log -o json")
+			expectCLISuccess(result, "rp log list -o json")
 
 			var logs []map[string]any
 			Expect(json.Unmarshal([]byte(result.Stdout), &logs)).To(Succeed())
@@ -208,8 +208,8 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 
 	Context("project JSON output", func() {
 		It("list output is a JSON array of strings", func() {
-			result := runCLI("get", "project", "-o", "json")
-			expectCLISuccess(result, "rp get project -o json")
+			result := runCLI("project", "list", "-o", "json")
+			expectCLISuccess(result, "rp project list -o json")
 
 			var names []string
 			Expect(json.Unmarshal([]byte(result.Stdout), &names)).To(Succeed(),
@@ -218,8 +218,8 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 		})
 
 		It("single project output contains contracted fields", func() {
-			result := runCLI("get", "project", projectName, "-o", "json")
-			expectCLISuccess(result, "rp get project <name> -o json")
+			result := runCLI("project", "get", projectName, "-o", "json")
+			expectCLISuccess(result, "rp project get <name> -o json")
 
 			var project map[string]any
 			Expect(json.Unmarshal([]byte(result.Stdout), &project)).To(Succeed())
@@ -228,8 +228,8 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 		})
 
 		It("contracted fields have stable value types", func() {
-			result := runCLI("get", "project", projectName, "-o", "json")
-			expectCLISuccess(result, "rp get project <name> -o json")
+			result := runCLI("project", "get", projectName, "-o", "json")
+			expectCLISuccess(result, "rp project get <name> -o json")
 
 			var project map[string]any
 			Expect(json.Unmarshal([]byte(result.Stdout), &project)).To(Succeed())
@@ -277,20 +277,20 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 				Expect(result.Stdout).To(BeEmpty(),
 					"stdout must be empty when error is written to stderr")
 			},
-			Entry("rp get launch (not found)",
-				[]string{
-					"--url", baseURL, "--token", bearerToken,
-					"-o", "json",
-					"get", "launch", "999999", "-p", "default_personal",
-				},
-				"launch not found"),
-			Entry("rp get item (not found)",
-				[]string{
-					"--url", baseURL, "--token", bearerToken,
-					"-o", "json",
-					"get", "item", "999999", "-p", "default_personal",
-				},
-				"item not found"),
+		Entry("rp launch get (not found)",
+			[]string{
+				"--url", baseURL, "--token", bearerToken,
+				"-o", "json",
+				"launch", "get", "999999", "-p", "default_personal",
+			},
+			"launch not found"),
+		Entry("rp item get (not found)",
+			[]string{
+				"--url", baseURL, "--token", bearerToken,
+				"-o", "json",
+				"item", "get", "999999", "-p", "default_personal",
+			},
+			"item not found"),
 			Entry("rp whoami (bad token)",
 				[]string{
 					"--url", baseURL, "--token", "invalid-token",
@@ -313,13 +313,13 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 				Expect(payload).To(HaveKey("error"),
 					"the single key must be \"error\"")
 			},
-			Entry("not found error",
-				[]string{
-					"--url", baseURL, "--token", bearerToken,
-					"-o", "json",
-					"get", "launch", "999999", "-p", "default_personal",
-				},
-				"single-key error JSON (not found)"),
+		Entry("not found error",
+			[]string{
+				"--url", baseURL, "--token", bearerToken,
+				"-o", "json",
+				"launch", "get", "999999", "-p", "default_personal",
+			},
+			"single-key error JSON (not found)"),
 			Entry("auth error",
 				[]string{
 					"--url", baseURL, "--token", "invalid-token",

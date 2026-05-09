@@ -26,7 +26,7 @@ type launchListEntry struct {
 	Description *string `json:"description"`
 }
 
-var _ = Describe("CLI: get launch", Label("cli", "launches"), func() {
+var _ = Describe("CLI: launch", Label("cli", "launches"), func() {
 	var (
 		c           *client.Client
 		projectName string
@@ -57,11 +57,11 @@ var _ = Describe("CLI: get launch", Label("cli", "launches"), func() {
 		DescribeTable(
 			"output formats",
 			func(args []string, description string, assert func(cliResult)) {
-				result := runProjectLaunch(projectName, args...)
+				result := runProjectLaunchList(projectName, args...)
 				expectCLISuccess(result, description)
 				assert(result)
 			},
-			Entry("table output", []string{}, "rp get launch", func(result cliResult) {
+			Entry("table output", []string{}, "rp launch list", func(result cliResult) {
 				Expect(result.Stdout).To(ContainSubstring("ID"),
 					"table output should contain an ID column header")
 				Expect(result.Stdout).To(ContainSubstring("UUID"),
@@ -74,7 +74,7 @@ var _ = Describe("CLI: get launch", Label("cli", "launches"), func() {
 			Entry(
 				"json output",
 				[]string{"-o", "json"},
-				"rp get launch -o json",
+				"rp launch list -o json",
 				func(result cliResult) {
 					expectJSONArrayObjects(result.Stdout)
 					launches := requireLaunchList(result)
@@ -89,7 +89,7 @@ var _ = Describe("CLI: get launch", Label("cli", "launches"), func() {
 				},
 			),
 			Entry("go-template output", []string{"-o", `go-template={{range .}}{{.Name}} {{end}}`},
-				"rp get launch -o go-template=...", func(result cliResult) {
+				"rp launch list -o go-template=...", func(result cliResult) {
 					Expect(result.Stdout).NotTo(BeEmpty(),
 						"go-template output should produce non-empty launch names")
 				}),
@@ -100,8 +100,8 @@ var _ = Describe("CLI: get launch", Label("cli", "launches"), func() {
 		It("returns a launch by ID", func() {
 			launch := requireFirstLaunch(projectName)
 
-			result := runProjectLaunch(projectName, strconv.FormatInt(launch.ID, 10))
-			expectCLISuccess(result, fmt.Sprintf("rp get launch %d", launch.ID))
+			result := runProjectLaunchGet(projectName, strconv.FormatInt(launch.ID, 10))
+			expectCLISuccess(result, fmt.Sprintf("rp launch get %d", launch.ID))
 			Expect(result.Stdout).To(ContainSubstring("ID"),
 				"single launch output should contain an ID field")
 		})
@@ -109,16 +109,16 @@ var _ = Describe("CLI: get launch", Label("cli", "launches"), func() {
 		It("returns a launch by UUID", func() {
 			launch := requireFirstLaunch(projectName)
 
-			result := runProjectLaunch(projectName, launch.UUID)
-			expectCLISuccess(result, fmt.Sprintf("rp get launch %s", launch.UUID))
+			result := runProjectLaunchGet(projectName, launch.UUID)
+			expectCLISuccess(result, fmt.Sprintf("rp launch get %s", launch.UUID))
 			Expect(result.Stdout).To(ContainSubstring(launch.UUID),
 				"single launch output should contain the requested UUID %q", launch.UUID)
 		})
 
 		It("returns json output with expected contract fields", func() {
 			launch := requireFirstLaunch(projectName)
-			result := runProjectLaunch(projectName, strconv.FormatInt(launch.ID, 10), "-o", "json")
-			expectCLISuccess(result, "rp get launch <id> -o json")
+			result := runProjectLaunchGet(projectName, strconv.FormatInt(launch.ID, 10), "-o", "json")
+			expectCLISuccess(result, "rp launch get <id> -o json")
 			expectJSONObject(result.Stdout)
 
 			var single launchListEntry
@@ -128,8 +128,8 @@ var _ = Describe("CLI: get launch", Label("cli", "launches"), func() {
 		})
 
 		It("exits non-zero for a missing launch", func() {
-			result := runProjectLaunch(projectName, "999999")
-			expectCLIError(result, "rp get launch 999999")
+			result := runProjectLaunchGet(projectName, "999999")
+			expectCLIError(result, "rp launch get 999999")
 			Expect(result.Stderr).To(ContainSubstring("Error"),
 				"stderr should contain an error message for missing launch 999999")
 		})
@@ -138,33 +138,33 @@ var _ = Describe("CLI: get launch", Label("cli", "launches"), func() {
 	Context("error handling", func() {
 		It("exits non-zero with bad credentials", func() {
 			result := runCLIWithArgs("--url", baseURL, "--token", "invalid-token",
-				"get", "launch", "-p", projectName)
-			expectCLIError(result, "rp get launch (invalid token)")
+				"launch", "list", "-p", projectName)
+			expectCLIError(result, "rp launch list (invalid token)")
 		})
 
 		It("exits non-zero with missing required flags", func() {
-			result := runCLIWithArgs("get", "launch")
-			expectCLIError(result, "rp get launch (missing url/token)")
+			result := runCLIWithArgs("launch", "list")
+			expectCLIError(result, "rp launch list (missing url/token)")
 		})
 
 		DescribeTable("prints a user-friendly error to stderr for missing inputs",
 			func(argsBuilder func() []string, expectedSubstring string) {
 				GinkgoHelper()
 				result := runCLIWithArgs(argsBuilder()...)
-				expectCLIError(result, "rp get launch (missing required inputs)")
+				expectCLIError(result, "rp launch list (missing required inputs)")
 				Expect(result.Stderr).To(ContainSubstring("Error"),
 					"stderr should contain an Error line")
 				Expect(result.Stderr).To(ContainSubstring(expectedSubstring),
 					"error message should mention %s", expectedSubstring)
 			},
 			Entry("missing URL", func() []string {
-				return []string{"--token", "some-token", "get", "launch", "-p", projectName}
+				return []string{"--token", "some-token", "launch", "list", "-p", projectName}
 			}, "URL"),
 			Entry("missing token", func() []string {
-				return []string{"--url", baseURL, "get", "launch", "-p", projectName}
+				return []string{"--url", baseURL, "launch", "list", "-p", projectName}
 			}, "token"),
 			Entry("missing project", func() []string {
-				return []string{"--url", baseURL, "--token", bearerToken, "get", "launch"}
+				return []string{"--url", baseURL, "--token", bearerToken, "launch", "list"}
 			}, "project"),
 		)
 	})
@@ -176,9 +176,9 @@ var _ = Describe("CLI: get launch", Label("cli", "launches"), func() {
 					"RP_URL":   baseURL,
 					"RP_TOKEN": bearerToken,
 				},
-				"get", "launch", "-p", projectName,
+				"launch", "list", "-p", projectName,
 			)
-			expectCLISuccess(cmd, "rp get launch (env vars)")
+			expectCLISuccess(cmd, "rp launch list (env vars)")
 			Expect(cmd.Stdout).To(ContainSubstring("ID"),
 				"output should still contain table headers")
 		})
@@ -190,9 +190,9 @@ var _ = Describe("CLI: get launch", Label("cli", "launches"), func() {
 					"RP_TOKEN": "wrong-token",
 				},
 				"--url", baseURL, "--token", bearerToken,
-				"get", "launch", "-p", projectName,
+				"launch", "list", "-p", projectName,
 			)
-			expectCLISuccess(cmd, "rp get launch (flags override env)")
+			expectCLISuccess(cmd, "rp launch list (flags override env)")
 		})
 	})
 
@@ -204,9 +204,9 @@ var _ = Describe("CLI: get launch", Label("cli", "launches"), func() {
 					"--url", baseURL,
 					"--token", bearerToken,
 					"--verbosity", verbosity,
-					"get", "launch", "-p", projectName,
+					"launch", "list", "-p", projectName,
 				)
-				description := fmt.Sprintf("rp get launch --verbosity %s", verbosity)
+				description := fmt.Sprintf("rp launch list --verbosity %s", verbosity)
 				expectCLISuccess(result, description)
 				expectLogLevel(result, expectedLevel, description)
 			},
@@ -223,10 +223,10 @@ var _ = Describe("CLI: get launch", Label("cli", "launches"), func() {
 				"--token", bearerToken,
 				"--insecure-skip-verify",
 				"--verbosity", "1",
-				"get", "launch", "-p", projectName,
+				"launch", "list", "-p", projectName,
 			)
 
-			expectCLISuccess(result, "rp get launch --insecure-skip-verify")
+			expectCLISuccess(result, "rp launch list --insecure-skip-verify")
 			Expect(result.Stderr).To(ContainSubstring("insecureSkipVerify=true"))
 		})
 
@@ -238,10 +238,10 @@ var _ = Describe("CLI: get launch", Label("cli", "launches"), func() {
 					"RP_INSECURE_SKIP_VERIFY": "true",
 				},
 				"--verbosity", "1",
-				"get", "launch", "-p", projectName,
+				"launch", "list", "-p", projectName,
 			)
 
-			expectCLISuccess(result, "rp get launch (RP_INSECURE_SKIP_VERIFY)")
+			expectCLISuccess(result, "rp launch list (RP_INSECURE_SKIP_VERIFY)")
 			Expect(result.Stderr).To(ContainSubstring("insecureSkipVerify=true"))
 		})
 	})
@@ -275,8 +275,8 @@ profiles:
 		})
 
 		It("uses the default profile and project from --config", func() {
-			result := runCLIWithArgs("--config", configPath, "get", "launch")
-			expectCLISuccess(result, "rp get launch --config")
+			result := runCLIWithArgs("--config", configPath, "launch", "list")
+			expectCLISuccess(result, "rp launch list --config")
 			Expect(result.Stdout).To(ContainSubstring("ID"),
 				"output should contain table headers for the default project")
 		})
@@ -286,9 +286,9 @@ profiles:
 				"--config", configPath,
 				"--profile", "alternate",
 				"--verbosity", "1",
-				"get", "launch",
+				"launch", "list",
 			)
-			expectCLISuccess(result, "rp get launch --profile alternate")
+			expectCLISuccess(result, "rp launch list --profile alternate")
 			Expect(result.Stderr).To(ContainSubstring("profile=alternate"),
 				"logs should mention the selected profile")
 		})
@@ -297,9 +297,9 @@ profiles:
 			result := runCLIWithArgs(
 				"--config", configPath,
 				"--profile", "missing",
-				"get", "launch",
+				"launch", "list",
 			)
-			expectCLIError(result, "rp get launch --profile missing")
+			expectCLIError(result, "rp launch list --profile missing")
 			Expect(result.Stderr).To(ContainSubstring(`profile "missing" not found in config`))
 		})
 	})
@@ -312,9 +312,9 @@ profiles:
 					"RP_TOKEN":   bearerToken,
 					"RP_PROJECT": projectName,
 				},
-				"get", "launch",
+				"launch", "list",
 			)
-			expectCLISuccess(result, "rp get launch (RP_PROJECT)")
+			expectCLISuccess(result, "rp launch list (RP_PROJECT)")
 			Expect(result.Stdout).To(ContainSubstring("ID"),
 				"output should contain table headers for the env-provided project")
 		})
@@ -326,44 +326,43 @@ profiles:
 					"RP_TOKEN":   bearerToken,
 					"RP_PROJECT": "nonexistent_project",
 				},
-				"get", "launch", "-p", projectName,
+				"launch", "list", "-p", projectName,
 			)
-			expectCLISuccess(result, "rp get launch (flag overrides RP_PROJECT)")
+			expectCLISuccess(result, "rp launch list (flag overrides RP_PROJECT)")
 		})
 	})
 
 	It("prints errors as JSON when -o json is set", func() {
-		result := runProjectLaunch(projectName, "-o", "json", "999999")
-		expectCLIError(result, "rp get launch 999999 -o json")
+		result := runProjectLaunchGet(projectName, "999999", "-o", "json")
+		expectCLIError(result, "rp launch get 999999 -o json")
 		expectJSONError(result, "not found")
 		Expect(result.Stdout).To(BeEmpty(), "stdout should be empty when JSON error goes to stderr")
 	})
 
 	Context("filter flags", func() {
 		It("filters launches by user", func() {
-			result := runProjectLaunch(projectName, "--user", "default")
-			expectCLISuccess(result, "rp get launch --user default")
+			result := runProjectLaunchList(projectName, "--user", "default")
+			expectCLISuccess(result, "rp launch list --user default")
 			Expect(result.Stdout).To(ContainSubstring("ID"),
 				"filtered output should contain table headers")
 		})
 
-
 		It("filters launches with --latest flag", func() {
-			result := runProjectLaunch(projectName, "--latest")
-			expectCLISuccess(result, "rp get launch --latest")
+			result := runProjectLaunchList(projectName, "--latest")
+			expectCLISuccess(result, "rp launch list --latest")
 			Expect(result.Stdout).To(ContainSubstring("ID"),
 				"latest launches output should contain table headers")
 		})
 
 		It("filters launches with --debug flag", func() {
-			result := runProjectLaunch(projectName, "--debug")
-			expectCLISuccess(result, "rp get launch --debug")
+			result := runProjectLaunchList(projectName, "--debug")
+			expectCLISuccess(result, "rp launch list --debug")
 			// May be empty but should succeed
 		})
 
 		It("fails when both --latest and --debug are used", func() {
-			result := runProjectLaunch(projectName, "--latest", "--debug")
-			expectCLIError(result, "rp get launch --latest --debug")
+			result := runProjectLaunchList(projectName, "--latest", "--debug")
+			expectCLIError(result, "rp launch list --latest --debug")
 			// Error message may be in stdout or stderr depending on Cobra settings
 			combined := result.Stdout + result.Stderr
 			Expect(combined).To(ContainSubstring("cannot use both"),
@@ -371,45 +370,51 @@ profiles:
 		})
 
 		It("filters launches with --description flag", func() {
-			result := runProjectLaunch(projectName, "--description", "test")
-			expectCLISuccess(result, "rp get launch --description test")
+			result := runProjectLaunchList(projectName, "--description", "test")
+			expectCLISuccess(result, "rp launch list --description test")
 		})
 
 		It("filters launches with --has-retries flag", func() {
-			result := runProjectLaunch(projectName, "--has-retries")
-			expectCLISuccess(result, "rp get launch --has-retries")
+			result := runProjectLaunchList(projectName, "--has-retries")
+			expectCLISuccess(result, "rp launch list --has-retries")
 		})
 
 		It("applies page-size flag", func() {
-			result := runProjectLaunch(projectName,
-				"--page-size", "5")
-			expectCLISuccess(result, "rp get launch --page-size 5")
+			result := runProjectLaunchList(projectName, "--page-size", "5")
+			expectCLISuccess(result, "rp launch list --page-size 5")
 			Expect(result.Stdout).To(ContainSubstring("ID"),
 				"page-size filtered output should contain table headers")
 		})
 
 		It("outputs JSON with filter flags", func() {
-			result := runProjectLaunch(projectName,
-				"-o", "json",
-				"--page-size", "5")
-			expectCLISuccess(result, "rp get launch -o json with filters")
+			result := runProjectLaunchList(projectName, "-o", "json", "--page-size", "5")
+			expectCLISuccess(result, "rp launch list -o json with filters")
 			requireLaunchList(result)
 		})
 
 		It("uses --latest with pagination", func() {
-			result := runProjectLaunch(projectName,
-				"--latest",
-				"--page-size", "2")
-			expectCLISuccess(result, "rp get launch --latest --page-size 2")
+			result := runProjectLaunchList(projectName, "--latest", "--page-size", "2")
+			expectCLISuccess(result, "rp launch list --latest --page-size 2")
 		})
 	})
 })
 
-// runProjectLaunch runs the CLI with "get launch" for the given project and extra args.
-func runProjectLaunch(projectName string, args ...string) cliResult {
+// runProjectLaunchList runs the CLI with "launch list" for the given project and extra args.
+func runProjectLaunchList(projectName string, args ...string) cliResult {
 	GinkgoHelper()
 
-	fullArgs := append([]string{"get", "launch"}, args...)
+	fullArgs := append([]string{"launch", "list"}, args...)
+	fullArgs = append(fullArgs, "-p", projectName)
+
+	return runCLI(fullArgs...)
+}
+
+// runProjectLaunchGet runs the CLI with "launch get" for the given project and ID/UUID.
+func runProjectLaunchGet(projectName string, idOrUUID string, args ...string) cliResult {
+	GinkgoHelper()
+
+	fullArgs := []string{"launch", "get", idOrUUID}
+	fullArgs = append(fullArgs, args...)
 	fullArgs = append(fullArgs, "-p", projectName)
 
 	return runCLI(fullArgs...)
@@ -419,7 +424,7 @@ func runProjectLaunch(projectName string, args ...string) cliResult {
 func requireLaunchList(result cliResult) []launchListEntry {
 	GinkgoHelper()
 
-	expectCLISuccess(result, "rp get launch -o json")
+	expectCLISuccess(result, "rp launch list -o json")
 
 	var launches []launchListEntry
 	Expect(json.Unmarshal([]byte(result.Stdout), &launches)).To(Succeed(),
@@ -434,7 +439,7 @@ func requireLaunchList(result cliResult) []launchListEntry {
 func requireFirstLaunch(projectName string) launchListEntry {
 	GinkgoHelper()
 
-	launches := requireLaunchList(runProjectLaunch(projectName, "-o", "json"))
+	launches := requireLaunchList(runProjectLaunchList(projectName, "-o", "json"))
 
 	return launches[0]
 }

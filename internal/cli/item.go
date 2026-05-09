@@ -10,34 +10,60 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// newGetItemCmd builds the "get item" subcommand for listing or retrieving test items.
-func newGetItemCmd() *cobra.Command {
+// newItemCmd builds the "item" parent command with list and get subcommands.
+func newItemCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "item [id-or-uuid]",
+		Use:     "item",
 		Aliases: []string{"test-item"},
-		Short:   "List test items or get a specific test item",
-		Long: `List test items in a project, or get a single test item by numeric ID or UUID.
-
-Examples:
-  rp get item                                      List recent test items
-  rp get item 42                                   Get test item by numeric ID
-  rp get item 550e8400-e29b-41d4-a716-446655440000 Get test item by UUID
-  rp get item --launch 101                         List test items for launch 101
-  rp get item --launch 101 --suites                List suite items for launch 101
-  rp get item --parent 2001                        List child items under suite item 2001`,
-		Args: cobra.MaximumNArgs(1),
-		RunE: withPrintedErrors(runGetItem),
+		Short:   "Manage test items",
 	}
 
-	cmd.Flags().StringP("project", "p", "", "project name (overrides profile default)")
+	cmd.PersistentFlags().StringP("project", "p", "", "project name (overrides profile default)")
+	cmd.AddCommand(newItemListCmd())
+	cmd.AddCommand(newItemGetCmd())
+
+	return cmd
+}
+
+// newItemListCmd builds the "item list" subcommand for listing test items.
+func newItemListCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "list",
+		Short: "List test items in a project",
+		Long: `List test items in a project.
+
+Examples:
+  rp item list                                      List recent test items
+  rp item list --launch 101                         List test items for launch 101
+  rp item list --launch 101 --suites                List suite items for launch 101
+  rp item list --parent 2001                        List child items under suite item 2001`,
+		Args: cobra.NoArgs,
+		RunE: withPrintedErrors(runItemList),
+	}
+
 	registerListFlags(cmd)
 	registerItemFilterFlags(cmd)
 
 	return cmd
 }
 
-// runGetItem executes the get item command, dispatching to single-get or list mode.
-func runGetItem(cmd *cobra.Command, args []string) error {
+// newItemGetCmd builds the "item get" subcommand for retrieving a single test item.
+func newItemGetCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "get <id-or-uuid>",
+		Short: "Get a specific test item by numeric ID or UUID",
+		Long: `Get a single test item by numeric ID or UUID.
+
+Examples:
+  rp item get 42                                   Get test item by numeric ID
+  rp item get 550e8400-e29b-41d4-a716-446655440000 Get test item by UUID`,
+		Args: cobra.ExactArgs(1),
+		RunE: withPrintedErrors(runItemGet),
+	}
+}
+
+// runItemList executes the item list command.
+func runItemList(cmd *cobra.Command, _ []string) error {
 	logger := loggerFromCmd(cmd)
 	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
 	printer := newPrinter(outputFmt)
@@ -63,15 +89,41 @@ func runGetItem(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if len(args) == 1 {
-		logger.Debug("getting single test item", "project", project, "idOrUUID", args[0])
-
-		return getSingleItem(cmd, clientInstance, project, args[0], printer)
-	}
-
 	logger.Debug("listing test items", "project", project)
 
 	return listItems(cmd, clientInstance, project, printer)
+}
+
+// runItemGet executes the item get command.
+func runItemGet(cmd *cobra.Command, args []string) error {
+	logger := loggerFromCmd(cmd)
+	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
+	printer := newPrinter(outputFmt)
+
+	conn, err := resolveConnection(cmd)
+	if err != nil {
+		printer.PrintError(err)
+
+		return err
+	}
+
+	project, err := resolveProject(cmd, conn)
+	if err != nil {
+		printer.PrintError(err)
+
+		return err
+	}
+
+	clientInstance, err := newClient(conn, logger)
+	if err != nil {
+		printer.PrintError(err)
+
+		return err
+	}
+
+	logger.Debug("getting single test item", "project", project, "idOrUUID", args[0])
+
+	return getSingleItem(cmd, clientInstance, project, args[0], printer)
 }
 
 // getSingleItem retrieves and prints a single test item by numeric ID or UUID.

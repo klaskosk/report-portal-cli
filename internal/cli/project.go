@@ -11,28 +11,55 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// newGetProjectCmd builds the "get project" subcommand for listing or retrieving projects.
-func newGetProjectCmd() *cobra.Command {
+// newProjectCmd builds the "project" parent command with list and get subcommands.
+func newProjectCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "project [name]",
-		Short: "List projects or get a specific project",
-		Long: `List accessible projects, or get details of a specific project by name.
-
-This command does not require --project/-p since it operates on the instance level.
-
-Examples:
-  rp get project                   List accessible projects
-  rp get project my_project        Get project details by name
-  rp get project my_project -o json  Get project details as JSON`,
-		Args: cobra.MaximumNArgs(1),
-		RunE: withPrintedErrors(runGetProject),
+		Use:   "project",
+		Short: "Manage projects",
 	}
+
+	cmd.AddCommand(newProjectListCmd())
+	cmd.AddCommand(newProjectGetCmd())
 
 	return cmd
 }
 
-// runGetProject executes the get project command, dispatching to single-get or list mode.
-func runGetProject(cmd *cobra.Command, args []string) error {
+// newProjectListCmd builds the "project list" subcommand for listing accessible projects.
+func newProjectListCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "list",
+		Short: "List accessible projects",
+		Long: `List accessible projects.
+
+This command does not require --project/-p since it operates on the instance level.
+
+Examples:
+  rp project list                   List accessible projects
+  rp project list -o json           List accessible projects as JSON`,
+		Args: cobra.NoArgs,
+		RunE: withPrintedErrors(runProjectList),
+	}
+}
+
+// newProjectGetCmd builds the "project get" subcommand for retrieving a specific project.
+func newProjectGetCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "get <name>",
+		Short: "Get details of a specific project by name",
+		Long: `Get details of a specific project by name.
+
+This command does not require --project/-p since it operates on the instance level.
+
+Examples:
+  rp project get my_project          Get project details by name
+  rp project get my_project -o json  Get project details as JSON`,
+		Args: cobra.ExactArgs(1),
+		RunE: withPrintedErrors(runProjectGet),
+	}
+}
+
+// runProjectList executes the project list command.
+func runProjectList(cmd *cobra.Command, _ []string) error {
 	logger := loggerFromCmd(cmd)
 	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
 	printer := newPrinter(outputFmt)
@@ -51,15 +78,34 @@ func runGetProject(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if len(args) == 1 {
-		logger.Debug("getting single project", "name", args[0])
-
-		return getSingleProject(cmd, clientInstance, args[0], printer)
-	}
-
 	logger.Debug("listing projects")
 
 	return listProjects(cmd, clientInstance, printer)
+}
+
+// runProjectGet executes the project get command.
+func runProjectGet(cmd *cobra.Command, args []string) error {
+	logger := loggerFromCmd(cmd)
+	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
+	printer := newPrinter(outputFmt)
+
+	conn, err := resolveConnection(cmd)
+	if err != nil {
+		printer.PrintError(err)
+
+		return err
+	}
+
+	clientInstance, err := newClient(conn, logger)
+	if err != nil {
+		printer.PrintError(err)
+
+		return err
+	}
+
+	logger.Debug("getting single project", "name", args[0])
+
+	return getSingleProject(cmd, clientInstance, args[0], printer)
 }
 
 // getSingleProject retrieves and prints a single project by name.
