@@ -11,35 +11,62 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// newGetLaunchCmd builds the "get launch" subcommand for listing or retrieving launches.
-func newGetLaunchCmd() *cobra.Command {
+// newLaunchCmd builds the "launch" parent command with list and get subcommands.
+func newLaunchCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "launch [id-or-uuid]",
-		Short: "List launches or get a specific launch",
-		Long: `List recent launches in a project, or get a single launch by numeric ID or UUID.
-
-Examples:
-  rp get launch                     List the 10 most recent launches
-  rp get launch 42                  Get launch by numeric ID
-  rp get launch abc-def-123         Get launch by UUID
-  rp get launch -p other_project    List launches in a different project
-  rp get launch --user john         List launches by user john
-  rp get launch --mode DEBUG        List debug-mode launches
-  rp get launch --latest            List latest launches
-  rp get launch --debug             List debug launches (shorthand)`,
-		Args: cobra.MaximumNArgs(1),
-		RunE: withPrintedErrors(runGetLaunch),
+		Use:   "launch",
+		Short: "Manage launches",
 	}
 
-	cmd.Flags().StringP("project", "p", "", "project name (overrides profile default)")
+	cmd.PersistentFlags().StringP("project", "p", "", "project name (overrides profile default)")
+	cmd.AddCommand(newLaunchListCmd())
+	cmd.AddCommand(newLaunchGetCmd())
+
+	return cmd
+}
+
+// newLaunchListCmd builds the "launch list" subcommand for listing launches.
+func newLaunchListCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "list",
+		Short: "List launches in a project",
+		Long: `List recent launches in a project.
+
+Examples:
+  rp launch list                     List the 10 most recent launches
+  rp launch list -p other_project    List launches in a different project
+  rp launch list --user john         List launches by user john
+  rp launch list --mode DEBUG        List debug-mode launches
+  rp launch list --latest            List latest launches
+  rp launch list --debug             List debug launches (shorthand)`,
+		Args: cobra.NoArgs,
+		RunE: withPrintedErrors(runLaunchList),
+	}
+
 	registerListFlags(cmd)
 	registerLaunchFilterFlags(cmd)
 
 	return cmd
 }
 
-// runGetLaunch executes the get launch command, dispatching to single-get or list mode.
-func runGetLaunch(cmd *cobra.Command, args []string) error {
+// newLaunchGetCmd builds the "launch get" subcommand for retrieving a single launch.
+func newLaunchGetCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "get <id-or-uuid>",
+		Short: "Get a specific launch by numeric ID or UUID",
+		Long: `Get a single launch by numeric ID or UUID.
+
+Examples:
+  rp launch get 42                  Get launch by numeric ID
+  rp launch get abc-def-123         Get launch by UUID
+  rp launch get 42 -p other_project Get launch in a different project`,
+		Args: cobra.ExactArgs(1),
+		RunE: withPrintedErrors(runLaunchGet),
+	}
+}
+
+// runLaunchList executes the launch list command.
+func runLaunchList(cmd *cobra.Command, _ []string) error {
 	logger := loggerFromCmd(cmd)
 	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
 	printer := newPrinter(outputFmt)
@@ -65,15 +92,41 @@ func runGetLaunch(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if len(args) == 1 {
-		logger.Debug("getting single launch", "project", project, "idOrUUID", args[0])
-
-		return getSingleLaunch(cmd, clientInstance, project, args[0], printer)
-	}
-
 	logger.Debug("listing launches", "project", project)
 
 	return listLaunches(cmd, clientInstance, project, printer)
+}
+
+// runLaunchGet executes the launch get command.
+func runLaunchGet(cmd *cobra.Command, args []string) error {
+	logger := loggerFromCmd(cmd)
+	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
+	printer := newPrinter(outputFmt)
+
+	conn, err := resolveConnection(cmd)
+	if err != nil {
+		printer.PrintError(err)
+
+		return err
+	}
+
+	project, err := resolveProject(cmd, conn)
+	if err != nil {
+		printer.PrintError(err)
+
+		return err
+	}
+
+	clientInstance, err := newClient(conn, logger)
+	if err != nil {
+		printer.PrintError(err)
+
+		return err
+	}
+
+	logger.Debug("getting single launch", "project", project, "idOrUUID", args[0])
+
+	return getSingleLaunch(cmd, clientInstance, project, args[0], printer)
 }
 
 // getSingleLaunch retrieves and prints a single launch by numeric ID or UUID.

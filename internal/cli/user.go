@@ -60,22 +60,37 @@ type editUserFlags struct {
 	active      *bool
 }
 
-// newGetUserCmd builds the "get user" subcommand for listing or retrieving instance users.
-func newGetUserCmd() *cobra.Command {
+// newUserCmd builds the "user" parent command that groups all user subcommands.
+func newUserCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "user [login]",
-		Short: "List users or get a specific user",
-		Long: `List instance users, or get details of a specific user by login.
+		Use:   "user",
+		Short: "Manage instance users",
+	}
+
+	cmd.AddCommand(newUserListCmd())
+	cmd.AddCommand(newUserGetCmd())
+	cmd.AddCommand(newUserCreateCmd())
+	cmd.AddCommand(newUserUpdateCmd())
+	cmd.AddCommand(newUserDeleteCmd())
+
+	return cmd
+}
+
+// newUserListCmd builds the "user list" subcommand for listing instance users.
+func newUserListCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "list",
+		Short: "List instance users",
+		Long: `List instance users.
 
 This command operates at the instance level and does not require --project/-p.
 
 Examples:
-  rp get user
-  rp get user superadmin
-  rp get user --role ADMINISTRATOR --active
-  rp get user --email admin@example.com -o json`,
-		Args: cobra.MaximumNArgs(1),
-		RunE: withPrintedErrors(runGetUser),
+  rp user list
+  rp user list --role ADMINISTRATOR --active
+  rp user list --email admin@example.com -o json`,
+		Args: cobra.NoArgs,
+		RunE: withPrintedErrors(runUserList),
 	}
 
 	registerListFlagsWithDefaults(cmd, listFlagDefaults{sort: nil})
@@ -84,46 +99,27 @@ Examples:
 	return cmd
 }
 
-// newCreateCmd builds the top-level "create" command group.
-func newCreateCmd() *cobra.Command {
+// newUserGetCmd builds the "user get" subcommand for retrieving a single user by login.
+func newUserGetCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "get <login>",
+		Short: "Get details of a specific user by login",
+		Long: `Get details of a specific user by login.
+
+This command operates at the instance level and does not require --project/-p.
+
+Examples:
+  rp user get superadmin
+  rp user get superadmin -o json`,
+		Args: cobra.ExactArgs(1),
+		RunE: withPrintedErrors(runUserGet),
+	}
+}
+
+// newUserCreateCmd builds the "user create" subcommand.
+func newUserCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
-		Short: "Create resources",
-	}
-
-	cmd.AddCommand(newCreateUserCmd())
-
-	return cmd
-}
-
-// newUpdateCmd builds the top-level "update" command group.
-func newUpdateCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "update",
-		Short: "Update resources",
-	}
-
-	cmd.AddCommand(newUpdateUserCmd())
-
-	return cmd
-}
-
-// newDeleteCmd builds the top-level "delete" command group.
-func newDeleteCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "delete",
-		Short: "Delete resources",
-	}
-
-	cmd.AddCommand(newDeleteUserCmd())
-
-	return cmd
-}
-
-// newCreateUserCmd builds the "create user" subcommand.
-func newCreateUserCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "user",
 		Short: "Create a user",
 		Long: `Create a new instance user.
 
@@ -131,8 +127,8 @@ This command operates at the instance level and does not require --project/-p.
 Most user-management endpoints require an administrator account.
 
 Examples:
-  rp create user --login jane --email jane@example.com --full-name "Jane Doe"
-  rp create user --login jane --email jane@example.com --full-name "Jane Doe" \
+  rp user create --login jane --email jane@example.com --full-name "Jane Doe"
+  rp user create --login jane --email jane@example.com --full-name "Jane Doe" \
     --password 'Secret123!' --account-role USER --project-role MEMBER`,
 		Args: cobra.NoArgs,
 		RunE: withPrintedErrors(runUserCreate),
@@ -143,10 +139,10 @@ Examples:
 	return cmd
 }
 
-// newUpdateUserCmd builds the "update user" subcommand.
-func newUpdateUserCmd() *cobra.Command {
+// newUserUpdateCmd builds the "user update" subcommand.
+func newUserUpdateCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "user <login>",
+		Use:   "update <login>",
 		Short: "Update a user",
 		Long: `Update an existing instance user by login.
 
@@ -154,9 +150,9 @@ If --full-name is omitted, the command fetches the current user first so it can
 preserve the required fullName field in the edit payload.
 
 Examples:
-  rp update user jane --email jane.doe@example.com
-  rp update user jane --full-name "Jane Doe" --active=false
-  rp update user jane --account-role ADMINISTRATOR --account-type INTERNAL`,
+  rp user update jane --email jane.doe@example.com
+  rp user update jane --full-name "Jane Doe" --active=false
+  rp user update jane --account-role ADMINISTRATOR --account-type INTERNAL`,
 		Args: cobra.ExactArgs(1),
 		RunE: withPrintedErrors(runUserUpdate),
 	}
@@ -166,10 +162,10 @@ Examples:
 	return cmd
 }
 
-// newDeleteUserCmd builds the "delete user" subcommand.
-func newDeleteUserCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "user <login>",
+// newUserDeleteCmd builds the "user delete" subcommand.
+func newUserDeleteCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "delete <login>",
 		Short: "Delete a user",
 		Long: `Delete an existing instance user by login.
 
@@ -177,16 +173,14 @@ The underlying API deletes by numeric ID, so this command first resolves the
 given login to the current user ID to keep the CLI login-based.
 
 Examples:
-  rp delete user jane`,
+  rp user delete jane`,
 		Args: cobra.ExactArgs(1),
 		RunE: withPrintedErrors(runUserDelete),
 	}
-
-	return cmd
 }
 
-// runGetUser executes the get user command, dispatching to single-get or list mode.
-func runGetUser(cmd *cobra.Command, args []string) error {
+// runUserList executes the user list command.
+func runUserList(cmd *cobra.Command, _ []string) error {
 	logger := loggerFromCmd(cmd)
 	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
 	printer := newPrinter(outputFmt)
@@ -205,18 +199,37 @@ func runGetUser(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if len(args) == 1 {
-		logger.Debug("getting single user", "login", args[0])
-
-		return getSingleUser(cmd, clientInstance, args[0], printer)
-	}
-
 	logger.Debug("listing users")
 
 	return listUsers(cmd, clientInstance, printer)
 }
 
-// runUserCreate executes the create user command.
+// runUserGet executes the user get command.
+func runUserGet(cmd *cobra.Command, args []string) error {
+	logger := loggerFromCmd(cmd)
+	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
+	printer := newPrinter(outputFmt)
+
+	conn, err := resolveConnection(cmd)
+	if err != nil {
+		printer.PrintError(err)
+
+		return err
+	}
+
+	clientInstance, err := newClient(conn, logger)
+	if err != nil {
+		printer.PrintError(err)
+
+		return err
+	}
+
+	logger.Debug("getting single user", "login", args[0])
+
+	return getSingleUser(cmd, clientInstance, args[0], printer)
+}
+
+// runUserCreate executes the user create command.
 func runUserCreate(cmd *cobra.Command, _ []string) error {
 	logger := loggerFromCmd(cmd)
 	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
@@ -255,7 +268,7 @@ func runUserCreate(cmd *cobra.Command, _ []string) error {
 	return printer.Print(result, headers, [][]string{row})
 }
 
-// runUserUpdate executes the update user command.
+// runUserUpdate executes the user update command.
 func runUserUpdate(cmd *cobra.Command, args []string) error {
 	logger := loggerFromCmd(cmd)
 	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
@@ -310,7 +323,7 @@ func runUserUpdate(cmd *cobra.Command, args []string) error {
 	return printer.Print(result, operationResultHeaders(), operationResultRows(result))
 }
 
-// runUserDelete executes the delete user command.
+// runUserDelete executes the user delete command.
 func runUserDelete(cmd *cobra.Command, args []string) error {
 	logger := loggerFromCmd(cmd)
 	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")

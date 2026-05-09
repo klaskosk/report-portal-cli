@@ -11,34 +11,60 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// newGetLogCmd builds the "get log" subcommand for listing or retrieving log entries.
-func newGetLogCmd() *cobra.Command {
+// newLogCmd builds the "log" parent command with list and get subcommands.
+func newLogCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "log [id-or-uuid]",
-		Short: "List logs or get a specific log entry",
-		Long: `List log entries in a project, or get a single log by numeric ID or UUID.
-
-When listing, at least one of --item or --launch is required to scope the results.
-
-Examples:
-  rp get log --item 42                List logs for test item 42
-  rp get log --launch 10              List logs for launch 10
-  rp get log --item 42 --level ERROR  List error-level logs for item 42
-  rp get log 100                      Get log by numeric ID
-  rp get log abc-def-123              Get log by UUID`,
-		Args: cobra.MaximumNArgs(1),
-		RunE: withPrintedErrors(runGetLog),
+		Use:   "log",
+		Short: "Manage log entries",
 	}
 
-	cmd.Flags().StringP("project", "p", "", "project name (overrides profile default)")
+	cmd.PersistentFlags().StringP("project", "p", "", "project name (overrides profile default)")
+	cmd.AddCommand(newLogListCmd())
+	cmd.AddCommand(newLogGetCmd())
+
+	return cmd
+}
+
+// newLogListCmd builds the "log list" subcommand for listing log entries.
+func newLogListCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "list",
+		Short: "List log entries in a project",
+		Long: `List log entries in a project.
+
+At least one of --item or --launch is required to scope the results.
+
+Examples:
+  rp log list --item 42                List logs for test item 42
+  rp log list --launch 10              List logs for launch 10
+  rp log list --item 42 --level ERROR  List error-level logs for item 42`,
+		Args: cobra.NoArgs,
+		RunE: withPrintedErrors(runLogList),
+	}
+
 	registerListFlagsWithDefaults(cmd, listFlagDefaults{sort: []string{"logTime,desc"}})
 	registerLogFilterFlags(cmd)
 
 	return cmd
 }
 
-// runGetLog executes the get log command, dispatching to single-get or list mode.
-func runGetLog(cmd *cobra.Command, args []string) error {
+// newLogGetCmd builds the "log get" subcommand for retrieving a single log entry.
+func newLogGetCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "get <id-or-uuid>",
+		Short: "Get a specific log entry by numeric ID or UUID",
+		Long: `Get a single log entry by numeric ID or UUID.
+
+Examples:
+  rp log get 100                      Get log by numeric ID
+  rp log get abc-def-123              Get log by UUID`,
+		Args: cobra.ExactArgs(1),
+		RunE: withPrintedErrors(runLogGet),
+	}
+}
+
+// runLogList executes the log list command.
+func runLogList(cmd *cobra.Command, _ []string) error {
 	logger := loggerFromCmd(cmd)
 	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
 	printer := newPrinter(outputFmt)
@@ -64,15 +90,41 @@ func runGetLog(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if len(args) == 1 {
-		logger.Debug("getting single log", "project", project, "idOrUUID", args[0])
-
-		return getSingleLog(cmd, clientInstance, project, args[0], printer)
-	}
-
 	logger.Debug("listing logs", "project", project)
 
 	return listLogs(cmd, clientInstance, project, printer)
+}
+
+// runLogGet executes the log get command.
+func runLogGet(cmd *cobra.Command, args []string) error {
+	logger := loggerFromCmd(cmd)
+	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
+	printer := newPrinter(outputFmt)
+
+	conn, err := resolveConnection(cmd)
+	if err != nil {
+		printer.PrintError(err)
+
+		return err
+	}
+
+	project, err := resolveProject(cmd, conn)
+	if err != nil {
+		printer.PrintError(err)
+
+		return err
+	}
+
+	clientInstance, err := newClient(conn, logger)
+	if err != nil {
+		printer.PrintError(err)
+
+		return err
+	}
+
+	logger.Debug("getting single log", "project", project, "idOrUUID", args[0])
+
+	return getSingleLog(cmd, clientInstance, project, args[0], printer)
 }
 
 // getSingleLog retrieves and prints a single log entry by numeric ID or UUID.

@@ -12,16 +12,16 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("CLI: get project", Label("cli", "project"), func() {
+var _ = Describe("CLI: project", Label("cli", "project"), func() {
 	It("lists accessible projects", func() {
-		result := runCLI("get", "project")
-		expectCLISuccess(result, "rp get project")
+		result := runCLI("project", "list")
+		expectCLISuccess(result, "rp project list")
 		Expect(result.Stdout).To(ContainSubstring("PROJECT NAME"))
 	})
 
 	It("lists projects in JSON format", func() {
-		result := runCLI("get", "project", "-o", "json")
-		expectCLISuccess(result, "rp get project -o json")
+		result := runCLI("project", "list", "-o", "json")
+		expectCLISuccess(result, "rp project list -o json")
 
 		var names []string
 		Expect(json.Unmarshal([]byte(result.Stdout), &names)).To(Succeed(),
@@ -49,14 +49,14 @@ var _ = Describe("CLI: get project", Label("cli", "project"), func() {
 		}, NodeTimeout(15*time.Second))
 
 		It("returns project details in table format", func() {
-			result := runCLI("get", "project", projectName)
-			expectCLISuccess(result, "rp get project "+projectName)
+			result := runCLI("project", "get", projectName)
+			expectCLISuccess(result, "rp project get "+projectName)
 			Expect(result.Stdout).To(ContainSubstring(projectName))
 		})
 
 		It("returns project details in JSON format", func() {
-			result := runCLI("get", "project", projectName, "-o", "json")
-			expectCLISuccess(result, "rp get project -o json")
+			result := runCLI("project", "get", projectName, "-o", "json")
+			expectCLISuccess(result, "rp project get -o json")
 
 			var project map[string]any
 			Expect(json.Unmarshal([]byte(result.Stdout), &project)).To(Succeed(),
@@ -67,13 +67,13 @@ var _ = Describe("CLI: get project", Label("cli", "project"), func() {
 	})
 
 	It("exits non-zero for a non-existent project", func() {
-		result := runCLI("get", "project", "nonexistent_project_99999")
-		expectCLIError(result, "rp get project nonexistent")
+		result := runCLI("project", "get", "nonexistent_project_99999")
+		expectCLIError(result, "rp project get nonexistent")
 	})
 
 	It("prints errors as JSON when -o json is set", func() {
-		result := runCLI("get", "project", "nonexistent_project_99999", "-o", "json")
-		expectCLIError(result, "rp get project nonexistent -o json")
+		result := runCLI("project", "get", "nonexistent_project_99999", "-o", "json")
+		expectCLIError(result, "rp project get nonexistent -o json")
 		expectJSONError(result, "")
 		Expect(result.Stdout).To(BeEmpty(), "stdout should be empty when JSON error goes to stderr")
 	})

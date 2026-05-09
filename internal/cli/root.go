@@ -4,16 +4,25 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"os"
 
 	"github.com/spf13/cobra"
 )
 
-// Execute runs the root command and returns any error.
-// Errors from command handlers are already printed by the handler via
-// printer.PrintError and wrapped with printedError. Any other errors
-// (Cobra-level failures, config errors) are printed here as a fallback.
+// Execute runs the root command with arguments from os.Args and returns any error.
 func Execute() error {
+	return execute(nil, os.Stderr)
+}
+
+// execute runs the root command. args are passed to cobra (nil means os.Args[1:]). Errors from
+// command handlers are already printed by the handler via printer.PrintError and wrapped with
+// printedError. Any other errors (Cobra-level failures, config errors) are written to errOut.
+func execute(args []string, errOut io.Writer) error {
 	cmd := newRootCmd()
+	if args != nil {
+		cmd.SetArgs(args)
+	}
 
 	err := cmd.Execute()
 	if err == nil {
@@ -22,11 +31,22 @@ func Execute() error {
 
 	var printed *printedError
 	if !errors.As(err, &printed) {
-		outputFmt, _ := cmd.PersistentFlags().GetString("output")
-		newPrinter(outputFmt).PrintError(err)
+		newPrinterWithErrOut(effectiveOutputFormat(cmd.Root()), errOut).PrintError(err)
 	}
 
 	return fmt.Errorf("executing command: %w", err)
+}
+
+// effectiveOutputFormat derives the output format from the root command's persistent flags,
+// giving --json precedence over -o/--output.
+func effectiveOutputFormat(cmd *cobra.Command) string {
+	if useJSON, _ := cmd.PersistentFlags().GetBool("json"); useJSON {
+		return "json"
+	}
+
+	outputFmt, _ := cmd.PersistentFlags().GetString("output")
+
+	return outputFmt
 }
 
 // newRootCmd builds the root "rp" command with global flags and subcommands.
@@ -41,6 +61,8 @@ func newRootCmd() *cobra.Command {
 			logger := newLogger(verbosity)
 			cmd.SetContext(context.WithValue(cmd.Context(), loggerKey{}, logger))
 
+			_ = cmd.Root().PersistentFlags().Set("output", effectiveOutputFormat(cmd.Root()))
+
 			return initConfig(cmd)
 		},
 	}
@@ -53,11 +75,13 @@ func newRootCmd() *cobra.Command {
 	flags.Bool("insecure-skip-verify", false, "skip TLS certificate verification")
 	flags.StringP("output", "o", "table", "output format: table, json, go-template=<tmpl>")
 	flags.IntP("verbosity", "v", 0, "log verbosity level (0=off, 1=info, 2+=debug)")
+	flags.Bool("json", false, "shorthand for -o json")
 
-	cmd.AddCommand(newGetCmd())
-	cmd.AddCommand(newCreateCmd())
-	cmd.AddCommand(newUpdateCmd())
-	cmd.AddCommand(newDeleteCmd())
+	cmd.AddCommand(newUserCmd())
+	cmd.AddCommand(newLaunchCmd())
+	cmd.AddCommand(newItemCmd())
+	cmd.AddCommand(newLogCmd())
+	cmd.AddCommand(newProjectCmd())
 	cmd.AddCommand(newDownloadCmd())
 	cmd.AddCommand(newWhoamiCmd())
 
