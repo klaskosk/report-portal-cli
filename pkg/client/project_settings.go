@@ -82,13 +82,13 @@ func (s *ProjectSettingsScope) UpdateNotification(
 // DeleteNotification removes a notification rule by its ID.
 func (s *ProjectSettingsScope) DeleteNotification(
 	ctx context.Context,
-	id int64,
+	notificationID int64,
 ) (*types.OperationCompletionRS, error) {
-	logger := s.project.operationLogger("DeleteNotification", slog.Int64("id", id))
+	logger := s.project.operationLogger("DeleteNotification", slog.Int64("id", notificationID))
 	logger.InfoContext(ctx, "API request")
 
 	resp, err := s.project.client.raw.DeleteNotificationWithResponse(
-		ctx, s.project.projectName, id,
+		ctx, s.project.projectName, notificationID,
 	)
 
 	return execute[types.OperationCompletionRS](ctx, logger, "delete notification", resp, err)
@@ -112,14 +112,17 @@ func (s *ProjectSettingsScope) CreatePatternTemplate(
 // UpdatePatternTemplate modifies an existing pattern template.
 func (s *ProjectSettingsScope) UpdatePatternTemplate(
 	ctx context.Context,
-	id int64,
+	patternTemplateID int64,
 	request types.UpdatePatternTemplateRQ,
 ) (*types.OperationCompletionRS, error) {
-	logger := s.project.operationLogger("UpdatePatternTemplate", slog.Int64("id", id))
+	logger := s.project.operationLogger(
+		"UpdatePatternTemplate",
+		slog.Int64("id", patternTemplateID),
+	)
 	logger.InfoContext(ctx, "API request")
 
 	resp, err := s.project.client.raw.UpdatePatternTemplateWithResponse(
-		ctx, s.project.projectName, id, request,
+		ctx, s.project.projectName, patternTemplateID, request,
 	)
 
 	return execute[types.OperationCompletionRS](ctx, logger, "update pattern template", resp, err)
@@ -128,13 +131,16 @@ func (s *ProjectSettingsScope) UpdatePatternTemplate(
 // DeletePatternTemplate removes a pattern template by its ID.
 func (s *ProjectSettingsScope) DeletePatternTemplate(
 	ctx context.Context,
-	id int64,
+	patternTemplateID int64,
 ) (*types.OperationCompletionRS, error) {
-	logger := s.project.operationLogger("DeletePatternTemplate", slog.Int64("id", id))
+	logger := s.project.operationLogger(
+		"DeletePatternTemplate",
+		slog.Int64("id", patternTemplateID),
+	)
 	logger.InfoContext(ctx, "API request")
 
 	resp, err := s.project.client.raw.DeletePatternTemplateWithResponse(
-		ctx, s.project.projectName, id,
+		ctx, s.project.projectName, patternTemplateID,
 	)
 
 	return execute[types.OperationCompletionRS](ctx, logger, "delete pattern template", resp, err)
@@ -174,13 +180,13 @@ func (s *ProjectSettingsScope) UpdateIssueSubType(
 // DeleteIssueSubType removes a custom issue sub-type by its ID.
 func (s *ProjectSettingsScope) DeleteIssueSubType(
 	ctx context.Context,
-	id int64,
+	issueSubTypeID int64,
 ) (*types.OperationCompletionRS, error) {
-	logger := s.project.operationLogger("DeleteIssueSubType", slog.Int64("id", id))
+	logger := s.project.operationLogger("DeleteIssueSubType", slog.Int64("id", issueSubTypeID))
 	logger.InfoContext(ctx, "API request")
 
 	resp, err := s.project.client.raw.DeleteProjectIssueSubTypeWithResponse(
-		ctx, s.project.projectName, id,
+		ctx, s.project.projectName, issueSubTypeID,
 	)
 
 	return execute[types.OperationCompletionRS](ctx, logger, "delete issue sub-type", resp, err)

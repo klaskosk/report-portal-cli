@@ -30,9 +30,22 @@ jobs:
             pkg/go.sum
             test/integration/go.sum
 
-      - uses: golangci/golangci-lint-action@v9
+      - name: Lint (root module)
+        uses: golangci/golangci-lint-action@v9
         with:
           version: v2.11.4
+
+      - name: Lint (pkg module)
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.11.4
+          working-directory: pkg
+
+      - name: Lint (test/integration module)
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.11.4
+          working-directory: test/integration
 
       - run: make test
 

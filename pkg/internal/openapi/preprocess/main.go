@@ -17,7 +17,9 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -53,9 +55,17 @@ func main() {
 		log.Fatal("-spec flag is required")
 	}
 
-	data, err := os.ReadFile(*specPath)
+	runErr := runPreprocess(*specPath, *outDirFlag)
+	if runErr != nil {
+		log.Fatal(runErr)
+	}
+}
+
+func runPreprocess(specPath, outDirFlag string) error {
+	//nolint:gosec // G304: path comes from explicit -spec CLI flag
+	data, err := os.ReadFile(specPath)
 	if err != nil {
-		log.Fatalf("reading spec: %v", err)
+		return fmt.Errorf("reading spec: %w", err)
 	}
 
 	raw := parseSpec(data)
@@ -77,15 +87,10 @@ func main() {
 
 	openapi, ok := raw["openapi"].(string)
 	if !ok {
-		log.Fatal("spec is missing the openapi version field")
+		return errors.New("spec is missing the openapi version field")
 	}
 
-	var outDir string
-	if *outDirFlag != "" {
-		outDir = filepath.Clean(*outDirFlag)
-	} else {
-		outDir = scriptDir()
-	}
+	outDir := resolveOutputDir(outDirFlag)
 
 	base := document{
 		OpenAPI:  openapi,
@@ -105,6 +110,16 @@ func main() {
 	marshalToFile(filepath.Join(outDir, "components.openapi.yaml"), componentsDoc)
 
 	log.Printf("wrote openapi.yaml and components.openapi.yaml to %s", outDir)
+
+	return nil
+}
+
+func resolveOutputDir(outDirFlag string) string {
+	if outDirFlag != "" {
+		return filepath.Clean(outDirFlag)
+	}
+
+	return scriptDir()
 }
 
 // parseSpec detects the input format (JSON or YAML) and parses it into a generic map.
@@ -127,17 +142,18 @@ func parseSpec(data []byte) map[string]any {
 	return raw
 }
 
-// walk recursively traverses the parsed OpenAPI tree, calling fn on every map node.
-func walk(node any, fn func(map[string]any)) {
+// walk recursively traverses the parsed OpenAPI tree, calling visit on every map node.
+func walk(node any, visit func(map[string]any)) {
 	switch value := node.(type) {
 	case map[string]any:
-		fn(value)
+		visit(value)
+
 		for _, child := range value {
-			walk(child, fn)
+			walk(child, visit)
 		}
 	case []any:
 		for _, child := range value {
-			walk(child, fn)
+			walk(child, visit)
 		}
 	}
 }
@@ -166,8 +182,8 @@ func normalizeContentTypes(node any) {
 }
 
 // eachOperation iterates over all HTTP operations in the paths object, calling
-// fn with the operation map for each one.
-func eachOperation(paths any, fn func(operation map[string]any)) {
+// handleOperation with the operation map for each one.
+func eachOperation(paths any, handleOperation func(operation map[string]any)) {
 	pathsMap, ok := paths.(map[string]any)
 	if !ok {
 		return
@@ -181,7 +197,7 @@ func eachOperation(paths any, fn func(operation map[string]any)) {
 
 		for _, method := range []string{"get", "post", "put", "delete", "patch"} {
 			if operation, ok := itemMap[method].(map[string]any); ok {
-				fn(operation)
+				handleOperation(operation)
 			}
 		}
 	}
@@ -309,7 +325,7 @@ func marshalToFile(path string, doc any) {
 		log.Fatalf("closing encoder for %s: %v", path, err)
 	}
 
-	err = os.WriteFile(path, buf.Bytes(), 0o644)
+	err = os.WriteFile(path, buf.Bytes(), 0o600)
 	if err != nil {
 		log.Fatalf("writing %s: %v", path, err)
 	}

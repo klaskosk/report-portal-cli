@@ -40,15 +40,15 @@ func (d *DashboardScope) List(
 // GetByID returns a single dashboard by its numeric ID.
 func (d *DashboardScope) GetByID(
 	ctx context.Context,
-	id int64,
+	dashboardID int64,
 ) (*types.DashboardResource, error) {
-	logger := d.project.operationLogger("GetDashboardByID", slog.Int64("id", id))
+	logger := d.project.operationLogger("GetDashboardByID", slog.Int64("id", dashboardID))
 	logger.InfoContext(ctx, "API request")
 
 	resp, err := d.project.client.raw.GetDashboardWithResponse(
 		ctx,
 		d.project.projectName,
-		id,
+		dashboardID,
 	)
 
 	return execute(ctx, logger, "get dashboard by id", resp, err)
@@ -74,16 +74,16 @@ func (d *DashboardScope) Create(
 // Update modifies an existing dashboard.
 func (d *DashboardScope) Update(
 	ctx context.Context,
-	id int64,
+	dashboardID int64,
 	request types.UpdateDashboardRQ,
 ) (*types.OperationCompletionRS, error) {
-	logger := d.project.operationLogger("UpdateDashboard", slog.Int64("id", id))
+	logger := d.project.operationLogger("UpdateDashboard", slog.Int64("id", dashboardID))
 	logger.InfoContext(ctx, "API request")
 
 	resp, err := d.project.client.raw.UpdateDashboardWithResponse(
 		ctx,
 		d.project.projectName,
-		id,
+		dashboardID,
 		request,
 	)
 
@@ -93,15 +93,15 @@ func (d *DashboardScope) Update(
 // Delete removes a dashboard by its numeric ID.
 func (d *DashboardScope) Delete(
 	ctx context.Context,
-	id int64,
+	dashboardID int64,
 ) (*types.OperationCompletionRS, error) {
-	logger := d.project.operationLogger("DeleteDashboard", slog.Int64("id", id))
+	logger := d.project.operationLogger("DeleteDashboard", slog.Int64("id", dashboardID))
 	logger.InfoContext(ctx, "API request")
 
 	resp, err := d.project.client.raw.DeleteDashboardWithResponse(
 		ctx,
 		d.project.projectName,
-		id,
+		dashboardID,
 	)
 
 	return execute(ctx, logger, "delete dashboard", resp, err)
@@ -162,7 +162,10 @@ func (d *DashboardScope) CreatePreconfigured(
 	ctx context.Context,
 	request types.DashboardPreconfiguredRq,
 ) (*types.EntryCreatedRS, error) {
-	logger := d.project.operationLogger("CreatePreconfiguredDashboard", slog.String("name", request.Name))
+	logger := d.project.operationLogger(
+		"CreatePreconfiguredDashboard",
+		slog.String("name", request.Name),
+	)
 	logger.InfoContext(ctx, "API request")
 
 	resp, err := d.project.client.raw.CreatePreconfiguredWithResponse(
@@ -198,7 +201,7 @@ func (d *DashboardScope) RemoveWidget(
 
 // ListDashboardsOption configures the filter and pagination parameters for listing dashboards.
 type ListDashboardsOption interface {
-	applyListDashboards(*api.GetAllDashboardsParams)
+	applyListDashboards(params *api.GetAllDashboardsParams)
 }
 
 type listDashboardsOptionFunc func(*api.GetAllDashboardsParams)
@@ -208,21 +211,21 @@ func (f listDashboardsOptionFunc) applyListDashboards(params *api.GetAllDashboar
 }
 
 // WithDashboardPageNumber sets the page number (0-based) for dashboard listing.
-func WithDashboardPageNumber(n int32) ListDashboardsOption {
+func WithDashboardPageNumber(n int32) listDashboardsOptionFunc {
 	return listDashboardsOptionFunc(func(params *api.GetAllDashboardsParams) {
 		params.PagePage = &n
 	})
 }
 
 // WithDashboardPageSize sets the number of results per page for dashboard listing.
-func WithDashboardPageSize(size int32) ListDashboardsOption {
+func WithDashboardPageSize(size int32) listDashboardsOptionFunc {
 	return listDashboardsOptionFunc(func(params *api.GetAllDashboardsParams) {
 		params.PageSize = &size
 	})
 }
 
 // WithDashboardSort sets the sorting criteria for dashboard listing (e.g. "name,asc").
-func WithDashboardSort(fields ...string) ListDashboardsOption {
+func WithDashboardSort(fields ...string) listDashboardsOptionFunc {
 	return listDashboardsOptionFunc(func(params *api.GetAllDashboardsParams) {
 		if len(fields) == 0 {
 			params.PageSort = nil

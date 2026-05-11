@@ -1,3 +1,4 @@
+//nolint:testpackage // exercises unexported execute/handleV2Response helpers.
 package client
 
 import (
@@ -14,16 +15,16 @@ import (
 
 // Compile-time interface assertions for generated response types.
 var (
-	_ typedResponse[types.GroupPage]   = api.GetGroupsResponse{}
+	_ typedResponse[types.GroupPage]     = api.GetGroupsResponse{}
 	_ typedResponse[types.StartLaunchRS] = api.StartLaunch1Response{}
-	_ typedResponse[[]string]          = api.GetAllLaunchNamesResponse{}
-	_ voidResponse                     = api.DeleteGroupResponse{}
+	_ typedResponse[[]string]            = api.GetAllLaunchNamesResponse{}
+	_ voidResponse                       = api.DeleteGroupResponse{}
 )
 
 // fakeV2Response mimics a response struct with both a v2 content-negotiated
 // field and a legacy JSON200 field.
 type fakeV2Response struct {
-	statusCode int
+	statusCode  int
 	JSONDefault *types.ErrorRS
 	V2JSON200   *string
 	JSON200     *string
@@ -48,13 +49,13 @@ func TestHandleV2Response(t *testing.T) {
 		{
 			name:       "v2 success",
 			statusCode: 200,
-			v2Success:  ptr("v2-ok"),
-			wantResult: ptr("v2-ok"),
+			v2Success:  new("v2-ok"),
+			wantResult: new("v2-ok"),
 		},
 		{
 			name:          "legacy rejection with non-nil pointer",
 			statusCode:    200,
-			legacySuccess: ptr("legacy-ok"),
+			legacySuccess: new("legacy-ok"),
 			wantErr:       "API returned legacy JSON shape",
 		},
 		{
@@ -94,7 +95,13 @@ func TestHandleV2Response(t *testing.T) {
 				Body:        testCase.body,
 			}
 
-			got, err := handleV2Response(resp, resp.JSONDefault, resp.V2JSON200, resp.JSON200, resp.Body)
+			got, err := handleV2Response(
+				resp,
+				resp.JSONDefault,
+				resp.V2JSON200,
+				resp.JSON200,
+				resp.Body,
+			)
 
 			if testCase.wantErr != "" {
 				require.Error(t, err)
@@ -156,7 +163,7 @@ func TestExecute_TransportError(t *testing.T) {
 	got, err := execute(context.Background(), discardLogger(), "test op", resp, transportErr)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	assert.ErrorIs(t, err, transportErr)
+	require.ErrorIs(t, err, transportErr)
 	assert.Contains(t, err.Error(), "test op")
 }
 
@@ -227,7 +234,11 @@ func TestExecute_NilSuccess(t *testing.T) {
 	got, err := execute(context.Background(), discardLogger(), "test op", resp, nil)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	assert.Contains(t, err.Error(), "API returned success status (200) but no valid response body was parsed")
+	assert.Contains(
+		t,
+		err.Error(),
+		"API returned success status (200) but no valid response body was parsed",
+	)
 	assert.Contains(t, err.Error(), "test op")
 }
 
@@ -265,7 +276,13 @@ func TestExecute_ErrorWrapsOpName(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			_, err := execute(context.Background(), discardLogger(), "get launch", testCase.resp, testCase.err)
+			_, err := execute(
+				context.Background(),
+				discardLogger(),
+				"get launch",
+				testCase.resp,
+				testCase.err,
+			)
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "get launch:")
 		})
@@ -326,7 +343,7 @@ func TestExecuteVoid_TransportError(t *testing.T) {
 
 	err := executeVoid(context.Background(), discardLogger(), "test op", resp, transportErr)
 	require.Error(t, err)
-	assert.ErrorIs(t, err, transportErr)
+	require.ErrorIs(t, err, transportErr)
 	assert.Contains(t, err.Error(), "test op")
 }
 
@@ -363,7 +380,7 @@ func TestLegacyPayloadPresent(t *testing.T) {
 	}{
 		{"nil any", nil, false},
 		{"typed nil pointer", (*string)(nil), false},
-		{"non-nil pointer", ptr("value"), true},
+		{"non-nil pointer", new("value"), true},
 		{"string value (default kind)", "hello", true},
 		{"int value (default kind)", 42, true},
 		{"nil slice", ([]string)(nil), false},
@@ -380,5 +397,3 @@ func TestLegacyPayloadPresent(t *testing.T) {
 		})
 	}
 }
-
-func ptr[T any](v T) *T { return &v }

@@ -36,7 +36,10 @@ func (s *LogTypesScope) List(ctx context.Context) ([]types.LogTypeResponse, erro
 // Create creates a new log type in the project. The RP API returns 201
 // Created, but the spec declares 200, so the generated parser misclassifies
 // the response. This method handles both status codes.
-func (s *LogTypesScope) Create(ctx context.Context, request types.LogTypeRequest) (*types.LogTypeResponse, error) {
+func (s *LogTypesScope) Create(
+	ctx context.Context,
+	request types.LogTypeRequest,
+) (*types.LogTypeResponse, error) {
 	logger := s.project.operationLogger("CreateLogType", slog.String("name", request.Name))
 	logger.InfoContext(ctx, "API request")
 
@@ -53,7 +56,9 @@ func (s *LogTypesScope) Create(ctx context.Context, request types.LogTypeRequest
 
 	if resp.StatusCode() == 201 {
 		var result types.LogTypeResponse
-		if err := json.Unmarshal(resp.Body, &result); err != nil {
+
+		err := json.Unmarshal(resp.Body, &result)
+		if err != nil {
 			return nil, fmt.Errorf("create log type: %w", err)
 		}
 
@@ -90,7 +95,11 @@ func (s *LogTypesScope) Delete(ctx context.Context, logTypeID int64) error {
 	logger := s.project.operationLogger("DeleteLogType", slog.Int64("logTypeId", logTypeID))
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := s.project.client.raw.DeleteLogTypeByIdWithResponse(ctx, s.project.projectName, logTypeID)
+	resp, err := s.project.client.raw.DeleteLogTypeByIdWithResponse(
+		ctx,
+		s.project.projectName,
+		logTypeID,
+	)
 
 	return executeVoid(ctx, logger, "delete log type", resp, err)
 }

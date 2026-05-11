@@ -40,14 +40,14 @@ func TestNew(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			c, err := client.New("https://example.com", test.token)
+			testClient, err := client.New("https://example.com", test.token)
 			if test.expectError {
 				require.Error(t, err)
-				assert.Nil(t, c)
+				assert.Nil(t, testClient)
 				assert.ErrorContains(t, err, "bearer token")
 			} else {
 				require.NoError(t, err)
-				assert.NotNil(t, c)
+				assert.NotNil(t, testClient)
 			}
 		})
 	}

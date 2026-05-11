@@ -1,6 +1,7 @@
 package client_test
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -13,18 +14,48 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func assertStartChildPostPayload(
+	t *testing.T,
+	payload map[string]any,
+	name string,
+	startTime time.Time,
+	itemType types.StartTestItemRQType,
+) {
+	t.Helper()
+
+	assert.Equal(t, "launch-uuid-1", payload["launchUuid"])
+	assert.Equal(t, name, payload["name"])
+	assert.Equal(t, startTime.UTC().Format(time.RFC3339Nano), payload["startTime"])
+	assert.Equal(t, string(itemType), payload["type"])
+	assert.Equal(t, true, payload["hasStats"])
+}
+
+func assertFinishPutPayload(
+	t *testing.T,
+	payload map[string]any,
+	endTime time.Time,
+	status types.FinishTestItemRQStatus,
+) {
+	t.Helper()
+
+	assert.Equal(t, "launch-uuid-1", payload["launchUuid"])
+	assert.Equal(t, endTime.UTC().Format(time.RFC3339Nano), payload["endTime"])
+	assert.Equal(t, string(status), payload["status"])
+}
+
 func TestTestItemScope_GetByID_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/42")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/item/42")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"id": 42,
 			"uuid": "item-uuid-42",
 			"name": "Suite 42",
@@ -35,9 +66,10 @@ func TestTestItemScope_GetByID_Success(t *testing.T) {
 			"hasChildren": true,
 			"path": "1.2.42"
 		}`))
-	}))
+		},
+	))
 
-	item, err := c.Project("my_project").Items().GetByID(t.Context(), 42)
+	item, err := testClient.Project("my_project").Items().GetByID(t.Context(), 42)
 	require.NoError(t, err)
 	require.NotNil(t, item)
 	require.NotNil(t, item.Id)
@@ -100,16 +132,17 @@ func TestTestItemScope_GetByID_Errors(t *testing.T) {
 func TestTestItemScope_GetByUUID_PrefersV2Response(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/uuid/item-uuid-42")
-		assertMethod(t, r, http.MethodGet)
-		assertHeader(t, r, "Accept", "application/x.reportportal.test.v2+json")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/item/uuid/item-uuid-42")
+			assertMethod(t, httpReq, http.MethodGet)
+			assertHeader(t, httpReq, "Accept", "application/x.reportportal.test.v2+json")
 
-		w.Header().Set("Content-Type", "application/x.reportportal.test.v2+json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/x.reportportal.test.v2+json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"id": 42,
 			"uuid": "item-uuid-42",
 			"name": "Suite 42",
@@ -117,9 +150,10 @@ func TestTestItemScope_GetByUUID_PrefersV2Response(t *testing.T) {
 			"type": "SUITE",
 			"startTime": "2023-11-14T22:13:20Z"
 		}`))
-	}))
+		},
+	))
 
-	item, err := c.Project("my_project").Items().GetByUUID(t.Context(), "item-uuid-42")
+	item, err := testClient.Project("my_project").Items().GetByUUID(t.Context(), "item-uuid-42")
 	require.NoError(t, err)
 	require.NotNil(t, item)
 	require.NotNil(t, item.Uuid)
@@ -132,25 +166,27 @@ func TestTestItemScope_GetByUUID_PrefersV2Response(t *testing.T) {
 func TestTestItemScope_GetByUUID_LegacyJSONReturnsError(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/uuid/item-uuid-42")
-		assertMethod(t, r, http.MethodGet)
-		assertHeader(t, r, "Accept", "application/x.reportportal.test.v2+json")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/item/uuid/item-uuid-42")
+			assertMethod(t, httpReq, http.MethodGet)
+			assertHeader(t, httpReq, "Accept", "application/x.reportportal.test.v2+json")
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"id": 42,
 			"uuid": "item-uuid-42",
 			"name": "Suite 42",
 			"status": "FAILED",
 			"type": "SUITE"
 		}`))
-	}))
+		},
+	))
 
-	_, err := c.Project("my_project").Items().GetByUUID(t.Context(), "item-uuid-42")
+	_, err := testClient.Project("my_project").Items().GetByUUID(t.Context(), "item-uuid-42")
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "legacy JSON shape")
 }
@@ -169,554 +205,233 @@ func TestTestItemScope_GetByUUID_NotFound(t *testing.T) {
 func TestTestItemScope_StartRoot_Success(t *testing.T) {
 	t.Parallel()
 
-	startTime := time.UnixMilli(1700000000000).UTC()
-	itemType := types.StartTestItemRQType("SUITE")
-	hasStats := true
+	startRootCall := func(
+		cli *client.Client,
+		ctx context.Context,
+		request types.StartTestItemRQ,
+	) (*types.EntryCreatedAsyncRS, error) {
+		return cli.Project("my_project").Items().StartRoot(ctx, request)
+	}
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item")
-		assertMethod(t, r, http.MethodPost)
-
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
-
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
-
-		assert.Equal(t, "launch-uuid-1", payload["launchUuid"])
-		assert.Equal(t, "Authentication Suite", payload["name"])
-		assert.Equal(t, startTime.UTC().Format(time.RFC3339Nano), payload["startTime"])
-		assert.Equal(t, string(itemType), payload["type"])
-		assert.Equal(t, true, payload["hasStats"])
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		_, _ = w.Write([]byte(`{"id":"suite-uuid-1"}`))
-	}))
-
-	result, err := c.Project("my_project").Items().StartRoot(
-		t.Context(),
-		types.StartTestItemRQ{
-			LaunchUuid: "launch-uuid-1",
-			Name:       "Authentication Suite",
-			StartTime:  startTime,
-			Type:       itemType,
-			HasStats:   &hasStats,
-		},
+	runStartRootItemSuccess(
+		t,
+		"/api/v1/my_project/item",
+		"Authentication Suite",
+		`{"id":"suite-uuid-1"}`,
+		"suite-uuid-1",
+		startRootCall,
 	)
-	require.NoError(t, err)
-	require.NotNil(t, result)
-	require.NotNil(t, result.Id)
-	assert.Equal(t, "suite-uuid-1", *result.Id)
 }
 
 func TestTestItemScope_StartRoot_Errors(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name       string
-		statusCode int
-		body       string
-		check      func(error) bool
-	}{
-		{
-			name:       "BadRequest",
-			statusCode: http.StatusBadRequest,
-			body:       `{"errorCode": 4001, "message": "Invalid test item payload."}`,
-			check:      client.IsBadRequest,
-		},
-		{
-			name:       "Unauthorized",
-			statusCode: http.StatusUnauthorized,
-			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
-			check:      client.IsUnauthorized,
-		},
+	startRootErrCall := func(
+		cli *client.Client,
+		ctx context.Context,
+		request types.StartTestItemRQ,
+	) error {
+		_, err := cli.Project("my_project").Items().StartRoot(ctx, request)
+
+		return err //nolint:wrapcheck // test forwards client errors unchanged
 	}
 
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			itemType := types.StartTestItemRQType("SUITE")
-			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
-			_, err := testClient.Project("my_project").Items().StartRoot(
-				t.Context(),
-				types.StartTestItemRQ{
-					LaunchUuid: "launch-uuid-1",
-					Name:       "Authentication Suite",
-					StartTime:  time.Now(),
-					Type:       itemType,
-				},
-			)
-			require.Error(t, err)
-			assert.True(t, testCase.check(err))
-		})
-	}
+	runStartRootItemErrorTests(t, "Authentication Suite", startRootErrCall)
 }
 
 func TestTestItemScope_StartChild_Success(t *testing.T) {
 	t.Parallel()
 
-	startTime := time.UnixMilli(1700000001000).UTC()
-	itemType := types.StartTestItemRQType("TEST")
-	hasStats := true
+	startChildCall := func(
+		cli *client.Client,
+		ctx context.Context,
+		parent string,
+		request types.StartTestItemRQ,
+	) (*types.EntryCreatedAsyncRS, error) {
+		return cli.Project("my_project").Items().StartChild(ctx, parent, request)
+	}
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/suite-uuid-1")
-		assertMethod(t, r, http.MethodPost)
-
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
-
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
-
-		assert.Equal(t, "launch-uuid-1", payload["launchUuid"])
-		assert.Equal(t, "Login Test", payload["name"])
-		assert.Equal(t, startTime.UTC().Format(time.RFC3339Nano), payload["startTime"])
-		assert.Equal(t, string(itemType), payload["type"])
-		assert.Equal(t, true, payload["hasStats"])
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		_, _ = w.Write([]byte(`{"id":"test-uuid-1"}`))
-	}))
-
-	result, err := c.Project("my_project").Items().StartChild(
-		t.Context(),
-		"suite-uuid-1",
-		types.StartTestItemRQ{
-			LaunchUuid: "launch-uuid-1",
-			Name:       "Login Test",
-			StartTime:  startTime,
-			Type:       itemType,
-			HasStats:   &hasStats,
-		},
+	runStartChildItemSuccess(
+		t,
+		"/api/v1/my_project/item/suite-uuid-1",
+		"Login Test",
+		`{"id":"test-uuid-1"}`,
+		"test-uuid-1",
+		startChildCall,
 	)
-	require.NoError(t, err)
-	require.NotNil(t, result)
-	require.NotNil(t, result.Id)
-	assert.Equal(t, "test-uuid-1", *result.Id)
 }
 
 func TestTestItemScope_StartChild_Errors(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name       string
-		statusCode int
-		body       string
-		check      func(error) bool
-	}{
-		{
-			name:       "NotFound",
-			statusCode: http.StatusNotFound,
-			body:       `{"errorCode": 40440, "message": "Parent item not found."}`,
-			check:      client.IsNotFound,
-		},
-		{
-			name:       "Unauthorized",
-			statusCode: http.StatusUnauthorized,
-			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
-			check:      client.IsUnauthorized,
-		},
+	startChildErrCall := func(
+		cli *client.Client,
+		ctx context.Context,
+		parent string,
+		request types.StartTestItemRQ,
+	) error {
+		_, err := cli.Project("my_project").Items().StartChild(ctx, parent, request)
+
+		return err //nolint:wrapcheck // test forwards client errors unchanged
 	}
 
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			itemType := types.StartTestItemRQType("TEST")
-			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
-			_, err := testClient.Project("my_project").Items().StartChild(
-				t.Context(),
-				"missing-parent",
-				types.StartTestItemRQ{
-					LaunchUuid: "launch-uuid-1",
-					Name:       "Login Test",
-					StartTime:  time.Now(),
-					Type:       itemType,
-				},
-			)
-			require.Error(t, err)
-			assert.True(t, testCase.check(err))
-		})
-	}
+	runStartChildItemErrorTests(t, "Login Test", startChildErrCall)
 }
 
 func TestTestItemScope_Finish_Success(t *testing.T) {
 	t.Parallel()
 
-	endTime := time.UnixMilli(1700000005000).UTC()
-	status := types.FinishTestItemRQStatusPASSED
+	finishCall := func(
+		cli *client.Client,
+		ctx context.Context,
+		itemUUID string,
+		request types.FinishTestItemRQ,
+	) (*types.OperationCompletionRS, error) {
+		return cli.Project("my_project").Items().Finish(ctx, itemUUID, request)
+	}
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/test-uuid-1")
-		assertMethod(t, r, http.MethodPut)
-
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
-
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
-
-		assert.Equal(t, "launch-uuid-1", payload["launchUuid"])
-		assert.Equal(t, endTime.UTC().Format(time.RFC3339Nano), payload["endTime"])
-		assert.Equal(t, string(status), payload["status"])
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message":"Test item finished."}`))
-	}))
-
-	result, err := c.Project("my_project").Items().Finish(
-		t.Context(),
-		"test-uuid-1",
-		types.FinishTestItemRQ{
-			LaunchUuid: "launch-uuid-1",
-			EndTime:    endTime,
-			Status:     &status,
-		},
+	runFinishItemSuccess(
+		t,
+		"/api/v1/my_project/item/test-uuid-1",
+		finishCall,
 	)
-	require.NoError(t, err)
-	require.NotNil(t, result)
-	require.NotNil(t, result.Message)
-	assert.Equal(t, "Test item finished.", *result.Message)
 }
 
 func TestTestItemScope_Finish_Errors(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name       string
-		statusCode int
-		body       string
-		check      func(error) bool
-	}{
-		{
-			name:       "NotFound",
-			statusCode: http.StatusNotFound,
-			body:       `{"errorCode": 40440, "message": "Test item not found."}`,
-			check:      client.IsNotFound,
-		},
-		{
-			name:       "Unauthorized",
-			statusCode: http.StatusUnauthorized,
-			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
-			check:      client.IsUnauthorized,
-		},
+	finishErrCall := func(
+		cli *client.Client,
+		ctx context.Context,
+		itemUUID string,
+		request types.FinishTestItemRQ,
+	) error {
+		_, err := cli.Project("my_project").Items().Finish(ctx, itemUUID, request)
+
+		return err //nolint:wrapcheck // test forwards client errors unchanged
 	}
 
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			status := types.FinishTestItemRQStatusPASSED
-			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
-			_, err := testClient.Project("my_project").Items().Finish(
-				t.Context(),
-				"missing-item",
-				types.FinishTestItemRQ{
-					LaunchUuid: "launch-uuid-1",
-					EndTime:    time.Now(),
-					Status:     &status,
-				},
-			)
-			require.Error(t, err)
-			assert.True(t, testCase.check(err))
-		})
-	}
+	runFinishItemErrorTests(t, finishErrCall)
 }
 
 func TestTestItemScope_StartRootAsync_Success(t *testing.T) {
 	t.Parallel()
 
-	startTime := time.UnixMilli(1700000000000).UTC()
-	itemType := types.StartTestItemRQType("SUITE")
-	hasStats := true
+	startRootAsyncCall := func(
+		cli *client.Client,
+		ctx context.Context,
+		request types.StartTestItemRQ,
+	) (*types.EntryCreatedAsyncRS, error) {
+		return cli.Project("my_project").Items().StartRootAsync(ctx, request)
+	}
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v2/my_project/item")
-		assertMethod(t, r, http.MethodPost)
-
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
-
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
-
-		assert.Equal(t, "launch-uuid-1", payload["launchUuid"])
-		assert.Equal(t, "Async Suite", payload["name"])
-		assert.Equal(t, startTime.UTC().Format(time.RFC3339Nano), payload["startTime"])
-		assert.Equal(t, string(itemType), payload["type"])
-		assert.Equal(t, true, payload["hasStats"])
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		_, _ = w.Write([]byte(`{"id":"async-suite-uuid-1"}`))
-	}))
-
-	result, err := c.Project("my_project").Items().StartRootAsync(
-		t.Context(),
-		types.StartTestItemRQ{
-			LaunchUuid: "launch-uuid-1",
-			Name:       "Async Suite",
-			StartTime:  startTime,
-			Type:       itemType,
-			HasStats:   &hasStats,
-		},
+	runStartRootItemSuccess(
+		t,
+		"/api/v2/my_project/item",
+		"Async Suite",
+		`{"id":"async-suite-uuid-1"}`,
+		"async-suite-uuid-1",
+		startRootAsyncCall,
 	)
-	require.NoError(t, err)
-	require.NotNil(t, result)
-	require.NotNil(t, result.Id)
-	assert.Equal(t, "async-suite-uuid-1", *result.Id)
 }
 
 func TestTestItemScope_StartRootAsync_Errors(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name       string
-		statusCode int
-		body       string
-		check      func(error) bool
-	}{
-		{
-			name:       "BadRequest",
-			statusCode: http.StatusBadRequest,
-			body:       `{"errorCode": 4001, "message": "Invalid test item payload."}`,
-			check:      client.IsBadRequest,
-		},
-		{
-			name:       "Unauthorized",
-			statusCode: http.StatusUnauthorized,
-			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
-			check:      client.IsUnauthorized,
-		},
+	startRootAsyncErrCall := func(
+		cli *client.Client,
+		ctx context.Context,
+		request types.StartTestItemRQ,
+	) error {
+		_, err := cli.Project("my_project").Items().StartRootAsync(ctx, request)
+
+		return err //nolint:wrapcheck // test forwards client errors unchanged
 	}
 
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			itemType := types.StartTestItemRQType("SUITE")
-			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
-			_, err := testClient.Project("my_project").Items().StartRootAsync(
-				t.Context(),
-				types.StartTestItemRQ{
-					LaunchUuid: "launch-uuid-1",
-					Name:       "Async Suite",
-					StartTime:  time.Now(),
-					Type:       itemType,
-				},
-			)
-			require.Error(t, err)
-			assert.True(t, testCase.check(err))
-		})
-	}
+	runStartRootItemErrorTests(t, "Async Suite", startRootAsyncErrCall)
 }
 
 func TestTestItemScope_StartChildAsync_Success(t *testing.T) {
 	t.Parallel()
 
-	startTime := time.UnixMilli(1700000001000).UTC()
-	itemType := types.StartTestItemRQType("TEST")
-	hasStats := true
+	startChildAsyncCall := func(
+		cli *client.Client,
+		ctx context.Context,
+		parent string,
+		request types.StartTestItemRQ,
+	) (*types.EntryCreatedAsyncRS, error) {
+		return cli.Project("my_project").Items().StartChildAsync(ctx, parent, request)
+	}
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v2/my_project/item/suite-uuid-1")
-		assertMethod(t, r, http.MethodPost)
-
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
-
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
-
-		assert.Equal(t, "launch-uuid-1", payload["launchUuid"])
-		assert.Equal(t, "Async Test", payload["name"])
-		assert.Equal(t, startTime.UTC().Format(time.RFC3339Nano), payload["startTime"])
-		assert.Equal(t, string(itemType), payload["type"])
-		assert.Equal(t, true, payload["hasStats"])
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		_, _ = w.Write([]byte(`{"id":"async-test-uuid-1"}`))
-	}))
-
-	result, err := c.Project("my_project").Items().StartChildAsync(
-		t.Context(),
-		"suite-uuid-1",
-		types.StartTestItemRQ{
-			LaunchUuid: "launch-uuid-1",
-			Name:       "Async Test",
-			StartTime:  startTime,
-			Type:       itemType,
-			HasStats:   &hasStats,
-		},
+	runStartChildItemSuccess(
+		t,
+		"/api/v2/my_project/item/suite-uuid-1",
+		"Async Test",
+		`{"id":"async-test-uuid-1"}`,
+		"async-test-uuid-1",
+		startChildAsyncCall,
 	)
-	require.NoError(t, err)
-	require.NotNil(t, result)
-	require.NotNil(t, result.Id)
-	assert.Equal(t, "async-test-uuid-1", *result.Id)
 }
 
 func TestTestItemScope_StartChildAsync_Errors(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name       string
-		statusCode int
-		body       string
-		check      func(error) bool
-	}{
-		{
-			name:       "NotFound",
-			statusCode: http.StatusNotFound,
-			body:       `{"errorCode": 40440, "message": "Parent item not found."}`,
-			check:      client.IsNotFound,
-		},
-		{
-			name:       "Unauthorized",
-			statusCode: http.StatusUnauthorized,
-			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
-			check:      client.IsUnauthorized,
-		},
+	startChildAsyncErrCall := func(
+		cli *client.Client,
+		ctx context.Context,
+		parent string,
+		request types.StartTestItemRQ,
+	) error {
+		_, err := cli.Project("my_project").Items().StartChildAsync(ctx, parent, request)
+
+		return err //nolint:wrapcheck // test forwards client errors unchanged
 	}
 
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			itemType := types.StartTestItemRQType("TEST")
-			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
-			_, err := testClient.Project("my_project").Items().StartChildAsync(
-				t.Context(),
-				"missing-parent",
-				types.StartTestItemRQ{
-					LaunchUuid: "launch-uuid-1",
-					Name:       "Async Test",
-					StartTime:  time.Now(),
-					Type:       itemType,
-				},
-			)
-			require.Error(t, err)
-			assert.True(t, testCase.check(err))
-		})
-	}
+	runStartChildItemErrorTests(t, "Async Test", startChildAsyncErrCall)
 }
 
 func TestTestItemScope_FinishAsync_Success(t *testing.T) {
 	t.Parallel()
 
-	endTime := time.UnixMilli(1700000005000).UTC()
-	status := types.FinishTestItemRQStatusPASSED
+	finishAsyncCall := func(
+		cli *client.Client,
+		ctx context.Context,
+		itemUUID string,
+		request types.FinishTestItemRQ,
+	) (*types.OperationCompletionRS, error) {
+		return cli.Project("my_project").Items().FinishAsync(ctx, itemUUID, request)
+	}
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v2/my_project/item/test-uuid-1")
-		assertMethod(t, r, http.MethodPut)
-
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
-
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
-
-		assert.Equal(t, "launch-uuid-1", payload["launchUuid"])
-		assert.Equal(t, endTime.UTC().Format(time.RFC3339Nano), payload["endTime"])
-		assert.Equal(t, string(status), payload["status"])
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message":"Test item finished."}`))
-	}))
-
-	result, err := c.Project("my_project").Items().FinishAsync(
-		t.Context(),
-		"test-uuid-1",
-		types.FinishTestItemRQ{
-			LaunchUuid: "launch-uuid-1",
-			EndTime:    endTime,
-			Status:     &status,
-		},
+	runFinishItemSuccess(
+		t,
+		"/api/v2/my_project/item/test-uuid-1",
+		finishAsyncCall,
 	)
-	require.NoError(t, err)
-	require.NotNil(t, result)
-	require.NotNil(t, result.Message)
-	assert.Equal(t, "Test item finished.", *result.Message)
 }
 
 func TestTestItemScope_FinishAsync_Errors(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name       string
-		statusCode int
-		body       string
-		check      func(error) bool
-	}{
-		{
-			name:       "NotFound",
-			statusCode: http.StatusNotFound,
-			body:       `{"errorCode": 40440, "message": "Test item not found."}`,
-			check:      client.IsNotFound,
-		},
-		{
-			name:       "Unauthorized",
-			statusCode: http.StatusUnauthorized,
-			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
-			check:      client.IsUnauthorized,
-		},
+	finishAsyncErrCall := func(
+		cli *client.Client,
+		ctx context.Context,
+		itemUUID string,
+		request types.FinishTestItemRQ,
+	) error {
+		_, err := cli.Project("my_project").Items().FinishAsync(ctx, itemUUID, request)
+
+		return err //nolint:wrapcheck // test forwards client errors unchanged
 	}
 
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			status := types.FinishTestItemRQStatusPASSED
-			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
-			_, err := testClient.Project("my_project").Items().FinishAsync(
-				t.Context(),
-				"missing-item",
-				types.FinishTestItemRQ{
-					LaunchUuid: "launch-uuid-1",
-					EndTime:    time.Now(),
-					Status:     &status,
-				},
-			)
-			require.Error(t, err)
-			assert.True(t, testCase.check(err))
-		})
-	}
+	runFinishItemErrorTests(t, finishAsyncErrCall)
 }
 
 func TestTestItemScope_List_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClientItemListOrSearchGET(t, "/api/v1/my_project/item")
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-
-		_, _ = w.Write([]byte(`{
-			"content": [
-				{"id": 101, "uuid": "suite-101", "name": "Suite A", "status": "PASSED", "type": "SUITE"},
-				{"id": 102, "uuid": "test-102", "name": "Test A", "status": "FAILED", "type": "TEST"}
-			],
-			"page": {"number": 0, "size": 10, "totalElements": 2, "totalPages": 1}
-		}`))
-	}))
-
-	result, err := c.Project("my_project").Items().List(t.Context())
+	result, err := testClient.Project("my_project").Items().List(t.Context())
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.Content)
@@ -730,31 +445,33 @@ func TestTestItemScope_List_Success(t *testing.T) {
 func TestTestItemScope_List_WithFilterOptions(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertPath(t, r, "/api/v1/my_project/item")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertPath(t, httpReq, "/api/v1/my_project/item")
 
-		query := r.URL.Query()
-		assert.Equal(t, "123", query.Get("filter.eq.launchId"))
-		assert.Equal(t, "456", query.Get("filter.eq.parentId"))
-		assert.Equal(t, "SUITE", query.Get("filter.eq.type"))
-		assert.Equal(t, "Auth Suite", query.Get("filter.eq.name"))
-		assert.Equal(t, "FAILED", query.Get("filter.eq.status"))
-		assert.Equal(t, "true", query.Get("filter.eq.hasChildren"))
-		assert.Equal(t, "789", query.Get("filter.eq.path"))
-		assert.Equal(t, "2", query.Get("page.page"))
-		assert.Equal(t, "5", query.Get("page.size"))
-		assert.Equal(t, "startTime,desc", query.Get("page.sort"))
+			query := httpReq.URL.Query()
+			assert.Equal(t, "123", query.Get("filter.eq.launchId"))
+			assert.Equal(t, "456", query.Get("filter.eq.parentId"))
+			assert.Equal(t, "SUITE", query.Get("filter.eq.type"))
+			assert.Equal(t, "Auth Suite", query.Get("filter.eq.name"))
+			assert.Equal(t, "FAILED", query.Get("filter.eq.status"))
+			assert.Equal(t, "true", query.Get("filter.eq.hasChildren"))
+			assert.Equal(t, "789", query.Get("filter.eq.path"))
+			assert.Equal(t, "2", query.Get("page.page"))
+			assert.Equal(t, "5", query.Get("page.size"))
+			assert.Equal(t, "startTime,desc", query.Get("page.sort"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"content": [],
 			"page": {"number": 2, "size": 5, "totalElements": 0, "totalPages": 0}
 		}`))
-	}))
+		},
+	))
 
-	_, err := c.Project("my_project").Items().List(
+	_, err := testClient.Project("my_project").Items().List(
 		t.Context(),
 		client.WithItemLaunchID(123),
 		client.WithItemParentID(456),
@@ -773,14 +490,20 @@ func TestTestItemScope_List_WithFilterOptions(t *testing.T) {
 func TestItemScope_List_WithSortCleared(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Empty(t, r.URL.Query().Get("page.sort"))
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assert.Empty(t, httpReq.URL.Query().Get("page.sort"))
 
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"content":[],"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			_, _ = responseWriter.Write(
+				[]byte(
+					`{"content":[],"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}}`,
+				),
+			)
+		},
+	))
 
-	_, err := c.Project("my_project").Items().List(t.Context(), client.WithItemSort())
+	_, err := testClient.Project("my_project").Items().List(t.Context(), client.WithItemSort())
 	require.NoError(t, err)
 }
 
@@ -801,7 +524,7 @@ func runGetByIDsTestCase(t *testing.T, testCase getByIDsTestCase) {
 	testClient := newTestClient(
 		t,
 		http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
-			assertBearerToken(t, request, "test-token")
+			assertBearerToken(t, request)
 			assertPath(t, request, "/api/v1/my_project/item/items")
 			assertMethod(t, request, http.MethodGet)
 
@@ -889,25 +612,14 @@ func TestTestItemScope_Update_Success(t *testing.T) {
 
 	description := "Updated item description"
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/42/update")
-		assertMethod(t, r, http.MethodPut)
+	testClient := newTestClientDescriptionPUTUpdateSuccess(
+		t,
+		"/api/v1/my_project/item/42/update",
+		description,
+		`{"message":"Test item successfully updated."}`,
+	)
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
-
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
-
-		assert.Equal(t, "Updated item description", payload["description"])
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message":"Test item successfully updated."}`))
-	}))
-
-	result, err := c.Project("my_project").Items().Update(
+	result, err := testClient.Project("my_project").Items().Update(
 		t.Context(),
 		42,
 		types.UpdateTestItemRQ{
@@ -920,6 +632,7 @@ func TestTestItemScope_Update_Success(t *testing.T) {
 	assert.Equal(t, "Test item successfully updated.", *result.Message)
 }
 
+//nolint:dupl // structured like sibling tests; shared HTTP/table scaffolding
 func TestTestItemScope_Update_Errors(t *testing.T) {
 	t.Parallel()
 
@@ -963,17 +676,19 @@ func TestTestItemScope_Update_Errors(t *testing.T) {
 func TestTestItemScope_Delete_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/42")
-		assertMethod(t, r, http.MethodDelete)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/item/42")
+			assertMethod(t, httpReq, http.MethodDelete)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message":"Test item successfully deleted."}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{"message":"Test item successfully deleted."}`))
+		},
+	))
 
-	result, err := c.Project("my_project").Items().Delete(t.Context(), 42)
+	result, err := testClient.Project("my_project").Items().Delete(t.Context(), 42)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.Message)
@@ -1013,26 +728,31 @@ func TestTestItemScope_Delete_Errors(t *testing.T) {
 func TestTestItemScope_DefineIssueType_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item")
-		assertMethod(t, r, http.MethodPut)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/item")
+			assertMethod(t, httpReq, http.MethodPut)
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			payload, ok := decodeRequestJSONMap(t, httpReq)
+			if !ok {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
+			issues, okCast := payload["issues"].([]any)
+			if !assert.True(t, okCast, "issues should be an array") {
+				return
+			}
 
-		issues := payload["issues"].([]any)
-		assert.Len(t, issues, 1)
+			assert.Len(t, issues, 1)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`[{"issueType":"pb001","comment":"Product bug"}]`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`[{"issueType":"pb001","comment":"Product bug"}]`))
+		},
+	))
 
-	issues, err := c.Project("my_project").Items().DefineIssueType(
+	issues, err := testClient.Project("my_project").Items().DefineIssueType(
 		t.Context(),
 		types.DefineIssueRQ{
 			Issues: []types.IssueDefinition{
@@ -1088,20 +808,23 @@ func TestTestItemScope_DefineIssueType_Errors(t *testing.T) {
 func TestTestItemScope_DeleteBulk_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item")
-		assertMethod(t, r, http.MethodDelete)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/item")
+			assertMethod(t, httpReq, http.MethodDelete)
 
-		query := r.URL.Query()["ids"]
-		assert.Equal(t, []string{"101", "202"}, query)
+			query := httpReq.URL.Query()["ids"]
+			assert.Equal(t, []string{"101", "202"}, query)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`[{"message":"Items successfully deleted."}]`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`[{"message":"Items successfully deleted."}]`))
+		},
+	))
 
-	result, err := c.Project("my_project").Items().DeleteBulk(t.Context(), []int64{101, 202})
+	result, err := testClient.Project("my_project").Items().
+		DeleteBulk(t.Context(), []int64{101, 202})
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Len(t, result, 1)
@@ -1109,6 +832,7 @@ func TestTestItemScope_DeleteBulk_Success(t *testing.T) {
 	assert.Equal(t, "Items successfully deleted.", *result[0].Message)
 }
 
+//nolint:dupl // structured like sibling tests; shared HTTP/table scaffolding
 func TestTestItemScope_DeleteBulk_Errors(t *testing.T) {
 	t.Parallel()
 
@@ -1151,28 +875,15 @@ func TestTestItemScope_DeleteBulk_Errors(t *testing.T) {
 func TestTestItemScope_BulkUpdate_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/info")
-		assertMethod(t, r, http.MethodPut)
-
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
-
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
-
-		ids := payload["ids"].([]any)
-		assert.Len(t, ids, 2)
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message":"Items successfully updated."}`))
-	}))
+	testClient := newTestClientBulkInfoPUTSuccess(
+		t,
+		"/api/v1/my_project/item/info",
+		`{"message":"Items successfully updated."}`,
+	)
 
 	comment := "Updated via bulk"
 	description := types.Description{Comment: &comment}
-	result, err := c.Project("my_project").Items().BulkUpdate(
+	result, err := testClient.Project("my_project").Items().BulkUpdate(
 		t.Context(),
 		types.BulkInfoUpdateRQ{
 			Ids:         []int64{101, 202},
@@ -1188,63 +899,31 @@ func TestTestItemScope_BulkUpdate_Success(t *testing.T) {
 func TestTestItemScope_BulkUpdate_Errors(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name       string
-		statusCode int
-		body       string
-		check      func(error) bool
-	}{
-		{
-			name:       "BadRequest",
-			statusCode: http.StatusBadRequest,
-			body:       `{"errorCode": 4001, "message": "Invalid bulk update payload."}`,
-			check:      client.IsBadRequest,
+	runBulkInfoUpdateBadRequestUnauthorizedErrorTests(
+		t,
+		types.BulkInfoUpdateRQ{Ids: []int64{101, 202}},
+		func(cli *client.Client, ctx context.Context, request types.BulkInfoUpdateRQ) error {
+			_, err := cli.Project("my_project").Items().BulkUpdate(ctx, request)
+
+			return err //nolint:wrapcheck // test forwards client errors unchanged
 		},
-		{
-			name:       "Unauthorized",
-			statusCode: http.StatusUnauthorized,
-			body:       `{"errorCode": 4001, "message": "Full authentication is required."}`,
-			check:      client.IsUnauthorized,
-		},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			testClient := newTestClient(t, jsonResponse(testCase.statusCode, testCase.body))
-			_, err := testClient.Project("my_project").Items().BulkUpdate(
-				t.Context(),
-				types.BulkInfoUpdateRQ{
-					Ids: []int64{101, 202},
-				},
-			)
-
-			require.Error(t, err)
-			assert.True(t, testCase.check(err))
-		})
-	}
+	)
 }
 
 func TestTestItemScope_GetAttributeKeys_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/attribute/keys")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClientItemAttributeKeysGET(
+		t,
+		"/api/v1/my_project/item/attribute/keys",
+		map[string]string{
+			"filter.cnt.attributeKey": "env",
+			"launch":                  "42",
+		},
+		`["environment","env.type"]`,
+	)
 
-		query := r.URL.Query()
-		assert.Equal(t, "env", query.Get("filter.cnt.attributeKey"))
-		assert.Equal(t, "42", query.Get("launch"))
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-
-		_, _ = w.Write([]byte(`["environment","env.type"]`))
-	}))
-
-	keys, err := c.Project("my_project").Items().GetAttributeKeys(t.Context(), 42, "env")
+	keys, err := testClient.Project("my_project").Items().GetAttributeKeys(t.Context(), 42, "env")
 	require.NoError(t, err)
 	require.Equal(t, []string{"environment", "env.type"}, keys)
 }
@@ -1290,22 +969,17 @@ func TestTestItemScope_GetAttributeKeys_Errors(t *testing.T) {
 func TestTestItemScope_GetAttributeKeysForProject_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/attribute/keys/all")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClientItemAttributeKeysGET(
+		t,
+		"/api/v1/my_project/item/attribute/keys/all",
+		map[string]string{
+			"filter.cnt.attributeKey": "build",
+			"filterId":                "99",
+		},
+		`["build.number","build.branch"]`,
+	)
 
-		query := r.URL.Query()
-		assert.Equal(t, "build", query.Get("filter.cnt.attributeKey"))
-		assert.Equal(t, "99", query.Get("filterId"))
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-
-		_, _ = w.Write([]byte(`["build.number","build.branch"]`))
-	}))
-
-	keys, err := c.Project("my_project").Items().GetAttributeKeysForProject(
+	keys, err := testClient.Project("my_project").Items().GetAttributeKeysForProject(
 		t.Context(), 99, "build",
 	)
 	require.NoError(t, err)
@@ -1315,24 +989,26 @@ func TestTestItemScope_GetAttributeKeysForProject_Success(t *testing.T) {
 func TestTestItemScope_GetAttributeKeysForProject_WithOptions(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/attribute/keys/all")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/item/attribute/keys/all")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		query := r.URL.Query()
-		assert.Equal(t, "tag", query.Get("filter.cnt.attributeKey"))
-		assert.Equal(t, "50", query.Get("filterId"))
-		assert.Equal(t, "true", query.Get("isLatest"))
-		assert.Equal(t, "10", query.Get("launchesLimit"))
+			query := httpReq.URL.Query()
+			assert.Equal(t, "tag", query.Get("filter.cnt.attributeKey"))
+			assert.Equal(t, "50", query.Get("filterId"))
+			assert.Equal(t, "true", query.Get("isLatest"))
+			assert.Equal(t, "10", query.Get("launchesLimit"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`["tag.priority"]`))
-	}))
+			_, _ = responseWriter.Write([]byte(`["tag.priority"]`))
+		},
+	))
 
-	keys, err := c.Project("my_project").Items().GetAttributeKeysForProject(
+	keys, err := testClient.Project("my_project").Items().GetAttributeKeysForProject(
 		t.Context(), 50, "tag",
 		client.WithProjectKeysLatest(true),
 		client.WithProjectKeysLaunchesLimit(10),
@@ -1344,23 +1020,25 @@ func TestTestItemScope_GetAttributeKeysForProject_WithOptions(t *testing.T) {
 func TestTestItemScope_GetAttributeValues_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/attribute/values")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/item/attribute/values")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		query := r.URL.Query()
-		assert.Equal(t, "prod", query.Get("filter.cnt.attributeValue"))
-		assert.Empty(t, query.Get("filter.eq.attributeKey"))
-		assert.Equal(t, "42", query.Get("launch"))
+			query := httpReq.URL.Query()
+			assert.Equal(t, "prod", query.Get("filter.cnt.attributeValue"))
+			assert.Empty(t, query.Get("filter.eq.attributeKey"))
+			assert.Equal(t, "42", query.Get("launch"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`["production","prod-east"]`))
-	}))
+			_, _ = responseWriter.Write([]byte(`["production","prod-east"]`))
+		},
+	))
 
-	values, err := c.Project("my_project").Items().GetAttributeValues(
+	values, err := testClient.Project("my_project").Items().GetAttributeValues(
 		t.Context(), 42, "prod", nil,
 	)
 	require.NoError(t, err)
@@ -1372,23 +1050,25 @@ func TestTestItemScope_GetAttributeValues_WithAttributeKey(t *testing.T) {
 
 	key := "environment"
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/attribute/values")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/item/attribute/values")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		query := r.URL.Query()
-		assert.Equal(t, "stag", query.Get("filter.cnt.attributeValue"))
-		assert.Equal(t, "environment", query.Get("filter.eq.attributeKey"))
-		assert.Equal(t, "42", query.Get("launch"))
+			query := httpReq.URL.Query()
+			assert.Equal(t, "stag", query.Get("filter.cnt.attributeValue"))
+			assert.Equal(t, "environment", query.Get("filter.eq.attributeKey"))
+			assert.Equal(t, "42", query.Get("launch"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`["staging"]`))
-	}))
+			_, _ = responseWriter.Write([]byte(`["staging"]`))
+		},
+	))
 
-	values, err := c.Project("my_project").Items().GetAttributeValues(
+	values, err := testClient.Project("my_project").Items().GetAttributeValues(
 		t.Context(), 42, "stag", &key,
 	)
 	require.NoError(t, err)
@@ -1433,25 +1113,28 @@ func TestTestItemScope_GetAttributeValues_Errors(t *testing.T) {
 	}
 }
 
+//nolint:dupl // structured like sibling tests; shared HTTP/table scaffolding
 func TestTestItemScope_GetStepAttributeKeys_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/step/attribute/keys")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/item/step/attribute/keys")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		query := r.URL.Query()
-		assert.Equal(t, "retry", query.Get("filter.cnt.attributeKey"))
-		assert.Empty(t, query.Get("filter.eq.name"))
+			query := httpReq.URL.Query()
+			assert.Equal(t, "retry", query.Get("filter.cnt.attributeKey"))
+			assert.Empty(t, query.Get("filter.eq.name"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`["retry.count","retry.reason"]`))
-	}))
+			_, _ = responseWriter.Write([]byte(`["retry.count","retry.reason"]`))
+		},
+	))
 
-	keys, err := c.Project("my_project").Items().GetStepAttributeKeys(
+	keys, err := testClient.Project("my_project").Items().GetStepAttributeKeys(
 		t.Context(), "retry", nil,
 	)
 	require.NoError(t, err)
@@ -1463,22 +1146,24 @@ func TestTestItemScope_GetStepAttributeKeys_WithStepName(t *testing.T) {
 
 	stepName := "Login Step"
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/step/attribute/keys")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/item/step/attribute/keys")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		query := r.URL.Query()
-		assert.Equal(t, "tag", query.Get("filter.cnt.attributeKey"))
-		assert.Equal(t, "Login Step", query.Get("filter.eq.name"))
+			query := httpReq.URL.Query()
+			assert.Equal(t, "tag", query.Get("filter.cnt.attributeKey"))
+			assert.Equal(t, "Login Step", query.Get("filter.eq.name"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`["tag.auth"]`))
-	}))
+			_, _ = responseWriter.Write([]byte(`["tag.auth"]`))
+		},
+	))
 
-	keys, err := c.Project("my_project").Items().GetStepAttributeKeys(
+	keys, err := testClient.Project("my_project").Items().GetStepAttributeKeys(
 		t.Context(), "tag", &stepName,
 	)
 	require.NoError(t, err)
@@ -1526,23 +1211,25 @@ func TestTestItemScope_GetStepAttributeKeys_Errors(t *testing.T) {
 func TestTestItemScope_GetStepAttributeValues_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/step/attribute/values")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/item/step/attribute/values")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		query := r.URL.Query()
-		assert.Equal(t, "pass", query.Get("filter.cnt.attributeValue"))
-		assert.Empty(t, query.Get("filter.eq.attributeKey"))
-		assert.Empty(t, query.Get("filter.eq.name"))
+			query := httpReq.URL.Query()
+			assert.Equal(t, "pass", query.Get("filter.cnt.attributeValue"))
+			assert.Empty(t, query.Get("filter.eq.attributeKey"))
+			assert.Empty(t, query.Get("filter.eq.name"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`["password","passphrase"]`))
-	}))
+			_, _ = responseWriter.Write([]byte(`["password","passphrase"]`))
+		},
+	))
 
-	values, err := c.Project("my_project").Items().GetStepAttributeValues(
+	values, err := testClient.Project("my_project").Items().GetStepAttributeValues(
 		t.Context(), "pass", nil, nil,
 	)
 	require.NoError(t, err)
@@ -1555,23 +1242,25 @@ func TestTestItemScope_GetStepAttributeValues_WithAllFilters(t *testing.T) {
 	key := "status"
 	stepName := "Verify Step"
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/step/attribute/values")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/item/step/attribute/values")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		query := r.URL.Query()
-		assert.Equal(t, "ok", query.Get("filter.cnt.attributeValue"))
-		assert.Equal(t, "status", query.Get("filter.eq.attributeKey"))
-		assert.Equal(t, "Verify Step", query.Get("filter.eq.name"))
+			query := httpReq.URL.Query()
+			assert.Equal(t, "ok", query.Get("filter.cnt.attributeValue"))
+			assert.Equal(t, "status", query.Get("filter.eq.attributeKey"))
+			assert.Equal(t, "Verify Step", query.Get("filter.eq.name"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`["ok","ok_with_warnings"]`))
-	}))
+			_, _ = responseWriter.Write([]byte(`["ok","ok_with_warnings"]`))
+		},
+	))
 
-	values, err := c.Project("my_project").Items().GetStepAttributeValues(
+	values, err := testClient.Project("my_project").Items().GetStepAttributeValues(
 		t.Context(), "ok", &key, &stepName,
 	)
 	require.NoError(t, err)
@@ -1619,17 +1308,18 @@ func TestTestItemScope_GetStepAttributeValues_Errors(t *testing.T) {
 func TestTestItemScope_GetHistory_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/history")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/item/history")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		assert.Equal(t, "5", r.URL.Query().Get("historyDepth"))
+			assert.Equal(t, "5", httpReq.URL.Query().Get("historyDepth"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"content": [
 				{
 					"groupingField": "test-case-1",
@@ -1646,9 +1336,10 @@ func TestTestItemScope_GetHistory_Success(t *testing.T) {
 				"totalPages": 1
 			}
 		}`))
-	}))
+		},
+	))
 
-	result, err := c.Project("my_project").Items().GetHistory(
+	result, err := testClient.Project("my_project").Items().GetHistory(
 		t.Context(),
 		client.WithHistoryDepth(5),
 	)
@@ -1665,26 +1356,28 @@ func TestTestItemScope_GetHistory_Success(t *testing.T) {
 func TestTestItemScope_GetHistory_WithOptions(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/history")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/item/history")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		q := r.URL.Query()
-		assert.Equal(t, "10", q.Get("historyDepth"))
-		assert.Equal(t, "42", q.Get("filter.eq.launchId"))
-		assert.Equal(t, "FAILED", q.Get("filter.eq.status"))
+			q := httpReq.URL.Query()
+			assert.Equal(t, "10", q.Get("historyDepth"))
+			assert.Equal(t, "42", q.Get("filter.eq.launchId"))
+			assert.Equal(t, "FAILED", q.Get("filter.eq.status"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"content": [],
 			"page": {"number": 0, "size": 20, "totalElements": 0, "totalPages": 0}
 		}`))
-	}))
+		},
+	))
 
-	result, err := c.Project("my_project").Items().GetHistory(
+	result, err := testClient.Project("my_project").Items().GetHistory(
 		t.Context(),
 		client.WithHistoryDepth(10),
 		client.WithHistoryLaunchID(42),
@@ -1793,26 +1486,29 @@ func TestTestItemScope_GetHistory_WithAdditionalOptions(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				query := r.URL.Query()
+			testClient := newTestClient(t, http.HandlerFunc(
+				func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+					query := httpReq.URL.Query()
 
-				for key, expectedValue := range tt.expected {
-					assert.Equal(t, expectedValue, query.Get(key),
-						"query parameter mismatch for "+key)
-				}
+					for key, expectedValue := range testCase.expected {
+						assert.Equal(t, expectedValue, query.Get(key),
+							"query parameter mismatch for "+key)
+					}
 
-				w.Header().Set("Content-Type", "application/json")
-				_, _ = w.Write([]byte(`{
+					responseWriter.Header().Set("Content-Type", "application/json")
+					_, _ = responseWriter.Write([]byte(`{
 					"content": [],
 					"page": {"number": 0, "size": 20, "totalElements": 0, "totalPages": 0}
 				}`))
-			}))
+				},
+			))
 
-			_, err := c.Project("my_project").Items().GetHistory(t.Context(), tt.option)
+			_, err := testClient.Project("my_project").Items().
+				GetHistory(t.Context(), testCase.option)
 			require.NoError(t, err)
 		})
 	}
@@ -1863,26 +1559,29 @@ func TestTestItemScope_GetStatistics_WithOptions(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				query := r.URL.Query()
+			testClient := newTestClient(t, http.HandlerFunc(
+				func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+					query := httpReq.URL.Query()
 
-				for key, expectedValue := range tt.expected {
-					assert.Equal(t, expectedValue, query.Get(key),
-						"query parameter mismatch for "+key)
-				}
+					for key, expectedValue := range testCase.expected {
+						assert.Equal(t, expectedValue, query.Get(key),
+							"query parameter mismatch for "+key)
+					}
 
-				w.Header().Set("Content-Type", "application/json")
-				_, _ = w.Write([]byte(`{
+					responseWriter.Header().Set("Content-Type", "application/json")
+					_, _ = responseWriter.Write([]byte(`{
 					"executions": {},
 					"defects": {}
 				}`))
-			}))
+				},
+			))
 
-			_, err := c.Project("my_project").Items().GetStatistics(t.Context(), tt.option)
+			_, err := testClient.Project("my_project").Items().
+				GetStatistics(t.Context(), testCase.option)
 			require.NoError(t, err)
 		})
 	}
@@ -1891,26 +1590,28 @@ func TestTestItemScope_GetStatistics_WithOptions(t *testing.T) {
 func TestTestItemScope_GetStatistics_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/statistics")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/item/statistics")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		assert.Equal(t, "123", r.URL.Query().Get("filter.eq.launchId"))
+			assert.Equal(t, "123", httpReq.URL.Query().Get("filter.eq.launchId"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"executions": {"passed": 10, "failed": 3, "skipped": 1, "total": 14},
 			"defects": {
 				"product_bug": {"pb001": 2},
 				"to_investigate": {"ti001": 1}
 			}
 		}`))
-	}))
+		},
+	))
 
-	result, err := c.Project("my_project").Items().GetStatistics(
+	result, err := testClient.Project("my_project").Items().GetStatistics(
 		t.Context(),
 		client.WithStatisticsLaunchID(123),
 	)
@@ -1924,6 +1625,7 @@ func TestTestItemScope_GetStatistics_Success(t *testing.T) {
 	assert.Equal(t, int32(2), (*result.Defects)["product_bug"]["pb001"])
 }
 
+//nolint:dupl // structured like sibling tests; shared HTTP/table scaffolding
 func TestTestItemScope_GetStatistics_Errors(t *testing.T) {
 	t.Parallel()
 
@@ -1963,23 +1665,25 @@ func TestTestItemScope_GetStatistics_Errors(t *testing.T) {
 func TestTestItemScope_GetSuggestedItems_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/suggest/42")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/item/suggest/42")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`[
+			_, _ = responseWriter.Write([]byte(`[
 			{
 				"testItemResource": {"id": 100, "name": "Similar Test"},
 				"suggestRs": {"issueType": "pb001", "matchScore": 0.95}
 			}
 		]`))
-	}))
+		},
+	))
 
-	items, err := c.Project("my_project").Items().GetSuggestedItems(t.Context(), 42)
+	items, err := testClient.Project("my_project").Items().GetSuggestedItems(t.Context(), 42)
 	require.NoError(t, err)
 	require.Len(t, items, 1)
 	require.NotNil(t, items[0].TestItemResource)
@@ -1991,6 +1695,7 @@ func TestTestItemScope_GetSuggestedItems_Success(t *testing.T) {
 	assert.Equal(t, "pb001", *items[0].SuggestRs.IssueType)
 }
 
+//nolint:dupl // structured like sibling tests; shared HTTP/table scaffolding
 func TestTestItemScope_GetSuggestedItems_Errors(t *testing.T) {
 	t.Parallel()
 
@@ -2030,15 +1735,16 @@ func TestTestItemScope_GetSuggestedItems_Errors(t *testing.T) {
 func TestTestItemScope_GetSuggestedClusterItems_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/suggest/cluster/99")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/item/suggest/cluster/99")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`[
+			_, _ = responseWriter.Write([]byte(`[
 			{
 				"testItemResource": {"id": 200, "name": "Cluster Match A"},
 				"suggestRs": {"clusterId": 99, "matchScore": 0.88}
@@ -2048,9 +1754,10 @@ func TestTestItemScope_GetSuggestedClusterItems_Success(t *testing.T) {
 				"suggestRs": {"clusterId": 99, "matchScore": 0.75}
 			}
 		]`))
-	}))
+		},
+	))
 
-	items, err := c.Project("my_project").Items().GetSuggestedClusterItems(t.Context(), 99)
+	items, err := testClient.Project("my_project").Items().GetSuggestedClusterItems(t.Context(), 99)
 	require.NoError(t, err)
 	require.Len(t, items, 2)
 	require.NotNil(t, items[0].TestItemResource)
@@ -2060,6 +1767,7 @@ func TestTestItemScope_GetSuggestedClusterItems_Success(t *testing.T) {
 	assert.Equal(t, "Cluster Match B", *items[1].TestItemResource.Name)
 }
 
+//nolint:dupl // structured like sibling tests; shared HTTP/table scaffolding
 func TestTestItemScope_GetSuggestedClusterItems_Errors(t *testing.T) {
 	t.Parallel()
 
@@ -2101,26 +1809,33 @@ func TestTestItemScope_GetSuggestedClusterItems_Errors(t *testing.T) {
 func TestTestItemScope_HandleSuggestChoice_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/suggest/choice")
-		assertMethod(t, r, http.MethodPut)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/item/suggest/choice")
+			assertMethod(t, httpReq, http.MethodPut)
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var payload []map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
-		assert.Len(t, payload, 1)
-		assert.Equal(t, "pb001", payload[0]["issueType"])
+			var payload []map[string]any
+			if !assert.NoError(t, json.Unmarshal(body, &payload)) {
+				return
+			}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message":"Suggestion choice applied."}`))
-	}))
+			assert.Len(t, payload, 1)
+			assert.Equal(t, "pb001", payload[0]["issueType"])
+
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{"message":"Suggestion choice applied."}`))
+		},
+	))
 
 	issueType := "pb001"
-	result, err := c.Project("my_project").Items().HandleSuggestChoice(
+	result, err := testClient.Project("my_project").Items().HandleSuggestChoice(
 		t.Context(),
 		[]types.SuggestInfo{
 			{IssueType: &issueType},
@@ -2174,39 +1889,57 @@ func TestTestItemScope_HandleSuggestChoice_Errors(t *testing.T) {
 func TestTestItemScope_LinkExternalIssues_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/issue/link")
-		assertMethod(t, r, http.MethodPut)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/item/issue/link")
+			assertMethod(t, httpReq, http.MethodPut)
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
+			var payload map[string]any
+			if !assert.NoError(t, json.Unmarshal(body, &payload)) {
+				return
+			}
 
-		testItemIds := payload["testItemIds"].([]any)
-		assert.Len(t, testItemIds, 1)
+			testItemIDs, okCast := payload["testItemIds"].([]any)
+			if !assert.True(t, okCast) {
+				return
+			}
 
-		issues, ok := payload["issues"].([]any)
-		require.True(t, ok)
-		require.Len(t, issues, 1)
+			assert.Len(t, testItemIDs, 1)
 
-		issue, ok := issues[0].(map[string]any)
-		require.True(t, ok)
-		assert.Equal(t, "JIRA-123", issue["ticketId"])
+			issues, ok := payload["issues"].([]any)
+			if !assert.True(t, ok) {
+				return
+			}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`[{"message":"Issues linked successfully."}]`))
-	}))
+			if !assert.Len(t, issues, 1) {
+				return
+			}
+
+			issue, okIssue := issues[0].(map[string]any)
+			if !assert.True(t, okIssue) {
+				return
+			}
+
+			assert.Equal(t, "JIRA-123", issue["ticketId"])
+
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`[{"message":"Issues linked successfully."}]`))
+		},
+	))
 
 	ticketID := "JIRA-123"
 	btsURL := "https://jira.example.com"
 	btsProject := "PROJ"
 	url := "https://jira.example.com/browse/JIRA-123"
 
-	result, err := c.Project("my_project").Items().LinkExternalIssues(
+	result, err := testClient.Project("my_project").Items().LinkExternalIssues(
 		t.Context(),
 		types.LinkExternalIssueRQ{
 			TestItemIds: []int64{42},
@@ -2268,30 +2001,44 @@ func TestTestItemScope_LinkExternalIssues_Errors(t *testing.T) {
 func TestTestItemScope_UnlinkExternalIssues_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/issue/unlink")
-		assertMethod(t, r, http.MethodPut)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/item/issue/unlink")
+			assertMethod(t, httpReq, http.MethodPut)
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
+			var payload map[string]any
+			if !assert.NoError(t, json.Unmarshal(body, &payload)) {
+				return
+			}
 
-		testItemIds := payload["testItemIds"].([]any)
-		assert.Len(t, testItemIds, 1)
+			testItemIDs, okCast := payload["testItemIds"].([]any)
+			if !assert.True(t, okCast) {
+				return
+			}
 
-		ticketIds := payload["ticketIds"].([]any)
-		assert.Len(t, ticketIds, 1)
-		assert.Equal(t, "JIRA-123", ticketIds[0])
+			assert.Len(t, testItemIDs, 1)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`[{"message":"Issues unlinked successfully."}]`))
-	}))
+			ticketIDs, okTickets := payload["ticketIds"].([]any)
+			if !assert.True(t, okTickets) {
+				return
+			}
 
-	result, err := c.Project("my_project").Items().UnlinkExternalIssues(
+			assert.Len(t, ticketIDs, 1)
+			assert.Equal(t, "JIRA-123", ticketIDs[0])
+
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`[{"message":"Issues unlinked successfully."}]`))
+		},
+	))
+
+	result, err := testClient.Project("my_project").Items().UnlinkExternalIssues(
 		t.Context(),
 		types.UnlinkExternalIssueRQ{
 			TestItemIds: []int64{42},
@@ -2349,24 +2096,9 @@ func TestTestItemScope_UnlinkExternalIssues_Errors(t *testing.T) {
 func TestTestItemScope_Search_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/search")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClientItemListOrSearchGET(t, "/api/v1/my_project/item/search")
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-
-		_, _ = w.Write([]byte(`{
-			"content": [
-				{"id": 101, "uuid": "suite-101", "name": "Suite A", "status": "PASSED", "type": "SUITE"},
-				{"id": 102, "uuid": "test-102", "name": "Test A", "status": "FAILED", "type": "TEST"}
-			],
-			"page": {"number": 0, "size": 10, "totalElements": 2, "totalPages": 1}
-		}`))
-	}))
-
-	result, err := c.Project("my_project").Items().Search(t.Context())
+	result, err := testClient.Project("my_project").Items().Search(t.Context())
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.Content)
@@ -2377,30 +2109,33 @@ func TestTestItemScope_Search_Success(t *testing.T) {
 	assert.EqualValues(t, 2, *result.Page.TotalElements)
 }
 
+//nolint:dupl // structured like sibling tests; shared HTTP/table scaffolding
 func TestTestItemScope_Search_WithOptions(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertPath(t, r, "/api/v1/my_project/item/search")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertPath(t, httpReq, "/api/v1/my_project/item/search")
 
-		query := r.URL.Query()
-		assert.Equal(t, "Login", query.Get("filter.cnt.name"))
-		assert.Equal(t, "env:prod", query.Get("filter.has.compositeAttribute"))
-		assert.Equal(t, "FAILED", query.Get("filter.in.status"))
-		assert.Equal(t, "1", query.Get("page.page"))
-		assert.Equal(t, "25", query.Get("page.size"))
-		assert.Equal(t, "startTime,desc", query.Get("page.sort"))
+			query := httpReq.URL.Query()
+			assert.Equal(t, "Login", query.Get("filter.cnt.name"))
+			assert.Equal(t, "env:prod", query.Get("filter.has.compositeAttribute"))
+			assert.Equal(t, "FAILED", query.Get("filter.in.status"))
+			assert.Equal(t, "1", query.Get("page.page"))
+			assert.Equal(t, "25", query.Get("page.size"))
+			assert.Equal(t, "startTime,desc", query.Get("page.sort"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"content": [],
 			"page": {"number": 1, "size": 25, "totalElements": 0, "totalPages": 0}
 		}`))
-	}))
+		},
+	))
 
-	_, err := c.Project("my_project").Items().Search(
+	_, err := testClient.Project("my_project").Items().Search(
 		t.Context(),
 		client.WithSearchItemName("Login"),
 		client.WithSearchItemAttribute("env:prod"),
@@ -2426,20 +2161,22 @@ func TestTestItemScope_Search_Unauthorized(t *testing.T) {
 func TestTestItemScope_Search_EmptyPage(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertPath(t, r, "/api/v1/my_project/item/search")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertPath(t, httpReq, "/api/v1/my_project/item/search")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"content": [],
 			"page": {"number": 0, "size": 10, "totalElements": 0, "totalPages": 0}
 		}`))
-	}))
+		},
+	))
 
-	result, err := c.Project("my_project").Items().Search(t.Context())
+	result, err := testClient.Project("my_project").Items().Search(t.Context())
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.Content)
@@ -2450,24 +2187,26 @@ func TestTestItemScope_Search_EmptyPage(t *testing.T) {
 func TestTestItemScope_ListV2_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/v2")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/item/v2")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"content": [
 				{"id": 201, "uuid": "suite-201", "name": "Suite B", "status": "PASSED", "type": "SUITE"},
 				{"id": 202, "uuid": "test-202", "name": "Test B", "status": "FAILED", "type": "TEST"}
 			],
 			"page": {"number": 0, "size": 10, "totalElements": 2, "totalPages": 1}
 		}`))
-	}))
+		},
+	))
 
-	result, err := c.Project("my_project").Items().ListV2(t.Context())
+	result, err := testClient.Project("my_project").Items().ListV2(t.Context())
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.Content)
@@ -2481,28 +2220,30 @@ func TestTestItemScope_ListV2_Success(t *testing.T) {
 func TestTestItemScope_ListV2_WithFilterOptions(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertPath(t, r, "/api/v1/my_project/item/v2")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertPath(t, httpReq, "/api/v1/my_project/item/v2")
 
-		query := r.URL.Query()
-		assert.Equal(t, "FAILED", query.Get("filter.eq.status"))
-		assert.Equal(t, "Auth Test", query.Get("filter.eq.name"))
-		assert.Equal(t, "123", query.Get("filter.eq.launchId"))
-		assert.Equal(t, "456", query.Get("filter.eq.parentId"))
-		assert.Equal(t, "2", query.Get("page.page"))
-		assert.Equal(t, "5", query.Get("page.size"))
-		assert.Equal(t, "startTime,desc", query.Get("page.sort"))
+			query := httpReq.URL.Query()
+			assert.Equal(t, "FAILED", query.Get("filter.eq.status"))
+			assert.Equal(t, "Auth Test", query.Get("filter.eq.name"))
+			assert.Equal(t, "123", query.Get("filter.eq.launchId"))
+			assert.Equal(t, "456", query.Get("filter.eq.parentId"))
+			assert.Equal(t, "2", query.Get("page.page"))
+			assert.Equal(t, "5", query.Get("page.size"))
+			assert.Equal(t, "startTime,desc", query.Get("page.sort"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"content": [],
 			"page": {"number": 2, "size": 5, "totalElements": 0, "totalPages": 0}
 		}`))
-	}))
+		},
+	))
 
-	_, err := c.Project("my_project").Items().ListV2(
+	_, err := testClient.Project("my_project").Items().ListV2(
 		t.Context(),
 		client.WithItemV2Status("FAILED"),
 		client.WithItemV2Name("Auth Test"),
@@ -2529,20 +2270,22 @@ func TestTestItemScope_ListV2_Unauthorized(t *testing.T) {
 func TestTestItemScope_ListV2_EmptyPage(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertPath(t, r, "/api/v1/my_project/item/v2")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertPath(t, httpReq, "/api/v1/my_project/item/v2")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"content": [],
 			"page": {"number": 0, "size": 10, "totalElements": 0, "totalPages": 0}
 		}`))
-	}))
+		},
+	))
 
-	result, err := c.Project("my_project").Items().ListV2(t.Context())
+	result, err := testClient.Project("my_project").Items().ListV2(t.Context())
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.Content)

@@ -12,27 +12,30 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//nolint:dupl // structured like sibling tests; shared HTTP/table scaffolding
 func TestFilterScope_List_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodGet)
-		assertPath(t, r, "/api/v1/my_project/filter")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodGet)
+			assertPath(t, httpReq, "/api/v1/my_project/filter")
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"content": [
 				{"id": 1, "name": "Filter 1", "type": "launch", "owner": "admin", "conditions": [], "orders": []},
 				{"id": 2, "name": "Filter 2", "type": "launch", "owner": "admin", "conditions": [], "orders": []}
 			],
 			"page": {"number": 1, "size": 10, "totalElements": 2, "totalPages": 1}
 		}`))
-	}))
+		},
+	))
 
-	result, err := c.Project("my_project").Filters().List(t.Context())
+	result, err := testClient.Project("my_project").Filters().List(t.Context())
 	require.NoError(t, err)
 	require.NotNil(t, result.Content)
 	require.Len(t, *result.Content, 2)
@@ -44,22 +47,24 @@ func TestFilterScope_List_Success(t *testing.T) {
 func TestFilterScope_List_WithOptions(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		query := r.URL.Query()
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			query := httpReq.URL.Query()
 
-		assert.Equal(t, "2", query.Get("page.page"))
-		assert.Equal(t, "5", query.Get("page.size"))
+			assert.Equal(t, "2", query.Get("page.page"))
+			assert.Equal(t, "5", query.Get("page.size"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"content": [],
 			"page": {"number": 2, "size": 5, "totalElements": 0, "totalPages": 0}
 		}`))
-	}))
+		},
+	))
 
-	_, err := c.Project("my_project").Filters().List(t.Context(),
+	_, err := testClient.Project("my_project").Filters().List(t.Context(),
 		client.WithFilterPageNumber(2),
 		client.WithFilterPageSize(5),
 	)
@@ -69,19 +74,21 @@ func TestFilterScope_List_WithOptions(t *testing.T) {
 func TestFilterScope_List_WithFilterSort(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "name,asc", r.URL.Query().Get("page.sort"))
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assert.Equal(t, "name,asc", httpReq.URL.Query().Get("page.sort"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"content": [],
 			"page": {"number": 0, "size": 20, "totalElements": 0, "totalPages": 0}
 		}`))
-	}))
+		},
+	))
 
-	_, err := c.Project("my_project").Filters().List(t.Context(),
+	_, err := testClient.Project("my_project").Filters().List(t.Context(),
 		client.WithFilterSort("name", "asc"),
 	)
 	require.NoError(t, err)
@@ -90,14 +97,19 @@ func TestFilterScope_List_WithFilterSort(t *testing.T) {
 func TestFilterScope_List_WithSortCleared(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Empty(t, r.URL.Query().Get("page.sort"))
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assert.Empty(t, httpReq.URL.Query().Get("page.sort"))
 
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"content":[],"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			_, _ = responseWriter.Write([]byte(`{
+				"content":[],
+				"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}
+			}`))
+		},
+	))
 
-	_, err := c.Project("my_project").Filters().List(t.Context(), client.WithFilterSort())
+	_, err := testClient.Project("my_project").Filters().List(t.Context(), client.WithFilterSort())
 	require.NoError(t, err)
 }
 
@@ -115,15 +127,16 @@ func TestFilterScope_List_Unauthorized(t *testing.T) {
 func TestFilterScope_GetByID_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/filter/42")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/filter/42")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"id": 42,
 			"name": "My Filter",
 			"type": "launch",
@@ -131,9 +144,10 @@ func TestFilterScope_GetByID_Success(t *testing.T) {
 			"conditions": [{"filteringField": "name", "condition": "eq", "value": "test"}],
 			"orders": [{"sortingColumn": "startTime", "isAsc": false}]
 		}`))
-	}))
+		},
+	))
 
-	filter, err := c.Project("my_project").Filters().GetByID(t.Context(), 42)
+	filter, err := testClient.Project("my_project").Filters().GetByID(t.Context(), 42)
 	require.NoError(t, err)
 
 	assert.Equal(t, int64(42), filter.Id)
@@ -156,24 +170,32 @@ func TestFilterScope_GetByID_NotFound(t *testing.T) {
 func TestFilterScope_Create_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/filter")
-		assertMethod(t, r, http.MethodPost)
+	createHandler := http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/filter")
+			assertMethod(t, httpReq, http.MethodPost)
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
+			var payload map[string]any
+			if !assert.NoError(t, json.Unmarshal(body, &payload)) {
+				return
+			}
 
-		assert.Equal(t, "New Filter", payload["name"])
-		assert.Equal(t, "launch", payload["type"])
+			assert.Equal(t, "New Filter", payload["name"])
+			assert.Equal(t, "launch", payload["type"])
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		_, _ = w.Write([]byte(`{"id":10}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusCreated)
+			_, _ = responseWriter.Write([]byte(`{"id":10}`))
+		},
+	)
+
+	c := newTestClient(t, createHandler)
 
 	result, err := c.Project("my_project").Filters().Create(t.Context(), types.UpdateUserFilterRQ{
 		Name:       "New Filter",
@@ -201,25 +223,31 @@ func TestFilterScope_Create_BadRequest(t *testing.T) {
 func TestFilterScope_Update_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/filter/42")
-		assertMethod(t, r, http.MethodPut)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/filter/42")
+			assertMethod(t, httpReq, http.MethodPut)
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
+			var payload map[string]any
+			if !assert.NoError(t, json.Unmarshal(body, &payload)) {
+				return
+			}
 
-		assert.Equal(t, "Updated Filter", payload["name"])
+			assert.Equal(t, "Updated Filter", payload["name"])
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message":"Filter successfully updated."}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{"message":"Filter successfully updated."}`))
+		},
+	))
 
-	result, err := c.Project("my_project").Filters().Update(
+	result, err := testClient.Project("my_project").Filters().Update(
 		t.Context(),
 		42,
 		types.UpdateUserFilterRQ{
@@ -258,17 +286,19 @@ func TestFilterScope_Update_NotFound(t *testing.T) {
 func TestFilterScope_Delete_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/filter/42")
-		assertMethod(t, r, http.MethodDelete)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/filter/42")
+			assertMethod(t, httpReq, http.MethodDelete)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message":"Filter successfully deleted."}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{"message":"Filter successfully deleted."}`))
+		},
+	))
 
-	result, err := c.Project("my_project").Filters().Delete(t.Context(), 42)
+	result, err := testClient.Project("my_project").Filters().Delete(t.Context(), 42)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.Message)
@@ -289,24 +319,26 @@ func TestFilterScope_Delete_NotFound(t *testing.T) {
 func TestFilterScope_GetNames_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/filter/names")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/filter/names")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"content": [
 				{"id": "1", "name": "Filter 1", "owner": "admin"},
 				{"id": "2", "name": "Filter 2", "owner": "admin"}
 			],
 			"page": {"number": 1, "size": 10, "totalElements": 2, "totalPages": 1}
 		}`))
-	}))
+		},
+	))
 
-	result, err := c.Project("my_project").Filters().GetNames(t.Context(), "")
+	result, err := testClient.Project("my_project").Filters().GetNames(t.Context(), "")
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Len(t, *result.Content, 2)
@@ -315,20 +347,22 @@ func TestFilterScope_GetNames_Success(t *testing.T) {
 func TestFilterScope_GetNames_Empty(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/filter/names")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/filter/names")
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"content": [],
 			"page": {"number": 1, "size": 10, "totalElements": 0, "totalPages": 0}
 		}`))
-	}))
+		},
+	))
 
-	result, err := c.Project("my_project").Filters().GetNames(t.Context(), "nonexistent")
+	result, err := testClient.Project("my_project").Filters().GetNames(t.Context(), "nonexistent")
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Empty(t, result.Content)
@@ -348,48 +382,59 @@ func TestFilterScope_GetNames_Unauthorized(t *testing.T) {
 func TestUserFilterScope_BulkUpdate_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/filter")
-		assertMethod(t, r, http.MethodPut)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/filter")
+			assertMethod(t, httpReq, http.MethodPut)
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
+			var payload map[string]any
+			if !assert.NoError(t, json.Unmarshal(body, &payload)) {
+				return
+			}
 
-		elements, ok := payload["elements"].([]any)
-		require.True(t, ok)
-		assert.Len(t, elements, 2)
+			elements, ok := payload["elements"].([]any)
+			if !assert.True(t, ok) {
+				return
+			}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			assert.Len(t, elements, 2)
 
-		_, _ = w.Write([]byte(`[
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+
+			_, _ = responseWriter.Write([]byte(`[
 			{"message": "Filter 1 successfully updated."},
 			{"message": "Filter 2 successfully updated."}
 		]`))
-	}))
-
-	results, err := c.Project("my_project").Filters().BulkUpdate(t.Context(), types.CollectionsRQBulkUpdateFilterRQ{
-		Elements: []types.BulkUpdateFilterRQ{
-			{
-				Id:         "1",
-				Name:       "Filter 1",
-				Type:       types.BulkUpdateFilterRQTypeLaunch,
-				Conditions: []types.UserFilterCondition{},
-				Orders:     []types.Order{},
-			},
-			{
-				Id:         "2",
-				Name:       "Filter 2",
-				Type:       types.BulkUpdateFilterRQTypeLaunch,
-				Conditions: []types.UserFilterCondition{},
-				Orders:     []types.Order{},
-			},
 		},
-	})
+	))
+
+	results, err := testClient.Project("my_project").
+		Filters().
+		BulkUpdate(t.Context(), types.CollectionsRQBulkUpdateFilterRQ{
+			Elements: []types.BulkUpdateFilterRQ{
+				{
+					Id:         "1",
+					Name:       "Filter 1",
+					Type:       types.BulkUpdateFilterRQTypeLaunch,
+					Conditions: []types.UserFilterCondition{},
+					Orders:     []types.Order{},
+				},
+				{
+					Id:         "2",
+					Name:       "Filter 2",
+					Type:       types.BulkUpdateFilterRQTypeLaunch,
+					Conditions: []types.UserFilterCondition{},
+					Orders:     []types.Order{},
+				},
+			},
+		})
 	require.NoError(t, err)
 	require.Len(t, results, 2)
 
@@ -405,17 +450,19 @@ func TestUserFilterScope_BulkUpdate_Unauthorized(t *testing.T) {
 	c := newTestClient(t, jsonResponse(http.StatusUnauthorized,
 		`{"errorCode": 4001, "message": "Full authentication is required."}`))
 
-	_, err := c.Project("my_project").Filters().BulkUpdate(t.Context(), types.CollectionsRQBulkUpdateFilterRQ{
-		Elements: []types.BulkUpdateFilterRQ{
-			{
-				Id:         "1",
-				Name:       "Filter 1",
-				Type:       types.BulkUpdateFilterRQTypeLaunch,
-				Conditions: []types.UserFilterCondition{},
-				Orders:     []types.Order{},
+	_, err := c.Project("my_project").
+		Filters().
+		BulkUpdate(t.Context(), types.CollectionsRQBulkUpdateFilterRQ{
+			Elements: []types.BulkUpdateFilterRQ{
+				{
+					Id:         "1",
+					Name:       "Filter 1",
+					Type:       types.BulkUpdateFilterRQTypeLaunch,
+					Conditions: []types.UserFilterCondition{},
+					Orders:     []types.Order{},
+				},
 			},
-		},
-	})
+		})
 	require.Error(t, err)
 	assert.True(t, client.IsUnauthorized(err))
 }
@@ -423,15 +470,19 @@ func TestUserFilterScope_BulkUpdate_Unauthorized(t *testing.T) {
 func TestUserFilterScope_BulkUpdate_EmptyResponse(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`[]`))
-	}))
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, _ *http.Request) {
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`[]`))
+		},
+	))
 
-	results, err := c.Project("my_project").Filters().BulkUpdate(t.Context(), types.CollectionsRQBulkUpdateFilterRQ{
-		Elements: []types.BulkUpdateFilterRQ{},
-	})
+	results, err := testClient.Project("my_project").
+		Filters().
+		BulkUpdate(t.Context(), types.CollectionsRQBulkUpdateFilterRQ{
+			Elements: []types.BulkUpdateFilterRQ{},
+		})
 	require.NoError(t, err)
 	assert.Empty(t, results)
 	assert.NotNil(t, results)
@@ -440,15 +491,19 @@ func TestUserFilterScope_BulkUpdate_EmptyResponse(t *testing.T) {
 func TestUserFilterScope_BulkUpdate_NullResponse(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`null`))
-	}))
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, _ *http.Request) {
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`null`))
+		},
+	))
 
-	results, err := c.Project("my_project").Filters().BulkUpdate(t.Context(), types.CollectionsRQBulkUpdateFilterRQ{
-		Elements: []types.BulkUpdateFilterRQ{},
-	})
+	results, err := testClient.Project("my_project").
+		Filters().
+		BulkUpdate(t.Context(), types.CollectionsRQBulkUpdateFilterRQ{
+			Elements: []types.BulkUpdateFilterRQ{},
+		})
 	require.NoError(t, err)
 	assert.Empty(t, results)
 	assert.NotNil(t, results)
@@ -457,18 +512,19 @@ func TestUserFilterScope_BulkUpdate_NullResponse(t *testing.T) {
 func TestFilterScope_GetByIds_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/filter/filters")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/filter/filters")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		query := r.URL.Query()
-		assert.Equal(t, []string{"1", "2"}, query["ids"])
+			query := httpReq.URL.Query()
+			assert.Equal(t, []string{"1", "2"}, query["ids"])
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`[
+			_, _ = responseWriter.Write([]byte(`[
 			{
 				"id": 1,
 				"name": "Filter 1",
@@ -486,9 +542,10 @@ func TestFilterScope_GetByIds_Success(t *testing.T) {
 				"orders": []
 			}
 		]`))
-	}))
+		},
+	))
 
-	filters, err := c.Project("my_project").Filters().GetByIds(t.Context(), []int64{1, 2})
+	filters, err := testClient.Project("my_project").Filters().GetByIDs(t.Context(), []int64{1, 2})
 	require.NoError(t, err)
 	require.Len(t, filters, 2)
 
@@ -501,13 +558,15 @@ func TestFilterScope_GetByIds_Success(t *testing.T) {
 func TestFilterScope_GetByIds_Empty(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`[]`))
-	}))
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, _ *http.Request) {
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`[]`))
+		},
+	))
 
-	filters, err := c.Project("my_project").Filters().GetByIds(t.Context(), []int64{999})
+	filters, err := testClient.Project("my_project").Filters().GetByIDs(t.Context(), []int64{999})
 	require.NoError(t, err)
 	assert.Empty(t, filters)
 }
@@ -518,7 +577,7 @@ func TestFilterScope_GetByIds_Unauthorized(t *testing.T) {
 	c := newTestClient(t, jsonResponse(http.StatusUnauthorized,
 		`{"errorCode": 4001, "message": "Full authentication is required."}`))
 
-	_, err := c.Project("my_project").Filters().GetByIds(t.Context(), []int64{1})
+	_, err := c.Project("my_project").Filters().GetByIDs(t.Context(), []int64{1})
 	require.Error(t, err)
 	assert.True(t, client.IsUnauthorized(err))
 }

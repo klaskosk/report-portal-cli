@@ -14,10 +14,10 @@ The API client wraps a generated OpenAPI client (`pkg/internal/api/`) with a sco
 ## Key patterns
 
 - **API errors**: Use predicate functions (`IsNotFound`, `IsUnauthorized`, etc.) rather than type assertions. Follow Dave Cheney's philosophy.
-- **CLI UX**: This project attempts to achieve a CLI experience similar to `kubectl`. Use it as an example for planning and designing the CLI.
 - **Self-documenting Makefile**: The Makefile is self-documenting and should be used to understand the project. Common commands and checks are included in the Makefile.
 
 ## Miscellaneous notes
 
 - Never mark tests as pending through Ginkgo. Integration tests must always pass or fail, never be skipped.
 - Docker compose is not used in this project. Instead, testcontainers runs the docker compose file directly.
+- Do not trust `./prompts/completed/` to be up to date. It shows evolution, not the final state.

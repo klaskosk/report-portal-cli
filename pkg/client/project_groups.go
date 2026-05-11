@@ -14,7 +14,10 @@ type ProjectGroupsScope struct {
 }
 
 // List returns a paginated list of groups associated with the project.
-func (s *ProjectGroupsScope) List(ctx context.Context, options ...ListProjectGroupsOption) (*types.ProjectGroupsPage, error) {
+func (s *ProjectGroupsScope) List(
+	ctx context.Context,
+	options ...ListProjectGroupsOption,
+) (*types.ProjectGroupsPage, error) {
 	logger := s.project.operationLogger("ListProjectGroups")
 
 	params := &api.GetGroupsOfProjectParams{}
@@ -24,17 +27,28 @@ func (s *ProjectGroupsScope) List(ctx context.Context, options ...ListProjectGro
 
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := s.project.client.raw.GetGroupsOfProjectWithResponse(ctx, s.project.projectName, params)
+	resp, err := s.project.client.raw.GetGroupsOfProjectWithResponse(
+		ctx,
+		s.project.projectName,
+		params,
+	)
 
 	return execute(ctx, logger, "list project groups", resp, err)
 }
 
 // Get returns a single group-project association by group ID.
-func (s *ProjectGroupsScope) Get(ctx context.Context, groupID int64) (*types.ProjectGroupInfo, error) {
+func (s *ProjectGroupsScope) Get(
+	ctx context.Context,
+	groupID int64,
+) (*types.ProjectGroupInfo, error) {
 	logger := s.project.operationLogger("GetProjectGroup", slog.Int64("groupId", groupID))
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := s.project.client.raw.GetProjectGroupByIdWithResponse(ctx, s.project.projectName, groupID)
+	resp, err := s.project.client.raw.GetProjectGroupByIdWithResponse(
+		ctx,
+		s.project.projectName,
+		groupID,
+	)
 
 	return execute(ctx, logger, "get project group", resp, err)
 }
@@ -60,14 +74,18 @@ func (s *ProjectGroupsScope) Delete(ctx context.Context, groupID int64) error {
 	logger := s.project.operationLogger("DeleteProjectGroup", slog.Int64("groupId", groupID))
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := s.project.client.raw.DeleteGroupFromProjectByIdWithResponse(ctx, s.project.projectName, groupID)
+	resp, err := s.project.client.raw.DeleteGroupFromProjectByIdWithResponse(
+		ctx,
+		s.project.projectName,
+		groupID,
+	)
 
 	return executeVoid(ctx, logger, "delete project group", resp, err)
 }
 
 // ListProjectGroupsOption configures the pagination parameters for listing project groups.
 type ListProjectGroupsOption interface {
-	applyListProjectGroups(*api.GetGroupsOfProjectParams)
+	applyListProjectGroups(params *api.GetGroupsOfProjectParams)
 }
 
 type listProjectGroupsOptionFunc func(*api.GetGroupsOfProjectParams)
@@ -77,14 +95,14 @@ func (f listProjectGroupsOptionFunc) applyListProjectGroups(params *api.GetGroup
 }
 
 // WithProjectGroupPageSize sets the maximum number of groups per page.
-func WithProjectGroupPageSize(size int32) ListProjectGroupsOption {
+func WithProjectGroupPageSize(size int32) listProjectGroupsOptionFunc {
 	return listProjectGroupsOptionFunc(func(params *api.GetGroupsOfProjectParams) {
 		params.Limit = &size
 	})
 }
 
 // WithProjectGroupPageOffset sets the offset for project group pagination.
-func WithProjectGroupPageOffset(offset int32) ListProjectGroupsOption {
+func WithProjectGroupPageOffset(offset int32) listProjectGroupsOptionFunc {
 	return listProjectGroupsOptionFunc(func(params *api.GetGroupsOfProjectParams) {
 		params.Offset = &offset
 	})

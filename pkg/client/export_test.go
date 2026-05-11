@@ -40,7 +40,8 @@ var NewTestActivityEventsScope = func(c *Client) *ActivityEventsScope {
 	return c.ActivityEvents()
 }
 
-// NewTestInstanceBugTrackingScope creates an InstanceBugTrackingScope for testing without requiring a full Client setup.
+// NewTestInstanceBugTrackingScope returns an InstanceBugTrackingScope for tests
+// without constructing a full Client.
 var NewTestInstanceBugTrackingScope = func(c *Client) *InstanceBugTrackingScope {
 	return c.InstanceBugTracking()
 }

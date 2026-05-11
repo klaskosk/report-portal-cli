@@ -8,7 +8,6 @@ import (
 
 	"github.com/klaskosk/report-portal-cli/pkg/internal/api"
 	"github.com/klaskosk/report-portal-cli/pkg/types"
-
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
@@ -47,12 +46,12 @@ func (p *ProjectsScope) ListNames(ctx context.Context) ([]string, error) {
 		return nil, err
 	}
 
-	return []string(*result), nil
+	return *result, nil
 }
 
 // ListProjectsOption configures the filter and pagination parameters for listing projects.
 type ListProjectsOption interface {
-	applyListProjects(*api.GetAllProjectsInfoParams)
+	applyListProjects(params *api.GetAllProjectsInfoParams)
 }
 
 type listProjectsOptionFunc func(*api.GetAllProjectsInfoParams)
@@ -62,35 +61,35 @@ func (f listProjectsOptionFunc) applyListProjects(params *api.GetAllProjectsInfo
 }
 
 // WithProjectName filters the project list by exact project name.
-func WithProjectName(name string) ListProjectsOption {
+func WithProjectName(name string) listProjectsOptionFunc {
 	return listProjectsOptionFunc(func(params *api.GetAllProjectsInfoParams) {
 		params.FilterEqName = &name
 	})
 }
 
 // WithProjectType filters the project list by project type (e.g. "INTERNAL").
-func WithProjectType(projectType string) ListProjectsOption {
+func WithProjectType(projectType string) listProjectsOptionFunc {
 	return listProjectsOptionFunc(func(params *api.GetAllProjectsInfoParams) {
 		params.FilterEqType = &projectType
 	})
 }
 
 // WithProjectPageNumber sets the page number (0-based) for project listing.
-func WithProjectPageNumber(n int32) ListProjectsOption {
+func WithProjectPageNumber(n int32) listProjectsOptionFunc {
 	return listProjectsOptionFunc(func(params *api.GetAllProjectsInfoParams) {
 		params.PagePage = &n
 	})
 }
 
 // WithProjectPageSize sets the number of results per page for project listing.
-func WithProjectPageSize(size int32) ListProjectsOption {
+func WithProjectPageSize(size int32) listProjectsOptionFunc {
 	return listProjectsOptionFunc(func(params *api.GetAllProjectsInfoParams) {
 		params.PageSize = &size
 	})
 }
 
 // WithProjectSort sets the sorting criteria for project listing (e.g. "name,asc").
-func WithProjectSort(fields ...string) ListProjectsOption {
+func WithProjectSort(fields ...string) listProjectsOptionFunc {
 	return listProjectsOptionFunc(func(params *api.GetAllProjectsInfoParams) {
 		if len(fields) == 0 {
 			params.PageSort = nil
@@ -142,7 +141,7 @@ func (p *ProjectsScope) SearchNames(
 		return nil, err
 	}
 
-	return []string(*result), nil
+	return *result, nil
 }
 
 // GetInfo returns aggregated project statistics for the given project.
@@ -170,7 +169,7 @@ func (p *ProjectsScope) GetInfo(
 
 // GetProjectInfoOption configures the parameters for getting project info.
 type GetProjectInfoOption interface {
-	applyGetProjectInfo(*api.GetProjectInfoParams)
+	applyGetProjectInfo(params *api.GetProjectInfoParams)
 }
 
 type getProjectInfoOptionFunc func(*api.GetProjectInfoParams)
@@ -180,7 +179,7 @@ func (f getProjectInfoOptionFunc) applyGetProjectInfo(params *api.GetProjectInfo
 }
 
 // WithProjectInfoInterval sets the interval for project info statistics (e.g. "1M", "3M").
-func WithProjectInfoInterval(interval string) GetProjectInfoOption {
+func WithProjectInfoInterval(interval string) getProjectInfoOptionFunc {
 	return getProjectInfoOptionFunc(func(params *api.GetProjectInfoParams) {
 		params.Interval = &interval
 	})
@@ -301,7 +300,7 @@ func (p *ProjectsScope) ListUsers(
 
 // ListProjectUsersOption configures the filter and pagination parameters for listing project users.
 type ListProjectUsersOption interface {
-	applyListProjectUsers(*api.GetProjectUsersParams)
+	applyListProjectUsers(params *api.GetProjectUsersParams)
 }
 
 type listProjectUsersOptionFunc func(*api.GetProjectUsersParams)
@@ -311,21 +310,21 @@ func (f listProjectUsersOptionFunc) applyListProjectUsers(params *api.GetProject
 }
 
 // WithUserPageNumber sets the page number (0-based) for project users listing.
-func WithUserPageNumber(n int32) ListProjectUsersOption {
+func WithUserPageNumber(n int32) listProjectUsersOptionFunc {
 	return listProjectUsersOptionFunc(func(params *api.GetProjectUsersParams) {
 		params.PagePage = &n
 	})
 }
 
 // WithUserPageSize sets the number of results per page for project users listing.
-func WithUserPageSize(size int32) ListProjectUsersOption {
+func WithUserPageSize(size int32) listProjectUsersOptionFunc {
 	return listProjectUsersOptionFunc(func(params *api.GetProjectUsersParams) {
 		params.PageSize = &size
 	})
 }
 
 // WithUserSort sets the sorting criteria for project users listing.
-func WithUserSort(fields ...string) ListProjectUsersOption {
+func WithUserSort(fields ...string) listProjectUsersOptionFunc {
 	return listProjectUsersOptionFunc(func(params *api.GetProjectUsersParams) {
 		if len(fields) == 0 {
 			params.PageSort = nil
@@ -340,7 +339,7 @@ func WithUserSort(fields ...string) ListProjectUsersOption {
 
 // ExportProjectsOption configures the filter parameters for exporting projects.
 type ExportProjectsOption interface {
-	applyExportProjects(*api.ExportProjectsParams)
+	applyExportProjects(params *api.ExportProjectsParams)
 }
 
 type exportProjectsOptionFunc func(*api.ExportProjectsParams)
@@ -350,7 +349,7 @@ func (f exportProjectsOptionFunc) applyExportProjects(params *api.ExportProjects
 }
 
 // WithExportView sets the export format view (e.g. "csv").
-func WithExportView(view string) ExportProjectsOption {
+func WithExportView(view string) exportProjectsOptionFunc {
 	return exportProjectsOptionFunc(func(params *api.ExportProjectsParams) {
 		v := api.ExportProjectsParamsView(view)
 		params.View = &v
@@ -358,21 +357,21 @@ func WithExportView(view string) ExportProjectsOption {
 }
 
 // WithExportFilterName filters exported projects by exact name.
-func WithExportFilterName(name string) ExportProjectsOption {
+func WithExportFilterName(name string) exportProjectsOptionFunc {
 	return exportProjectsOptionFunc(func(params *api.ExportProjectsParams) {
 		params.FilterEqName = &name
 	})
 }
 
 // WithExportFilterType filters exported projects by type (e.g. "INTERNAL").
-func WithExportFilterType(projectType string) ExportProjectsOption {
+func WithExportFilterType(projectType string) exportProjectsOptionFunc {
 	return exportProjectsOptionFunc(func(params *api.ExportProjectsParams) {
 		params.FilterEqType = &projectType
 	})
 }
 
 // WithExportFilterLastRun filters exported projects by last run date.
-func WithExportFilterLastRun(date openapi_types.Date) ExportProjectsOption {
+func WithExportFilterLastRun(date openapi_types.Date) exportProjectsOptionFunc {
 	return exportProjectsOptionFunc(func(params *api.ExportProjectsParams) {
 		params.FilterEqLastRun = &date
 	})
@@ -546,31 +545,33 @@ func (p *ProjectsScope) IndexData(
 // ListAssignableUsersOption configures the filter and pagination parameters
 // for listing assignable users.
 type ListAssignableUsersOption interface {
-	applyListAssignableUsers(*api.GetUsersForAssignParams)
+	applyListAssignableUsers(params *api.GetUsersForAssignParams)
 }
 
 type listAssignableUsersOptionFunc func(*api.GetUsersForAssignParams)
 
-func (f listAssignableUsersOptionFunc) applyListAssignableUsers(params *api.GetUsersForAssignParams) {
+func (f listAssignableUsersOptionFunc) applyListAssignableUsers(
+	params *api.GetUsersForAssignParams,
+) {
 	f(params)
 }
 
 // WithAssignableUserPageNumber sets the page number (0-based) for the assignable users listing.
-func WithAssignableUserPageNumber(n int32) ListAssignableUsersOption {
+func WithAssignableUserPageNumber(n int32) listAssignableUsersOptionFunc {
 	return listAssignableUsersOptionFunc(func(params *api.GetUsersForAssignParams) {
 		params.PagePage = &n
 	})
 }
 
 // WithAssignableUserPageSize sets the number of results per page for the assignable users listing.
-func WithAssignableUserPageSize(size int32) ListAssignableUsersOption {
+func WithAssignableUserPageSize(size int32) listAssignableUsersOptionFunc {
 	return listAssignableUsersOptionFunc(func(params *api.GetUsersForAssignParams) {
 		params.PageSize = &size
 	})
 }
 
 // WithAssignableUserSort sets the sorting criteria for the assignable users listing.
-func WithAssignableUserSort(fields ...string) ListAssignableUsersOption {
+func WithAssignableUserSort(fields ...string) listAssignableUsersOptionFunc {
 	return listAssignableUsersOptionFunc(func(params *api.GetUsersForAssignParams) {
 		if len(fields) == 0 {
 			params.PageSort = nil
@@ -637,7 +638,7 @@ func (p *ProjectsScope) ListUsernames(
 
 // SearchUsernamesOption configures the pagination parameters for searching usernames.
 type SearchUsernamesOption interface {
-	applySearchUsernames(*api.SearchForUserParams)
+	applySearchUsernames(params *api.SearchForUserParams)
 }
 
 type searchUsernamesOptionFunc func(*api.SearchForUserParams)
@@ -647,21 +648,21 @@ func (f searchUsernamesOptionFunc) applySearchUsernames(params *api.SearchForUse
 }
 
 // WithSearchUsernamesPageNumber sets the page number (0-based) for the username search.
-func WithSearchUsernamesPageNumber(n int32) SearchUsernamesOption {
+func WithSearchUsernamesPageNumber(n int32) searchUsernamesOptionFunc {
 	return searchUsernamesOptionFunc(func(params *api.SearchForUserParams) {
 		params.PagePage = &n
 	})
 }
 
 // WithSearchUsernamesPageSize sets the number of results per page for the username search.
-func WithSearchUsernamesPageSize(size int32) SearchUsernamesOption {
+func WithSearchUsernamesPageSize(size int32) searchUsernamesOptionFunc {
 	return searchUsernamesOptionFunc(func(params *api.SearchForUserParams) {
 		params.PageSize = &size
 	})
 }
 
 // WithSearchUsernamesSort sets the sorting criteria for the username search.
-func WithSearchUsernamesSort(fields ...string) SearchUsernamesOption {
+func WithSearchUsernamesSort(fields ...string) searchUsernamesOptionFunc {
 	return searchUsernamesOptionFunc(func(params *api.SearchForUserParams) {
 		if len(fields) == 0 {
 			params.PageSort = nil
@@ -701,7 +702,7 @@ func (p *ProjectsScope) SearchUsernames(
 
 // GetWidgetByCodeOption configures the query parameters for getting a project widget.
 type GetWidgetByCodeOption interface {
-	applyGetWidgetByCode(*api.GetProjectWidgetParams)
+	applyGetWidgetByCode(params *api.GetProjectWidgetParams)
 }
 
 type getWidgetByCodeOptionFunc func(*api.GetProjectWidgetParams)
@@ -711,7 +712,7 @@ func (f getWidgetByCodeOptionFunc) applyGetWidgetByCode(params *api.GetProjectWi
 }
 
 // WithWidgetInterval sets the interval for the project widget data (e.g. "1M", "3M").
-func WithWidgetInterval(interval string) GetWidgetByCodeOption {
+func WithWidgetInterval(interval string) getWidgetByCodeOptionFunc {
 	return getWidgetByCodeOptionFunc(func(params *api.GetProjectWidgetParams) {
 		params.Interval = &interval
 	})

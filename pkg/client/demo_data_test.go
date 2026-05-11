@@ -13,24 +13,29 @@ import (
 func TestDemoDataScope_Generate_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/demo/my_project/generate")
-		assertMethod(t, r, http.MethodPost)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/demo/my_project/generate")
+			assertMethod(t, httpReq, http.MethodPost)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"dashboardId": 10,
 			"launchIds": [100, 101, 102]
 		}`))
-	}))
+		},
+	))
 
 	shouldCreateDashboard := true
-	result, err := c.Project("my_project").DemoData().Generate(t.Context(), types.DemoDataRq{
-		CreateDashboard: &shouldCreateDashboard,
-	})
+	result, err := testClient.Project("my_project").DemoData().Generate(
+		t.Context(),
+		types.DemoDataRq{
+			CreateDashboard: &shouldCreateDashboard,
+		},
+	)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 

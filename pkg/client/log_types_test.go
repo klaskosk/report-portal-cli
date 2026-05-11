@@ -15,42 +15,46 @@ import (
 func TestLogTypesScope_List_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/projects/my_project/log-types")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/projects/my_project/log-types")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"items": [
 				{"id": 1, "name": "INFO", "level": 20000, "is_filterable": true, "is_system": true},
 				{"id": 2, "name": "CUSTOM", "level": 50000, "is_filterable": false, "is_system": false}
 			]
 		}`))
-	}))
+		},
+	))
 
-	result, err := c.Project("my_project").LogTypes().List(t.Context())
+	result, err := testClient.Project("my_project").LogTypes().List(t.Context())
 	require.NoError(t, err)
 	require.Len(t, result, 2)
 	assert.Equal(t, int64(1), *result[0].Id)
 	assert.Equal(t, "INFO", result[0].Name)
 	assert.Equal(t, int32(20000), result[0].Level)
 	assert.True(t, result[0].IsFilterable)
-	assert.Equal(t, true, *result[0].IsSystem)
+	assert.True(t, *result[0].IsSystem)
 }
 
 func TestLogTypesScope_List_Empty(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"items": []}`))
-	}))
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, _ *http.Request) {
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{"items": []}`))
+		},
+	))
 
-	result, err := c.Project("my_project").LogTypes().List(t.Context())
+	result, err := testClient.Project("my_project").LogTypes().List(t.Context())
 	require.NoError(t, err)
 	assert.Empty(t, result)
 	assert.NotNil(t, result)
@@ -59,13 +63,13 @@ func TestLogTypesScope_List_Empty(t *testing.T) {
 func TestLogTypesScope_List_NilItems(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	testClient := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{}`))
 	}))
 
-	result, err := c.Project("my_project").LogTypes().List(t.Context())
+	result, err := testClient.Project("my_project").LogTypes().List(t.Context())
 	require.NoError(t, err)
 	assert.Empty(t, result)
 	assert.NotNil(t, result)
@@ -85,36 +89,44 @@ func TestLogTypesScope_List_Unauthorized(t *testing.T) {
 func TestLogTypesScope_Create_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodPost)
-		assertPath(t, r, "/api/projects/my_project/log-types")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodPost)
+			assertPath(t, httpReq, "/api/projects/my_project/log-types")
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var req types.LogTypeRequest
-		require.NoError(t, json.Unmarshal(body, &req))
-		assert.Equal(t, "CUSTOM", req.Name)
-		assert.Equal(t, int32(50000), req.Level)
-		assert.True(t, req.IsFilterable)
+			var req types.LogTypeRequest
+			if !assert.NoError(t, json.Unmarshal(body, &req)) {
+				return
+			}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{
+			assert.Equal(t, "CUSTOM", req.Name)
+			assert.Equal(t, int32(50000), req.Level)
+			assert.True(t, req.IsFilterable)
+
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{
 			"id": 10,
 			"name": "CUSTOM",
 			"level": 50000,
 			"is_filterable": true,
 			"is_system": false
 		}`))
-	}))
+		},
+	))
 
-	result, err := c.Project("my_project").LogTypes().Create(t.Context(), types.LogTypeRequest{
-		Name:         "CUSTOM",
-		Level:        50000,
-		IsFilterable: true,
-	})
+	result, err := testClient.Project("my_project").LogTypes().
+		Create(t.Context(), types.LogTypeRequest{
+			Name:         "CUSTOM",
+			Level:        50000,
+			IsFilterable: true,
+		})
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	assert.Equal(t, int64(10), *result.Id)
@@ -125,26 +137,31 @@ func TestLogTypesScope_Create_Success(t *testing.T) {
 func TestLogTypesScope_Create_201Response(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertMethod(t, r, http.MethodPost)
-		assertPath(t, r, "/api/projects/my_project/log-types")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertMethod(t, httpReq, http.MethodPost)
+			assertPath(t, httpReq, "/api/projects/my_project/log-types")
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		_, _ = w.Write([]byte(`{
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusCreated)
+			_, _ = responseWriter.Write([]byte(`{
 			"id": 11,
 			"name": "CUSTOM201",
 			"level": 55000,
 			"is_filterable": true,
 			"is_system": false
 		}`))
-	}))
+		},
+	))
 
-	result, err := c.Project("my_project").LogTypes().Create(t.Context(), types.LogTypeRequest{
-		Name:         "CUSTOM201",
-		Level:        55000,
-		IsFilterable: true,
-	})
+	result, err := testClient.Project("my_project").LogTypes().Create(
+		t.Context(),
+		types.LogTypeRequest{
+			Name:         "CUSTOM201",
+			Level:        55000,
+			IsFilterable: true,
+		},
+	)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	assert.Equal(t, int64(11), *result.Id)
@@ -154,13 +171,15 @@ func TestLogTypesScope_Create_201Response(t *testing.T) {
 func TestLogTypesScope_Create_201BadJSON(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		_, _ = w.Write([]byte("not json"))
-	}))
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, _ *http.Request) {
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusCreated)
+			_, _ = responseWriter.Write([]byte("not json"))
+		},
+	))
 
-	_, err := c.Project("my_project").LogTypes().Create(t.Context(), types.LogTypeRequest{
+	_, err := testClient.Project("my_project").LogTypes().Create(t.Context(), types.LogTypeRequest{
 		Name:  "CUSTOM",
 		Level: 50000,
 	})
@@ -201,28 +220,42 @@ func TestLogTypesScope_Create_Forbidden(t *testing.T) {
 func TestLogTypesScope_Update_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodPut)
-		assertPath(t, r, "/api/projects/my_project/log-types/10")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, request *http.Request) {
+			assertBearerToken(t, request)
+			assertMethod(t, request, http.MethodPut)
+			assertPath(t, request, "/api/projects/my_project/log-types/10")
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(request.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var req types.LogTypeRequest
-		require.NoError(t, json.Unmarshal(body, &req))
-		assert.Equal(t, "UPDATED", req.Name)
-		assert.Equal(t, int32(60000), req.Level)
+			var req types.LogTypeRequest
+			if !assert.NoError(t, json.Unmarshal(body, &req)) {
+				return
+			}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message": "Log type has been updated successfully."}`))
-	}))
+			assert.Equal(t, "UPDATED", req.Name)
+			assert.Equal(t, int32(60000), req.Level)
 
-	result, err := c.Project("my_project").LogTypes().Update(t.Context(), 10, types.LogTypeRequest{
-		Name:  "UPDATED",
-		Level: 60000,
-	})
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+
+			const updateLogTypeMessage = `{"message": "Log type has been updated successfully."}`
+
+			_, _ = responseWriter.Write([]byte(updateLogTypeMessage))
+		},
+	))
+
+	result, err := testClient.Project("my_project").LogTypes().Update(
+		t.Context(),
+		10,
+		types.LogTypeRequest{
+			Name:  "UPDATED",
+			Level: 60000,
+		},
+	)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	assert.Equal(t, "Log type has been updated successfully.", *result.Message)
@@ -245,15 +278,17 @@ func TestLogTypesScope_Update_NotFound(t *testing.T) {
 func TestLogTypesScope_Delete_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodDelete)
-		assertPath(t, r, "/api/projects/my_project/log-types/10")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodDelete)
+			assertPath(t, httpReq, "/api/projects/my_project/log-types/10")
 
-		w.WriteHeader(http.StatusNoContent)
-	}))
+			responseWriter.WriteHeader(http.StatusNoContent)
+		},
+	))
 
-	err := c.Project("my_project").LogTypes().Delete(t.Context(), 10)
+	err := testClient.Project("my_project").LogTypes().Delete(t.Context(), 10)
 	require.NoError(t, err)
 }
 

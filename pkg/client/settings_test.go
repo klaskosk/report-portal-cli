@@ -15,18 +15,20 @@ import (
 func TestSettingsScope_GetServerSettings_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/settings")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/settings")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{"server.analytics.all": "true"}`))
-	}))
+			_, _ = responseWriter.Write([]byte(`{"server.analytics.all": "true"}`))
+		},
+	))
 
-	settings, err := c.Settings().GetServerSettings(t.Context())
+	settings, err := testClient.Settings().GetServerSettings(t.Context())
 	require.NoError(t, err)
 	assert.Equal(t, "true", settings["server.analytics.all"])
 }
@@ -45,19 +47,23 @@ func TestSettingsScope_GetServerSettings_Unauthorized(t *testing.T) {
 func TestSettingsScope_UpdateAnalytics_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/settings/analytics")
-		assertMethod(t, r, http.MethodPost)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/settings/analytics")
+			assertMethod(t, httpReq, http.MethodPost)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{"message": "Analytics settings were successfully updated."}`))
-	}))
+			_, _ = responseWriter.Write([]byte(
+				`{"message": "Analytics settings were successfully updated."}`,
+			))
+		},
+	))
 
 	analyticsType := "all"
-	result, err := c.Settings().UpdateAnalytics(t.Context(), types.AnalyticsResource{
+	result, err := testClient.Settings().UpdateAnalytics(t.Context(), types.AnalyticsResource{
 		Type: analyticsType,
 	})
 	require.NoError(t, err)
@@ -79,27 +85,35 @@ func TestSettingsScope_UpdateAnalytics_Unauthorized(t *testing.T) {
 func TestSettingsScope_UpdateServerSettings_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/settings")
-		assertMethod(t, r, http.MethodPut)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/settings")
+			assertMethod(t, httpReq, http.MethodPut)
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
+			var payload map[string]any
+			if !assert.NoError(t, json.Unmarshal(body, &payload)) {
+				return
+			}
 
-		assert.Equal(t, "server.analytics.all", payload["key"])
-		assert.Equal(t, "false", payload["value"])
+			assert.Equal(t, "server.analytics.all", payload["key"])
+			assert.Equal(t, "false", payload["value"])
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{"message": "Server settings were successfully updated."}`))
-	}))
+			_, _ = responseWriter.Write([]byte(
+				`{"message": "Server settings were successfully updated."}`,
+			))
+		},
+	))
 
-	result, err := c.Settings().UpdateServerSettings(t.Context(), types.UpdateSettingsRq{
+	result, err := testClient.Settings().UpdateServerSettings(t.Context(), types.UpdateSettingsRq{
 		Key:   "server.analytics.all",
 		Value: "false",
 	})

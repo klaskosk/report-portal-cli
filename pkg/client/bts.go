@@ -114,8 +114,8 @@ func (s *BugTrackingScope) CreateIssue(
 	return execute(ctx, logger, "create bts issue", response, err)
 }
 
-// GetTicketIds returns ticket IDs matching the given term within a launch.
-func (s *BugTrackingScope) GetTicketIds(
+// GetTicketIDs returns ticket IDs matching the given term within a launch.
+func (s *BugTrackingScope) GetTicketIDs(
 	ctx context.Context,
 	launchID int64,
 	term string,
@@ -143,8 +143,8 @@ func (s *BugTrackingScope) GetTicketIds(
 	return *result, nil
 }
 
-// GetTicketIdsForProject returns ticket IDs matching the given term across the project.
-func (s *BugTrackingScope) GetTicketIdsForProject(
+// GetTicketIDsForProject returns ticket IDs matching the given term across the project.
+func (s *BugTrackingScope) GetTicketIDsForProject(
 	ctx context.Context,
 	term string,
 ) ([]string, error) {

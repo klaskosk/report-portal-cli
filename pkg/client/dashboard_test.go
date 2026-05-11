@@ -1,8 +1,6 @@
 package client_test
 
 import (
-	"encoding/json"
-	"io"
 	"net/http"
 	"testing"
 
@@ -12,27 +10,30 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//nolint:dupl // structured like sibling tests; shared HTTP/table scaffolding
 func TestDashboardScope_List_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodGet)
-		assertPath(t, r, "/api/v1/my_project/dashboard")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodGet)
+			assertPath(t, httpReq, "/api/v1/my_project/dashboard")
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"content": [
 				{"id": 1, "name": "Dashboard 1"},
 				{"id": 2, "name": "Dashboard 2"}
 			],
 			"page": {"number": 1, "size": 10, "totalElements": 2, "totalPages": 1}
 		}`))
-	}))
+		},
+	))
 
-	result, err := c.Project("my_project").Dashboards().List(t.Context())
+	result, err := testClient.Project("my_project").Dashboards().List(t.Context())
 	require.NoError(t, err)
 	require.NotNil(t, result.Content)
 	require.Len(t, *result.Content, 2)
@@ -44,22 +45,24 @@ func TestDashboardScope_List_Success(t *testing.T) {
 func TestDashboardScope_List_WithOptions(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		query := r.URL.Query()
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			query := httpReq.URL.Query()
 
-		assert.Equal(t, "2", query.Get("page.page"))
-		assert.Equal(t, "5", query.Get("page.size"))
+			assert.Equal(t, "2", query.Get("page.page"))
+			assert.Equal(t, "5", query.Get("page.size"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"content": [],
 			"page": {"number": 2, "size": 5, "totalElements": 0, "totalPages": 0}
 		}`))
-	}))
+		},
+	))
 
-	_, err := c.Project("my_project").Dashboards().List(t.Context(),
+	_, err := testClient.Project("my_project").Dashboards().List(t.Context(),
 		client.WithDashboardPageNumber(2),
 		client.WithDashboardPageSize(5),
 	)
@@ -69,19 +72,21 @@ func TestDashboardScope_List_WithOptions(t *testing.T) {
 func TestDashboardScope_List_WithDashboardSort(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "name,asc", r.URL.Query().Get("page.sort"))
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assert.Equal(t, "name,asc", httpReq.URL.Query().Get("page.sort"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"content": [],
 			"page": {"number": 0, "size": 20, "totalElements": 0, "totalPages": 0}
 		}`))
-	}))
+		},
+	))
 
-	_, err := c.Project("my_project").Dashboards().List(t.Context(),
+	_, err := testClient.Project("my_project").Dashboards().List(t.Context(),
 		client.WithDashboardSort("name", "asc"),
 	)
 	require.NoError(t, err)
@@ -90,14 +95,21 @@ func TestDashboardScope_List_WithDashboardSort(t *testing.T) {
 func TestDashboardScope_List_WithSortCleared(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Empty(t, r.URL.Query().Get("page.sort"))
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assert.Empty(t, httpReq.URL.Query().Get("page.sort"))
 
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"content":[],"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			_, _ = responseWriter.Write(
+				[]byte(
+					`{"content":[],"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}}`,
+				),
+			)
+		},
+	))
 
-	_, err := c.Project("my_project").Dashboards().List(t.Context(), client.WithDashboardSort())
+	_, err := testClient.Project("my_project").Dashboards().
+		List(t.Context(), client.WithDashboardSort())
 	require.NoError(t, err)
 }
 
@@ -115,23 +127,25 @@ func TestDashboardScope_List_Unauthorized(t *testing.T) {
 func TestDashboardScope_GetByID_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/dashboard/42")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/dashboard/42")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"id": 42,
 			"name": "My Dashboard",
 			"description": "Test dashboard",
 			"owner": "admin"
 		}`))
-	}))
+		},
+	))
 
-	dashboard, err := c.Project("my_project").Dashboards().GetByID(t.Context(), 42)
+	dashboard, err := testClient.Project("my_project").Dashboards().GetByID(t.Context(), 42)
 	require.NoError(t, err)
 
 	assert.Equal(t, int64(42), dashboard.Id)
@@ -154,27 +168,31 @@ func TestDashboardScope_GetByID_NotFound(t *testing.T) {
 func TestDashboardScope_Create_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/dashboard")
-		assertMethod(t, r, http.MethodPost)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/dashboard")
+			assertMethod(t, httpReq, http.MethodPost)
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			payload, ok := decodeRequestJSONMap(t, httpReq)
+			if !ok {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
+			assert.Equal(t, "New Dashboard", payload["name"])
 
-		assert.Equal(t, "New Dashboard", payload["name"])
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusCreated)
+			_, _ = responseWriter.Write([]byte(`{"id":10}`))
+		},
+	))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		_, _ = w.Write([]byte(`{"id":10}`))
-	}))
-
-	result, err := c.Project("my_project").Dashboards().Create(t.Context(), types.CreateDashboardRQ{
-		Name: "New Dashboard",
-	})
+	result, err := testClient.Project("my_project").Dashboards().Create(
+		t.Context(),
+		types.CreateDashboardRQ{
+			Name: "New Dashboard",
+		},
+	)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.Id)
@@ -195,25 +213,26 @@ func TestDashboardScope_Create_BadRequest(t *testing.T) {
 func TestDashboardScope_Update_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/dashboard/42")
-		assertMethod(t, r, http.MethodPut)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/dashboard/42")
+			assertMethod(t, httpReq, http.MethodPut)
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			payload, ok := decodeRequestJSONMap(t, httpReq)
+			if !ok {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
+			assert.Equal(t, "Updated Dashboard", payload["name"])
 
-		assert.Equal(t, "Updated Dashboard", payload["name"])
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{"message":"Dashboard successfully updated."}`))
+		},
+	))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message":"Dashboard successfully updated."}`))
-	}))
-
-	result, err := c.Project("my_project").Dashboards().Update(
+	result, err := testClient.Project("my_project").Dashboards().Update(
 		t.Context(),
 		42,
 		types.UpdateDashboardRQ{Name: "Updated Dashboard"},
@@ -242,17 +261,19 @@ func TestDashboardScope_Update_NotFound(t *testing.T) {
 func TestDashboardScope_Delete_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/dashboard/42")
-		assertMethod(t, r, http.MethodDelete)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/dashboard/42")
+			assertMethod(t, httpReq, http.MethodDelete)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message":"Dashboard successfully deleted."}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{"message":"Dashboard successfully deleted."}`))
+		},
+	))
 
-	result, err := c.Project("my_project").Dashboards().Delete(t.Context(), 42)
+	result, err := testClient.Project("my_project").Dashboards().Delete(t.Context(), 42)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.Message)
@@ -273,25 +294,33 @@ func TestDashboardScope_Delete_NotFound(t *testing.T) {
 func TestDashboardScope_GetConfig_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/dashboard/42/config")
-		assertMethod(t, r, http.MethodGet)
+	getConfigHandler := http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, request *http.Request) {
+			assertBearerToken(t, request)
+			assertPath(t, request, "/api/v1/my_project/dashboard/42/config")
+			assertMethod(t, request, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"widgets": [
 				{
-					"widgetObject": {"widgetId": 5, "widgetPosition": {"positionX": 0, "positionY": 0}, "widgetSize": {"width": 6, "height": 4}},
+					"widgetObject": {
+						"widgetId": 5,
+						"widgetPosition": {"positionX": 0, "positionY": 0},
+						"widgetSize": {"width": 6, "height": 4}
+					},
 					"widgetResource": {"id": 5, "name": "Launch statistics"}
 				}
 			]
 		}`))
-	}))
+		},
+	)
 
-	config, err := c.Project("my_project").Dashboards().GetConfig(t.Context(), 42)
+	testClient := newTestClient(t, getConfigHandler)
+
+	config, err := testClient.Project("my_project").Dashboards().GetConfig(t.Context(), 42)
 	require.NoError(t, err)
 	require.NotNil(t, config.Widgets)
 	require.Len(t, *config.Widgets, 1)
@@ -303,17 +332,19 @@ func TestDashboardScope_GetConfig_Success(t *testing.T) {
 func TestDashboardScope_GetConfig_NilWidgets(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/dashboard/1/config")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/dashboard/1/config")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{}`))
+		},
+	))
 
-	config, err := c.Project("my_project").Dashboards().GetConfig(t.Context(), 1)
+	config, err := testClient.Project("my_project").Dashboards().GetConfig(t.Context(), 1)
 	require.NoError(t, err)
 	require.NotNil(t, config.Widgets)
 	assert.Empty(t, *config.Widgets)
@@ -333,25 +364,26 @@ func TestDashboardScope_GetConfig_NotFound(t *testing.T) {
 func TestDashboardScope_CreatePreconfigured_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/dashboard/preconfigured")
-		assertMethod(t, r, http.MethodPost)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/dashboard/preconfigured")
+			assertMethod(t, httpReq, http.MethodPost)
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			payload, ok := decodeRequestJSONMap(t, httpReq)
+			if !ok {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
+			assert.Equal(t, "Preconfigured Dashboard", payload["name"])
 
-		assert.Equal(t, "Preconfigured Dashboard", payload["name"])
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{"id":15}`))
+		},
+	))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"id":15}`))
-	}))
-
-	result, err := c.Project("my_project").Dashboards().CreatePreconfigured(
+	result, err := testClient.Project("my_project").Dashboards().CreatePreconfigured(
 		t.Context(),
 		types.DashboardPreconfiguredRq{
 			Name:   "Preconfigured Dashboard",
@@ -386,26 +418,33 @@ func TestDashboardScope_AddWidget_Success(t *testing.T) {
 
 	widgetID := int64(5)
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/dashboard/42/add")
-		assertMethod(t, r, http.MethodPut)
+	addWidgetHandler := http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, request *http.Request) {
+			assertBearerToken(t, request)
+			assertPath(t, request, "/api/v1/my_project/dashboard/42/add")
+			assertMethod(t, request, http.MethodPut)
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			payload, ok := decodeRequestJSONMap(t, request)
+			if !ok {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
+			addWidget, okWidget := payload["addWidget"].(map[string]any)
+			if !assert.True(t, okWidget, "addWidget should be an object") {
+				return
+			}
 
-		addWidget := payload["addWidget"].(map[string]any)
-		assert.Equal(t, float64(5), addWidget["widgetId"])
+			assert.InEpsilon(t, float64(5), addWidget["widgetId"], 0.001)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message":"Widget added to dashboard."}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{"message":"Widget added to dashboard."}`))
+		},
+	)
 
-	result, err := c.Project("my_project").Dashboards().AddWidget(
+	testClient := newTestClient(t, addWidgetHandler)
+
+	result, err := testClient.Project("my_project").Dashboards().AddWidget(
 		t.Context(),
 		42,
 		types.AddWidgetRq{
@@ -438,17 +477,19 @@ func TestDashboardScope_AddWidget_NotFound(t *testing.T) {
 func TestDashboardScope_RemoveWidget_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/dashboard/42/5")
-		assertMethod(t, r, http.MethodDelete)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/dashboard/42/5")
+			assertMethod(t, httpReq, http.MethodDelete)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message":"Widget removed from dashboard."}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{"message":"Widget removed from dashboard."}`))
+		},
+	))
 
-	result, err := c.Project("my_project").Dashboards().RemoveWidget(t.Context(), 42, 5)
+	result, err := testClient.Project("my_project").Dashboards().RemoveWidget(t.Context(), 42, 5)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.Message)

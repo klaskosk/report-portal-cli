@@ -15,6 +15,8 @@ build: ## Build the rp binary
 .PHONY: vet
 vet: ## Run go vet on all packages
 	go vet ./...
+	cd pkg && go vet ./...
+	cd test/integration && go vet ./...
 
 .PHONY: import-spec
 import-spec: ## Import an upstream OpenAPI spec: make import-spec SPEC=path/to/spec.json
@@ -47,6 +49,8 @@ tidy: ## Run go mod tidy for all modules
 .PHONY: lint
 lint: ## Run golangci-lint and auto-fix issues
 	golangci-lint-v2 run --fix
+	cd pkg && golangci-lint-v2 run --fix
+	cd test/integration && golangci-lint-v2 run --fix
 
 .PHONY: verify
 verify: lint vet test test-integration ## Run full verification: lint, vet, unit tests, and integration tests

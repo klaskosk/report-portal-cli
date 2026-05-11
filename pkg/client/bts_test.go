@@ -1,8 +1,6 @@
 package client_test
 
 import (
-	"encoding/json"
-	"io"
 	"net/http"
 	"testing"
 
@@ -15,15 +13,16 @@ import (
 func TestBugTrackingScope_GetSystemFields_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/bts/my_project/1/fields-set")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/bts/my_project/1/fields-set")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`[
+			_, _ = responseWriter.Write([]byte(`[
 			{
 				"id": "summary",
 				"fieldName": "Summary",
@@ -37,9 +36,10 @@ func TestBugTrackingScope_GetSystemFields_Success(t *testing.T) {
 				"required": false
 			}
 		]`))
-	}))
+		},
+	))
 
-	fields, err := c.Project("my_project").BugTracking().GetSystemFields(t.Context(), 1)
+	fields, err := testClient.Project("my_project").BugTracking().GetSystemFields(t.Context(), 1)
 	require.NoError(t, err)
 	require.Len(t, fields, 2)
 
@@ -61,18 +61,23 @@ func TestBugTrackingScope_GetSystemFields_NotFound(t *testing.T) {
 func TestBugTrackingScope_GetAllowableIssueTypes_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/bts/my_project/1/issue_types")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/bts/my_project/1/issue_types")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`["Bug", "Task", "Story"]`))
-	}))
+			_, _ = responseWriter.Write([]byte(`["Bug", "Task", "Story"]`))
+		},
+	))
 
-	issueTypes, err := c.Project("my_project").BugTracking().GetAllowableIssueTypes(t.Context(), 1)
+	issueTypes, err := testClient.Project("my_project").BugTracking().GetAllowableIssueTypes(
+		t.Context(),
+		1,
+	)
 	require.NoError(t, err)
 	require.Len(t, issueTypes, 3)
 
@@ -95,27 +100,29 @@ func TestBugTrackingScope_GetAllowableIssueTypes_NotFound(t *testing.T) {
 func TestBugTrackingScope_GetTicket_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/bts/my_project/ticket/PROJ-123")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/bts/my_project/ticket/PROJ-123")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		query := r.URL.Query()
-		assert.Equal(t, "https://jira.example.com", query.Get("btsUrl"))
-		assert.Equal(t, "PROJ", query.Get("btsProject"))
+			query := httpReq.URL.Query()
+			assert.Equal(t, "https://jira.example.com", query.Get("btsUrl"))
+			assert.Equal(t, "PROJ", query.Get("btsProject"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"id": "PROJ-123",
 			"summary": "Fix the bug",
 			"status": "Open",
 			"url": "https://jira.example.com/browse/PROJ-123"
 		}`))
-	}))
+		},
+	))
 
-	ticket, err := c.Project("my_project").BugTracking().GetTicket(
+	ticket, err := testClient.Project("my_project").BugTracking().GetTicket(
 		t.Context(), "PROJ-123", "https://jira.example.com", "PROJ",
 	)
 	require.NoError(t, err)
@@ -143,30 +150,31 @@ func TestBugTrackingScope_GetTicket_NotFound(t *testing.T) {
 func TestBugTrackingScope_CreateIssue_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/bts/my_project/1/ticket")
-		assertMethod(t, r, http.MethodPost)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/bts/my_project/1/ticket")
+			assertMethod(t, httpReq, http.MethodPost)
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			payload, ok := decodeRequestJSONMap(t, httpReq)
+			if !ok {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
+			assert.InEpsilon(t, float64(42), payload["item"], 0.001)
 
-		assert.Equal(t, float64(42), payload["item"])
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		_, _ = w.Write([]byte(`{
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusCreated)
+			_, _ = responseWriter.Write([]byte(`{
 			"id": "PROJ-456",
 			"summary": "New bug",
 			"status": "Open",
 			"url": "https://jira.example.com/browse/PROJ-456"
 		}`))
-	}))
+		},
+	))
 
-	ticket, err := c.Project("my_project").BugTracking().CreateIssue(
+	ticket, err := testClient.Project("my_project").BugTracking().CreateIssue(
 		t.Context(),
 		1,
 		types.PostTicketRQ{
@@ -204,21 +212,24 @@ func TestBugTrackingScope_CreateIssue_NotFound(t *testing.T) {
 func TestBugTrackingScope_GetTicketIds_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/ticket/ids")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/item/ticket/ids")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		query := r.URL.Query()
-		assert.Equal(t, "100", query.Get("launch"))
-		assert.Equal(t, "PROJ", query.Get("term"))
+			query := httpReq.URL.Query()
+			assert.Equal(t, "100", query.Get("launch"))
+			assert.Equal(t, "PROJ", query.Get("term"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`["PROJ-1", "PROJ-2", "PROJ-3"]`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`["PROJ-1", "PROJ-2", "PROJ-3"]`))
+		},
+	))
 
-	ids, err := c.Project("my_project").BugTracking().GetTicketIds(t.Context(), 100, "PROJ")
+	ids, err := testClient.Project("my_project").BugTracking().
+		GetTicketIDs(t.Context(), 100, "PROJ")
 	require.NoError(t, err)
 	require.Len(t, ids, 3)
 
@@ -230,13 +241,16 @@ func TestBugTrackingScope_GetTicketIds_Success(t *testing.T) {
 func TestBugTrackingScope_GetTicketIds_Empty(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`[]`))
-	}))
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, _ *http.Request) {
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`[]`))
+		},
+	))
 
-	ids, err := c.Project("my_project").BugTracking().GetTicketIds(t.Context(), 100, "NONE")
+	ids, err := testClient.Project("my_project").BugTracking().
+		GetTicketIDs(t.Context(), 100, "NONE")
 	require.NoError(t, err)
 	assert.Empty(t, ids)
 }
@@ -247,28 +261,32 @@ func TestBugTrackingScope_GetTicketIds_Unauthorized(t *testing.T) {
 	c := newTestClient(t, jsonResponse(http.StatusUnauthorized,
 		`{"errorCode": 4001, "message": "Full authentication is required."}`))
 
-	_, err := c.Project("my_project").BugTracking().GetTicketIds(t.Context(), 100, "PROJ")
+	_, err := c.Project("my_project").BugTracking().GetTicketIDs(t.Context(), 100, "PROJ")
 	require.Error(t, err)
 	assert.True(t, client.IsUnauthorized(err))
 }
 
+//nolint:dupl // structured like sibling tests; shared HTTP/table scaffolding
 func TestBugTrackingScope_GetTicketIdsForProject_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/item/ticket/ids/all")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/item/ticket/ids/all")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		query := r.URL.Query()
-		assert.Equal(t, "BUG", query.Get("term"))
+			query := httpReq.URL.Query()
+			assert.Equal(t, "BUG", query.Get("term"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`["BUG-100", "BUG-200"]`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`["BUG-100", "BUG-200"]`))
+		},
+	))
 
-	ids, err := c.Project("my_project").BugTracking().GetTicketIdsForProject(t.Context(), "BUG")
+	ids, err := testClient.Project("my_project").BugTracking().
+		GetTicketIDsForProject(t.Context(), "BUG")
 	require.NoError(t, err)
 	require.Len(t, ids, 2)
 
@@ -282,7 +300,7 @@ func TestBugTrackingScope_GetTicketIdsForProject_Unauthorized(t *testing.T) {
 	c := newTestClient(t, jsonResponse(http.StatusUnauthorized,
 		`{"errorCode": 4001, "message": "Full authentication is required."}`))
 
-	_, err := c.Project("my_project").BugTracking().GetTicketIdsForProject(t.Context(), "BUG")
+	_, err := c.Project("my_project").BugTracking().GetTicketIDsForProject(t.Context(), "BUG")
 	require.Error(t, err)
 	assert.True(t, client.IsUnauthorized(err))
 }
