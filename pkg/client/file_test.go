@@ -15,18 +15,20 @@ func TestProjectScope_DownloadFile_Success(t *testing.T) {
 
 	fileContent := []byte("hello world attachment")
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/data/my_project/42")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/data/my_project/42")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "text/plain")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "text/plain")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write(fileContent)
-	}))
+			_, _ = responseWriter.Write(fileContent)
+		},
+	))
 
-	result, err := c.Project("my_project").DownloadFile(t.Context(), 42)
+	result, err := testClient.Project("my_project").DownloadFile(t.Context(), 42)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
@@ -61,14 +63,16 @@ func TestProjectScope_DownloadFile_ImageContent(t *testing.T) {
 
 	pngHeader := []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "image/png")
-		w.WriteHeader(http.StatusOK)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, _ *http.Request) {
+			responseWriter.Header().Set("Content-Type", "image/png")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write(pngHeader)
-	}))
+			_, _ = responseWriter.Write(pngHeader)
+		},
+	))
 
-	result, err := c.Project("my_project").DownloadFile(t.Context(), 123)
+	result, err := testClient.Project("my_project").DownloadFile(t.Context(), 123)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
@@ -81,18 +85,20 @@ func TestFileStorageScope_GetMyPhoto_Success(t *testing.T) {
 
 	photoBytes := []byte{0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10}
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/data/photo")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/data/photo")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "image/jpeg")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "image/jpeg")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write(photoBytes)
-	}))
+			_, _ = responseWriter.Write(photoBytes)
+		},
+	))
 
-	result, err := c.Files().GetMyPhoto(t.Context())
+	result, err := testClient.Files().GetMyPhoto(t.Context())
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
@@ -105,18 +111,20 @@ func TestFileStorageScope_GetMyPhoto_WithThumbnail(t *testing.T) {
 
 	photoBytes := []byte{0x89, 0x50, 0x4E, 0x47}
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertPath(t, r, "/api/v1/data/photo")
-		assertMethod(t, r, http.MethodGet)
-		assert.Equal(t, "true", r.URL.Query().Get("loadThumbnail"))
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertPath(t, httpReq, "/api/v1/data/photo")
+			assertMethod(t, httpReq, http.MethodGet)
+			assert.Equal(t, "true", httpReq.URL.Query().Get("loadThumbnail"))
 
-		w.Header().Set("Content-Type", "image/png")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "image/png")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write(photoBytes)
-	}))
+			_, _ = responseWriter.Write(photoBytes)
+		},
+	))
 
-	result, err := c.Files().GetMyPhoto(t.Context(), client.WithPhotoThumbnail(true))
+	result, err := testClient.Files().GetMyPhoto(t.Context(), client.WithPhotoThumbnail(true))
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
@@ -138,26 +146,38 @@ func TestFileStorageScope_GetMyPhoto_Error(t *testing.T) {
 func TestFileStorageScope_UploadPhoto_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/data/photo")
-		assertMethod(t, r, http.MethodPost)
-		assert.Contains(t, r.Header.Get("Content-Type"), "multipart/form-data")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/data/photo")
+			assertMethod(t, httpReq, http.MethodPost)
+			assert.Contains(t, httpReq.Header.Get("Content-Type"), "multipart/form-data")
 
-		err := r.ParseMultipartForm(10 << 20)
-		require.NoError(t, err)
+			httpReq.Body = http.MaxBytesReader(responseWriter, httpReq.Body, 10<<20)
 
-		_, header, err := r.FormFile("file")
-		require.NoError(t, err)
-		assert.Equal(t, "avatar.png", header.Filename)
+			err := httpReq.ParseMultipartForm(10 << 20)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			_, header, err := httpReq.FormFile("file")
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		_, _ = w.Write([]byte(`{"message": "Photo has been uploaded successfully"}`))
-	}))
+			assert.Equal(t, "avatar.png", header.Filename)
 
-	result, err := c.Files().UploadPhoto(t.Context(), "avatar.png", strings.NewReader("fake-image-data"))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+
+			const uploadPhotoMessageJSON = `{"message": "Photo has been uploaded successfully"}`
+
+			_, _ = responseWriter.Write([]byte(uploadPhotoMessageJSON))
+		},
+	))
+
+	result, err := testClient.Files().
+		UploadPhoto(t.Context(), "avatar.png", strings.NewReader("fake-image-data"))
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.Message)
@@ -178,18 +198,22 @@ func TestFileStorageScope_UploadPhoto_Error(t *testing.T) {
 func TestFileStorageScope_DeletePhoto_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/data/photo")
-		assertMethod(t, r, http.MethodDelete)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/data/photo")
+			assertMethod(t, httpReq, http.MethodDelete)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{"message": "Photo has been deleted successfully"}`))
-	}))
+			_, _ = responseWriter.Write([]byte(
+				`{"message": "Photo has been deleted successfully"}`,
+			))
+		},
+	))
 
-	result, err := c.Files().DeletePhoto(t.Context())
+	result, err := testClient.Files().DeletePhoto(t.Context())
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.Message)
@@ -210,28 +234,37 @@ func TestFileStorageScope_DeletePhoto_Error(t *testing.T) {
 func TestFileStorageScope_CleanAttachments_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/data/clean")
-		assertMethod(t, r, http.MethodPost)
-		assert.Contains(t, r.Header.Get("Content-Type"), "multipart/form-data")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/data/clean")
+			assertMethod(t, httpReq, http.MethodPost)
+			assert.Contains(t, httpReq.Header.Get("Content-Type"), "multipart/form-data")
 
-		err := r.ParseMultipartForm(10 << 20)
-		require.NoError(t, err)
+			httpReq.Body = http.MaxBytesReader(responseWriter, httpReq.Body, 10<<20)
 
-		_, header, err := r.FormFile("file")
-		require.NoError(t, err)
-		assert.Equal(t, "attachments.csv", header.Filename)
+			err := httpReq.ParseMultipartForm(10 << 20)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			_, header, err := httpReq.FormFile("file")
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		_, _ = w.Write([]byte(`{"message": "3 attachments removed"}`))
-	}))
+			assert.Equal(t, "attachments.csv", header.Filename)
+
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+
+			_, _ = responseWriter.Write([]byte(`{"message": "3 attachments removed"}`))
+		},
+	))
 
 	csvData := strings.NewReader("id1\nid2\nid3\n")
 
-	result, err := c.Files().CleanAttachments(t.Context(), "attachments.csv", csvData)
+	result, err := testClient.Files().CleanAttachments(t.Context(), "attachments.csv", csvData)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.Message)
@@ -254,19 +287,21 @@ func TestProjectScope_GetUserPhoto_Success(t *testing.T) {
 
 	photoBytes := []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/data/my_project/userphoto")
-		assertMethod(t, r, http.MethodGet)
-		assert.Equal(t, "john_doe", r.URL.Query().Get("login"))
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/data/my_project/userphoto")
+			assertMethod(t, httpReq, http.MethodGet)
+			assert.Equal(t, "john_doe", httpReq.URL.Query().Get("login"))
 
-		w.Header().Set("Content-Type", "image/png")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "image/png")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write(photoBytes)
-	}))
+			_, _ = responseWriter.Write(photoBytes)
+		},
+	))
 
-	result, err := c.Project("my_project").GetUserPhoto(t.Context(), "john_doe")
+	result, err := testClient.Project("my_project").GetUserPhoto(t.Context(), "john_doe")
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
@@ -279,18 +314,20 @@ func TestProjectScope_GetUserPhoto_WithThumbnail(t *testing.T) {
 
 	photoBytes := []byte{0xFF, 0xD8, 0xFF}
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertPath(t, r, "/api/v1/data/my_project/userphoto")
-		assert.Equal(t, "jane", r.URL.Query().Get("login"))
-		assert.Equal(t, "true", r.URL.Query().Get("loadThumbnail"))
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertPath(t, httpReq, "/api/v1/data/my_project/userphoto")
+			assert.Equal(t, "jane", httpReq.URL.Query().Get("login"))
+			assert.Equal(t, "true", httpReq.URL.Query().Get("loadThumbnail"))
 
-		w.Header().Set("Content-Type", "image/jpeg")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "image/jpeg")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write(photoBytes)
-	}))
+			_, _ = responseWriter.Write(photoBytes)
+		},
+	))
 
-	result, err := c.Project("my_project").GetUserPhoto(
+	result, err := testClient.Project("my_project").GetUserPhoto(
 		t.Context(), "jane", client.WithUserPhotoThumbnail(true),
 	)
 	require.NoError(t, err)

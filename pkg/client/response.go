@@ -132,10 +132,21 @@ func legacyPayloadPresent(legacySuccess any) bool {
 	if legacySuccess == nil {
 		return false
 	}
-	rv := reflect.ValueOf(legacySuccess)
-	switch rv.Kind() {
+
+	legacyReflect := reflect.ValueOf(legacySuccess)
+	switch legacyReflect.Kind() {
+	case reflect.Invalid:
+		return false
+	case reflect.Bool,
+		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
+		reflect.Float32, reflect.Float64,
+		reflect.Complex64, reflect.Complex128,
+		reflect.Array, reflect.String, reflect.Struct,
+		reflect.UnsafePointer:
+		return true
 	case reflect.Pointer, reflect.Map, reflect.Slice, reflect.Chan, reflect.Func, reflect.Interface:
-		return !rv.IsNil()
+		return !legacyReflect.IsNil()
 	default:
 		return true
 	}

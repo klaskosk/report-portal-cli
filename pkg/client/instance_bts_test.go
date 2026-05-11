@@ -12,17 +12,18 @@ import (
 func TestInstanceBugTrackingScope_GetSystemFields_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/bts/1/fields-set")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/bts/1/fields-set")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		assert.Equal(t, "Bug", r.URL.Query().Get("issueType"))
+			assert.Equal(t, "Bug", httpReq.URL.Query().Get("issueType"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`[
+			_, _ = responseWriter.Write([]byte(`[
 			{
 				"id": "summary",
 				"fieldName": "Summary",
@@ -36,9 +37,10 @@ func TestInstanceBugTrackingScope_GetSystemFields_Success(t *testing.T) {
 				"required": false
 			}
 		]`))
-	}))
+		},
+	))
 
-	fields, err := c.InstanceBugTracking().GetSystemFields(t.Context(), 1, "Bug")
+	fields, err := testClient.InstanceBugTracking().GetSystemFields(t.Context(), 1, "Bug")
 	require.NoError(t, err)
 	require.Len(t, fields, 2)
 
@@ -51,14 +53,14 @@ func TestInstanceBugTrackingScope_GetSystemFields_Success(t *testing.T) {
 func TestInstanceBugTrackingScope_GetSystemFields_Empty(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	testClient := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
 		_, _ = w.Write([]byte(`[]`))
 	}))
 
-	fields, err := c.InstanceBugTracking().GetSystemFields(t.Context(), 1, "Bug")
+	fields, err := testClient.InstanceBugTracking().GetSystemFields(t.Context(), 1, "Bug")
 	require.NoError(t, err)
 	assert.Empty(t, fields)
 }
@@ -66,14 +68,16 @@ func TestInstanceBugTrackingScope_GetSystemFields_Empty(t *testing.T) {
 func TestInstanceBugTrackingScope_GetSystemFields_Null(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, _ *http.Request) {
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`null`))
-	}))
+			_, _ = responseWriter.Write([]byte(`null`))
+		},
+	))
 
-	fields, err := c.InstanceBugTracking().GetSystemFields(t.Context(), 1, "Bug")
+	fields, err := testClient.InstanceBugTracking().GetSystemFields(t.Context(), 1, "Bug")
 	require.NoError(t, err)
 	assert.Empty(t, fields)
 	assert.NotNil(t, fields)
@@ -104,18 +108,20 @@ func TestInstanceBugTrackingScope_GetSystemFields_Unauthorized(t *testing.T) {
 func TestInstanceBugTrackingScope_GetAllowableIssueTypes_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/bts/1/issue_types")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/bts/1/issue_types")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`["Bug", "Task", "Story"]`))
-	}))
+			_, _ = responseWriter.Write([]byte(`["Bug", "Task", "Story"]`))
+		},
+	))
 
-	issueTypes, err := c.InstanceBugTracking().GetAllowableIssueTypes(t.Context(), 1)
+	issueTypes, err := testClient.InstanceBugTracking().GetAllowableIssueTypes(t.Context(), 1)
 	require.NoError(t, err)
 	require.Len(t, issueTypes, 3)
 
@@ -127,14 +133,16 @@ func TestInstanceBugTrackingScope_GetAllowableIssueTypes_Success(t *testing.T) {
 func TestInstanceBugTrackingScope_GetAllowableIssueTypes_Empty(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, _ *http.Request) {
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`[]`))
-	}))
+			_, _ = responseWriter.Write([]byte(`[]`))
+		},
+	))
 
-	issueTypes, err := c.InstanceBugTracking().GetAllowableIssueTypes(t.Context(), 1)
+	issueTypes, err := testClient.InstanceBugTracking().GetAllowableIssueTypes(t.Context(), 1)
 	require.NoError(t, err)
 	assert.Empty(t, issueTypes)
 }
@@ -142,14 +150,16 @@ func TestInstanceBugTrackingScope_GetAllowableIssueTypes_Empty(t *testing.T) {
 func TestInstanceBugTrackingScope_GetAllowableIssueTypes_Null(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, _ *http.Request) {
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`null`))
-	}))
+			_, _ = responseWriter.Write([]byte(`null`))
+		},
+	))
 
-	issueTypes, err := c.InstanceBugTracking().GetAllowableIssueTypes(t.Context(), 1)
+	issueTypes, err := testClient.InstanceBugTracking().GetAllowableIssueTypes(t.Context(), 1)
 	require.NoError(t, err)
 	assert.Empty(t, issueTypes)
 	assert.NotNil(t, issueTypes)

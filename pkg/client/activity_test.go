@@ -12,15 +12,16 @@ import (
 func TestActivityScope_GetByID_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodGet)
-		assertPath(t, r, "/api/v1/my_project/activity/42")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodGet)
+			assertPath(t, httpReq, "/api/v1/my_project/activity/42")
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"id": 42,
 			"actionType": "updateItem",
 			"objectType": "testItem",
@@ -31,9 +32,10 @@ func TestActivityScope_GetByID_Success(t *testing.T) {
 			"user": "admin",
 			"lastModified": "2023-11-14T22:13:20Z"
 		}`))
-	}))
+		},
+	))
 
-	activity, err := c.Project("my_project").Activities().GetByID(t.Context(), 42)
+	activity, err := testClient.Project("my_project").Activities().GetByID(t.Context(), 42)
 	require.NoError(t, err)
 
 	assert.Equal(t, int64(42), activity.Id)
@@ -69,15 +71,16 @@ func TestActivityScope_GetByID_Unauthorized(t *testing.T) {
 func TestActivityScope_ListForItem_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodGet)
-		assertPath(t, r, "/api/v1/my_project/activity/item/100")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodGet)
+			assertPath(t, httpReq, "/api/v1/my_project/activity/item/100")
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"content": [
 				{
 					"id": 1,
@@ -95,9 +98,10 @@ func TestActivityScope_ListForItem_Success(t *testing.T) {
 			],
 			"page": {"number": 1, "size": 20, "totalElements": 1, "totalPages": 1}
 		}`))
-	}))
+		},
+	))
 
-	result, err := c.Project("my_project").Activities().ListForItem(t.Context(), 100)
+	result, err := testClient.Project("my_project").Activities().ListForItem(t.Context(), 100)
 	require.NoError(t, err)
 	require.Len(t, result.Content, 1)
 
@@ -110,22 +114,24 @@ func TestActivityScope_ListForItem_Success(t *testing.T) {
 func TestActivityScope_ListForItem_WithOptions(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		query := r.URL.Query()
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			query := httpReq.URL.Query()
 
-		assert.Equal(t, "2", query.Get("page.page"))
-		assert.Equal(t, "5", query.Get("page.size"))
+			assert.Equal(t, "2", query.Get("page.page"))
+			assert.Equal(t, "5", query.Get("page.size"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"content": [],
 			"page": {"number": 2, "size": 5, "totalElements": 0, "totalPages": 0}
 		}`))
-	}))
+		},
+	))
 
-	_, err := c.Project("my_project").Activities().ListForItem(t.Context(), 100,
+	_, err := testClient.Project("my_project").Activities().ListForItem(t.Context(), 100,
 		client.WithActivityPageNumber(2),
 		client.WithActivityPageSize(5),
 	)
@@ -135,7 +141,7 @@ func TestActivityScope_ListForItem_WithOptions(t *testing.T) {
 func TestActivityScope_ListForItem_EmptyResults(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	testClient := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
@@ -145,7 +151,7 @@ func TestActivityScope_ListForItem_EmptyResults(t *testing.T) {
 		}`))
 	}))
 
-	result, err := c.Project("my_project").Activities().ListForItem(t.Context(), 100)
+	result, err := testClient.Project("my_project").Activities().ListForItem(t.Context(), 100)
 	require.NoError(t, err)
 	assert.Empty(t, result.Content)
 }
@@ -153,14 +159,16 @@ func TestActivityScope_ListForItem_EmptyResults(t *testing.T) {
 func TestActivityScope_ListForItem_WithSort(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	testClient := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "lastModified,desc", r.URL.Query().Get("page.sort"))
 
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"content":[],"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}}`))
+		_, _ = w.Write(
+			[]byte(`{"content":[],"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}}`),
+		)
 	}))
 
-	_, err := c.Project("my_project").Activities().ListForItem(
+	_, err := testClient.Project("my_project").Activities().ListForItem(
 		t.Context(), 100, client.WithActivitySort("lastModified", "desc"),
 	)
 	require.NoError(t, err)
@@ -169,14 +177,16 @@ func TestActivityScope_ListForItem_WithSort(t *testing.T) {
 func TestActivityScope_ListForItem_WithSortCleared(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	testClient := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Empty(t, r.URL.Query().Get("page.sort"))
 
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"content":[],"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}}`))
+		_, _ = w.Write(
+			[]byte(`{"content":[],"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}}`),
+		)
 	}))
 
-	_, err := c.Project("my_project").Activities().ListForItem(
+	_, err := testClient.Project("my_project").Activities().ListForItem(
 		t.Context(), 100, client.WithActivitySort(),
 	)
 	require.NoError(t, err)

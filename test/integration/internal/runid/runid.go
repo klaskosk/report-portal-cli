@@ -11,10 +11,12 @@ import (
 // producing a string that always starts with a letter and contains only
 // lowercase alphanumeric characters.
 func Generate() string {
-	b := make([]byte, 4)
-	if _, err := rand.Read(b); err != nil {
+	randBytes := make([]byte, 4)
+
+	_, err := rand.Read(randBytes)
+	if err != nil {
 		panic(fmt.Sprintf("runid: crypto/rand failed: %v", err))
 	}
 
-	return fmt.Sprintf("rp%d%x", os.Getpid(), b)
+	return fmt.Sprintf("rp%d%x", os.Getpid(), randBytes)
 }

@@ -44,7 +44,12 @@ func (i *TestItemScope) StartChild(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := i.project.client.raw.StartChildItem2WithResponse(ctx, i.project.projectName, parentItemUUID, request)
+	resp, err := i.project.client.raw.StartChildItem2WithResponse(
+		ctx,
+		i.project.projectName,
+		parentItemUUID,
+		request,
+	)
 
 	return execute[types.EntryCreatedAsyncRS](ctx, logger, "start child test item", resp, err)
 }
@@ -59,7 +64,12 @@ func (i *TestItemScope) Finish(
 	logger := i.project.operationLogger("FinishTestItem", slog.String("itemUuid", itemUUID))
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := i.project.client.raw.FinishTestItem2WithResponse(ctx, i.project.projectName, itemUUID, request)
+	resp, err := i.project.client.raw.FinishTestItem2WithResponse(
+		ctx,
+		i.project.projectName,
+		itemUUID,
+		request,
+	)
 
 	return execute[types.OperationCompletionRS](ctx, logger, "finish test item", resp, err)
 }
@@ -74,7 +84,11 @@ func (i *TestItemScope) StartRootAsync(
 	logger := i.project.operationLogger("StartRootTestItemAsync", slog.String("name", request.Name))
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := i.project.client.raw.StartRootItem1WithResponse(ctx, i.project.projectName, request)
+	resp, err := i.project.client.raw.StartRootItem1WithResponse(
+		ctx,
+		i.project.projectName,
+		request,
+	)
 
 	return execute[types.EntryCreatedAsyncRS](ctx, logger, "start root test item async", resp, err)
 }
@@ -94,7 +108,12 @@ func (i *TestItemScope) StartChildAsync(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := i.project.client.raw.StartChildItemWithResponse(ctx, i.project.projectName, parentItemUUID, request)
+	resp, err := i.project.client.raw.StartChildItemWithResponse(
+		ctx,
+		i.project.projectName,
+		parentItemUUID,
+		request,
+	)
 
 	return execute[types.EntryCreatedAsyncRS](ctx, logger, "start child test item async", resp, err)
 }
@@ -110,7 +129,12 @@ func (i *TestItemScope) FinishAsync(
 	logger := i.project.operationLogger("FinishTestItemAsync", slog.String("itemUuid", itemUUID))
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := i.project.client.raw.FinishTestItemWithResponse(ctx, i.project.projectName, itemUUID, request)
+	resp, err := i.project.client.raw.FinishTestItemWithResponse(
+		ctx,
+		i.project.projectName,
+		itemUUID,
+		request,
+	)
 
 	return execute[types.OperationCompletionRS](ctx, logger, "finish test item async", resp, err)
 }
@@ -166,7 +190,7 @@ func (i *TestItemScope) GetByUUID(
 
 // ListTestItemsOption configures filter and pagination parameters for listing test items.
 type ListTestItemsOption interface {
-	applyListTestItems(*api.GetTestItemsParams)
+	applyListTestItems(params *api.GetTestItemsParams)
 }
 
 type listTestItemsOptionFunc func(*api.GetTestItemsParams)
@@ -232,7 +256,12 @@ func (i *TestItemScope) Update(
 	logger := i.project.operationLogger("UpdateTestItem", slog.Int64("itemId", itemID))
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := i.project.client.raw.UpdateTestItemWithResponse(ctx, i.project.projectName, itemID, request)
+	resp, err := i.project.client.raw.UpdateTestItemWithResponse(
+		ctx,
+		i.project.projectName,
+		itemID,
+		request,
+	)
 
 	return execute[types.OperationCompletionRS](ctx, logger, "update test item", resp, err)
 }
@@ -258,7 +287,11 @@ func (i *TestItemScope) DefineIssueType(
 	logger := i.project.operationLogger("DefineTestItemIssueType")
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := i.project.client.raw.DefineTestItemIssueTypeWithResponse(ctx, i.project.projectName, request)
+	resp, err := i.project.client.raw.DefineTestItemIssueTypeWithResponse(
+		ctx,
+		i.project.projectName,
+		request,
+	)
 
 	issues, err := execute[[]types.Issue](ctx, logger, "define test item issue type", resp, err)
 	if err != nil {
@@ -280,9 +313,19 @@ func (i *TestItemScope) DeleteBulk(
 	logger := i.project.operationLogger("DeleteTestItemsBulk")
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := i.project.client.raw.DeleteTestItemsWithResponse(ctx, i.project.projectName, &api.DeleteTestItemsParams{Ids: ids})
+	resp, err := i.project.client.raw.DeleteTestItemsWithResponse(
+		ctx,
+		i.project.projectName,
+		&api.DeleteTestItemsParams{Ids: ids},
+	)
 
-	results, err := execute[[]types.OperationCompletionRS](ctx, logger, "delete test items bulk", resp, err)
+	results, err := execute[[]types.OperationCompletionRS](
+		ctx,
+		logger,
+		"delete test items bulk",
+		resp,
+		err,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -328,7 +371,11 @@ func (i *TestItemScope) GetAttributeKeys(
 		Launch:                &launch,
 	}
 
-	resp, err := i.project.client.raw.GetUniqueAttributeKeysWithResponse(ctx, i.project.projectName, params)
+	resp, err := i.project.client.raw.GetUniqueAttributeKeysWithResponse(
+		ctx,
+		i.project.projectName,
+		params,
+	)
 
 	keys, err := execute[[]string](ctx, logger, "get item attribute keys", resp, err)
 	if err != nil {
@@ -345,7 +392,7 @@ func (i *TestItemScope) GetAttributeKeys(
 // GetAttributeKeysForProjectOption configures optional parameters for
 // GetAttributeKeysForProject.
 type GetAttributeKeysForProjectOption interface {
-	applyGetAttributeKeysForProject(*api.GetAttributeKeysForProjectParams)
+	applyGetAttributeKeysForProject(params *api.GetAttributeKeysForProjectParams)
 }
 
 type getAttributeKeysForProjectOptionFunc func(*api.GetAttributeKeysForProjectParams)
@@ -357,14 +404,14 @@ func (f getAttributeKeysForProjectOptionFunc) applyGetAttributeKeysForProject(
 }
 
 // WithProjectKeysLatest restricts results to the latest launches only.
-func WithProjectKeysLatest(isLatest bool) GetAttributeKeysForProjectOption {
+func WithProjectKeysLatest(isLatest bool) getAttributeKeysForProjectOptionFunc {
 	return getAttributeKeysForProjectOptionFunc(func(params *api.GetAttributeKeysForProjectParams) {
 		params.IsLatest = &isLatest
 	})
 }
 
 // WithProjectKeysLaunchesLimit sets the maximum number of launches to scan.
-func WithProjectKeysLaunchesLimit(limit int32) GetAttributeKeysForProjectOption {
+func WithProjectKeysLaunchesLimit(limit int32) getAttributeKeysForProjectOptionFunc {
 	return getAttributeKeysForProjectOptionFunc(func(params *api.GetAttributeKeysForProjectParams) {
 		params.LaunchesLimit = &limit
 	})
@@ -394,7 +441,11 @@ func (i *TestItemScope) GetAttributeKeysForProject(
 		option.applyGetAttributeKeysForProject(params)
 	}
 
-	resp, err := i.project.client.raw.GetAttributeKeysForProjectWithResponse(ctx, i.project.projectName, params)
+	resp, err := i.project.client.raw.GetAttributeKeysForProjectWithResponse(
+		ctx,
+		i.project.projectName,
+		params,
+	)
 
 	keys, err := execute[[]string](ctx, logger, "get item attribute keys for project", resp, err)
 	if err != nil {
@@ -436,7 +487,11 @@ func (i *TestItemScope) GetAttributeValues(
 		Launch:                  &launch,
 	}
 
-	resp, err := i.project.client.raw.GetAttributeValues2WithResponse(ctx, i.project.projectName, params)
+	resp, err := i.project.client.raw.GetAttributeValues2WithResponse(
+		ctx,
+		i.project.projectName,
+		params,
+	)
 
 	values, err := execute[[]string](ctx, logger, "get item attribute values", resp, err)
 	if err != nil {
@@ -473,7 +528,11 @@ func (i *TestItemScope) GetStepAttributeKeys(
 		FilterEqName:          stepName,
 	}
 
-	resp, err := i.project.client.raw.GetAttributeKeys1WithResponse(ctx, i.project.projectName, params)
+	resp, err := i.project.client.raw.GetAttributeKeys1WithResponse(
+		ctx,
+		i.project.projectName,
+		params,
+	)
 
 	keys, err := execute[[]string](ctx, logger, "get step attribute keys", resp, err)
 	if err != nil {
@@ -517,7 +576,11 @@ func (i *TestItemScope) GetStepAttributeValues(
 		FilterEqName:            stepName,
 	}
 
-	resp, err := i.project.client.raw.GetAttributeValues1WithResponse(ctx, i.project.projectName, params)
+	resp, err := i.project.client.raw.GetAttributeValues1WithResponse(
+		ctx,
+		i.project.projectName,
+		params,
+	)
 
 	values, err := execute[[]string](ctx, logger, "get step attribute values", resp, err)
 	if err != nil {
@@ -533,7 +596,7 @@ func (i *TestItemScope) GetStepAttributeValues(
 
 // SearchTestItemsOption configures filter and pagination parameters for searching test items.
 type SearchTestItemsOption interface {
-	applySearchTestItems(*api.GetTestItems2Params)
+	applySearchTestItems(params *api.GetTestItems2Params)
 }
 
 type searchTestItemsOptionFunc func(*api.GetTestItems2Params)
@@ -563,42 +626,42 @@ func (i *TestItemScope) Search(
 }
 
 // WithSearchItemName filters search results by a contains-match on item name.
-func WithSearchItemName(name string) SearchTestItemsOption {
+func WithSearchItemName(name string) searchTestItemsOptionFunc {
 	return searchTestItemsOptionFunc(func(params *api.GetTestItems2Params) {
 		params.FilterCntName = &name
 	})
 }
 
 // WithSearchItemAttribute filters search results by a composite attribute.
-func WithSearchItemAttribute(attr string) SearchTestItemsOption {
+func WithSearchItemAttribute(attr string) searchTestItemsOptionFunc {
 	return searchTestItemsOptionFunc(func(params *api.GetTestItems2Params) {
 		params.FilterHasCompositeAttribute = &attr
 	})
 }
 
 // WithSearchItemStatus filters search results by status (using an "in" match).
-func WithSearchItemStatus(status string) SearchTestItemsOption {
+func WithSearchItemStatus(status string) searchTestItemsOptionFunc {
 	return searchTestItemsOptionFunc(func(params *api.GetTestItems2Params) {
 		params.FilterInStatus = &status
 	})
 }
 
 // WithSearchItemPageNumber sets the page number (0-based) for search results.
-func WithSearchItemPageNumber(page int32) SearchTestItemsOption {
+func WithSearchItemPageNumber(page int32) searchTestItemsOptionFunc {
 	return searchTestItemsOptionFunc(func(params *api.GetTestItems2Params) {
 		params.PagePage = &page
 	})
 }
 
 // WithSearchItemPageSize sets the number of results per page for search results.
-func WithSearchItemPageSize(size int32) SearchTestItemsOption {
+func WithSearchItemPageSize(size int32) searchTestItemsOptionFunc {
 	return searchTestItemsOptionFunc(func(params *api.GetTestItems2Params) {
 		params.PageSize = &size
 	})
 }
 
 // WithSearchItemSort sets the sorting criteria for search results (e.g. "startTime,desc").
-func WithSearchItemSort(sort string) SearchTestItemsOption {
+func WithSearchItemSort(sort string) searchTestItemsOptionFunc {
 	return searchTestItemsOptionFunc(func(params *api.GetTestItems2Params) {
 		params.PageSort = &sort
 	})
@@ -607,7 +670,7 @@ func WithSearchItemSort(sort string) SearchTestItemsOption {
 // ListTestItemsV2Option configures filter and pagination parameters for listing
 // test items via the v2 endpoint.
 type ListTestItemsV2Option interface {
-	applyListTestItemsV2(*api.GetTestItemsV2Params)
+	applyListTestItemsV2(params *api.GetTestItemsV2Params)
 }
 
 type listTestItemsV2OptionFunc func(*api.GetTestItemsV2Params)
@@ -637,70 +700,70 @@ func (i *TestItemScope) ListV2(
 }
 
 // WithItemV2PageNumber sets the page number (0-based) for v2 list results.
-func WithItemV2PageNumber(page int32) ListTestItemsV2Option {
+func WithItemV2PageNumber(page int32) listTestItemsV2OptionFunc {
 	return listTestItemsV2OptionFunc(func(params *api.GetTestItemsV2Params) {
 		params.PagePage = &page
 	})
 }
 
 // WithItemV2PageSize sets the number of results per page for v2 list results.
-func WithItemV2PageSize(size int32) ListTestItemsV2Option {
+func WithItemV2PageSize(size int32) listTestItemsV2OptionFunc {
 	return listTestItemsV2OptionFunc(func(params *api.GetTestItemsV2Params) {
 		params.PageSize = &size
 	})
 }
 
 // WithItemV2Sort sets the sorting criteria for v2 list results (e.g. "startTime,desc").
-func WithItemV2Sort(sort string) ListTestItemsV2Option {
+func WithItemV2Sort(sort string) listTestItemsV2OptionFunc {
 	return listTestItemsV2OptionFunc(func(params *api.GetTestItemsV2Params) {
 		params.PageSort = &sort
 	})
 }
 
 // WithItemV2Status filters v2 list results by status.
-func WithItemV2Status(status string) ListTestItemsV2Option {
+func WithItemV2Status(status string) listTestItemsV2OptionFunc {
 	return listTestItemsV2OptionFunc(func(params *api.GetTestItemsV2Params) {
 		params.FilterEqStatus = &status
 	})
 }
 
 // WithItemV2Name filters v2 list results by name.
-func WithItemV2Name(name string) ListTestItemsV2Option {
+func WithItemV2Name(name string) listTestItemsV2OptionFunc {
 	return listTestItemsV2OptionFunc(func(params *api.GetTestItemsV2Params) {
 		params.FilterEqName = &name
 	})
 }
 
 // WithItemV2LaunchID filters v2 list results by launch ID.
-func WithItemV2LaunchID(id int32) ListTestItemsV2Option {
+func WithItemV2LaunchID(id int32) listTestItemsV2OptionFunc {
 	return listTestItemsV2OptionFunc(func(params *api.GetTestItemsV2Params) {
 		params.FilterEqLaunchId = &id
 	})
 }
 
 // WithItemV2ParentID filters v2 list results by parent item ID.
-func WithItemV2ParentID(id int32) ListTestItemsV2Option {
+func WithItemV2ParentID(id int32) listTestItemsV2OptionFunc {
 	return listTestItemsV2OptionFunc(func(params *api.GetTestItemsV2Params) {
 		params.FilterEqParentId = &id
 	})
 }
 
 // WithItemPageNumber sets the page number (0-based).
-func WithItemPageNumber(n int32) ListTestItemsOption {
+func WithItemPageNumber(n int32) listTestItemsOptionFunc {
 	return listTestItemsOptionFunc(func(params *api.GetTestItemsParams) {
 		params.PagePage = &n
 	})
 }
 
 // WithItemPageSize sets the number of results per page.
-func WithItemPageSize(size int32) ListTestItemsOption {
+func WithItemPageSize(size int32) listTestItemsOptionFunc {
 	return listTestItemsOptionFunc(func(params *api.GetTestItemsParams) {
 		params.PageSize = &size
 	})
 }
 
 // WithItemSort sets the sorting criteria (e.g. "startTime,desc").
-func WithItemSort(fields ...string) ListTestItemsOption {
+func WithItemSort(fields ...string) listTestItemsOptionFunc {
 	return listTestItemsOptionFunc(func(params *api.GetTestItemsParams) {
 		if len(fields) == 0 {
 			params.PageSort = nil
@@ -714,61 +777,64 @@ func WithItemSort(fields ...string) ListTestItemsOption {
 }
 
 // WithItemLaunchID filters test items by launch ID.
-func WithItemLaunchID(launchID int64) ListTestItemsOption {
+func WithItemLaunchID(launchID int64) listTestItemsOptionFunc {
 	return listTestItemsOptionFunc(func(params *api.GetTestItemsParams) {
-		id := int32(launchID)
-		params.FilterEqLaunchId = &id
+		if id := int32PtrFromInt64(launchID); id != nil {
+			params.FilterEqLaunchId = id
+		}
 	})
 }
 
 // WithItemParentID filters test items by parent item ID.
-func WithItemParentID(parentID int64) ListTestItemsOption {
+func WithItemParentID(parentID int64) listTestItemsOptionFunc {
 	return listTestItemsOptionFunc(func(params *api.GetTestItemsParams) {
-		id := int32(parentID)
-		params.FilterEqParentId = &id
+		if id := int32PtrFromInt64(parentID); id != nil {
+			params.FilterEqParentId = id
+		}
 	})
 }
 
 // WithItemType filters test items by type (e.g. "SUITE", "TEST", "STEP").
-func WithItemType(itemType string) ListTestItemsOption {
+func WithItemType(itemType string) listTestItemsOptionFunc {
 	return listTestItemsOptionFunc(func(params *api.GetTestItemsParams) {
 		params.FilterEqType = &itemType
 	})
 }
 
 // WithItemName filters test items by name.
-func WithItemName(name string) ListTestItemsOption {
+func WithItemName(name string) listTestItemsOptionFunc {
 	return listTestItemsOptionFunc(func(params *api.GetTestItemsParams) {
 		params.FilterEqName = &name
 	})
 }
 
 // WithItemStatus filters test items by status.
-func WithItemStatus(status string) ListTestItemsOption {
+func WithItemStatus(status string) listTestItemsOptionFunc {
 	return listTestItemsOptionFunc(func(params *api.GetTestItemsParams) {
 		params.FilterEqStatus = &status
 	})
 }
 
 // WithItemHasChildren filters test items by whether they have children.
-func WithItemHasChildren(hasChildren bool) ListTestItemsOption {
+func WithItemHasChildren(hasChildren bool) listTestItemsOptionFunc {
 	return listTestItemsOptionFunc(func(params *api.GetTestItemsParams) {
 		params.FilterEqHasChildren = &hasChildren
 	})
 }
 
 // WithItemPath filters test items by path identifier.
-func WithItemPath(path int64) ListTestItemsOption {
+func WithItemPath(path int64) listTestItemsOptionFunc {
 	return listTestItemsOptionFunc(func(params *api.GetTestItemsParams) {
-		p := int32(path)
-		params.FilterEqPath = &p
+		if p := int32PtrFromInt64(path); p != nil {
+			params.FilterEqPath = p
+		}
 	})
 }
 
 // HistoryOption configures the filter and pagination parameters for retrieving
 // test item execution history.
 type HistoryOption interface {
-	applyHistory(*api.GetItemsHistoryParams)
+	applyHistory(params *api.GetItemsHistoryParams)
 }
 
 type historyOptionFunc func(*api.GetItemsHistoryParams)
@@ -792,35 +858,40 @@ func (i *TestItemScope) GetHistory(
 
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := i.project.client.raw.GetItemsHistoryWithResponse(ctx, i.project.projectName, params)
+	resp, err := i.project.client.raw.GetItemsHistoryWithResponse(
+		ctx,
+		i.project.projectName,
+		params,
+	)
 
 	return execute[types.PageTestItemHistoryElement](ctx, logger, "get items history", resp, err)
 }
 
 // WithHistoryDepth sets the number of previous launches to include in history.
-func WithHistoryDepth(depth int32) HistoryOption {
+func WithHistoryDepth(depth int32) historyOptionFunc {
 	return historyOptionFunc(func(params *api.GetItemsHistoryParams) {
 		params.HistoryDepth = &depth
 	})
 }
 
 // WithHistoryLaunchID filters history by launch ID.
-func WithHistoryLaunchID(launchID int64) HistoryOption {
+func WithHistoryLaunchID(launchID int64) historyOptionFunc {
 	return historyOptionFunc(func(params *api.GetItemsHistoryParams) {
-		id := int32(launchID)
-		params.FilterEqLaunchId = &id
+		if id := int32PtrFromInt64(launchID); id != nil {
+			params.FilterEqLaunchId = id
+		}
 	})
 }
 
 // WithHistoryFilterID sets the saved filter ID to scope the history query.
-func WithHistoryFilterID(filterID int64) HistoryOption {
+func WithHistoryFilterID(filterID int64) historyOptionFunc {
 	return historyOptionFunc(func(params *api.GetItemsHistoryParams) {
 		params.FilterId = &filterID
 	})
 }
 
 // WithHistoryLaunchesLimit sets the maximum number of launches to scan.
-func WithHistoryLaunchesLimit(limit int32) HistoryOption {
+func WithHistoryLaunchesLimit(limit int32) historyOptionFunc {
 	return historyOptionFunc(func(params *api.GetItemsHistoryParams) {
 		params.LaunchesLimit = &limit
 	})
@@ -828,42 +899,42 @@ func WithHistoryLaunchesLimit(limit int32) HistoryOption {
 
 // WithHistoryType filters history by a specific item execution type
 // (e.g. "SUITE", "TEST", "STEP").
-func WithHistoryType(historyType string) HistoryOption {
+func WithHistoryType(historyType string) historyOptionFunc {
 	return historyOptionFunc(func(params *api.GetItemsHistoryParams) {
 		params.Type = &historyType
 	})
 }
 
 // WithHistoryItemName filters history entries by test item name.
-func WithHistoryItemName(name string) HistoryOption {
+func WithHistoryItemName(name string) historyOptionFunc {
 	return historyOptionFunc(func(params *api.GetItemsHistoryParams) {
 		params.FilterEqName = &name
 	})
 }
 
 // WithHistoryItemStatus filters history entries by test item status.
-func WithHistoryItemStatus(status string) HistoryOption {
+func WithHistoryItemStatus(status string) historyOptionFunc {
 	return historyOptionFunc(func(params *api.GetItemsHistoryParams) {
 		params.FilterEqStatus = &status
 	})
 }
 
 // WithHistoryPageNumber sets the page number (0-based) for history results.
-func WithHistoryPageNumber(n int32) HistoryOption {
+func WithHistoryPageNumber(n int32) historyOptionFunc {
 	return historyOptionFunc(func(params *api.GetItemsHistoryParams) {
 		params.PagePage = &n
 	})
 }
 
 // WithHistoryPageSize sets the number of results per page for history results.
-func WithHistoryPageSize(size int32) HistoryOption {
+func WithHistoryPageSize(size int32) historyOptionFunc {
 	return historyOptionFunc(func(params *api.GetItemsHistoryParams) {
 		params.PageSize = &size
 	})
 }
 
 // WithHistoryLatest filters history to only the latest results.
-func WithHistoryLatest(isLatest bool) HistoryOption {
+func WithHistoryLatest(isLatest bool) historyOptionFunc {
 	return historyOptionFunc(func(params *api.GetItemsHistoryParams) {
 		params.IsLatest = &isLatest
 	})
@@ -871,7 +942,7 @@ func WithHistoryLatest(isLatest bool) HistoryOption {
 
 // StatisticsOption configures filter parameters for fetching accumulated test item statistics.
 type StatisticsOption interface {
-	applyStatistics(*api.GetTestItems1Params)
+	applyStatistics(params *api.GetTestItems1Params)
 }
 
 type statisticsOptionFunc func(*api.GetTestItems1Params)
@@ -900,44 +971,46 @@ func (i *TestItemScope) GetStatistics(
 }
 
 // WithStatisticsLaunchID filters statistics by launch ID.
-func WithStatisticsLaunchID(launchID int64) StatisticsOption {
+func WithStatisticsLaunchID(launchID int64) statisticsOptionFunc {
 	return statisticsOptionFunc(func(params *api.GetTestItems1Params) {
-		id := int32(launchID)
-		params.FilterEqLaunchId = &id
+		if id := int32PtrFromInt64(launchID); id != nil {
+			params.FilterEqLaunchId = id
+		}
 	})
 }
 
 // WithStatisticsParentID filters statistics by parent item ID.
-func WithStatisticsParentID(parentID int64) StatisticsOption {
+func WithStatisticsParentID(parentID int64) statisticsOptionFunc {
 	return statisticsOptionFunc(func(params *api.GetTestItems1Params) {
-		id := int32(parentID)
-		params.FilterEqParentId = &id
+		if id := int32PtrFromInt64(parentID); id != nil {
+			params.FilterEqParentId = id
+		}
 	})
 }
 
 // WithStatisticsStatus filters statistics by item status.
-func WithStatisticsStatus(status string) StatisticsOption {
+func WithStatisticsStatus(status string) statisticsOptionFunc {
 	return statisticsOptionFunc(func(params *api.GetTestItems1Params) {
 		params.FilterEqStatus = &status
 	})
 }
 
 // WithStatisticsName filters statistics by item name.
-func WithStatisticsName(name string) StatisticsOption {
+func WithStatisticsName(name string) statisticsOptionFunc {
 	return statisticsOptionFunc(func(params *api.GetTestItems1Params) {
 		params.FilterEqName = &name
 	})
 }
 
 // WithStatisticsType filters statistics by item type (e.g. "SUITE", "TEST", "STEP").
-func WithStatisticsType(itemType string) StatisticsOption {
+func WithStatisticsType(itemType string) statisticsOptionFunc {
 	return statisticsOptionFunc(func(params *api.GetTestItems1Params) {
 		params.FilterEqType = &itemType
 	})
 }
 
 // WithStatisticsHasChildren filters statistics by whether items have children.
-func WithStatisticsHasChildren(hasChildren bool) StatisticsOption {
+func WithStatisticsHasChildren(hasChildren bool) statisticsOptionFunc {
 	return statisticsOptionFunc(func(params *api.GetTestItems1Params) {
 		params.FilterEqHasChildren = &hasChildren
 	})
@@ -951,7 +1024,11 @@ func (i *TestItemScope) GetSuggestedItems(
 	logger := i.project.operationLogger("GetSuggestedItems", slog.Int64("itemId", itemID))
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := i.project.client.raw.GetSuggestedItemsWithResponse(ctx, i.project.projectName, itemID)
+	resp, err := i.project.client.raw.GetSuggestedItemsWithResponse(
+		ctx,
+		i.project.projectName,
+		itemID,
+	)
 
 	items, err := execute[[]types.SuggestedItem](ctx, logger, "get suggested items", resp, err)
 	if err != nil {
@@ -976,9 +1053,19 @@ func (i *TestItemScope) GetSuggestedClusterItems(
 	)
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := i.project.client.raw.GetSuggestedClusterItemsWithResponse(ctx, i.project.projectName, clusterID)
+	resp, err := i.project.client.raw.GetSuggestedClusterItemsWithResponse(
+		ctx,
+		i.project.projectName,
+		clusterID,
+	)
 
-	items, err := execute[[]types.SuggestedItem](ctx, logger, "get suggested cluster items", resp, err)
+	items, err := execute[[]types.SuggestedItem](
+		ctx,
+		logger,
+		"get suggested cluster items",
+		resp,
+		err,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -998,7 +1085,11 @@ func (i *TestItemScope) HandleSuggestChoice(
 	logger := i.project.operationLogger("HandleSuggestChoice")
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := i.project.client.raw.HandleSuggestChooseWithResponse(ctx, i.project.projectName, choices)
+	resp, err := i.project.client.raw.HandleSuggestChooseWithResponse(
+		ctx,
+		i.project.projectName,
+		choices,
+	)
 
 	return execute[types.OperationCompletionRS](ctx, logger, "handle suggest choice", resp, err)
 }
@@ -1013,10 +1104,10 @@ func (i *TestItemScope) LinkExternalIssues(
 
 	payload, err := json.Marshal(struct {
 		Issues      []types.ExternalSystemIssue `json:"issues"`
-		TestItemIds []int64                     `json:"testItemIds"`
+		TestItemIDs []int64                     `json:"testItemIds"`
 	}{
 		Issues:      []types.ExternalSystemIssue{request.Issues},
-		TestItemIds: request.TestItemIds,
+		TestItemIDs: request.TestItemIds,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("link external issues: marshal request: %w", err)
@@ -1029,7 +1120,13 @@ func (i *TestItemScope) LinkExternalIssues(
 		bytes.NewReader(payload),
 	)
 
-	results, err := execute[[]types.OperationCompletionRS](ctx, logger, "link external issues", resp, err)
+	results, err := execute[[]types.OperationCompletionRS](
+		ctx,
+		logger,
+		"link external issues",
+		resp,
+		err,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1049,9 +1146,19 @@ func (i *TestItemScope) UnlinkExternalIssues(
 	logger := i.project.operationLogger("UnlinkExternalIssues")
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := i.project.client.raw.UnlinkExternalIssuesWithResponse(ctx, i.project.projectName, request)
+	resp, err := i.project.client.raw.UnlinkExternalIssuesWithResponse(
+		ctx,
+		i.project.projectName,
+		request,
+	)
 
-	results, err := execute[[]types.OperationCompletionRS](ctx, logger, "unlink external issues", resp, err)
+	results, err := execute[[]types.OperationCompletionRS](
+		ctx,
+		logger,
+		"unlink external issues",
+		resp,
+		err,
+	)
 	if err != nil {
 		return nil, err
 	}

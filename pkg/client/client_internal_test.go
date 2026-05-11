@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -24,12 +25,21 @@ func TestEmptyJSONBodyNormalizer_TransportError(t *testing.T) {
 	wantErr := errors.New("connection refused")
 	normalizer := &emptyJSONBodyNormalizer{next: &failingTransport{err: wantErr}}
 
-	req := httptest.NewRequest(http.MethodGet, "http://example.com/api/test", nil)
+	req := httptest.NewRequestWithContext(
+		context.Background(),
+		http.MethodGet,
+		"http://example.com/api/test",
+		nil,
+	)
 
 	resp, err := normalizer.RoundTrip(req)
 	require.Error(t, err)
 	assert.Nil(t, resp)
-	assert.ErrorIs(t, err, wantErr)
+	require.ErrorIs(t, err, wantErr)
+
+	if resp != nil {
+		_ = resp.Body.Close()
+	}
 }
 
 func TestEmptyJSONBodyNormalizer_NonJSONResponse(t *testing.T) {
@@ -38,7 +48,7 @@ func TestEmptyJSONBodyNormalizer_NonJSONResponse(t *testing.T) {
 	normalizer := &emptyJSONBodyNormalizer{
 		next: roundTripFunc(func(r *http.Request) (*http.Response, error) {
 			return &http.Response{
-				StatusCode:    200,
+				StatusCode:    http.StatusOK,
 				ContentLength: 0,
 				Header:        http.Header{"Content-Type": {"text/plain"}},
 				Body:          http.NoBody,
@@ -46,10 +56,18 @@ func TestEmptyJSONBodyNormalizer_NonJSONResponse(t *testing.T) {
 		}),
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "http://example.com/api/test", nil)
+	req := httptest.NewRequestWithContext(
+		context.Background(),
+		http.MethodGet,
+		"http://example.com/api/test",
+		nil,
+	)
 
 	resp, err := normalizer.RoundTrip(req)
 	require.NoError(t, err)
+
+	defer func() { _ = resp.Body.Close() }()
+
 	assert.Equal(t, int64(0), resp.ContentLength)
 }
 

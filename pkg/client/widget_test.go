@@ -15,23 +15,25 @@ import (
 func TestWidgetScope_GetByID_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/widget/42")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/widget/42")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"id": 42,
 			"name": "My Widget",
 			"widgetType": "statisticTrend",
 			"contentParameters": {"contentFields": ["statistics$executions$total"], "itemsCount": 10, "widgetOptions": {}}
 		}`))
-	}))
+		},
+	))
 
-	widget, err := c.Project("my_project").Widgets().GetByID(t.Context(), 42)
+	widget, err := testClient.Project("my_project").Widgets().GetByID(t.Context(), 42)
 	require.NoError(t, err)
 
 	assert.Equal(t, int64(42), widget.Id)
@@ -53,26 +55,32 @@ func TestWidgetScope_GetByID_NotFound(t *testing.T) {
 func TestWidgetScope_Create_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/widget")
-		assertMethod(t, r, http.MethodPost)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/widget")
+			assertMethod(t, httpReq, http.MethodPost)
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
+			var payload map[string]any
+			if !assert.NoError(t, json.Unmarshal(body, &payload)) {
+				return
+			}
 
-		assert.Equal(t, "New Widget", payload["name"])
-		assert.Equal(t, "statisticTrend", payload["widgetType"])
+			assert.Equal(t, "New Widget", payload["name"])
+			assert.Equal(t, "statisticTrend", payload["widgetType"])
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		_, _ = w.Write([]byte(`{"id":10}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusCreated)
+			_, _ = responseWriter.Write([]byte(`{"id":10}`))
+		},
+	))
 
-	result, err := c.Project("my_project").Widgets().Create(t.Context(), types.WidgetRQ{
+	result, err := testClient.Project("my_project").Widgets().Create(t.Context(), types.WidgetRQ{
 		Name:       "New Widget",
 		WidgetType: types.WidgetRQWidgetType("statisticTrend"),
 	})
@@ -96,25 +104,31 @@ func TestWidgetScope_Create_BadRequest(t *testing.T) {
 func TestWidgetScope_Update_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/widget/42")
-		assertMethod(t, r, http.MethodPut)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/widget/42")
+			assertMethod(t, httpReq, http.MethodPut)
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
+			var payload map[string]any
+			if !assert.NoError(t, json.Unmarshal(body, &payload)) {
+				return
+			}
 
-		assert.Equal(t, "Updated Widget", payload["name"])
+			assert.Equal(t, "Updated Widget", payload["name"])
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message":"Widget successfully updated."}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{"message":"Widget successfully updated."}`))
+		},
+	))
 
-	result, err := c.Project("my_project").Widgets().Update(
+	result, err := testClient.Project("my_project").Widgets().Update(
 		t.Context(),
 		42,
 		types.WidgetRQ{
@@ -149,24 +163,26 @@ func TestWidgetScope_Update_NotFound(t *testing.T) {
 func TestWidgetScope_GetNames_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/widget/names/all")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/widget/names/all")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"content": [
 				"Widget 1",
 				"Widget 2"
 			],
 			"page": {"number": 1, "size": 10, "totalElements": 2, "totalPages": 1}
 		}`))
-	}))
+		},
+	))
 
-	result, err := c.Project("my_project").Widgets().GetNames(t.Context(), "")
+	result, err := testClient.Project("my_project").Widgets().GetNames(t.Context(), "")
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Len(t, result.Content, 2)
@@ -177,20 +193,22 @@ func TestWidgetScope_GetNames_Success(t *testing.T) {
 func TestWidgetScope_GetNames_Empty(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/widget/names/all")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/widget/names/all")
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"content": [],
 			"page": {"number": 1, "size": 10, "totalElements": 0, "totalPages": 0}
 		}`))
-	}))
+		},
+	))
 
-	result, err := c.Project("my_project").Widgets().GetNames(t.Context(), "nonexistent")
+	result, err := testClient.Project("my_project").Widgets().GetNames(t.Context(), "nonexistent")
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Empty(t, result.Content)
@@ -199,23 +217,25 @@ func TestWidgetScope_GetNames_Empty(t *testing.T) {
 func TestWidgetScope_GetData_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/widget/multilevel/42")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/widget/multilevel/42")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"id": 42,
 			"name": "Data Widget",
 			"widgetType": "statisticTrend",
 			"contentParameters": {"contentFields": ["statistics$executions$total"], "itemsCount": 10, "widgetOptions": {}}
 		}`))
-	}))
+		},
+	))
 
-	widget, err := c.Project("my_project").Widgets().GetData(t.Context(), 42)
+	widget, err := testClient.Project("my_project").Widgets().GetData(t.Context(), 42)
 	require.NoError(t, err)
 	require.NotNil(t, widget)
 
@@ -226,22 +246,24 @@ func TestWidgetScope_GetData_Success(t *testing.T) {
 func TestWidgetScope_GetData_WithAttributes(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		query := r.URL.Query()
-		assert.Equal(t, []string{"attr1", "attr2"}, query["attributes"])
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			query := httpReq.URL.Query()
+			assert.Equal(t, []string{"attr1", "attr2"}, query["attributes"])
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"id": 42,
 			"name": "Data Widget",
 			"widgetType": "statisticTrend",
 			"contentParameters": {"contentFields": [], "itemsCount": 10, "widgetOptions": {}}
 		}`))
-	}))
+		},
+	))
 
-	_, err := c.Project("my_project").Widgets().GetData(t.Context(), 42,
+	_, err := testClient.Project("my_project").Widgets().GetData(t.Context(), 42,
 		client.WithWidgetAttributes("attr1", "attr2"),
 	)
 	require.NoError(t, err)

@@ -15,15 +15,16 @@ import (
 func TestProjectSettingsScope_Get_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/settings")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/settings")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"project": 1,
 			"subTypes": {
 				"TO_INVESTIGATE": [
@@ -48,9 +49,10 @@ func TestProjectSettingsScope_Get_Success(t *testing.T) {
 				]
 			}
 		}`))
-	}))
+		},
+	))
 
-	settings, err := c.Project("my_project").Settings().Get(t.Context())
+	settings, err := testClient.Project("my_project").Settings().Get(t.Context())
 	require.NoError(t, err)
 	require.NotNil(t, settings)
 
@@ -70,6 +72,7 @@ func TestProjectSettingsScope_Get_Success(t *testing.T) {
 	assert.Equal(t, "TI", *tiSubTypes[0].ShortName)
 }
 
+//nolint:dupl // structured like sibling tests; shared HTTP/table scaffolding
 func TestProjectSettingsScope_Get_Errors(t *testing.T) {
 	t.Parallel()
 
@@ -93,15 +96,15 @@ func TestProjectSettingsScope_Get_Errors(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			c := newTestClient(t, jsonResponse(tt.status, tt.body))
+			c := newTestClient(t, jsonResponse(testCase.status, testCase.body))
 
 			_, err := c.Project("my_project").Settings().Get(t.Context())
 			require.Error(t, err)
-			assert.True(t, tt.assertErr(err))
+			assert.True(t, testCase.assertErr(err))
 		})
 	}
 }
@@ -109,15 +112,16 @@ func TestProjectSettingsScope_Get_Errors(t *testing.T) {
 func TestProjectSettingsScope_GetNotifications_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/settings/notification")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/settings/notification")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`[
+			_, _ = responseWriter.Write([]byte(`[
 			{
 				"id": 10,
 				"ruleName": "Launch finished",
@@ -126,9 +130,10 @@ func TestProjectSettingsScope_GetNotifications_Success(t *testing.T) {
 				"recipients": ["admin@example.com"]
 			}
 		]`))
-	}))
+		},
+	))
 
-	notifications, err := c.Project("my_project").Settings().GetNotifications(t.Context())
+	notifications, err := testClient.Project("my_project").Settings().GetNotifications(t.Context())
 	require.NoError(t, err)
 	require.Len(t, notifications, 1)
 
@@ -150,26 +155,32 @@ func TestProjectSettingsScope_GetNotifications_Unauthorized(t *testing.T) {
 func TestProjectSettingsScope_CreateNotification_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/settings/notification")
-		assertMethod(t, r, http.MethodPost)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/settings/notification")
+			assertMethod(t, httpReq, http.MethodPost)
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
+			var payload map[string]any
+			if !assert.NoError(t, json.Unmarshal(body, &payload)) {
+				return
+			}
 
-		assert.Equal(t, "Test Rule", payload["ruleName"])
+			assert.Equal(t, "Test Rule", payload["ruleName"])
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		_, _ = w.Write([]byte(`{"id":42}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusCreated)
+			_, _ = responseWriter.Write([]byte(`{"id":42}`))
+		},
+	))
 
 	ruleName := "Test Rule"
-	result, err := c.Project("my_project").Settings().CreateNotification(
+	result, err := testClient.Project("my_project").Settings().CreateNotification(
 		t.Context(),
 		types.SenderCaseDTO{
 			RuleName: ruleName,
@@ -181,6 +192,7 @@ func TestProjectSettingsScope_CreateNotification_Success(t *testing.T) {
 	assert.Equal(t, int64(42), *result.Id)
 }
 
+//nolint:dupl // structured like sibling tests; shared HTTP/table scaffolding
 func TestProjectSettingsScope_CreateNotification_Errors(t *testing.T) {
 	t.Parallel()
 
@@ -223,26 +235,32 @@ func TestProjectSettingsScope_CreateNotification_Errors(t *testing.T) {
 func TestProjectSettingsScope_UpdateNotification_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/settings/notification")
-		assertMethod(t, r, http.MethodPut)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/settings/notification")
+			assertMethod(t, httpReq, http.MethodPut)
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
+			var payload map[string]any
+			if !assert.NoError(t, json.Unmarshal(body, &payload)) {
+				return
+			}
 
-		assert.Equal(t, "Updated Rule", payload["ruleName"])
+			assert.Equal(t, "Updated Rule", payload["ruleName"])
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		_, _ = w.Write([]byte(`{"message":"Notification rule updated."}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusCreated)
+			_, _ = responseWriter.Write([]byte(`{"message":"Notification rule updated."}`))
+		},
+	))
 
 	ruleName := "Updated Rule"
-	result, err := c.Project("my_project").Settings().UpdateNotification(
+	result, err := testClient.Project("my_project").Settings().UpdateNotification(
 		t.Context(),
 		types.SenderCaseDTO{
 			RuleName: ruleName,
@@ -254,6 +272,7 @@ func TestProjectSettingsScope_UpdateNotification_Success(t *testing.T) {
 	assert.Equal(t, "Notification rule updated.", *result.Message)
 }
 
+//nolint:dupl // structured like sibling tests; shared HTTP/table scaffolding
 func TestProjectSettingsScope_UpdateNotification_Errors(t *testing.T) {
 	t.Parallel()
 
@@ -296,23 +315,26 @@ func TestProjectSettingsScope_UpdateNotification_Errors(t *testing.T) {
 func TestProjectSettingsScope_DeleteNotification_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/settings/notification/42")
-		assertMethod(t, r, http.MethodDelete)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/settings/notification/42")
+			assertMethod(t, httpReq, http.MethodDelete)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message":"Notification rule deleted."}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{"message":"Notification rule deleted."}`))
+		},
+	))
 
-	result, err := c.Project("my_project").Settings().DeleteNotification(t.Context(), 42)
+	result, err := testClient.Project("my_project").Settings().DeleteNotification(t.Context(), 42)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.Message)
 	assert.Equal(t, "Notification rule deleted.", *result.Message)
 }
 
+//nolint:dupl // structured like sibling tests; shared HTTP/table scaffolding
 func TestProjectSettingsScope_DeleteNotification_Errors(t *testing.T) {
 	t.Parallel()
 
@@ -354,28 +376,34 @@ func TestProjectSettingsScope_DeleteNotification_Errors(t *testing.T) {
 func TestProjectSettingsScope_CreatePatternTemplate_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/settings/pattern")
-		assertMethod(t, r, http.MethodPost)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/settings/pattern")
+			assertMethod(t, httpReq, http.MethodPost)
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
+			var payload map[string]any
+			if !assert.NoError(t, json.Unmarshal(body, &payload)) {
+				return
+			}
 
-		assert.Equal(t, "Timeout Pattern", payload["name"])
-		assert.Equal(t, "string", payload["type"])
+			assert.Equal(t, "Timeout Pattern", payload["name"])
+			assert.Equal(t, "string", payload["type"])
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		_, _ = w.Write([]byte(`{"id":10}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusCreated)
+			_, _ = responseWriter.Write([]byte(`{"id":10}`))
+		},
+	))
 
 	name := "Timeout Pattern"
 	patternType := "string"
-	result, err := c.Project("my_project").Settings().CreatePatternTemplate(
+	result, err := testClient.Project("my_project").Settings().CreatePatternTemplate(
 		t.Context(),
 		types.CreatePatternTemplateRQ{
 			Enabled: false,
@@ -390,6 +418,7 @@ func TestProjectSettingsScope_CreatePatternTemplate_Success(t *testing.T) {
 	assert.Equal(t, int64(10), *result.Id)
 }
 
+//nolint:dupl // structured like sibling tests; shared HTTP/table scaffolding
 func TestProjectSettingsScope_CreatePatternTemplate_Errors(t *testing.T) {
 	t.Parallel()
 
@@ -432,26 +461,32 @@ func TestProjectSettingsScope_CreatePatternTemplate_Errors(t *testing.T) {
 func TestProjectSettingsScope_UpdatePatternTemplate_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/settings/pattern/10")
-		assertMethod(t, r, http.MethodPut)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/settings/pattern/10")
+			assertMethod(t, httpReq, http.MethodPut)
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
+			var payload map[string]any
+			if !assert.NoError(t, json.Unmarshal(body, &payload)) {
+				return
+			}
 
-		assert.Equal(t, "Updated Pattern", payload["name"])
+			assert.Equal(t, "Updated Pattern", payload["name"])
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message":"Pattern template updated."}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{"message":"Pattern template updated."}`))
+		},
+	))
 
 	name := "Updated Pattern"
-	result, err := c.Project("my_project").Settings().UpdatePatternTemplate(
+	result, err := testClient.Project("my_project").Settings().UpdatePatternTemplate(
 		t.Context(),
 		10,
 		types.UpdatePatternTemplateRQ{
@@ -465,6 +500,7 @@ func TestProjectSettingsScope_UpdatePatternTemplate_Success(t *testing.T) {
 	assert.Equal(t, "Pattern template updated.", *result.Message)
 }
 
+//nolint:dupl // structured like sibling tests; shared HTTP/table scaffolding
 func TestProjectSettingsScope_UpdatePatternTemplate_Errors(t *testing.T) {
 	t.Parallel()
 
@@ -508,17 +544,20 @@ func TestProjectSettingsScope_UpdatePatternTemplate_Errors(t *testing.T) {
 func TestProjectSettingsScope_DeletePatternTemplate_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/settings/pattern/10")
-		assertMethod(t, r, http.MethodDelete)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/settings/pattern/10")
+			assertMethod(t, httpReq, http.MethodDelete)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message":"Pattern template deleted."}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{"message":"Pattern template deleted."}`))
+		},
+	))
 
-	result, err := c.Project("my_project").Settings().DeletePatternTemplate(t.Context(), 10)
+	result, err := testClient.Project("my_project").Settings().
+		DeletePatternTemplate(t.Context(), 10)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.Message)
@@ -560,28 +599,34 @@ func TestProjectSettingsScope_DeletePatternTemplate_Errors(t *testing.T) {
 func TestProjectSettingsScope_CreateIssueSubType_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/settings/sub-type")
-		assertMethod(t, r, http.MethodPost)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/settings/sub-type")
+			assertMethod(t, httpReq, http.MethodPost)
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
+			var payload map[string]any
+			if !assert.NoError(t, json.Unmarshal(body, &payload)) {
+				return
+			}
 
-		assert.Equal(t, "Custom Bug", payload["longName"])
-		assert.Equal(t, "CB", payload["shortName"])
-		assert.Equal(t, "#ff0000", payload["color"])
-		assert.Equal(t, "PRODUCT_BUG", payload["typeRef"])
+			assert.Equal(t, "Custom Bug", payload["longName"])
+			assert.Equal(t, "CB", payload["shortName"])
+			assert.Equal(t, "#ff0000", payload["color"])
+			assert.Equal(t, "PRODUCT_BUG", payload["typeRef"])
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		_, _ = w.Write([]byte(`{"id":100,"locator":"custom_bug_001"}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusCreated)
+			_, _ = responseWriter.Write([]byte(`{"id":100,"locator":"custom_bug_001"}`))
+		},
+	))
 
-	result, err := c.Project("my_project").Settings().CreateIssueSubType(
+	result, err := testClient.Project("my_project").Settings().CreateIssueSubType(
 		t.Context(),
 		types.CreateIssueSubTypeRQ{
 			LongName:  "Custom Bug",
@@ -598,6 +643,7 @@ func TestProjectSettingsScope_CreateIssueSubType_Success(t *testing.T) {
 	assert.Equal(t, "custom_bug_001", *result.Locator)
 }
 
+//nolint:dupl // structured like sibling tests; shared HTTP/table scaffolding
 func TestProjectSettingsScope_CreateIssueSubType_Errors(t *testing.T) {
 	t.Parallel()
 
@@ -640,31 +686,47 @@ func TestProjectSettingsScope_CreateIssueSubType_Errors(t *testing.T) {
 func TestProjectSettingsScope_UpdateIssueSubType_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/settings/sub-type")
-		assertMethod(t, r, http.MethodPut)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/settings/sub-type")
+			assertMethod(t, httpReq, http.MethodPut)
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
+			var payload map[string]any
+			if !assert.NoError(t, json.Unmarshal(body, &payload)) {
+				return
+			}
 
-		ids := payload["ids"].([]any)
-		require.Len(t, ids, 1)
+			ids, ok := payload["ids"].([]any)
+			if !assert.True(t, ok) {
+				return
+			}
 
-		entry := ids[0].(map[string]any)
-		assert.Equal(t, "Updated Bug", entry["longName"])
-		assert.Equal(t, "PRODUCT_BUG", entry["typeRef"])
-		assert.Equal(t, "pb001", entry["locator"])
+			if !assert.Len(t, ids, 1) {
+				return
+			}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message":"Issue sub-type updated."}`))
-	}))
+			entry, okEntry := ids[0].(map[string]any)
+			if !assert.True(t, okEntry) {
+				return
+			}
 
-	result, err := c.Project("my_project").Settings().UpdateIssueSubType(
+			assert.Equal(t, "Updated Bug", entry["longName"])
+			assert.Equal(t, "PRODUCT_BUG", entry["typeRef"])
+			assert.Equal(t, "pb001", entry["locator"])
+
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{"message":"Issue sub-type updated."}`))
+		},
+	))
+
+	result, err := testClient.Project("my_project").Settings().UpdateIssueSubType(
 		t.Context(),
 		types.UpdateOneIssueSubTypeRQ{
 			Color:     "#000000",
@@ -728,23 +790,26 @@ func TestProjectSettingsScope_UpdateIssueSubType_Errors(t *testing.T) {
 func TestProjectSettingsScope_DeleteIssueSubType_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/my_project/settings/sub-type/100")
-		assertMethod(t, r, http.MethodDelete)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/my_project/settings/sub-type/100")
+			assertMethod(t, httpReq, http.MethodDelete)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message":"Issue sub-type deleted."}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{"message":"Issue sub-type deleted."}`))
+		},
+	))
 
-	result, err := c.Project("my_project").Settings().DeleteIssueSubType(t.Context(), 100)
+	result, err := testClient.Project("my_project").Settings().DeleteIssueSubType(t.Context(), 100)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.Message)
 	assert.Equal(t, "Issue sub-type deleted.", *result.Message)
 }
 
+//nolint:dupl // structured like sibling tests; shared HTTP/table scaffolding
 func TestProjectSettingsScope_DeleteIssueSubType_Errors(t *testing.T) {
 	t.Parallel()
 

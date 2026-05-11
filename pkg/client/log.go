@@ -61,7 +61,7 @@ func (l *LogScope) GetByUUID(
 
 // ListLogsOption configures filter and pagination parameters for listing logs.
 type ListLogsOption interface {
-	applyListLogs(*api.GetLogsParams)
+	applyListLogs(params *api.GetLogsParams)
 }
 
 type listLogsOptionFunc func(*api.GetLogsParams)
@@ -97,7 +97,11 @@ func (l *LogScope) Create(
 	logger := l.project.operationLogger("CreateLogEntry")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.CreateLogEntry1WithResponse(ctx, l.project.projectName, request)
+	response, err := l.project.client.raw.CreateLogEntry1WithResponse(
+		ctx,
+		l.project.projectName,
+		request,
+	)
 
 	return execute[types.EntryCreatedAsyncRS](ctx, logger, "create log entry", response, err)
 }
@@ -112,9 +116,49 @@ func (l *LogScope) CreateAsync(
 	logger := l.project.operationLogger("CreateLogEntryAsync")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.CreateLogEntryWithResponse(ctx, l.project.projectName, request)
+	response, err := l.project.client.raw.CreateLogEntryWithResponse(
+		ctx,
+		l.project.projectName,
+		request,
+	)
 
 	return execute[types.EntryCreatedAsyncRS](ctx, logger, "create log entry async", response, err)
+}
+
+// decodeBatchSaveOperatingBody interprets batch log create responses shared by sync and async endpoints.
+func decodeBatchSaveOperatingBody(
+	opName string,
+	statusCode int,
+	rawBody []byte,
+	jsonDefault *types.ErrorRS,
+	json200 *types.BatchSaveOperatingRS,
+) (*types.BatchSaveOperatingRS, error) {
+	if statusCode == http.StatusCreated {
+		var created types.BatchSaveOperatingRS
+
+		err := json.Unmarshal(rawBody, &created)
+		if err == nil {
+			return &created, nil
+		}
+	}
+
+	if jsonDefault != nil {
+		return nil, fmt.Errorf("%s: %w", opName, newAPIError(statusCode, jsonDefault))
+	}
+
+	if statusCode < 200 || statusCode >= 300 {
+		return nil, fmt.Errorf("%s: %w", opName, newUnexpectedStatusError(statusCode, rawBody))
+	}
+
+	if json200 != nil {
+		return json200, nil
+	}
+
+	return nil, fmt.Errorf(
+		"%s: API returned success status (%d) but no valid response body was parsed",
+		opName,
+		statusCode,
+	)
 }
 
 // CreateBatchAsync creates multiple log entries in a single multipart request
@@ -144,31 +188,12 @@ func (l *LogScope) CreateBatchAsync(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	if response.StatusCode() == http.StatusCreated {
-		var created types.BatchSaveOperatingRS
-
-		err := json.Unmarshal(response.Body, &created)
-		if err == nil {
-			return &created, nil
-		}
-	}
-
-	if response.JSONDefault != nil {
-		return nil, fmt.Errorf("create log batch async: %w", newAPIError(response.StatusCode(), response.JSONDefault))
-	}
-
-	code := response.StatusCode()
-	if code < 200 || code >= 300 {
-		return nil, fmt.Errorf("create log batch async: %w", newUnexpectedStatusError(code, response.Body))
-	}
-
-	if response.JSON200 != nil {
-		return response.JSON200, nil
-	}
-
-	return nil, fmt.Errorf(
-		"create log batch async: API returned success status (%d) but no valid response body was parsed",
-		code,
+	return decodeBatchSaveOperatingBody(
+		"create log batch async",
+		response.StatusCode(),
+		response.Body,
+		response.JSONDefault,
+		response.JSON200,
 	)
 }
 
@@ -211,31 +236,12 @@ func (l *LogScope) CreateBatch(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	if response.StatusCode() == http.StatusCreated {
-		var created types.BatchSaveOperatingRS
-
-		err := json.Unmarshal(response.Body, &created)
-		if err == nil {
-			return &created, nil
-		}
-	}
-
-	if response.JSONDefault != nil {
-		return nil, fmt.Errorf("create log batch: %w", newAPIError(response.StatusCode(), response.JSONDefault))
-	}
-
-	code := response.StatusCode()
-	if code < 200 || code >= 300 {
-		return nil, fmt.Errorf("create log batch: %w", newUnexpectedStatusError(code, response.Body))
-	}
-
-	if response.JSON200 != nil {
-		return response.JSON200, nil
-	}
-
-	return nil, fmt.Errorf(
-		"create log batch: API returned success status (%d) but no valid response body was parsed",
-		code,
+	return decodeBatchSaveOperatingBody(
+		"create log batch",
+		response.StatusCode(),
+		response.Body,
+		response.JSONDefault,
+		response.JSON200,
 	)
 }
 
@@ -253,6 +259,27 @@ type batchLogJSON struct {
 // batchLogFile is the file metadata embedded in the JSON part of a batch log entry.
 type batchLogFile struct {
 	Name string `json:"name"`
+}
+
+// appendBatchLogFileParts writes optional attachment parts for batch log uploads.
+func appendBatchLogFileParts(writer *multipart.Writer, entries []BatchLogEntry) error {
+	for _, entry := range entries {
+		if entry.AttachmentName == "" {
+			continue
+		}
+
+		filePart, err := writer.CreateFormFile("file", entry.AttachmentName)
+		if err != nil {
+			return fmt.Errorf("creating file part: %w", err)
+		}
+
+		_, werr := filePart.Write(entry.AttachmentData)
+		if werr != nil {
+			return fmt.Errorf("writing file part: %w", werr)
+		}
+	}
+
+	return nil
 }
 
 // buildBatchLogMultipart assembles the multipart body for a batch log request.
@@ -291,71 +318,65 @@ func buildBatchLogMultipart(entries []BatchLogEntry) (*bytes.Buffer, string, err
 		return nil, "", fmt.Errorf("creating json part: %w", err)
 	}
 
-	if _, err := jsonPart.Write(jsonData); err != nil {
-		return nil, "", fmt.Errorf("writing json part: %w", err)
+	_, werr := jsonPart.Write(jsonData)
+	if werr != nil {
+		return nil, "", fmt.Errorf("writing json part: %w", werr)
 	}
 
-	for _, entry := range entries {
-		if entry.AttachmentName == "" {
-			continue
-		}
-
-		filePart, err := writer.CreateFormFile("file", entry.AttachmentName)
-		if err != nil {
-			return nil, "", fmt.Errorf("creating file part: %w", err)
-		}
-
-		if _, err := filePart.Write(entry.AttachmentData); err != nil {
-			return nil, "", fmt.Errorf("writing file part: %w", err)
-		}
+	appendErr := appendBatchLogFileParts(writer, entries)
+	if appendErr != nil {
+		return nil, "", appendErr
 	}
 
-	if err := writer.Close(); err != nil {
-		return nil, "", fmt.Errorf("closing multipart writer: %w", err)
+	closeErr := writer.Close()
+	if closeErr != nil {
+		return nil, "", fmt.Errorf("closing multipart writer: %w", closeErr)
 	}
 
 	return &buf, writer.FormDataContentType(), nil
 }
 
 // WithLogItemID filters logs by test item ID.
-func WithLogItemID(itemID int64) ListLogsOption {
+func WithLogItemID(itemID int64) listLogsOptionFunc {
 	return listLogsOptionFunc(func(params *api.GetLogsParams) {
-		id := int32(itemID)
-		params.FilterEqItem = &id
+		if id := int32PtrFromInt64(itemID); id != nil {
+			params.FilterEqItem = id
+		}
 	})
 }
 
 // WithLogLaunchID filters logs by launch ID.
-func WithLogLaunchID(launchID int64) ListLogsOption {
+func WithLogLaunchID(launchID int64) listLogsOptionFunc {
 	return listLogsOptionFunc(func(params *api.GetLogsParams) {
-		id := int32(launchID)
-		params.FilterEqLaunchId = &id
+		if id := int32PtrFromInt64(launchID); id != nil {
+			params.FilterEqLaunchId = id
+		}
 	})
 }
 
 // WithLogLevel filters logs by level (e.g. "ERROR", "INFO", "DEBUG").
-func WithLogLevel(level string) ListLogsOption {
+func WithLogLevel(level string) listLogsOptionFunc {
 	return listLogsOptionFunc(func(params *api.GetLogsParams) {
 		params.FilterEqLevel = &level
 	})
 }
 
 // WithLogPageNumber sets the page number (0-based).
-func WithLogPageNumber(n int32) ListLogsOption {
+func WithLogPageNumber(n int32) listLogsOptionFunc {
 	return listLogsOptionFunc(func(params *api.GetLogsParams) {
 		params.PagePage = &n
 	})
 }
 
 // WithLogPageSize sets the number of results per page.
-func WithLogPageSize(size int32) ListLogsOption {
+func WithLogPageSize(size int32) listLogsOptionFunc {
 	return listLogsOptionFunc(func(params *api.GetLogsParams) {
 		params.PageSize = &size
 	})
 }
 
 // WithLogSort sets the sorting criteria (e.g. "logTime,desc").
-func WithLogSort(fields ...string) ListLogsOption {
+func WithLogSort(fields ...string) listLogsOptionFunc {
 	return listLogsOptionFunc(func(params *api.GetLogsParams) {
 		if len(fields) == 0 {
 			params.PageSort = nil
@@ -383,7 +404,12 @@ func (l *LogScope) Search(
 		request.SearchMode = types.CurrentLaunch
 	}
 
-	response, err := l.project.client.raw.SearchLogsWithResponse(ctx, l.project.projectName, itemID, request)
+	response, err := l.project.client.raw.SearchLogsWithResponse(
+		ctx,
+		l.project.projectName,
+		itemID,
+		request,
+	)
 
 	result, err := execute[[]types.SearchLogRs](ctx, logger, "search logs", response, err)
 	if err != nil {
@@ -399,7 +425,7 @@ func (l *LogScope) Search(
 
 // GetLogPageNumberOption configures parameters for looking up a log's page number.
 type GetLogPageNumberOption interface {
-	applyGetLogPageNumber(*api.GetPageNumberParams)
+	applyGetLogPageNumber(params *api.GetPageNumberParams)
 }
 
 type getLogPageNumberOptionFunc func(*api.GetPageNumberParams)
@@ -409,22 +435,23 @@ func (f getLogPageNumberOptionFunc) applyGetLogPageNumber(params *api.GetPageNum
 }
 
 // WithLogPageItemID filters the page number lookup by test item ID.
-func WithLogPageItemID(id int64) GetLogPageNumberOption {
+func WithLogPageItemID(id int64) getLogPageNumberOptionFunc {
 	return getLogPageNumberOptionFunc(func(params *api.GetPageNumberParams) {
-		narrowed := int32(id)
-		params.FilterEqItem = &narrowed
+		if narrowed := int32PtrFromInt64(id); narrowed != nil {
+			params.FilterEqItem = narrowed
+		}
 	})
 }
 
 // WithLogPageNumberPageSize sets the page size for the page number lookup.
-func WithLogPageNumberPageSize(size int32) GetLogPageNumberOption {
+func WithLogPageNumberPageSize(size int32) getLogPageNumberOptionFunc {
 	return getLogPageNumberOptionFunc(func(params *api.GetPageNumberParams) {
 		params.PageSize = &size
 	})
 }
 
 // WithLogPageNumberSort sets the sorting criteria for the page number lookup (e.g. "logTime,desc").
-func WithLogPageNumberSort(sort string) GetLogPageNumberOption {
+func WithLogPageNumberSort(sort string) getLogPageNumberOptionFunc {
 	return getLogPageNumberOptionFunc(func(params *api.GetPageNumberParams) {
 		if sort == "" {
 			params.PageSort = nil
@@ -465,12 +492,18 @@ func (l *LogScope) GetPageNumber(
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
 	if response.JSONDefault != nil {
-		return nil, fmt.Errorf("get log page number: %w", newAPIError(response.StatusCode(), response.JSONDefault))
+		return nil, fmt.Errorf(
+			"get log page number: %w",
+			newAPIError(response.StatusCode(), response.JSONDefault),
+		)
 	}
 
 	code := response.StatusCode()
 	if code < 200 || code >= 300 {
-		return nil, fmt.Errorf("get log page number: %w", newUnexpectedStatusError(code, response.Body))
+		return nil, fmt.Errorf(
+			"get log page number: %w",
+			newUnexpectedStatusError(code, response.Body),
+		)
 	}
 
 	if response.JSON200 == nil || *response.JSON200 == nil {
@@ -482,7 +515,7 @@ func (l *LogScope) GetPageNumber(
 
 // GetLogLocationsOption configures parameters for retrieving log locations.
 type GetLogLocationsOption interface {
-	applyGetLogLocations(*api.GetErrorPageParams)
+	applyGetLogLocations(params *api.GetErrorPageParams)
 }
 
 type getLogLocationsOptionFunc func(*api.GetErrorPageParams)
@@ -492,14 +525,14 @@ func (f getLogLocationsOptionFunc) applyGetLogLocations(params *api.GetErrorPage
 }
 
 // WithLogLocationsPageSize sets the number of results per page.
-func WithLogLocationsPageSize(size int32) GetLogLocationsOption {
+func WithLogLocationsPageSize(size int32) getLogLocationsOptionFunc {
 	return getLogLocationsOptionFunc(func(params *api.GetErrorPageParams) {
 		params.PageSize = &size
 	})
 }
 
 // WithLogLocationsPageNumber sets the page number (0-based).
-func WithLogLocationsPageNumber(page int32) GetLogLocationsOption {
+func WithLogLocationsPageNumber(page int32) getLogLocationsOptionFunc {
 	return getLogLocationsOptionFunc(func(params *api.GetErrorPageParams) {
 		params.PagePage = &page
 	})
@@ -536,12 +569,18 @@ func (l *LogScope) GetLogLocations(
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
 	if response.JSONDefault != nil {
-		return nil, fmt.Errorf("get log locations: %w", newAPIError(response.StatusCode(), response.JSONDefault))
+		return nil, fmt.Errorf(
+			"get log locations: %w",
+			newAPIError(response.StatusCode(), response.JSONDefault),
+		)
 	}
 
 	code := response.StatusCode()
 	if code < 200 || code >= 300 {
-		return nil, fmt.Errorf("get log locations: %w", newUnexpectedStatusError(code, response.Body))
+		return nil, fmt.Errorf(
+			"get log locations: %w",
+			newUnexpectedStatusError(code, response.Body),
+		)
 	}
 
 	if response.JSON200 == nil || *response.JSON200 == nil {
@@ -553,24 +592,26 @@ func (l *LogScope) GetLogLocations(
 
 // SearchLogLocationsOption configures parameters for searching log locations.
 type SearchLogLocationsOption interface {
-	applySearchLogLocations(*api.GetLogsWithLocationBySearchParams)
+	applySearchLogLocations(params *api.GetLogsWithLocationBySearchParams)
 }
 
 type searchLogLocationsOptionFunc func(*api.GetLogsWithLocationBySearchParams)
 
-func (f searchLogLocationsOptionFunc) applySearchLogLocations(params *api.GetLogsWithLocationBySearchParams) {
+func (f searchLogLocationsOptionFunc) applySearchLogLocations(
+	params *api.GetLogsWithLocationBySearchParams,
+) {
 	f(params)
 }
 
 // WithSearchLogLocationsPageSize sets the number of results per page.
-func WithSearchLogLocationsPageSize(size int32) SearchLogLocationsOption {
+func WithSearchLogLocationsPageSize(size int32) searchLogLocationsOptionFunc {
 	return searchLogLocationsOptionFunc(func(params *api.GetLogsWithLocationBySearchParams) {
 		params.PageSize = &size
 	})
 }
 
 // WithSearchLogLocationsPageNumber sets the page number (0-based).
-func WithSearchLogLocationsPageNumber(page int32) SearchLogLocationsOption {
+func WithSearchLogLocationsPageNumber(page int32) searchLogLocationsOptionFunc {
 	return searchLogLocationsOptionFunc(func(params *api.GetLogsWithLocationBySearchParams) {
 		params.PagePage = &page
 	})
@@ -593,14 +634,19 @@ func (l *LogScope) SearchLogLocations(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.GetLogsWithLocationBySearchWithResponse(ctx, l.project.projectName, parentID, params)
+	response, err := l.project.client.raw.GetLogsWithLocationBySearchWithResponse(
+		ctx,
+		l.project.projectName,
+		parentID,
+		params,
+	)
 
 	return execute[types.PagePagedLogResource](ctx, logger, "search log locations", response, err)
 }
 
 // GetNestedLogsOption configures parameters for retrieving nested log entries.
 type GetNestedLogsOption interface {
-	applyGetNestedLogs(*api.GetNestedItemsParams)
+	applyGetNestedLogs(params *api.GetNestedItemsParams)
 }
 
 type getNestedLogsOptionFunc func(*api.GetNestedItemsParams)
@@ -610,14 +656,14 @@ func (f getNestedLogsOptionFunc) applyGetNestedLogs(params *api.GetNestedItemsPa
 }
 
 // WithNestedLogsPageSize sets the number of results per page.
-func WithNestedLogsPageSize(size int32) GetNestedLogsOption {
+func WithNestedLogsPageSize(size int32) getNestedLogsOptionFunc {
 	return getNestedLogsOptionFunc(func(params *api.GetNestedItemsParams) {
 		params.PageSize = &size
 	})
 }
 
 // WithNestedLogsPageNumber sets the page number (0-based).
-func WithNestedLogsPageNumber(page int32) GetNestedLogsOption {
+func WithNestedLogsPageNumber(page int32) getNestedLogsOptionFunc {
 	return getNestedLogsOptionFunc(func(params *api.GetNestedItemsParams) {
 		params.PagePage = &page
 	})
@@ -640,7 +686,12 @@ func (l *LogScope) GetNestedLogs(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.GetNestedItemsWithResponse(ctx, l.project.projectName, parentID, params)
+	response, err := l.project.client.raw.GetNestedItemsWithResponse(
+		ctx,
+		l.project.projectName,
+		parentID,
+		params,
+	)
 
 	return execute[types.PageObject](ctx, logger, "get nested logs", response, err)
 }
@@ -659,9 +710,19 @@ func (l *LogScope) GetLogsUnder(
 		request.LogLevel = "INFO"
 	}
 
-	response, err := l.project.client.raw.GetLogsUnderWithResponse(ctx, l.project.projectName, request)
+	response, err := l.project.client.raw.GetLogsUnderWithResponse(
+		ctx,
+		l.project.projectName,
+		request,
+	)
 
-	result, err := execute[map[string][]types.LogResource](ctx, logger, "get logs under", response, err)
+	result, err := execute[map[string][]types.LogResource](
+		ctx,
+		logger,
+		"get logs under",
+		response,
+		err,
+	)
 	if err != nil {
 		return nil, err
 	}

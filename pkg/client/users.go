@@ -65,7 +65,10 @@ func (u *UsersScope) ListProjects(
 }
 
 // List returns a paginated list of all users (admin endpoint).
-func (u *UsersScope) List(ctx context.Context, options ...ListUsersOption) (*types.PageUserResource, error) {
+func (u *UsersScope) List(
+	ctx context.Context,
+	options ...ListUsersOption,
+) (*types.PageUserResource, error) {
 	logger := u.client.logger.With(slog.String("operation", "ListUsers"))
 
 	params := &api.GetUsersParams{}
@@ -124,7 +127,10 @@ func (u *UsersScope) Export(ctx context.Context, options ...ListUsersOption) ([]
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
 	if response.JSONDefault != nil {
-		return nil, fmt.Errorf("export users: %w", newAPIError(response.StatusCode(), response.JSONDefault))
+		return nil, fmt.Errorf(
+			"export users: %w",
+			newAPIError(response.StatusCode(), response.JSONDefault),
+		)
 	}
 
 	code := response.StatusCode()
@@ -136,7 +142,10 @@ func (u *UsersScope) Export(ctx context.Context, options ...ListUsersOption) ([]
 }
 
 // Create creates a new user (admin only).
-func (u *UsersScope) Create(ctx context.Context, request types.CreateUserRQFull) (*types.CreateUserRS, error) {
+func (u *UsersScope) Create(
+	ctx context.Context,
+	request types.CreateUserRQFull,
+) (*types.CreateUserRS, error) {
 	logger := u.client.logger.With(
 		slog.String("operation", "CreateUser"),
 		slog.String("login", request.Login),
@@ -166,14 +175,20 @@ func (u *UsersScope) Edit(
 }
 
 // Delete deletes a user by numeric ID.
-func (u *UsersScope) Delete(ctx context.Context, id int64) (*types.OperationCompletionRS, error) {
+func (u *UsersScope) Delete(
+	ctx context.Context,
+	userID int64,
+) (
+	*types.OperationCompletionRS,
+	error,
+) {
 	logger := u.client.logger.With(
 		slog.String("operation", "DeleteUser"),
-		slog.Int64("id", id),
+		slog.Int64("id", userID),
 	)
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := u.client.raw.DeleteUserWithResponse(ctx, id)
+	resp, err := u.client.raw.DeleteUserWithResponse(ctx, userID)
 
 	return execute(ctx, logger, "delete user", resp, err)
 }
@@ -242,21 +257,33 @@ func (u *UsersScope) Register(
 }
 
 // ChangePassword changes the currently authenticated user's password.
-func (u *UsersScope) ChangePassword(ctx context.Context, request types.ChangePasswordRQ) (*types.OperationCompletionRS, error) {
+func (u *UsersScope) ChangePassword(
+	ctx context.Context,
+	request types.ChangePasswordRQ,
+) (*types.OperationCompletionRS, error) {
 	logger := u.client.logger.With(slog.String("operation", "ChangePassword"))
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := u.client.raw.ChangePasswordWithResponse(ctx, api.ChangePasswordJSONRequestBody(request))
+	resp, err := u.client.raw.ChangePasswordWithResponse(
+		ctx,
+		request,
+	)
 
 	return execute(ctx, logger, "change password", resp, err)
 }
 
 // RestorePassword initiates a password restore flow by sending a reset link to the given email address.
-func (u *UsersScope) RestorePassword(ctx context.Context, request types.RestorePasswordRQ) (*types.OperationCompletionRS, error) {
+func (u *UsersScope) RestorePassword(
+	ctx context.Context,
+	request types.RestorePasswordRQ,
+) (*types.OperationCompletionRS, error) {
 	logger := u.client.logger.With(slog.String("operation", "RestorePassword"))
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := u.client.raw.RestorePasswordWithResponse(ctx, api.RestorePasswordJSONRequestBody(request))
+	resp, err := u.client.raw.RestorePasswordWithResponse(
+		ctx,
+		request,
+	)
 
 	return execute(ctx, logger, "restore password", resp, err)
 }
@@ -284,11 +311,17 @@ func (u *UsersScope) IsRestorePasswordBidExist(ctx context.Context, uuid string)
 }
 
 // ResetPassword completes the password reset flow using the UUID from the restore email and the new password.
-func (u *UsersScope) ResetPassword(ctx context.Context, request types.ResetPasswordRQ) (*types.OperationCompletionRS, error) {
+func (u *UsersScope) ResetPassword(
+	ctx context.Context,
+	request types.ResetPasswordRQ,
+) (*types.OperationCompletionRS, error) {
 	logger := u.client.logger.With(slog.String("operation", "ResetPassword"))
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := u.client.raw.ResetPasswordWithResponse(ctx, api.ResetPasswordJSONRequestBody(request))
+	resp, err := u.client.raw.ResetPasswordWithResponse(
+		ctx,
+		request,
+	)
 
 	return execute(ctx, logger, "reset password", resp, err)
 }
@@ -318,20 +351,32 @@ func (u *UsersScope) ListAPIKeys(ctx context.Context, userID int64) ([]types.Api
 // CreateAPIKey creates a new API key for the given user. The returned ApiKeyRS
 // will have the ApiKey field populated; this is the only time the raw key value
 // is available.
-func (u *UsersScope) CreateAPIKey(ctx context.Context, userID int64, request types.ApiKeyRQ) (*types.ApiKeyRS, error) {
+func (u *UsersScope) CreateAPIKey(
+	ctx context.Context,
+	userID int64,
+	request types.ApiKeyRQ,
+) (*types.ApiKeyRS, error) {
 	logger := u.client.logger.With(
 		slog.String("operation", "CreateAPIKey"),
 		slog.Int64("userId", userID),
 	)
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := u.client.raw.CreateApiKeyWithResponse(ctx, userID, api.CreateApiKeyJSONRequestBody(request))
+	resp, err := u.client.raw.CreateApiKeyWithResponse(
+		ctx,
+		userID,
+		request,
+	)
 
 	return execute(ctx, logger, "create api key", resp, err)
 }
 
 // DeleteAPIKey deletes the API key with the given ID for the given user.
-func (u *UsersScope) DeleteAPIKey(ctx context.Context, userID int64, keyID int64) (*types.OperationCompletionRS, error) {
+func (u *UsersScope) DeleteAPIKey(
+	ctx context.Context,
+	userID int64,
+	keyID int64,
+) (*types.OperationCompletionRS, error) {
 	logger := u.client.logger.With(
 		slog.String("operation", "DeleteAPIKey"),
 		slog.Int64("userId", userID),
@@ -344,28 +389,28 @@ func (u *UsersScope) DeleteAPIKey(ctx context.Context, userID int64, keyID int64
 	return execute(ctx, logger, "delete api key", resp, err)
 }
 
-func listUsersParamsToExportParams(p *api.GetUsersParams) *api.ExportParams {
+func listUsersParamsToExportParams(usersParams *api.GetUsersParams) *api.ExportParams {
 	return &api.ExportParams{
-		FilterEqType:                p.FilterEqType,
-		FilterEqLastLogin:           p.FilterEqLastLogin,
-		FilterEqRole:                p.FilterEqRole,
-		FilterEqUser:                p.FilterEqUser,
-		FilterEqId:                  p.FilterEqId,
-		FilterEqExpired:             p.FilterEqExpired,
-		FilterEqSynchronizationDate: p.FilterEqSynchronizationDate,
-		FilterEqExternalId:          p.FilterEqExternalId,
-		FilterEqActive:              p.FilterEqActive,
-		FilterEqProject:             p.FilterEqProject,
-		FilterEqEmail:               p.FilterEqEmail,
-		FilterEqFullName:            p.FilterEqFullName,
-		FilterEqProjectId:           p.FilterEqProjectId,
-		FilterEqUuid:                p.FilterEqUuid,
+		FilterEqType:                usersParams.FilterEqType,
+		FilterEqLastLogin:           usersParams.FilterEqLastLogin,
+		FilterEqRole:                usersParams.FilterEqRole,
+		FilterEqUser:                usersParams.FilterEqUser,
+		FilterEqId:                  usersParams.FilterEqId,
+		FilterEqExpired:             usersParams.FilterEqExpired,
+		FilterEqSynchronizationDate: usersParams.FilterEqSynchronizationDate,
+		FilterEqExternalId:          usersParams.FilterEqExternalId,
+		FilterEqActive:              usersParams.FilterEqActive,
+		FilterEqProject:             usersParams.FilterEqProject,
+		FilterEqEmail:               usersParams.FilterEqEmail,
+		FilterEqFullName:            usersParams.FilterEqFullName,
+		FilterEqProjectId:           usersParams.FilterEqProjectId,
+		FilterEqUuid:                usersParams.FilterEqUuid,
 	}
 }
 
 // ListUsersOption configures parameters for listing users.
 type ListUsersOption interface {
-	applyListUsers(*api.GetUsersParams)
+	applyListUsers(params *api.GetUsersParams)
 }
 
 type listUsersOptionFunc func(*api.GetUsersParams)
@@ -375,21 +420,21 @@ func (f listUsersOptionFunc) applyListUsers(params *api.GetUsersParams) {
 }
 
 // WithUsersPageNumber sets the page number (0-based).
-func WithUsersPageNumber(n int32) ListUsersOption {
+func WithUsersPageNumber(n int32) listUsersOptionFunc {
 	return listUsersOptionFunc(func(params *api.GetUsersParams) {
 		params.PagePage = &n
 	})
 }
 
 // WithUsersPageSize sets the number of results per page.
-func WithUsersPageSize(size int32) ListUsersOption {
+func WithUsersPageSize(size int32) listUsersOptionFunc {
 	return listUsersOptionFunc(func(params *api.GetUsersParams) {
 		params.PageSize = &size
 	})
 }
 
 // WithUsersSort sets the sorting criteria (e.g. "login,asc").
-func WithUsersSort(fields ...string) ListUsersOption {
+func WithUsersSort(fields ...string) listUsersOptionFunc {
 	return listUsersOptionFunc(func(params *api.GetUsersParams) {
 		if len(fields) == 0 {
 			params.PageSort = nil
@@ -403,28 +448,28 @@ func WithUsersSort(fields ...string) ListUsersOption {
 }
 
 // WithUsersRole filters users by role (e.g. "ADMINISTRATOR", "USER").
-func WithUsersRole(role string) ListUsersOption {
+func WithUsersRole(role string) listUsersOptionFunc {
 	return listUsersOptionFunc(func(params *api.GetUsersParams) {
 		params.FilterEqRole = &role
 	})
 }
 
 // WithUsersType filters users by account type (e.g. "INTERNAL", "SCIM").
-func WithUsersType(accountType string) ListUsersOption {
+func WithUsersType(accountType string) listUsersOptionFunc {
 	return listUsersOptionFunc(func(params *api.GetUsersParams) {
 		params.FilterEqType = &accountType
 	})
 }
 
 // WithUsersActive filters users by active status.
-func WithUsersActive(active bool) ListUsersOption {
+func WithUsersActive(active bool) listUsersOptionFunc {
 	return listUsersOptionFunc(func(params *api.GetUsersParams) {
 		params.FilterEqActive = &active
 	})
 }
 
 // WithUsersEmail filters users by email.
-func WithUsersEmail(email string) ListUsersOption {
+func WithUsersEmail(email string) listUsersOptionFunc {
 	return listUsersOptionFunc(func(params *api.GetUsersParams) {
 		params.FilterEqEmail = &email
 	})
@@ -432,7 +477,7 @@ func WithUsersEmail(email string) ListUsersOption {
 
 // SearchUsersOption configures pagination parameters for user search.
 type SearchUsersOption interface {
-	applySearchUsers(*api.FindUsersParams)
+	applySearchUsers(params *api.FindUsersParams)
 }
 
 type searchUsersOptionFunc func(*api.FindUsersParams)
@@ -442,21 +487,21 @@ func (f searchUsersOptionFunc) applySearchUsers(params *api.FindUsersParams) {
 }
 
 // WithSearchUsersPageNumber sets the page number (0-based) for user search.
-func WithSearchUsersPageNumber(n int32) SearchUsersOption {
+func WithSearchUsersPageNumber(n int32) searchUsersOptionFunc {
 	return searchUsersOptionFunc(func(params *api.FindUsersParams) {
 		params.PagePage = &n
 	})
 }
 
 // WithSearchUsersPageSize sets the number of results per page for user search.
-func WithSearchUsersPageSize(size int32) SearchUsersOption {
+func WithSearchUsersPageSize(size int32) searchUsersOptionFunc {
 	return searchUsersOptionFunc(func(params *api.FindUsersParams) {
 		params.PageSize = &size
 	})
 }
 
 // WithSearchUsersSort sets the sorting criteria for user search.
-func WithSearchUsersSort(fields ...string) SearchUsersOption {
+func WithSearchUsersSort(fields ...string) searchUsersOptionFunc {
 	return searchUsersOptionFunc(func(params *api.FindUsersParams) {
 		if len(fields) == 0 {
 			params.PageSort = nil

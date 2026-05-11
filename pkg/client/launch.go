@@ -25,7 +25,11 @@ func (l *LaunchScope) Start(
 	logger := l.project.operationLogger("StartLaunch", slog.String("name", request.Name))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.StartLaunch1WithResponse(ctx, l.project.projectName, request)
+	response, err := l.project.client.raw.StartLaunch1WithResponse(
+		ctx,
+		l.project.projectName,
+		request,
+	)
 
 	return execute[types.StartLaunchRS](ctx, logger, "start launch", response, err)
 }
@@ -41,7 +45,12 @@ func (l *LaunchScope) Finish(
 	logger := l.project.operationLogger("FinishLaunch", slog.String("launchUuid", launchUUID))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.FinishLaunch1WithResponse(ctx, l.project.projectName, launchUUID, request)
+	response, err := l.project.client.raw.FinishLaunch1WithResponse(
+		ctx,
+		l.project.projectName,
+		launchUUID,
+		request,
+	)
 
 	return execute[types.FinishLaunchRS](ctx, logger, "finish launch", response, err)
 }
@@ -56,7 +65,11 @@ func (l *LaunchScope) StartAsync(
 	logger := l.project.operationLogger("StartLaunchAsync", slog.String("name", request.Name))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.StartLaunchWithResponse(ctx, l.project.projectName, request)
+	response, err := l.project.client.raw.StartLaunchWithResponse(
+		ctx,
+		l.project.projectName,
+		request,
+	)
 
 	return execute[types.StartLaunchRS](ctx, logger, "start launch async", response, err)
 }
@@ -72,7 +85,12 @@ func (l *LaunchScope) FinishAsync(
 	logger := l.project.operationLogger("FinishLaunchAsync", slog.String("launchUuid", launchUUID))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.FinishLaunchWithResponse(ctx, l.project.projectName, launchUUID, request)
+	response, err := l.project.client.raw.FinishLaunchWithResponse(
+		ctx,
+		l.project.projectName,
+		launchUUID,
+		request,
+	)
 
 	return execute[types.FinishLaunchRS](ctx, logger, "finish launch async", response, err)
 }
@@ -132,7 +150,7 @@ func (l *LaunchScope) GetByID(
 
 // ListLaunchesOption configures the filter and pagination parameters for listing launches.
 type ListLaunchesOption interface {
-	applyListLaunches(*api.GetProjectLaunchesParams)
+	applyListLaunches(params *api.GetProjectLaunchesParams)
 }
 
 type listLaunchesOptionFunc func(*api.GetProjectLaunchesParams)
@@ -155,41 +173,45 @@ func (l *LaunchScope) List(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.GetProjectLaunchesWithResponse(ctx, l.project.projectName, params)
+	response, err := l.project.client.raw.GetProjectLaunchesWithResponse(
+		ctx,
+		l.project.projectName,
+		params,
+	)
 
 	return execute[types.PageLaunchResource](ctx, logger, "list launches", response, err)
 }
 
 // WithLaunchName filters launches by name.
-func WithLaunchName(name string) ListLaunchesOption {
+func WithLaunchName(name string) listLaunchesOptionFunc {
 	return listLaunchesOptionFunc(func(params *api.GetProjectLaunchesParams) {
 		params.FilterEqName = &name
 	})
 }
 
 // WithLaunchStatus filters launches by status.
-func WithLaunchStatus(status string) ListLaunchesOption {
+func WithLaunchStatus(status string) listLaunchesOptionFunc {
 	return listLaunchesOptionFunc(func(params *api.GetProjectLaunchesParams) {
 		params.FilterEqStatus = &status
 	})
 }
 
 // WithLaunchPageNumber sets the page number (0-based).
-func WithLaunchPageNumber(n int32) ListLaunchesOption {
+func WithLaunchPageNumber(n int32) listLaunchesOptionFunc {
 	return listLaunchesOptionFunc(func(params *api.GetProjectLaunchesParams) {
 		params.PagePage = &n
 	})
 }
 
 // WithLaunchPageSize sets the number of results per page.
-func WithLaunchPageSize(size int32) ListLaunchesOption {
+func WithLaunchPageSize(size int32) listLaunchesOptionFunc {
 	return listLaunchesOptionFunc(func(params *api.GetProjectLaunchesParams) {
 		params.PageSize = &size
 	})
 }
 
 // WithLaunchSort sets the sorting criteria (e.g. "startTime,desc").
-func WithLaunchSort(fields ...string) ListLaunchesOption {
+func WithLaunchSort(fields ...string) listLaunchesOptionFunc {
 	return listLaunchesOptionFunc(func(params *api.GetProjectLaunchesParams) {
 		if len(fields) == 0 {
 			params.PageSort = nil
@@ -203,7 +225,7 @@ func WithLaunchSort(fields ...string) ListLaunchesOption {
 }
 
 // WithLaunchUser filters launches by username.
-func WithLaunchUser(username string) ListLaunchesOption {
+func WithLaunchUser(username string) listLaunchesOptionFunc {
 	return listLaunchesOptionFunc(func(params *api.GetProjectLaunchesParams) {
 		params.FilterEqUser = &username
 	})
@@ -211,21 +233,21 @@ func WithLaunchUser(username string) ListLaunchesOption {
 
 // WithLaunchUserID filters launches by user ID. The parameter type is int32
 // because the upstream 5.15 spec defines userId as a 32-bit integer.
-func WithLaunchUserID(userID int32) ListLaunchesOption {
+func WithLaunchUserID(userID int32) listLaunchesOptionFunc {
 	return listLaunchesOptionFunc(func(params *api.GetProjectLaunchesParams) {
 		params.FilterEqUserId = &userID
 	})
 }
 
 // WithLaunchMode filters launches by mode (e.g. "DEFAULT", "DEBUG").
-func WithLaunchMode(mode string) ListLaunchesOption {
+func WithLaunchMode(mode string) listLaunchesOptionFunc {
 	return listLaunchesOptionFunc(func(params *api.GetProjectLaunchesParams) {
 		params.FilterEqMode = &mode
 	})
 }
 
 // WithLaunchAttribute filters launches by a composite attribute key:value pair.
-func WithLaunchAttribute(key, value string) ListLaunchesOption {
+func WithLaunchAttribute(key, value string) listLaunchesOptionFunc {
 	return listLaunchesOptionFunc(func(params *api.GetProjectLaunchesParams) {
 		composite := key + ":" + value
 		if params.FilterHasCompositeAttribute == nil {
@@ -238,28 +260,28 @@ func WithLaunchAttribute(key, value string) ListLaunchesOption {
 }
 
 // WithLaunchAttributeKey filters launches by attribute key only.
-func WithLaunchAttributeKey(key string) ListLaunchesOption {
+func WithLaunchAttributeKey(key string) listLaunchesOptionFunc {
 	return listLaunchesOptionFunc(func(params *api.GetProjectLaunchesParams) {
 		params.FilterEqAttributeKey = &key
 	})
 }
 
 // WithLaunchDescription filters launches by description.
-func WithLaunchDescription(description string) ListLaunchesOption {
+func WithLaunchDescription(description string) listLaunchesOptionFunc {
 	return listLaunchesOptionFunc(func(params *api.GetProjectLaunchesParams) {
 		params.FilterEqDescription = &description
 	})
 }
 
 // WithLaunchNumber filters launches by launch number.
-func WithLaunchNumber(number int32) ListLaunchesOption {
+func WithLaunchNumber(number int32) listLaunchesOptionFunc {
 	return listLaunchesOptionFunc(func(params *api.GetProjectLaunchesParams) {
 		params.FilterEqNumber = &number
 	})
 }
 
 // WithLaunchHasRetries filters launches by retry status.
-func WithLaunchHasRetries(hasRetries bool) ListLaunchesOption {
+func WithLaunchHasRetries(hasRetries bool) listLaunchesOptionFunc {
 	return listLaunchesOptionFunc(func(params *api.GetProjectLaunchesParams) {
 		params.FilterEqHasRetries = &hasRetries
 	})
@@ -285,7 +307,11 @@ func (l *LaunchScope) GetLatest(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.GetLatestLaunchesWithResponse(ctx, l.project.projectName, params)
+	response, err := l.project.client.raw.GetLatestLaunchesWithResponse(
+		ctx,
+		l.project.projectName,
+		params,
+	)
 
 	return execute[types.PageLaunchResource](ctx, logger, "get latest launches", response, err)
 }
@@ -307,7 +333,11 @@ func (l *LaunchScope) GetDebug(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.GetDebugLaunchesWithResponse(ctx, l.project.projectName, params)
+	response, err := l.project.client.raw.GetDebugLaunchesWithResponse(
+		ctx,
+		l.project.projectName,
+		params,
+	)
 
 	return execute[types.PageLaunchResource](ctx, logger, "get debug launches", response, err)
 }
@@ -321,7 +351,12 @@ func (l *LaunchScope) Update(
 	logger := l.project.operationLogger("UpdateLaunch", slog.Int64("launchId", launchID))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.UpdateLaunchWithResponse(ctx, l.project.projectName, launchID, request)
+	response, err := l.project.client.raw.UpdateLaunchWithResponse(
+		ctx,
+		l.project.projectName,
+		launchID,
+		request,
+	)
 
 	return execute[types.OperationCompletionRS](ctx, logger, "update launch", response, err)
 }
@@ -334,7 +369,11 @@ func (l *LaunchScope) Delete(
 	logger := l.project.operationLogger("DeleteLaunch", slog.Int64("launchId", launchID))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.DeleteLaunchWithResponse(ctx, l.project.projectName, launchID)
+	response, err := l.project.client.raw.DeleteLaunchWithResponse(
+		ctx,
+		l.project.projectName,
+		launchID,
+	)
 
 	return execute[types.OperationCompletionRS](ctx, logger, "delete launch", response, err)
 }
@@ -347,7 +386,11 @@ func (l *LaunchScope) DeleteBulk(
 	logger := l.project.operationLogger("DeleteLaunchesBulk")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.DeleteLaunchesWithResponse(ctx, l.project.projectName, &api.DeleteLaunchesParams{Ids: ids})
+	response, err := l.project.client.raw.DeleteLaunchesWithResponse(
+		ctx,
+		l.project.projectName,
+		&api.DeleteLaunchesParams{Ids: ids},
+	)
 
 	return execute[types.DeleteBulkRS](ctx, logger, "delete launches bulk", response, err)
 }
@@ -361,7 +404,12 @@ func (l *LaunchScope) ForceFinish(
 	logger := l.project.operationLogger("ForceFinishLaunch", slog.Int64("launchId", launchID))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.ForceFinishLaunchWithResponse(ctx, l.project.projectName, launchID, request)
+	response, err := l.project.client.raw.ForceFinishLaunchWithResponse(
+		ctx,
+		l.project.projectName,
+		launchID,
+		request,
+	)
 
 	return execute[types.OperationCompletionRS](ctx, logger, "force finish launch", response, err)
 }
@@ -452,7 +500,11 @@ func (l *LaunchScope) Analyze(
 	logger := l.project.operationLogger("AnalyzeLaunch")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.StartLaunchAnalyzerWithResponse(ctx, l.project.projectName, request)
+	response, err := l.project.client.raw.StartLaunchAnalyzerWithResponse(
+		ctx,
+		l.project.projectName,
+		request,
+	)
 
 	return execute[types.OperationCompletionRS](ctx, logger, "analyze launch", response, err)
 }
@@ -465,7 +517,11 @@ func (l *LaunchScope) BulkUpdate(
 	logger := l.project.operationLogger("BulkUpdateLaunches")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.BulkUpdateWithResponse(ctx, l.project.projectName, request)
+	response, err := l.project.client.raw.BulkUpdateWithResponse(
+		ctx,
+		l.project.projectName,
+		request,
+	)
 
 	return execute[types.OperationCompletionRS](ctx, logger, "bulk update launches", response, err)
 }
@@ -478,9 +534,19 @@ func (l *LaunchScope) BulkForceFinish(
 	logger := l.project.operationLogger("BulkForceFinishLaunches")
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.BulkForceFinishWithResponse(ctx, l.project.projectName, request)
+	response, err := l.project.client.raw.BulkForceFinishWithResponse(
+		ctx,
+		l.project.projectName,
+		request,
+	)
 
-	results, err := execute[[]types.OperationCompletionRS](ctx, logger, "bulk force finish launches", response, err)
+	results, err := execute[[]types.OperationCompletionRS](
+		ctx,
+		logger,
+		"bulk force finish launches",
+		response,
+		err,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -506,7 +572,11 @@ func (l *LaunchScope) GetNames(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.GetAllLaunchNamesWithResponse(ctx, l.project.projectName, params)
+	response, err := l.project.client.raw.GetAllLaunchNamesWithResponse(
+		ctx,
+		l.project.projectName,
+		params,
+	)
 
 	names, err := execute[[]string](ctx, logger, "get launch names", response, err)
 	if err != nil {
@@ -537,7 +607,11 @@ func (l *LaunchScope) GetAttributeKeys(
 		FilterCntAttributeKey: keySubstring,
 	}
 
-	response, err := l.project.client.raw.GetAttributeKeysWithResponse(ctx, l.project.projectName, params)
+	response, err := l.project.client.raw.GetAttributeKeysWithResponse(
+		ctx,
+		l.project.projectName,
+		params,
+	)
 
 	keys, err := execute[[]string](ctx, logger, "get launch attribute keys", response, err)
 	if err != nil {
@@ -574,7 +648,11 @@ func (l *LaunchScope) GetAttributeValues(
 		FilterEqAttributeKey:    attributeKey,
 	}
 
-	response, err := l.project.client.raw.GetAttributeValuesWithResponse(ctx, l.project.projectName, params)
+	response, err := l.project.client.raw.GetAttributeValuesWithResponse(
+		ctx,
+		l.project.projectName,
+		params,
+	)
 
 	values, err := execute[[]string](ctx, logger, "get launch attribute values", response, err)
 	if err != nil {
@@ -599,9 +677,19 @@ func (l *LaunchScope) Compare(
 
 	params := &api.CompareLaunchesParams{Ids: ids}
 
-	response, err := l.project.client.raw.CompareLaunchesWithResponse(ctx, l.project.projectName, params)
+	response, err := l.project.client.raw.CompareLaunchesWithResponse(
+		ctx,
+		l.project.projectName,
+		params,
+	)
 
-	result, err := execute[map[string][]types.ChartStatisticsContent](ctx, logger, "compare launches", response, err)
+	result, err := execute[map[string][]types.ChartStatisticsContent](
+		ctx,
+		logger,
+		"compare launches",
+		response,
+		err,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -631,7 +719,7 @@ func (l *LaunchScope) Import(
 
 // ListClustersOption configures the pagination parameters for listing ML clusters.
 type ListClustersOption interface {
-	applyListClusters(*api.GetClustersParams)
+	applyListClusters(params *api.GetClustersParams)
 }
 
 type listClustersOptionFunc func(*api.GetClustersParams)
@@ -641,21 +729,21 @@ func (f listClustersOptionFunc) applyListClusters(params *api.GetClustersParams)
 }
 
 // WithClusterPageNumber sets the page number (0-based) for cluster listing.
-func WithClusterPageNumber(n int32) ListClustersOption {
+func WithClusterPageNumber(n int32) listClustersOptionFunc {
 	return listClustersOptionFunc(func(params *api.GetClustersParams) {
 		params.PagePage = &n
 	})
 }
 
 // WithClusterPageSize sets the number of results per page for cluster listing.
-func WithClusterPageSize(size int32) ListClustersOption {
+func WithClusterPageSize(size int32) listClustersOptionFunc {
 	return listClustersOptionFunc(func(params *api.GetClustersParams) {
 		params.PageSize = &size
 	})
 }
 
 // WithClusterSort sets the sorting criteria for cluster listing (e.g. "index,asc").
-func WithClusterSort(fields ...string) ListClustersOption {
+func WithClusterSort(fields ...string) listClustersOptionFunc {
 	return listClustersOptionFunc(func(params *api.GetClustersParams) {
 		if len(fields) == 0 {
 			params.PageSort = nil
@@ -683,7 +771,12 @@ func (l *LaunchScope) GetClusters(
 
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.GetClustersWithResponse(ctx, l.project.projectName, launchID, params)
+	response, err := l.project.client.raw.GetClustersWithResponse(
+		ctx,
+		l.project.projectName,
+		launchID,
+		params,
+	)
 
 	return execute[types.PageClusterInfoResource](ctx, logger, "get clusters", response, err)
 }
@@ -696,7 +789,11 @@ func (l *LaunchScope) CreateClusters(
 	logger := l.project.operationLogger("CreateClusters", slog.Int64("launchId", request.LaunchId))
 	logger.InfoContext(ctx, "API request")
 
-	response, err := l.project.client.raw.CreateClustersWithResponse(ctx, l.project.projectName, request)
+	response, err := l.project.client.raw.CreateClustersWithResponse(
+		ctx,
+		l.project.projectName,
+		request,
+	)
 
 	return execute[types.OperationCompletionRS](ctx, logger, "create clusters", response, err)
 }
@@ -713,7 +810,11 @@ func (l *LaunchScope) GetOwners(
 		FilterCntUser: userFilter,
 	}
 
-	response, err := l.project.client.raw.GetAllOwnersWithResponse(ctx, l.project.projectName, params)
+	response, err := l.project.client.raw.GetAllOwnersWithResponse(
+		ctx,
+		l.project.projectName,
+		params,
+	)
 
 	owners, err := execute[[]string](ctx, logger, "get launch owners", response, err)
 	if err != nil {
@@ -738,7 +839,11 @@ func (l *LaunchScope) GetStatuses(
 
 	params := &api.GetStatusesParams{Ids: ids}
 
-	response, err := l.project.client.raw.GetStatusesWithResponse(ctx, l.project.projectName, params)
+	response, err := l.project.client.raw.GetStatusesWithResponse(
+		ctx,
+		l.project.projectName,
+		params,
+	)
 
 	statuses, err := execute[map[string]string](ctx, logger, "get launch statuses", response, err)
 	if err != nil {

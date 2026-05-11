@@ -12,18 +12,20 @@ import (
 func TestOnboardingScope_GetStatus_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/onboarding")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/onboarding")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{"page": "WELCOME", "completed": false}`))
-	}))
+			_, _ = responseWriter.Write([]byte(`{"page": "WELCOME", "completed": false}`))
+		},
+	))
 
-	result, err := c.Onboarding().GetStatus(t.Context(), nil)
+	result, err := testClient.Onboarding().GetStatus(t.Context(), nil)
 	require.NoError(t, err)
 
 	m, ok := result.(map[string]any)
@@ -35,18 +37,20 @@ func TestOnboardingScope_GetStatus_Success(t *testing.T) {
 func TestOnboardingScope_GetStatus_ArrayResponse(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/onboarding")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/onboarding")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`[{"page": "GENERAL"}]`))
-	}))
+			_, _ = responseWriter.Write([]byte(`[{"page": "GENERAL"}]`))
+		},
+	))
 
-	result, err := c.Onboarding().GetStatus(t.Context(), nil)
+	result, err := testClient.Onboarding().GetStatus(t.Context(), nil)
 	require.NoError(t, err)
 
 	arr, ok := result.([]any)
@@ -57,20 +61,22 @@ func TestOnboardingScope_GetStatus_ArrayResponse(t *testing.T) {
 func TestOnboardingScope_GetStatus_WithPage(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/onboarding")
-		assertMethod(t, r, http.MethodGet)
-		assert.Equal(t, "INTEGRATIONS", r.URL.Query().Get("page"))
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/onboarding")
+			assertMethod(t, httpReq, http.MethodGet)
+			assert.Equal(t, "INTEGRATIONS", httpReq.URL.Query().Get("page"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{"page": "INTEGRATIONS"}`))
-	}))
+			_, _ = responseWriter.Write([]byte(`{"page": "INTEGRATIONS"}`))
+		},
+	))
 
 	pageName := "INTEGRATIONS"
-	result, err := c.Onboarding().GetStatus(t.Context(), &pageName)
+	result, err := testClient.Onboarding().GetStatus(t.Context(), &pageName)
 	require.NoError(t, err)
 
 	m, ok := result.(map[string]any)
@@ -92,13 +98,15 @@ func TestOnboardingScope_GetStatus_Unauthorized(t *testing.T) {
 func TestOnboardingScope_GetStatus_NonJSONError(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "text/html")
-		w.WriteHeader(http.StatusBadGateway)
-		_, _ = w.Write([]byte("<html>Bad Gateway</html>"))
-	}))
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, _ *http.Request) {
+			responseWriter.Header().Set("Content-Type", "text/html")
+			responseWriter.WriteHeader(http.StatusBadGateway)
+			_, _ = responseWriter.Write([]byte("<html>Bad Gateway</html>"))
+		},
+	))
 
-	_, err := c.Onboarding().GetStatus(t.Context(), nil)
+	_, err := testClient.Onboarding().GetStatus(t.Context(), nil)
 	require.Error(t, err)
 	assert.True(t, client.HasStatusCode(err, http.StatusBadGateway))
 }
@@ -119,13 +127,15 @@ func TestOnboardingScope_GetStatus_EmptyBody(t *testing.T) {
 func TestOnboardingScope_GetStatus_NonJSONErrorWithJSONContentType(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte("not valid json"))
-	}))
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, _ *http.Request) {
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusInternalServerError)
+			_, _ = responseWriter.Write([]byte("not valid json"))
+		},
+	))
 
-	_, err := c.Onboarding().GetStatus(t.Context(), nil)
+	_, err := testClient.Onboarding().GetStatus(t.Context(), nil)
 	require.Error(t, err)
 	assert.True(t, client.HasStatusCode(err, http.StatusInternalServerError))
 }

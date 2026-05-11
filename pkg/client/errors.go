@@ -147,7 +147,12 @@ func (e *UnexpectedStatusError) Error() string {
 		suffix = "..."
 	}
 
-	return fmt.Sprintf("unexpected HTTP %d: %s%s", e.statusCode, sanitizeBodyPreview(preview), suffix)
+	return fmt.Sprintf(
+		"unexpected HTTP %d: %s%s",
+		e.statusCode,
+		sanitizeBodyPreview(preview),
+		suffix,
+	)
 }
 
 // parseErrorBody attempts to unmarshal body as an ErrorRS and returns an
@@ -155,7 +160,9 @@ func (e *UnexpectedStatusError) Error() string {
 // UnexpectedStatusError.
 func parseErrorBody(statusCode int, body []byte) error {
 	var errRS types.ErrorRS
-	if err := json.Unmarshal(body, &errRS); err != nil {
+
+	err := json.Unmarshal(body, &errRS)
+	if err != nil {
 		return newUnexpectedStatusError(statusCode, body)
 	}
 

@@ -70,6 +70,74 @@ func checkExportedObject(obj types.Object) []string {
 	return nil
 }
 
+// checkNamedUnderlyingViolations inspects a named type's underlying interface or struct
+// for internal API references visible on exported members.
+func checkNamedUnderlyingViolations(typeName *types.TypeName, named *types.Named) []string {
+	switch underlying := named.Underlying().(type) {
+	case *types.Interface:
+		return checkUnderlyingInterfaceViolations(typeName, underlying)
+	case *types.Struct:
+		return checkUnderlyingStructViolations(typeName, underlying)
+	default:
+		if referencesInternalAPI(underlying) {
+			return []string{apiViolation("type", typeName.Name())}
+		}
+
+		return nil
+	}
+}
+
+func checkUnderlyingInterfaceViolations(typeName *types.TypeName, iface *types.Interface) []string {
+	var violations []string
+
+	for method := range iface.Methods() {
+		if !method.Exported() {
+			continue
+		}
+
+		if referencesInternalAPI(method.Type()) {
+			violations = append(violations,
+				fmt.Sprintf("exported interface %s method %s references internal api",
+					typeName.Name(), method.Name()))
+		}
+	}
+
+	return violations
+}
+
+func checkUnderlyingStructViolations(typeName *types.TypeName, strct *types.Struct) []string {
+	var violations []string
+
+	for field := range strct.Fields() {
+		if field.Exported() && referencesInternalAPI(field.Type()) {
+			violations = append(violations,
+				fmt.Sprintf("exported struct %s field %s references internal api",
+					typeName.Name(), field.Name()))
+		}
+	}
+
+	return violations
+}
+
+// checkExportedNamedMethods inspects exported methods on a named type.
+func checkExportedNamedMethods(typeName *types.TypeName, named *types.Named) []string {
+	var violations []string
+
+	for method := range named.Methods() {
+		if !method.Exported() {
+			continue
+		}
+
+		if referencesInternalAPI(method.Type()) {
+			violations = append(violations,
+				fmt.Sprintf("exported method %s.%s references internal api",
+					typeName.Name(), method.Name()))
+		}
+	}
+
+	return violations
+}
+
 // checkTypeDeclaration inspects a type declaration for internal API references
 // in its exported surface: exported struct fields, exported interface methods,
 // exported receiver methods, and type parameter constraints.
@@ -95,44 +163,8 @@ func checkTypeDeclaration(typeName *types.TypeName) []string {
 				typeName.Name()))
 	}
 
-	switch underlying := named.Underlying().(type) {
-	case *types.Interface:
-		for method := range underlying.Methods() {
-			if !method.Exported() {
-				continue
-			}
-
-			if referencesInternalAPI(method.Type()) {
-				violations = append(violations,
-					fmt.Sprintf("exported interface %s method %s references internal api",
-						typeName.Name(), method.Name()))
-			}
-		}
-	case *types.Struct:
-		for field := range underlying.Fields() {
-			if field.Exported() && referencesInternalAPI(field.Type()) {
-				violations = append(violations,
-					fmt.Sprintf("exported struct %s field %s references internal api",
-						typeName.Name(), field.Name()))
-			}
-		}
-	default:
-		if referencesInternalAPI(underlying) {
-			violations = append(violations, apiViolation("type", typeName.Name()))
-		}
-	}
-
-	for method := range named.Methods() {
-		if !method.Exported() {
-			continue
-		}
-
-		if referencesInternalAPI(method.Type()) {
-			violations = append(violations,
-				fmt.Sprintf("exported method %s.%s references internal api",
-					typeName.Name(), method.Name()))
-		}
-	}
+	violations = append(violations, checkNamedUnderlyingViolations(typeName, named)...)
+	violations = append(violations, checkExportedNamedMethods(typeName, named)...)
 
 	return violations
 }
@@ -144,67 +176,93 @@ func checkTypeDeclaration(typeName *types.TypeName) []string {
 // interfaces, and type parameter constraints on signatures. It stops at named
 // type boundaries — only checking whether the named type itself (or its type
 // arguments) belongs to the internal API package, not its underlying structure.
-func referencesInternalAPI(t types.Type) bool {
-	switch t := t.(type) {
+//
+//nolint:cyclop // dispatch mirrors go/types composite kinds; helpers handle each branch.
+func referencesInternalAPI(typ types.Type) bool {
+	switch concrete := typ.(type) {
 	case *types.Alias:
-		if typeListReferencesInternalAPI(t.TypeArgs()) {
-			return true
-		}
-
-		return referencesInternalAPI(types.Unalias(t))
+		return referencesInternalAPIAlias(concrete)
 	case *types.Named:
-		if t.Obj().Pkg() != nil && t.Obj().Pkg().Path() == internalAPIImportPath {
+		return referencesInternalAPINamed(concrete)
+	case *types.Pointer:
+		return referencesInternalAPI(concrete.Elem())
+	case *types.Slice:
+		return referencesInternalAPI(concrete.Elem())
+	case *types.Array:
+		return referencesInternalAPI(concrete.Elem())
+	case *types.Map:
+		return referencesInternalAPI(concrete.Key()) || referencesInternalAPI(concrete.Elem())
+	case *types.Chan:
+		return referencesInternalAPI(concrete.Elem())
+	case *types.Signature:
+		return referencesInternalAPISignature(concrete)
+	case *types.Interface:
+		return referencesInternalAPIInterface(concrete)
+	case *types.Struct:
+		return referencesInternalAPIStruct(concrete)
+	case *types.Union:
+		return referencesInternalAPIUnion(concrete)
+	case *types.TypeParam:
+		return referencesInternalAPI(concrete.Constraint())
+	default:
+		return false
+	}
+}
+
+func referencesInternalAPIAlias(a *types.Alias) bool {
+	if typeListReferencesInternalAPI(a.TypeArgs()) {
+		return true
+	}
+
+	return referencesInternalAPI(types.Unalias(a))
+}
+
+func referencesInternalAPINamed(n *types.Named) bool {
+	if n.Obj().Pkg() != nil && n.Obj().Pkg().Path() == internalAPIImportPath {
+		return true
+	}
+
+	return typeListReferencesInternalAPI(n.TypeArgs())
+}
+
+func referencesInternalAPISignature(sig *types.Signature) bool {
+	return typeParamsReferenceInternalAPI(sig.TypeParams()) ||
+		typeParamsReferenceInternalAPI(sig.RecvTypeParams()) ||
+		tupleReferencesInternalAPI(sig.Params()) ||
+		tupleReferencesInternalAPI(sig.Results())
+}
+
+func referencesInternalAPIInterface(iface *types.Interface) bool {
+	for etyp := range iface.EmbeddedTypes() {
+		if referencesInternalAPI(etyp) {
 			return true
 		}
+	}
 
-		return typeListReferencesInternalAPI(t.TypeArgs())
-	case *types.Pointer:
-		return referencesInternalAPI(t.Elem())
-	case *types.Slice:
-		return referencesInternalAPI(t.Elem())
-	case *types.Array:
-		return referencesInternalAPI(t.Elem())
-	case *types.Map:
-		return referencesInternalAPI(t.Key()) || referencesInternalAPI(t.Elem())
-	case *types.Chan:
-		return referencesInternalAPI(t.Elem())
-	case *types.Signature:
-		return typeParamsReferenceInternalAPI(t.TypeParams()) ||
-			typeParamsReferenceInternalAPI(t.RecvTypeParams()) ||
-			tupleReferencesInternalAPI(t.Params()) ||
-			tupleReferencesInternalAPI(t.Results())
-	case *types.Interface:
-		for etyp := range t.EmbeddedTypes() {
-			if referencesInternalAPI(etyp) {
-				return true
-			}
+	for method := range iface.Methods() {
+		if referencesInternalAPI(method.Type()) {
+			return true
 		}
+	}
 
-		for method := range t.Methods() {
-			if referencesInternalAPI(method.Type()) {
-				return true
-			}
+	return false
+}
+
+func referencesInternalAPIStruct(strct *types.Struct) bool {
+	for field := range strct.Fields() {
+		if referencesInternalAPI(field.Type()) {
+			return true
 		}
+	}
 
-		return false
-	case *types.Struct:
-		for field := range t.Fields() {
-			if referencesInternalAPI(field.Type()) {
-				return true
-			}
+	return false
+}
+
+func referencesInternalAPIUnion(u *types.Union) bool {
+	for term := range u.Terms() {
+		if referencesInternalAPI(term.Type()) {
+			return true
 		}
-
-		return false
-	case *types.Union:
-		for term := range t.Terms() {
-			if referencesInternalAPI(term.Type()) {
-				return true
-			}
-		}
-
-		return false
-	case *types.TypeParam:
-		return referencesInternalAPI(t.Constraint())
 	}
 
 	return false

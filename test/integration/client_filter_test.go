@@ -132,7 +132,7 @@ var _ = Describe("Client: Filters", Label("client", "filters"), func() {
 			Expect(created2.Id).NotTo(BeNil())
 
 			By("getting both filters by IDs")
-			result, err := filters.GetByIds(ctx, []int64{*created1.Id, *created2.Id})
+			result, err := filters.GetByIDs(ctx, []int64{*created1.Id, *created2.Id})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).To(HaveLen(2))
 

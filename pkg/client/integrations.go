@@ -19,7 +19,13 @@ func (s *IntegrationsScope) ListGlobal(ctx context.Context) ([]types.Integration
 
 	resp, err := s.client.raw.GetGlobalIntegrations1WithResponse(ctx)
 
-	result, err := execute[[]types.IntegrationResource](ctx, logger, "list global integrations", resp, err)
+	result, err := execute[[]types.IntegrationResource](
+		ctx,
+		logger,
+		"list global integrations",
+		resp,
+		err,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +50,13 @@ func (s *IntegrationsScope) ListGlobalByPlugin(
 
 	resp, err := s.client.raw.GetGlobalIntegrationsWithResponse(ctx, pluginName)
 
-	result, err := execute[[]types.IntegrationResource](ctx, logger, "list global integrations by plugin", resp, err)
+	result, err := execute[[]types.IntegrationResource](
+		ctx,
+		logger,
+		"list global integrations by plugin",
+		resp,
+		err,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -59,28 +71,31 @@ func (s *IntegrationsScope) ListGlobalByPlugin(
 // GetGlobal returns a single global integration by its numeric ID.
 func (s *IntegrationsScope) GetGlobal(
 	ctx context.Context,
-	id int64,
+	integrationID int64,
 ) (*types.IntegrationResource, error) {
 	logger := s.client.logger.With(
 		slog.String("operation", "GetGlobalIntegration"),
-		slog.Int64("id", id),
+		slog.Int64("id", integrationID),
 	)
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := s.client.raw.GetGlobalIntegrationWithResponse(ctx, id)
+	resp, err := s.client.raw.GetGlobalIntegrationWithResponse(ctx, integrationID)
 
 	return execute[types.IntegrationResource](ctx, logger, "get global integration", resp, err)
 }
 
 // TestGlobalConnection tests connectivity for a global integration.
-func (s *IntegrationsScope) TestGlobalConnection(ctx context.Context, id int64) (bool, error) {
+func (s *IntegrationsScope) TestGlobalConnection(
+	ctx context.Context,
+	integrationID int64,
+) (bool, error) {
 	logger := s.client.logger.With(
 		slog.String("operation", "TestGlobalIntegrationConnection"),
-		slog.Int64("id", id),
+		slog.Int64("id", integrationID),
 	)
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := s.client.raw.TestIntegrationConnection1WithResponse(ctx, id)
+	resp, err := s.client.raw.TestIntegrationConnection1WithResponse(ctx, integrationID)
 
 	result, err := execute[bool](ctx, logger, "test global integration connection", resp, err)
 	if err != nil {
@@ -114,16 +129,16 @@ func (s *IntegrationsScope) CreateGlobal(
 // UpdateGlobal updates an existing global integration.
 func (s *IntegrationsScope) UpdateGlobal(
 	ctx context.Context,
-	id int64,
+	integrationID int64,
 	request types.IntegrationRQ,
 ) (*types.OperationCompletionRS, error) {
 	logger := s.client.logger.With(
 		slog.String("operation", "UpdateGlobalIntegration"),
-		slog.Int64("id", id),
+		slog.Int64("id", integrationID),
 	)
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := s.client.raw.UpdateGlobalIntegrationWithResponse(ctx, id, request)
+	resp, err := s.client.raw.UpdateGlobalIntegrationWithResponse(ctx, integrationID, request)
 
 	return execute[types.OperationCompletionRS](ctx, logger, "update global integration", resp, err)
 }
@@ -131,15 +146,15 @@ func (s *IntegrationsScope) UpdateGlobal(
 // DeleteGlobal removes a global integration by its numeric ID.
 func (s *IntegrationsScope) DeleteGlobal(
 	ctx context.Context,
-	id int64,
+	integrationID int64,
 ) (*types.OperationCompletionRS, error) {
 	logger := s.client.logger.With(
 		slog.String("operation", "DeleteGlobalIntegration"),
-		slog.Int64("id", id),
+		slog.Int64("id", integrationID),
 	)
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := s.client.raw.DeleteGlobalIntegrationWithResponse(ctx, id)
+	resp, err := s.client.raw.DeleteGlobalIntegrationWithResponse(ctx, integrationID)
 
 	return execute[types.OperationCompletionRS](ctx, logger, "delete global integration", resp, err)
 }
@@ -157,7 +172,13 @@ func (s *IntegrationsScope) DeleteAllByType(
 
 	resp, err := s.client.raw.DeleteAllIntegrationsWithResponse(ctx, pluginType)
 
-	return execute[types.OperationCompletionRS](ctx, logger, "delete all integrations by type", resp, err)
+	return execute[types.OperationCompletionRS](
+		ctx,
+		logger,
+		"delete all integrations by type",
+		resp,
+		err,
+	)
 }
 
 // ProjectIntegrationsScope provides operations on integrations within a specific project.
@@ -174,7 +195,13 @@ func (s *ProjectIntegrationsScope) List(ctx context.Context) ([]types.Integratio
 		ctx, s.project.projectName,
 	)
 
-	result, err := execute[[]types.IntegrationResource](ctx, logger, "list project integrations", resp, err)
+	result, err := execute[[]types.IntegrationResource](
+		ctx,
+		logger,
+		"list project integrations",
+		resp,
+		err,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -200,7 +227,13 @@ func (s *ProjectIntegrationsScope) ListByPlugin(
 		ctx, s.project.projectName, pluginName,
 	)
 
-	result, err := execute[[]types.IntegrationResource](ctx, logger, "list project integrations by plugin", resp, err)
+	result, err := execute[[]types.IntegrationResource](
+		ctx,
+		logger,
+		"list project integrations by plugin",
+		resp,
+		err,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -215,13 +248,13 @@ func (s *ProjectIntegrationsScope) ListByPlugin(
 // Get returns a single project integration by its numeric ID.
 func (s *ProjectIntegrationsScope) Get(
 	ctx context.Context,
-	id int64,
+	integrationID int64,
 ) (*types.IntegrationResource, error) {
-	logger := s.project.operationLogger("GetProjectIntegration", slog.Int64("id", id))
+	logger := s.project.operationLogger("GetProjectIntegration", slog.Int64("id", integrationID))
 	logger.InfoContext(ctx, "API request")
 
 	resp, err := s.project.client.raw.GetProjectIntegrationWithResponse(
-		ctx, s.project.projectName, id,
+		ctx, s.project.projectName, integrationID,
 	)
 
 	return execute[types.IntegrationResource](ctx, logger, "get project integration", resp, err)
@@ -269,32 +302,44 @@ func (s *ProjectIntegrationsScope) Create(
 // Update modifies an existing project integration.
 func (s *ProjectIntegrationsScope) Update(
 	ctx context.Context,
-	id int64,
+	integrationID int64,
 	request types.IntegrationRQ,
 ) (*types.OperationCompletionRS, error) {
-	logger := s.project.operationLogger("UpdateProjectIntegration", slog.Int64("id", id))
+	logger := s.project.operationLogger("UpdateProjectIntegration", slog.Int64("id", integrationID))
 	logger.InfoContext(ctx, "API request")
 
 	resp, err := s.project.client.raw.UpdateProjectIntegrationWithResponse(
-		ctx, s.project.projectName, id, request,
+		ctx, s.project.projectName, integrationID, request,
 	)
 
-	return execute[types.OperationCompletionRS](ctx, logger, "update project integration", resp, err)
+	return execute[types.OperationCompletionRS](
+		ctx,
+		logger,
+		"update project integration",
+		resp,
+		err,
+	)
 }
 
 // Delete removes a project integration by its numeric ID.
 func (s *ProjectIntegrationsScope) Delete(
 	ctx context.Context,
-	id int64,
+	integrationID int64,
 ) (*types.OperationCompletionRS, error) {
-	logger := s.project.operationLogger("DeleteProjectIntegration", slog.Int64("id", id))
+	logger := s.project.operationLogger("DeleteProjectIntegration", slog.Int64("id", integrationID))
 	logger.InfoContext(ctx, "API request")
 
 	resp, err := s.project.client.raw.DeleteProjectIntegrationWithResponse(
-		ctx, s.project.projectName, id,
+		ctx, s.project.projectName, integrationID,
 	)
 
-	return execute[types.OperationCompletionRS](ctx, logger, "delete project integration", resp, err)
+	return execute[types.OperationCompletionRS](
+		ctx,
+		logger,
+		"delete project integration",
+		resp,
+		err,
+	)
 }
 
 // DeleteAllByType removes all project integrations of the given type.
@@ -311,7 +356,13 @@ func (s *ProjectIntegrationsScope) DeleteAllByType(
 		ctx, s.project.projectName, pluginType,
 	)
 
-	return execute[types.OperationCompletionRS](ctx, logger, "delete all project integrations by type", resp, err)
+	return execute[types.OperationCompletionRS](
+		ctx,
+		logger,
+		"delete all project integrations by type",
+		resp,
+		err,
+	)
 }
 
 // ExecuteCommand executes a command on a project integration.

@@ -12,24 +12,24 @@ var dockerNamePattern = regexp.MustCompile(`^[a-z][a-z0-9]+$`)
 func TestGenerate_Format(t *testing.T) {
 	t.Parallel()
 
-	id := runid.Generate()
+	runID := runid.Generate()
 
-	if !dockerNamePattern.MatchString(id) {
-		t.Errorf("Generate() = %q, want match for %s", id, dockerNamePattern)
+	if !dockerNamePattern.MatchString(runID) {
+		t.Errorf("Generate() = %q, want match for %s", runID, dockerNamePattern)
 	}
 
-	if len(id) < 6 {
-		t.Errorf("Generate() = %q, want at least 6 characters", id)
+	if len(runID) < 6 {
+		t.Errorf("Generate() = %q, want at least 6 characters", runID)
 	}
 }
 
 func TestGenerate_StartsWithPrefix(t *testing.T) {
 	t.Parallel()
 
-	id := runid.Generate()
+	runID := runid.Generate()
 
-	if id[:2] != "rp" {
-		t.Errorf("Generate() = %q, want prefix \"rp\"", id)
+	if runID[:2] != "rp" {
+		t.Errorf("Generate() = %q, want prefix \"rp\"", runID)
 	}
 }
 
@@ -41,11 +41,11 @@ func TestGenerate_Uniqueness(t *testing.T) {
 	seen := make(map[string]struct{}, n)
 
 	for range n {
-		id := runid.Generate()
-		if _, exists := seen[id]; exists {
-			t.Fatalf("duplicate run ID after %d iterations: %q", len(seen)+1, id)
+		runID := runid.Generate()
+		if _, exists := seen[runID]; exists {
+			t.Fatalf("duplicate run ID after %d iterations: %q", len(seen)+1, runID)
 		}
 
-		seen[id] = struct{}{}
+		seen[runID] = struct{}{}
 	}
 }

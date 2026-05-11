@@ -16,15 +16,15 @@ type WidgetScope struct {
 // GetByID returns a single widget by its numeric ID.
 func (w *WidgetScope) GetByID(
 	ctx context.Context,
-	id int64,
+	widgetID int64,
 ) (*types.WidgetResource, error) {
-	logger := w.project.operationLogger("GetWidgetByID", slog.Int64("id", id))
+	logger := w.project.operationLogger("GetWidgetByID", slog.Int64("id", widgetID))
 	logger.InfoContext(ctx, "API request")
 
 	resp, err := w.project.client.raw.GetWidgetWithResponse(
 		ctx,
 		w.project.projectName,
-		id,
+		widgetID,
 	)
 
 	return execute(ctx, logger, "get widget by id", resp, err)
@@ -50,16 +50,16 @@ func (w *WidgetScope) Create(
 // Update modifies an existing widget.
 func (w *WidgetScope) Update(
 	ctx context.Context,
-	id int64,
+	widgetID int64,
 	request types.WidgetRQ,
 ) (*types.OperationCompletionRS, error) {
-	logger := w.project.operationLogger("UpdateWidget", slog.Int64("id", id))
+	logger := w.project.operationLogger("UpdateWidget", slog.Int64("id", widgetID))
 	logger.InfoContext(ctx, "API request")
 
 	resp, err := w.project.client.raw.UpdateWidgetWithResponse(
 		ctx,
 		w.project.projectName,
-		id,
+		widgetID,
 		request,
 	)
 
@@ -70,10 +70,10 @@ func (w *WidgetScope) Update(
 // The attributes and params arguments allow configuring how the widget data is computed.
 func (w *WidgetScope) GetData(
 	ctx context.Context,
-	id int64,
+	widgetID int64,
 	options ...GetWidgetDataOption,
 ) (*types.WidgetResource, error) {
-	logger := w.project.operationLogger("GetWidgetData", slog.Int64("id", id))
+	logger := w.project.operationLogger("GetWidgetData", slog.Int64("id", widgetID))
 
 	params := &api.GetWidget1Params{
 		Params: types.MultiValueMapStringString{},
@@ -87,7 +87,7 @@ func (w *WidgetScope) GetData(
 	resp, err := w.project.client.raw.GetWidget1WithResponse(
 		ctx,
 		w.project.projectName,
-		id,
+		widgetID,
 		params,
 	)
 
@@ -96,7 +96,7 @@ func (w *WidgetScope) GetData(
 
 // GetWidgetDataOption configures the parameters for getting widget data.
 type GetWidgetDataOption interface {
-	applyGetWidgetData(*api.GetWidget1Params)
+	applyGetWidgetData(params *api.GetWidget1Params)
 }
 
 type getWidgetDataOptionFunc func(*api.GetWidget1Params)
@@ -106,7 +106,7 @@ func (f getWidgetDataOptionFunc) applyGetWidgetData(params *api.GetWidget1Params
 }
 
 // WithWidgetAttributes sets the attributes for widget data retrieval.
-func WithWidgetAttributes(attributes ...string) GetWidgetDataOption {
+func WithWidgetAttributes(attributes ...string) getWidgetDataOptionFunc {
 	return getWidgetDataOptionFunc(func(params *api.GetWidget1Params) {
 		params.Attributes = &attributes
 	})

@@ -14,7 +14,10 @@ type GroupsScope struct {
 }
 
 // List returns a paginated list of groups.
-func (g *GroupsScope) List(ctx context.Context, options ...ListGroupsOption) (*types.GroupPage, error) {
+func (g *GroupsScope) List(
+	ctx context.Context,
+	options ...ListGroupsOption,
+) (*types.GroupPage, error) {
 	logger := g.client.logger.With(slog.String("operation", "ListGroups"))
 
 	params := &api.GetGroupsParams{}
@@ -43,7 +46,10 @@ func (g *GroupsScope) Get(ctx context.Context, groupID int64) (*types.GroupInfo,
 }
 
 // Create creates a new group and returns the created group info.
-func (g *GroupsScope) Create(ctx context.Context, request types.CreateGroupRequest) (*types.GroupInfo, error) {
+func (g *GroupsScope) Create(
+	ctx context.Context,
+	request types.CreateGroupRequest,
+) (*types.GroupInfo, error) {
 	logger := g.client.logger.With(
 		slog.String("operation", "CreateGroup"),
 		slog.String("name", request.Name),
@@ -230,7 +236,7 @@ func (g *GroupsScope) RemoveUser(ctx context.Context, groupID, userID int64) err
 
 // ListGroupsOption configures the pagination parameters for listing groups.
 type ListGroupsOption interface {
-	applyListGroups(*api.GetGroupsParams)
+	applyListGroups(params *api.GetGroupsParams)
 }
 
 type listGroupsOptionFunc func(*api.GetGroupsParams)
@@ -240,28 +246,28 @@ func (f listGroupsOptionFunc) applyListGroups(params *api.GetGroupsParams) {
 }
 
 // WithGroupPageSize sets the maximum number of groups per page.
-func WithGroupPageSize(size int32) ListGroupsOption {
+func WithGroupPageSize(size int32) listGroupsOptionFunc {
 	return listGroupsOptionFunc(func(params *api.GetGroupsParams) {
 		params.Limit = &size
 	})
 }
 
 // WithGroupOffset sets the offset for group pagination.
-func WithGroupOffset(offset int32) ListGroupsOption {
+func WithGroupOffset(offset int32) listGroupsOptionFunc {
 	return listGroupsOptionFunc(func(params *api.GetGroupsParams) {
 		params.Offset = &offset
 	})
 }
 
 // WithGroupSort sets the field to sort groups by.
-func WithGroupSort(sort string) ListGroupsOption {
+func WithGroupSort(sort string) listGroupsOptionFunc {
 	return listGroupsOptionFunc(func(params *api.GetGroupsParams) {
 		params.Sort = &sort
 	})
 }
 
 // WithGroupOrder sets the sort direction for group listing.
-func WithGroupOrder(order string) ListGroupsOption {
+func WithGroupOrder(order string) listGroupsOptionFunc {
 	return listGroupsOptionFunc(func(params *api.GetGroupsParams) {
 		params.Order = &order
 	})
@@ -269,7 +275,7 @@ func WithGroupOrder(order string) ListGroupsOption {
 
 // ListGroupProjectsOption configures the pagination parameters for listing group projects.
 type ListGroupProjectsOption interface {
-	applyListGroupProjects(*api.GetGroupProjectsParams)
+	applyListGroupProjects(params *api.GetGroupProjectsParams)
 }
 
 type listGroupProjectsOptionFunc func(*api.GetGroupProjectsParams)
@@ -279,14 +285,14 @@ func (f listGroupProjectsOptionFunc) applyListGroupProjects(params *api.GetGroup
 }
 
 // WithGroupProjectPageSize sets the maximum number of projects per page.
-func WithGroupProjectPageSize(size int32) ListGroupProjectsOption {
+func WithGroupProjectPageSize(size int32) listGroupProjectsOptionFunc {
 	return listGroupProjectsOptionFunc(func(params *api.GetGroupProjectsParams) {
 		params.Limit = &size
 	})
 }
 
 // WithGroupProjectOffset sets the offset for group project pagination.
-func WithGroupProjectOffset(offset int32) ListGroupProjectsOption {
+func WithGroupProjectOffset(offset int32) listGroupProjectsOptionFunc {
 	return listGroupProjectsOptionFunc(func(params *api.GetGroupProjectsParams) {
 		params.Offset = &offset
 	})
@@ -294,7 +300,7 @@ func WithGroupProjectOffset(offset int32) ListGroupProjectsOption {
 
 // ListGroupUsersOption configures the pagination parameters for listing group users.
 type ListGroupUsersOption interface {
-	applyListGroupUsers(*api.GetGroupUsersParams)
+	applyListGroupUsers(params *api.GetGroupUsersParams)
 }
 
 type listGroupUsersOptionFunc func(*api.GetGroupUsersParams)
@@ -304,14 +310,14 @@ func (f listGroupUsersOptionFunc) applyListGroupUsers(params *api.GetGroupUsersP
 }
 
 // WithGroupUserPageSize sets the maximum number of users per page.
-func WithGroupUserPageSize(size int32) ListGroupUsersOption {
+func WithGroupUserPageSize(size int32) listGroupUsersOptionFunc {
 	return listGroupUsersOptionFunc(func(params *api.GetGroupUsersParams) {
 		params.Limit = &size
 	})
 }
 
 // WithGroupUserOffset sets the offset for group user pagination.
-func WithGroupUserOffset(offset int32) ListGroupUsersOption {
+func WithGroupUserOffset(offset int32) listGroupUsersOptionFunc {
 	return listGroupUsersOptionFunc(func(params *api.GetGroupUsersParams) {
 		params.Offset = &offset
 	})

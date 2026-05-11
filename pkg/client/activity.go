@@ -23,7 +23,11 @@ func (a *ActivityScope) GetByID(
 	logger := a.project.operationLogger("GetActivityByID", slog.Int64("activityId", activityID))
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := a.project.client.raw.GetActivityWithResponse(ctx, a.project.projectName, activityID)
+	resp, err := a.project.client.raw.GetActivityWithResponse(
+		ctx,
+		a.project.projectName,
+		activityID,
+	)
 
 	return execute[types.ActivityResource](ctx, logger, "get activity by id", resp, err)
 }
@@ -43,14 +47,25 @@ func (a *ActivityScope) ListForItem(
 
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := a.project.client.raw.GetTestItemActivitiesWithResponse(ctx, a.project.projectName, itemID, params)
+	resp, err := a.project.client.raw.GetTestItemActivitiesWithResponse(
+		ctx,
+		a.project.projectName,
+		itemID,
+		params,
+	)
 
-	return execute[types.PageActivityEventResource](ctx, logger, "list activities for item", resp, err)
+	return execute[types.PageActivityEventResource](
+		ctx,
+		logger,
+		"list activities for item",
+		resp,
+		err,
+	)
 }
 
 // ListActivitiesOption configures the filter and pagination parameters for listing item activities.
 type ListActivitiesOption interface {
-	applyListActivities(*api.GetTestItemActivitiesParams)
+	applyListActivities(params *api.GetTestItemActivitiesParams)
 }
 
 type listActivitiesOptionFunc func(*api.GetTestItemActivitiesParams)
@@ -60,21 +75,21 @@ func (f listActivitiesOptionFunc) applyListActivities(params *api.GetTestItemAct
 }
 
 // WithActivityPageNumber sets the page number (0-based) for activity listing.
-func WithActivityPageNumber(n int32) ListActivitiesOption {
+func WithActivityPageNumber(n int32) listActivitiesOptionFunc {
 	return listActivitiesOptionFunc(func(params *api.GetTestItemActivitiesParams) {
 		params.PagePage = &n
 	})
 }
 
 // WithActivityPageSize sets the number of results per page for activity listing.
-func WithActivityPageSize(size int32) ListActivitiesOption {
+func WithActivityPageSize(size int32) listActivitiesOptionFunc {
 	return listActivitiesOptionFunc(func(params *api.GetTestItemActivitiesParams) {
 		params.PageSize = &size
 	})
 }
 
 // WithActivitySort sets the sorting criteria for activity listing (e.g. "lastModified,desc").
-func WithActivitySort(fields ...string) ListActivitiesOption {
+func WithActivitySort(fields ...string) listActivitiesOptionFunc {
 	return listActivitiesOptionFunc(func(params *api.GetTestItemActivitiesParams) {
 		if len(fields) == 0 {
 			params.PageSort = nil

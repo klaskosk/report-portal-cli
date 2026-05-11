@@ -35,7 +35,7 @@ var _ = Describe("Client: Bug Tracking", Label("client", "bts"), func() {
 	Context("Ticket IDs", func() {
 		It("returns ticket IDs for a project without error", func(ctx SpecContext) {
 			By("searching for ticket IDs in the project")
-			ids, err := c.Project(projectName).BugTracking().GetTicketIdsForProject(ctx, "test")
+			ids, err := c.Project(projectName).BugTracking().GetTicketIDsForProject(ctx, "test")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(ids).NotTo(BeNil())
 		})
@@ -51,7 +51,7 @@ var _ = Describe("Client: Bug Tracking", Label("client", "bts"), func() {
 			launches := expectContent(list.Content, "launch list")
 
 			By("searching for ticket IDs for the launch")
-			ids, err := c.Project(projectName).BugTracking().GetTicketIds(ctx, launches[0].Id, "test")
+			ids, err := c.Project(projectName).BugTracking().GetTicketIDs(ctx, launches[0].Id, "test")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(ids).NotTo(BeNil())
 		}, NodeTimeout(60*time.Second))

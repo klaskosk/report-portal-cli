@@ -268,12 +268,14 @@ func buildPluginUploadMultipart(filename string, data io.Reader) (*bytes.Buffer,
 		return nil, "", fmt.Errorf("creating file part: %w", err)
 	}
 
-	if _, err := io.Copy(filePart, data); err != nil {
-		return nil, "", fmt.Errorf("writing file part: %w", err)
+	_, copyErr := io.Copy(filePart, data)
+	if copyErr != nil {
+		return nil, "", fmt.Errorf("writing file part: %w", copyErr)
 	}
 
-	if err := writer.Close(); err != nil {
-		return nil, "", fmt.Errorf("closing multipart writer: %w", err)
+	closeErr := writer.Close()
+	if closeErr != nil {
+		return nil, "", fmt.Errorf("closing multipart writer: %w", closeErr)
 	}
 
 	return &buf, writer.FormDataContentType(), nil
@@ -296,8 +298,9 @@ func buildPluginImportMultipart(
 		return nil, "", fmt.Errorf("creating file part: %w", err)
 	}
 
-	if _, err := io.Copy(filePart, data); err != nil {
-		return nil, "", fmt.Errorf("writing file part: %w", err)
+	_, copyErr := io.Copy(filePart, data)
+	if copyErr != nil {
+		return nil, "", fmt.Errorf("writing file part: %w", copyErr)
 	}
 
 	if launchImportRQ != nil {
@@ -310,13 +313,15 @@ func buildPluginImportMultipart(
 			return nil, "", fmt.Errorf("creating launch import part: %w", err)
 		}
 
-		if err := json.NewEncoder(jsonPart).Encode(launchImportRQ); err != nil {
-			return nil, "", fmt.Errorf("writing launch import part: %w", err)
+		encodeErr := json.NewEncoder(jsonPart).Encode(launchImportRQ)
+		if encodeErr != nil {
+			return nil, "", fmt.Errorf("writing launch import part: %w", encodeErr)
 		}
 	}
 
-	if err := writer.Close(); err != nil {
-		return nil, "", fmt.Errorf("closing multipart writer: %w", err)
+	closeErr := writer.Close()
+	if closeErr != nil {
+		return nil, "", fmt.Errorf("closing multipart writer: %w", closeErr)
 	}
 
 	return &buf, writer.FormDataContentType(), nil

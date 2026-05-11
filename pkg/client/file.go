@@ -28,7 +28,7 @@ type FileStorageScope struct {
 
 // GetMyPhotoOption configures optional parameters for GetMyPhoto.
 type GetMyPhotoOption interface {
-	applyGetMyPhoto(*api.GetMyPhotoParams)
+	applyGetMyPhoto(params *api.GetMyPhotoParams)
 }
 
 type getMyPhotoOptionFunc func(*api.GetMyPhotoParams)
@@ -38,14 +38,17 @@ func (f getMyPhotoOptionFunc) applyGetMyPhoto(params *api.GetMyPhotoParams) {
 }
 
 // WithPhotoThumbnail requests a thumbnail version of the photo.
-func WithPhotoThumbnail(load bool) GetMyPhotoOption {
+func WithPhotoThumbnail(load bool) getMyPhotoOptionFunc {
 	return getMyPhotoOptionFunc(func(params *api.GetMyPhotoParams) {
 		params.LoadThumbnail = &load
 	})
 }
 
 // GetMyPhoto retrieves the current user's profile photo as raw image bytes.
-func (s *FileStorageScope) GetMyPhoto(ctx context.Context, options ...GetMyPhotoOption) (*FileContent, error) {
+func (s *FileStorageScope) GetMyPhoto(
+	ctx context.Context,
+	options ...GetMyPhotoOption,
+) (*FileContent, error) {
 	logger := s.client.logger.With(slog.String("operation", "GetMyPhoto"))
 	logger.InfoContext(ctx, "API request")
 
@@ -61,12 +64,22 @@ func (s *FileStorageScope) GetMyPhoto(ctx context.Context, options ...GetMyPhoto
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return extractFileContent(response.StatusCode(), response.JSONDefault, response.Body, response.HTTPResponse, "get my photo")
+	return extractFileContent(
+		response.StatusCode(),
+		response.JSONDefault,
+		response.Body,
+		response.HTTPResponse,
+		"get my photo",
+	)
 }
 
 // UploadPhoto uploads a photo for the current user. The filename is used in the
 // multipart form field and data provides the photo content.
-func (s *FileStorageScope) UploadPhoto(ctx context.Context, filename string, data io.Reader) (*types.OperationCompletionRS, error) {
+func (s *FileStorageScope) UploadPhoto(
+	ctx context.Context,
+	filename string,
+	data io.Reader,
+) (*types.OperationCompletionRS, error) {
 	logger := s.client.logger.With(slog.String("operation", "UploadPhoto"))
 	logger.InfoContext(ctx, "API request")
 
@@ -92,7 +105,11 @@ func (s *FileStorageScope) DeletePhoto(ctx context.Context) (*types.OperationCom
 
 // CleanAttachments removes attachments referenced in a CSV file. The filename
 // is used in the multipart form field and csvData provides the CSV content.
-func (s *FileStorageScope) CleanAttachments(ctx context.Context, filename string, csvData io.Reader) (*types.OperationCompletionRS, error) {
+func (s *FileStorageScope) CleanAttachments(
+	ctx context.Context,
+	filename string,
+	csvData io.Reader,
+) (*types.OperationCompletionRS, error) {
 	logger := s.client.logger.With(slog.String("operation", "CleanAttachments"))
 	logger.InfoContext(ctx, "API request")
 
@@ -108,7 +125,7 @@ func (s *FileStorageScope) CleanAttachments(ctx context.Context, filename string
 
 // GetUserPhotoOption configures optional parameters for GetUserPhoto.
 type GetUserPhotoOption interface {
-	applyGetUserPhoto(*api.GetUserPhotoParams)
+	applyGetUserPhoto(params *api.GetUserPhotoParams)
 }
 
 type getUserPhotoOptionFunc func(*api.GetUserPhotoParams)
@@ -118,14 +135,18 @@ func (f getUserPhotoOptionFunc) applyGetUserPhoto(params *api.GetUserPhotoParams
 }
 
 // WithUserPhotoThumbnail requests a thumbnail version of the user's photo.
-func WithUserPhotoThumbnail(load bool) GetUserPhotoOption {
+func WithUserPhotoThumbnail(load bool) getUserPhotoOptionFunc {
 	return getUserPhotoOptionFunc(func(params *api.GetUserPhotoParams) {
 		params.LoadThumbnail = &load
 	})
 }
 
 // GetUserPhoto retrieves a user's profile photo by login within this project.
-func (p *ProjectScope) GetUserPhoto(ctx context.Context, login string, options ...GetUserPhotoOption) (*FileContent, error) {
+func (p *ProjectScope) GetUserPhoto(
+	ctx context.Context,
+	login string,
+	options ...GetUserPhotoOption,
+) (*FileContent, error) {
 	logger := p.operationLogger("GetUserPhoto", slog.String("login", login))
 	logger.InfoContext(ctx, "API request")
 
@@ -141,7 +162,13 @@ func (p *ProjectScope) GetUserPhoto(ctx context.Context, login string, options .
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return extractFileContent(response.StatusCode(), response.JSONDefault, response.Body, response.HTTPResponse, "get user photo")
+	return extractFileContent(
+		response.StatusCode(),
+		response.JSONDefault,
+		response.Body,
+		response.HTTPResponse,
+		"get user photo",
+	)
 }
 
 // DownloadFile downloads a file attachment by its numeric data store ID
@@ -164,7 +191,13 @@ func (p *ProjectScope) DownloadFile(
 
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
-	return extractFileContent(response.StatusCode(), response.JSONDefault, response.Body, response.HTTPResponse, "download file")
+	return extractFileContent(
+		response.StatusCode(),
+		response.JSONDefault,
+		response.Body,
+		response.HTTPResponse,
+		"download file",
+	)
 }
 
 // extractFileContent handles the common pattern for non-JSON file download
@@ -205,12 +238,14 @@ func buildFileMultipart(filename string, data io.Reader) (*bytes.Buffer, string,
 		return nil, "", fmt.Errorf("creating file part: %w", err)
 	}
 
-	if _, err := io.Copy(part, data); err != nil {
-		return nil, "", fmt.Errorf("writing file data: %w", err)
+	_, copyErr := io.Copy(part, data)
+	if copyErr != nil {
+		return nil, "", fmt.Errorf("writing file data: %w", copyErr)
 	}
 
-	if err := writer.Close(); err != nil {
-		return nil, "", fmt.Errorf("closing multipart writer: %w", err)
+	closeErr := writer.Close()
+	if closeErr != nil {
+		return nil, "", fmt.Errorf("closing multipart writer: %w", closeErr)
 	}
 
 	return &buf, writer.FormDataContentType(), nil

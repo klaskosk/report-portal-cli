@@ -31,11 +31,11 @@ func TestContract_PredicateCrossIsolation(t *testing.T) {
 		{"IsConflict", client.IsConflict, http.StatusConflict},
 	}
 
-	for _, p := range predicates {
+	for _, pred := range predicates {
 		for _, other := range predicates {
-			expected := p.matchCode == other.matchCode
+			expected := pred.matchCode == other.matchCode
 
-			t.Run(fmt.Sprintf("%s_vs_%d", p.name, other.matchCode), func(t *testing.T) {
+			t.Run(fmt.Sprintf("%s_vs_%d", pred.name, other.matchCode), func(t *testing.T) {
 				t.Parallel()
 
 				err := client.NewTestAPIError(other.matchCode, &types.ErrorRS{
@@ -43,8 +43,8 @@ func TestContract_PredicateCrossIsolation(t *testing.T) {
 					Message:   "test",
 				})
 
-				assert.Equal(t, expected, p.fn(err),
-					"%s(status=%d) should be %v", p.name, other.matchCode, expected)
+				assert.Equal(t, expected, pred.fn(err),
+					"%s(status=%d) should be %v", pred.name, other.matchCode, expected)
 			})
 		}
 	}

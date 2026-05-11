@@ -15,15 +15,16 @@ import (
 func TestProjectGroupsScope_List_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/projects/my_project/groups")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/projects/my_project/groups")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"items": [
 				{"id": 1, "name": "alpha", "slug": "alpha", "permission": "MEMBER"},
 				{"id": 2, "name": "beta", "slug": "beta", "permission": "PROJECT_MANAGER"}
@@ -32,9 +33,10 @@ func TestProjectGroupsScope_List_Success(t *testing.T) {
 			"offset": 0,
 			"total_count": 2
 		}`))
-	}))
+		},
+	))
 
-	result, err := c.Project("my_project").Groups().List(t.Context())
+	result, err := testClient.Project("my_project").Groups().List(t.Context())
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.Items)
@@ -46,17 +48,22 @@ func TestProjectGroupsScope_List_Success(t *testing.T) {
 func TestProjectGroupsScope_List_WithOptions(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		query := r.URL.Query()
-		assert.Equal(t, "10", query.Get("limit"))
-		assert.Equal(t, "20", query.Get("offset"))
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			query := httpReq.URL.Query()
+			assert.Equal(t, "10", query.Get("limit"))
+			assert.Equal(t, "20", query.Get("offset"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"items":[],"limit":10,"offset":20,"total_count":0}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-	_, err := c.Project("my_project").Groups().List(t.Context(),
+			const projectGroupsListBody = `{"items":[],"limit":10,"offset":20,"total_count":0}`
+
+			_, _ = responseWriter.Write([]byte(projectGroupsListBody))
+		},
+	))
+
+	_, err := testClient.Project("my_project").Groups().List(t.Context(),
 		client.WithProjectGroupPageSize(10),
 		client.WithProjectGroupPageOffset(20),
 	)
@@ -66,13 +73,18 @@ func TestProjectGroupsScope_List_WithOptions(t *testing.T) {
 func TestProjectGroupsScope_List_Empty(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"items":[],"limit":300,"offset":0,"total_count":0}`))
-	}))
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, _ *http.Request) {
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-	result, err := c.Project("my_project").Groups().List(t.Context())
+			const emptyListBody = `{"items":[],"limit":300,"offset":0,"total_count":0}`
+
+			_, _ = responseWriter.Write([]byte(emptyListBody))
+		},
+	))
+
+	result, err := testClient.Project("my_project").Groups().List(t.Context())
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.Items)
@@ -93,24 +105,26 @@ func TestProjectGroupsScope_List_Unauthorized(t *testing.T) {
 func TestProjectGroupsScope_Get_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodGet)
-		assertPath(t, r, "/api/projects/my_project/groups/42")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodGet)
+			assertPath(t, httpReq, "/api/projects/my_project/groups/42")
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"id": 42,
 			"name": "my-group",
 			"slug": "my-group",
 			"permission": "MEMBER",
 			"stats": {"users_count": 5}
 		}`))
-	}))
+		},
+	))
 
-	group, err := c.Project("my_project").Groups().Get(t.Context(), 42)
+	group, err := testClient.Project("my_project").Groups().Get(t.Context(), 42)
 	require.NoError(t, err)
 	require.NotNil(t, group)
 	assert.Equal(t, int64(42), *group.Id)
@@ -135,26 +149,37 @@ func TestProjectGroupsScope_AddOrUpdate_Success(t *testing.T) {
 
 	perm := types.AddProjectToGroupByIdRequestPermissionMEMBER
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodPut)
-		assertPath(t, r, "/api/projects/my_project/groups/10")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodPut)
+			assertPath(t, httpReq, "/api/projects/my_project/groups/10")
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var req types.AddProjectToGroupByIdRequest
-		require.NoError(t, json.Unmarshal(body, &req))
-		assert.Equal(t, &perm, req.Permission)
+			var req types.AddProjectToGroupByIdRequest
+			if !assert.NoError(t, json.Unmarshal(body, &req)) {
+				return
+			}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message": "Group has been added to project successfully."}`))
-	}))
+			assert.Equal(t, &perm, req.Permission)
 
-	result, err := c.Project("my_project").Groups().AddOrUpdate(t.Context(), 10, types.AddProjectToGroupByIdRequest{
-		Permission: &perm,
-	})
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(
+				`{"message": "Group has been added to project successfully."}`,
+			))
+		},
+	))
+
+	result, err := testClient.Project("my_project").
+		Groups().
+		AddOrUpdate(t.Context(), 10, types.AddProjectToGroupByIdRequest{
+			Permission: &perm,
+		})
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	assert.Equal(t, "Group has been added to project successfully.", *result.Message)
@@ -166,7 +191,9 @@ func TestProjectGroupsScope_AddOrUpdate_Forbidden(t *testing.T) {
 	c := newTestClient(t, jsonResponse(http.StatusForbidden,
 		`{"errorCode": 4003, "message": "You do not have enough permissions."}`))
 
-	_, err := c.Project("my_project").Groups().AddOrUpdate(t.Context(), 10, types.AddProjectToGroupByIdRequest{})
+	_, err := c.Project("my_project").
+		Groups().
+		AddOrUpdate(t.Context(), 10, types.AddProjectToGroupByIdRequest{})
 	require.Error(t, err)
 	assert.True(t, client.IsForbidden(err))
 }
@@ -174,15 +201,17 @@ func TestProjectGroupsScope_AddOrUpdate_Forbidden(t *testing.T) {
 func TestProjectGroupsScope_Delete_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodDelete)
-		assertPath(t, r, "/api/projects/my_project/groups/42")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodDelete)
+			assertPath(t, httpReq, "/api/projects/my_project/groups/42")
 
-		w.WriteHeader(http.StatusNoContent)
-	}))
+			responseWriter.WriteHeader(http.StatusNoContent)
+		},
+	))
 
-	err := c.Project("my_project").Groups().Delete(t.Context(), 42)
+	err := testClient.Project("my_project").Groups().Delete(t.Context(), 42)
 	require.NoError(t, err)
 }
 

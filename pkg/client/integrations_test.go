@@ -15,15 +15,16 @@ import (
 func TestIntegrationsScope_ListGlobal_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/integration/global/all")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/integration/global/all")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`[
+			_, _ = responseWriter.Write([]byte(`[
 			{
 				"id": 1,
 				"name": "email",
@@ -37,9 +38,10 @@ func TestIntegrationsScope_ListGlobal_Success(t *testing.T) {
 				"integrationType": {"name": "ldap"}
 			}
 		]`))
-	}))
+		},
+	))
 
-	integrations, err := c.Integrations().ListGlobal(t.Context())
+	integrations, err := testClient.Integrations().ListGlobal(t.Context())
 	require.NoError(t, err)
 	require.Len(t, integrations, 2)
 
@@ -62,15 +64,16 @@ func TestIntegrationsScope_ListGlobal_Unauthorized(t *testing.T) {
 func TestIntegrationsScope_ListGlobalByPlugin_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/integration/global/all/email")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/integration/global/all/email")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`[
+			_, _ = responseWriter.Write([]byte(`[
 			{
 				"id": 1,
 				"name": "email",
@@ -78,9 +81,10 @@ func TestIntegrationsScope_ListGlobalByPlugin_Success(t *testing.T) {
 				"integrationType": {"name": "email"}
 			}
 		]`))
-	}))
+		},
+	))
 
-	integrations, err := c.Integrations().ListGlobalByPlugin(t.Context(), "email")
+	integrations, err := testClient.Integrations().ListGlobalByPlugin(t.Context(), "email")
 	require.NoError(t, err)
 	require.Len(t, integrations, 1)
 
@@ -90,14 +94,16 @@ func TestIntegrationsScope_ListGlobalByPlugin_Success(t *testing.T) {
 func TestIntegrationsScope_ListGlobalByPlugin_Empty(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, _ *http.Request) {
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`[]`))
-	}))
+			_, _ = responseWriter.Write([]byte(`[]`))
+		},
+	))
 
-	integrations, err := c.Integrations().ListGlobalByPlugin(t.Context(), "unknown")
+	integrations, err := testClient.Integrations().ListGlobalByPlugin(t.Context(), "unknown")
 	require.NoError(t, err)
 	assert.Empty(t, integrations)
 }
@@ -105,23 +111,25 @@ func TestIntegrationsScope_ListGlobalByPlugin_Empty(t *testing.T) {
 func TestIntegrationsScope_GetGlobal_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/integration/1")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/integration/1")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"id": 1,
 			"name": "email",
 			"enabled": true,
 			"integrationType": {"name": "email"}
 		}`))
-	}))
+		},
+	))
 
-	integration, err := c.Integrations().GetGlobal(t.Context(), 1)
+	integration, err := testClient.Integrations().GetGlobal(t.Context(), 1)
 	require.NoError(t, err)
 	require.NotNil(t, integration)
 
@@ -143,18 +151,20 @@ func TestIntegrationsScope_GetGlobal_NotFound(t *testing.T) {
 func TestIntegrationsScope_TestGlobalConnection_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/integration/1/connection/test")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/integration/1/connection/test")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`true`))
-	}))
+			_, _ = responseWriter.Write([]byte(`true`))
+		},
+	))
 
-	ok, err := c.Integrations().TestGlobalConnection(t.Context(), 1)
+	ok, err := testClient.Integrations().TestGlobalConnection(t.Context(), 1)
 	require.NoError(t, err)
 	assert.True(t, ok)
 }
@@ -173,15 +183,16 @@ func TestIntegrationsScope_TestGlobalConnection_NotFound(t *testing.T) {
 func TestProjectIntegrationsScope_List_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/integration/project/my_project/all")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/integration/project/my_project/all")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`[
+			_, _ = responseWriter.Write([]byte(`[
 			{
 				"id": 10,
 				"name": "jira",
@@ -190,9 +201,10 @@ func TestProjectIntegrationsScope_List_Success(t *testing.T) {
 				"projectId": 1
 			}
 		]`))
-	}))
+		},
+	))
 
-	integrations, err := c.Project("my_project").Integrations().List(t.Context())
+	integrations, err := testClient.Project("my_project").Integrations().List(t.Context())
 	require.NoError(t, err)
 	require.Len(t, integrations, 1)
 
@@ -214,15 +226,16 @@ func TestProjectIntegrationsScope_List_Unauthorized(t *testing.T) {
 func TestProjectIntegrationsScope_ListByPlugin_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/integration/project/my_project/all/jira")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/integration/project/my_project/all/jira")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`[
+			_, _ = responseWriter.Write([]byte(`[
 			{
 				"id": 10,
 				"name": "jira",
@@ -230,9 +243,11 @@ func TestProjectIntegrationsScope_ListByPlugin_Success(t *testing.T) {
 				"integrationType": {"name": "jira"}
 			}
 		]`))
-	}))
+		},
+	))
 
-	integrations, err := c.Project("my_project").Integrations().ListByPlugin(t.Context(), "jira")
+	integrations, err := testClient.Project("my_project").Integrations().
+		ListByPlugin(t.Context(), "jira")
 	require.NoError(t, err)
 	require.Len(t, integrations, 1)
 
@@ -242,23 +257,25 @@ func TestProjectIntegrationsScope_ListByPlugin_Success(t *testing.T) {
 func TestProjectIntegrationsScope_Get_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/integration/my_project/10")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/integration/my_project/10")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"id": 10,
 			"name": "jira",
 			"enabled": true,
 			"integrationType": {"name": "jira"}
 		}`))
-	}))
+		},
+	))
 
-	integration, err := c.Project("my_project").Integrations().Get(t.Context(), 10)
+	integration, err := testClient.Project("my_project").Integrations().Get(t.Context(), 10)
 	require.NoError(t, err)
 	require.NotNil(t, integration)
 
@@ -279,18 +296,20 @@ func TestProjectIntegrationsScope_Get_NotFound(t *testing.T) {
 func TestProjectIntegrationsScope_TestConnection_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/integration/my_project/10/connection/test")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/integration/my_project/10/connection/test")
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`true`))
-	}))
+			_, _ = responseWriter.Write([]byte(`true`))
+		},
+	))
 
-	ok, err := c.Project("my_project").Integrations().TestConnection(t.Context(), 10)
+	ok, err := testClient.Project("my_project").Integrations().TestConnection(t.Context(), 10)
 	require.NoError(t, err)
 	assert.True(t, ok)
 }
@@ -309,26 +328,32 @@ func TestProjectIntegrationsScope_TestConnection_NotFound(t *testing.T) {
 func TestIntegrationsScope_CreateGlobal_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/integration/email")
-		assertMethod(t, r, http.MethodPost)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/integration/email")
+			assertMethod(t, httpReq, http.MethodPost)
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
+			var payload map[string]any
+			if !assert.NoError(t, json.Unmarshal(body, &payload)) {
+				return
+			}
 
-		assert.Equal(t, "my-email", payload["name"])
+			assert.Equal(t, "my-email", payload["name"])
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		_, _ = w.Write([]byte(`{"id":5}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusCreated)
+			_, _ = responseWriter.Write([]byte(`{"id":5}`))
+		},
+	))
 
 	name := "my-email"
-	result, err := c.Integrations().CreateGlobal(t.Context(), "email", types.IntegrationRQ{
+	result, err := testClient.Integrations().CreateGlobal(t.Context(), "email", types.IntegrationRQ{
 		Name: &name,
 	})
 	require.NoError(t, err)
@@ -351,26 +376,32 @@ func TestIntegrationsScope_CreateGlobal_BadRequest(t *testing.T) {
 func TestIntegrationsScope_UpdateGlobal_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/integration/1")
-		assertMethod(t, r, http.MethodPut)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/integration/1")
+			assertMethod(t, httpReq, http.MethodPut)
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
+			var payload map[string]any
+			if !assert.NoError(t, json.Unmarshal(body, &payload)) {
+				return
+			}
 
-		assert.Equal(t, "updated-email", payload["name"])
+			assert.Equal(t, "updated-email", payload["name"])
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message":"Integration successfully updated."}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{"message":"Integration successfully updated."}`))
+		},
+	))
 
 	name := "updated-email"
-	result, err := c.Integrations().UpdateGlobal(t.Context(), 1, types.IntegrationRQ{
+	result, err := testClient.Integrations().UpdateGlobal(t.Context(), 1, types.IntegrationRQ{
 		Name: &name,
 	})
 	require.NoError(t, err)
@@ -393,17 +424,19 @@ func TestIntegrationsScope_UpdateGlobal_NotFound(t *testing.T) {
 func TestIntegrationsScope_DeleteGlobal_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/integration/1")
-		assertMethod(t, r, http.MethodDelete)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/integration/1")
+			assertMethod(t, httpReq, http.MethodDelete)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message":"Integration successfully deleted."}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{"message":"Integration successfully deleted."}`))
+		},
+	))
 
-	result, err := c.Integrations().DeleteGlobal(t.Context(), 1)
+	result, err := testClient.Integrations().DeleteGlobal(t.Context(), 1)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.Message)
@@ -424,26 +457,32 @@ func TestIntegrationsScope_DeleteGlobal_NotFound(t *testing.T) {
 func TestProjectIntegrationsScope_Create_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/integration/my_project/email")
-		assertMethod(t, r, http.MethodPost)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/integration/my_project/email")
+			assertMethod(t, httpReq, http.MethodPost)
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
+			var payload map[string]any
+			if !assert.NoError(t, json.Unmarshal(body, &payload)) {
+				return
+			}
 
-		assert.Equal(t, "project-email", payload["name"])
+			assert.Equal(t, "project-email", payload["name"])
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		_, _ = w.Write([]byte(`{"id":15}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusCreated)
+			_, _ = responseWriter.Write([]byte(`{"id":15}`))
+		},
+	))
 
 	name := "project-email"
-	result, err := c.Project("my_project").
+	result, err := testClient.Project("my_project").
 		Integrations().
 		Create(t.Context(), "email", types.IntegrationRQ{
 			Name: &name,
@@ -470,26 +509,32 @@ func TestProjectIntegrationsScope_Create_BadRequest(t *testing.T) {
 func TestProjectIntegrationsScope_Update_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/integration/my_project/10")
-		assertMethod(t, r, http.MethodPut)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/integration/my_project/10")
+			assertMethod(t, httpReq, http.MethodPut)
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
+			var payload map[string]any
+			if !assert.NoError(t, json.Unmarshal(body, &payload)) {
+				return
+			}
 
-		assert.Equal(t, "updated-jira", payload["name"])
+			assert.Equal(t, "updated-jira", payload["name"])
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message":"Integration successfully updated."}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{"message":"Integration successfully updated."}`))
+		},
+	))
 
 	name := "updated-jira"
-	result, err := c.Project("my_project").
+	result, err := testClient.Project("my_project").
 		Integrations().
 		Update(t.Context(), 10, types.IntegrationRQ{
 			Name: &name,
@@ -514,17 +559,19 @@ func TestProjectIntegrationsScope_Update_NotFound(t *testing.T) {
 func TestProjectIntegrationsScope_Delete_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/integration/my_project/10")
-		assertMethod(t, r, http.MethodDelete)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/integration/my_project/10")
+			assertMethod(t, httpReq, http.MethodDelete)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message":"Integration successfully deleted."}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{"message":"Integration successfully deleted."}`))
+		},
+	))
 
-	result, err := c.Project("my_project").Integrations().Delete(t.Context(), 10)
+	result, err := testClient.Project("my_project").Integrations().Delete(t.Context(), 10)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.Message)
@@ -545,25 +592,31 @@ func TestProjectIntegrationsScope_Delete_NotFound(t *testing.T) {
 func TestProjectIntegrationsScope_ExecuteCommand_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/integration/my_project/10/testCommand")
-		assertMethod(t, r, http.MethodPut)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/integration/my_project/10/testCommand")
+			assertMethod(t, httpReq, http.MethodPut)
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
+			var payload map[string]any
+			if !assert.NoError(t, json.Unmarshal(body, &payload)) {
+				return
+			}
 
-		assert.Equal(t, "value1", payload["key1"])
+			assert.Equal(t, "value1", payload["key1"])
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"result":"ok","data":"test"}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{"result":"ok","data":"test"}`))
+		},
+	))
 
-	result, err := c.Project("my_project").Integrations().ExecuteCommand(
+	result, err := testClient.Project("my_project").Integrations().ExecuteCommand(
 		t.Context(),
 		10,
 		"testCommand",
@@ -593,17 +646,19 @@ func TestProjectIntegrationsScope_ExecuteCommand_NotFound(t *testing.T) {
 func TestIntegrationsScope_DeleteAllByType_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/integration/all/jira")
-		assertMethod(t, r, http.MethodDelete)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, r *http.Request) {
+			assertBearerToken(t, r)
+			assertPath(t, r, "/api/v1/integration/all/jira")
+			assertMethod(t, r, http.MethodDelete)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message":"Integrations successfully deleted."}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{"message":"Integrations successfully deleted."}`))
+		},
+	))
 
-	result, err := c.Integrations().DeleteAllByType(t.Context(), "jira")
+	result, err := testClient.Integrations().DeleteAllByType(t.Context(), "jira")
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.Message)
@@ -624,17 +679,20 @@ func TestIntegrationsScope_DeleteAllByType_Unauthorized(t *testing.T) {
 func TestProjectIntegrationsScope_DeleteAllByType_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertPath(t, r, "/api/v1/integration/my_project/all/jira")
-		assertMethod(t, r, http.MethodDelete)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertPath(t, httpReq, "/api/v1/integration/my_project/all/jira")
+			assertMethod(t, httpReq, http.MethodDelete)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message":"Integrations successfully deleted."}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{"message":"Integrations successfully deleted."}`))
+		},
+	))
 
-	result, err := c.Project("my_project").Integrations().DeleteAllByType(t.Context(), "jira")
+	result, err := testClient.Project("my_project").Integrations().
+		DeleteAllByType(t.Context(), "jira")
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.Message)

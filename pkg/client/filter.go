@@ -36,12 +36,12 @@ func (f *UserFilterScope) List(
 // GetByID returns a single filter by its numeric ID.
 func (f *UserFilterScope) GetByID(
 	ctx context.Context,
-	id int64,
+	filterID int64,
 ) (*types.UserFilterResource, error) {
-	logger := f.project.operationLogger("GetFilterByID", slog.Int64("id", id))
+	logger := f.project.operationLogger("GetFilterByID", slog.Int64("id", filterID))
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := f.project.client.raw.GetFilterWithResponse(ctx, f.project.projectName, id)
+	resp, err := f.project.client.raw.GetFilterWithResponse(ctx, f.project.projectName, filterID)
 
 	return execute[types.UserFilterResource](ctx, logger, "get filter by id", resp, err)
 }
@@ -63,13 +63,18 @@ func (f *UserFilterScope) Create(
 // Update modifies an existing filter.
 func (f *UserFilterScope) Update(
 	ctx context.Context,
-	id int64,
+	filterID int64,
 	request types.UpdateUserFilterRQ,
 ) (*types.OperationCompletionRS, error) {
-	logger := f.project.operationLogger("UpdateFilter", slog.Int64("id", id))
+	logger := f.project.operationLogger("UpdateFilter", slog.Int64("id", filterID))
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := f.project.client.raw.UpdateUserFilterWithResponse(ctx, f.project.projectName, id, request)
+	resp, err := f.project.client.raw.UpdateUserFilterWithResponse(
+		ctx,
+		f.project.projectName,
+		filterID,
+		request,
+	)
 
 	return execute[types.OperationCompletionRS](ctx, logger, "update filter", resp, err)
 }
@@ -77,18 +82,18 @@ func (f *UserFilterScope) Update(
 // Delete removes a filter by its numeric ID.
 func (f *UserFilterScope) Delete(
 	ctx context.Context,
-	id int64,
+	filterID int64,
 ) (*types.OperationCompletionRS, error) {
-	logger := f.project.operationLogger("DeleteFilter", slog.Int64("id", id))
+	logger := f.project.operationLogger("DeleteFilter", slog.Int64("id", filterID))
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := f.project.client.raw.DeleteFilterWithResponse(ctx, f.project.projectName, id)
+	resp, err := f.project.client.raw.DeleteFilterWithResponse(ctx, f.project.projectName, filterID)
 
 	return execute[types.OperationCompletionRS](ctx, logger, "delete filter", resp, err)
 }
 
-// GetByIds returns multiple filters by their numeric IDs.
-func (f *UserFilterScope) GetByIds(
+// GetByIDs returns multiple filters by their numeric IDs.
+func (f *UserFilterScope) GetByIDs(
 	ctx context.Context,
 	ids []int64,
 ) ([]types.UserFilterResource, error) {
@@ -130,9 +135,19 @@ func (f *UserFilterScope) GetNames(
 
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := f.project.client.raw.GetAllFiltersNamesWithResponse(ctx, f.project.projectName, params)
+	resp, err := f.project.client.raw.GetAllFiltersNamesWithResponse(
+		ctx,
+		f.project.projectName,
+		params,
+	)
 
-	result, err := execute[types.PageOwnedEntityResource](ctx, logger, "get filter names", resp, err)
+	result, err := execute[types.PageOwnedEntityResource](
+		ctx,
+		logger,
+		"get filter names",
+		resp,
+		err,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -157,9 +172,19 @@ func (f *UserFilterScope) BulkUpdate(
 	logger := f.project.operationLogger("BulkUpdateFilters")
 	logger.InfoContext(ctx, "API request")
 
-	resp, err := f.project.client.raw.UpdateUserFiltersWithResponse(ctx, f.project.projectName, request)
+	resp, err := f.project.client.raw.UpdateUserFiltersWithResponse(
+		ctx,
+		f.project.projectName,
+		request,
+	)
 
-	result, err := execute[[]types.OperationCompletionRS](ctx, logger, "bulk update filters", resp, err)
+	result, err := execute[[]types.OperationCompletionRS](
+		ctx,
+		logger,
+		"bulk update filters",
+		resp,
+		err,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +198,7 @@ func (f *UserFilterScope) BulkUpdate(
 
 // ListFiltersOption configures the filter and pagination parameters for listing user filters.
 type ListFiltersOption interface {
-	applyListFilters(*api.GetAllFiltersParams)
+	applyListFilters(params *api.GetAllFiltersParams)
 }
 
 type listFiltersOptionFunc func(*api.GetAllFiltersParams)
@@ -183,21 +208,21 @@ func (f listFiltersOptionFunc) applyListFilters(params *api.GetAllFiltersParams)
 }
 
 // WithFilterPageNumber sets the page number (0-based) for filter listing.
-func WithFilterPageNumber(n int32) ListFiltersOption {
+func WithFilterPageNumber(n int32) listFiltersOptionFunc {
 	return listFiltersOptionFunc(func(params *api.GetAllFiltersParams) {
 		params.PagePage = &n
 	})
 }
 
 // WithFilterPageSize sets the number of results per page for filter listing.
-func WithFilterPageSize(size int32) ListFiltersOption {
+func WithFilterPageSize(size int32) listFiltersOptionFunc {
 	return listFiltersOptionFunc(func(params *api.GetAllFiltersParams) {
 		params.PageSize = &size
 	})
 }
 
 // WithFilterSort sets the sorting criteria for filter listing (e.g. "name,asc").
-func WithFilterSort(fields ...string) ListFiltersOption {
+func WithFilterSort(fields ...string) listFiltersOptionFunc {
 	return listFiltersOptionFunc(func(params *api.GetAllFiltersParams) {
 		if len(fields) == 0 {
 			params.PageSort = nil

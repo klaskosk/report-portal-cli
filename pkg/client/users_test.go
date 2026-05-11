@@ -16,14 +16,15 @@ import (
 func TestUsersScope_GetMyself_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"id": 1,
 			"userId": "superadmin",
 			"email": "admin@example.com",
@@ -33,9 +34,10 @@ func TestUsersScope_GetMyself_Success(t *testing.T) {
 				"default_personal": {"entryType": "PERSONAL", "projectRole": "PROJECT_MANAGER"}
 			}
 		}`))
-	}))
+		},
+	))
 
-	user, err := c.Users().GetMyself(t.Context())
+	user, err := testClient.Users().GetMyself(t.Context())
 	require.NoError(t, err)
 	require.NotNil(t, user)
 
@@ -58,22 +60,24 @@ func TestUsersScope_GetMyself_Unauthorized(t *testing.T) {
 func TestUsersScope_GetByLogin_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"id": 2,
 			"userId": "testuser",
 			"email": "test@example.com",
 			"userRole": "USER"
 		}`))
-	}))
+		},
+	))
 
-	user, err := c.Users().GetByLogin(t.Context(), "testuser")
+	user, err := testClient.Users().GetByLogin(t.Context(), "testuser")
 	require.NoError(t, err)
 	require.NotNil(t, user)
 
@@ -83,17 +87,19 @@ func TestUsersScope_GetByLogin_Success(t *testing.T) {
 func TestUsersScope_GetByLogin_Forbidden(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodGet)
-		assertPath(t, r, "/api/users/testuser")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, r *http.Request) {
+			assertBearerToken(t, r)
+			assertMethod(t, r, http.MethodGet)
+			assertPath(t, r, "/api/users/testuser")
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusForbidden)
-		_, _ = w.Write([]byte(`{"errorCode": 4031, "message": "forbidden"}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusForbidden)
+			_, _ = responseWriter.Write([]byte(`{"errorCode": 4031, "message": "forbidden"}`))
+		},
+	))
 
-	_, err := c.Users().GetByLogin(t.Context(), "testuser")
+	_, err := testClient.Users().GetByLogin(t.Context(), "testuser")
 	require.Error(t, err)
 	assert.True(t, client.IsForbidden(err))
 }
@@ -112,20 +118,22 @@ func TestUsersScope_GetByLogin_NotFound(t *testing.T) {
 func TestUsersScope_ListProjects_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"default_personal": {"entryType": "PERSONAL", "projectRole": "PROJECT_MANAGER"},
 			"my_project": {"entryType": "INTERNAL", "projectRole": "MEMBER"}
 		}`))
-	}))
+		},
+	))
 
-	projects, err := c.Users().ListProjects(t.Context(), "superadmin")
+	projects, err := testClient.Users().ListProjects(t.Context(), "superadmin")
 	require.NoError(t, err)
 	require.Len(t, projects, 2)
 	assert.Contains(t, projects, "default_personal")
@@ -135,14 +143,16 @@ func TestUsersScope_ListProjects_Success(t *testing.T) {
 func TestUsersScope_ListProjects_EmptyList(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, _ *http.Request) {
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{}`))
-	}))
+			_, _ = responseWriter.Write([]byte(`{}`))
+		},
+	))
 
-	projects, err := c.Users().ListProjects(t.Context(), "newuser")
+	projects, err := testClient.Users().ListProjects(t.Context(), "newuser")
 	require.NoError(t, err)
 	assert.Empty(t, projects)
 }
@@ -161,24 +171,26 @@ func TestUsersScope_ListProjects_Unauthorized(t *testing.T) {
 func TestUsersScope_List_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodGet)
-		assertPath(t, r, "/api/users/all")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodGet)
+			assertPath(t, httpReq, "/api/users/all")
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"content": [
 				{"id": 1, "userId": "admin", "email": "admin@example.com", "userRole": "ADMINISTRATOR"},
 				{"id": 2, "userId": "user1", "email": "user1@example.com", "userRole": "USER"}
 			],
 			"page": {"number": 0, "size": 20, "totalElements": 2, "totalPages": 1}
 		}`))
-	}))
+		},
+	))
 
-	page, err := c.Users().List(t.Context())
+	page, err := testClient.Users().List(t.Context())
 	require.NoError(t, err)
 	require.NotNil(t, page)
 	require.NotNil(t, page.Content)
@@ -190,23 +202,25 @@ func TestUsersScope_List_Success(t *testing.T) {
 func TestUsersScope_List_WithOptions(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertPath(t, r, "/api/users/all")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertPath(t, httpReq, "/api/users/all")
 
-		assert.Equal(t, "ADMINISTRATOR", r.URL.Query().Get("filter.eq.role"))
-		assert.Equal(t, "0", r.URL.Query().Get("page.page"))
-		assert.Equal(t, "10", r.URL.Query().Get("page.size"))
+			assert.Equal(t, "ADMINISTRATOR", httpReq.URL.Query().Get("filter.eq.role"))
+			assert.Equal(t, "0", httpReq.URL.Query().Get("page.page"))
+			assert.Equal(t, "10", httpReq.URL.Query().Get("page.size"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"content": [{"id": 1, "userId": "admin", "email": "admin@example.com", "userRole": "ADMINISTRATOR"}],
 			"page": {"number": 0, "size": 10, "totalElements": 1, "totalPages": 1}
 		}`))
-	}))
+		},
+	))
 
-	page, err := c.Users().List(t.Context(),
+	page, err := testClient.Users().List(t.Context(),
 		client.WithUsersRole("ADMINISTRATOR"),
 		client.WithUsersPageNumber(0),
 		client.WithUsersPageSize(10),
@@ -255,26 +269,28 @@ func TestUsersScope_List_WithAdditionalOptions(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				query := r.URL.Query()
-				for key, want := range tt.expected {
-					assert.Equal(t, want, query.Get(key), "query param %s", key)
-				}
+			testClient := newTestClient(t, http.HandlerFunc(
+				func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+					query := httpReq.URL.Query()
+					for key, want := range testCase.expected {
+						assert.Equal(t, want, query.Get(key), "query param %s", key)
+					}
 
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
+					responseWriter.Header().Set("Content-Type", "application/json")
+					responseWriter.WriteHeader(http.StatusOK)
 
-				_, _ = w.Write([]byte(`{
+					_, _ = responseWriter.Write([]byte(`{
 					"content": [],
 					"page": {"number": 0, "size": 20, "totalElements": 0, "totalPages": 0}
 				}`))
-			}))
+				},
+			))
 
-			_, err := c.Users().List(t.Context(), tt.option)
+			_, err := testClient.Users().List(t.Context(), testCase.option)
 			require.NoError(t, err)
 		})
 	}
@@ -283,33 +299,41 @@ func TestUsersScope_List_WithAdditionalOptions(t *testing.T) {
 func TestUsersScope_List_WithSortCleared(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Empty(t, r.URL.Query().Get("page.sort"))
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assert.Empty(t, httpReq.URL.Query().Get("page.sort"))
 
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"content":[],"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			_, _ = responseWriter.Write(
+				[]byte(
+					`{"content":[],"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}}`,
+				),
+			)
+		},
+	))
 
-	_, err := c.Users().List(t.Context(), client.WithUsersSort())
+	_, err := testClient.Users().List(t.Context(), client.WithUsersSort())
 	require.NoError(t, err)
 }
 
 func TestUsersScope_List_EmptyPage(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertPath(t, r, "/api/users/all")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertPath(t, httpReq, "/api/users/all")
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"content": [],
 			"page": {"number": 0, "size": 20, "totalElements": 0, "totalPages": 0}
 		}`))
-	}))
+		},
+	))
 
-	page, err := c.Users().List(t.Context())
+	page, err := testClient.Users().List(t.Context())
 	require.NoError(t, err)
 	require.NotNil(t, page)
 	require.NotNil(t, page.Content)
@@ -330,25 +354,27 @@ func TestUsersScope_List_Forbidden(t *testing.T) {
 func TestUsersScope_Search_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodGet)
-		assertPath(t, r, "/api/users/search")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodGet)
+			assertPath(t, httpReq, "/api/users/search")
 
-		assert.Equal(t, "john", r.URL.Query().Get("term"))
+			assert.Equal(t, "john", httpReq.URL.Query().Get("term"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"content": [
 				{"id": 5, "userId": "john.doe", "email": "john@example.com", "userRole": "USER"}
 			],
 			"page": {"number": 0, "size": 20, "totalElements": 1, "totalPages": 1}
 		}`))
-	}))
+		},
+	))
 
-	page, err := c.Users().Search(t.Context(), "john")
+	page, err := testClient.Users().Search(t.Context(), "john")
 	require.NoError(t, err)
 	require.NotNil(t, page)
 	require.NotNil(t, page.Content)
@@ -359,22 +385,24 @@ func TestUsersScope_Search_Success(t *testing.T) {
 func TestUsersScope_Search_WithPagination(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertPath(t, r, "/api/users/search")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertPath(t, httpReq, "/api/users/search")
 
-		assert.Equal(t, "admin", r.URL.Query().Get("term"))
-		assert.Equal(t, "5", r.URL.Query().Get("page.size"))
+			assert.Equal(t, "admin", httpReq.URL.Query().Get("term"))
+			assert.Equal(t, "5", httpReq.URL.Query().Get("page.size"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"content": [],
 			"page": {"number": 0, "size": 5, "totalElements": 0, "totalPages": 0}
 		}`))
-	}))
+		},
+	))
 
-	page, err := c.Users().Search(t.Context(), "admin",
+	page, err := testClient.Users().Search(t.Context(), "admin",
 		client.WithSearchUsersPageSize(5),
 	)
 	require.NoError(t, err)
@@ -407,28 +435,30 @@ func TestUsersScope_Search_WithAdditionalOptions(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				query := r.URL.Query()
-				assert.Equal(t, "test", query.Get("term"))
+			testClient := newTestClient(t, http.HandlerFunc(
+				func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+					query := httpReq.URL.Query()
+					assert.Equal(t, "test", query.Get("term"))
 
-				for key, want := range tt.expected {
-					assert.Equal(t, want, query.Get(key), "query param %s", key)
-				}
+					for key, want := range testCase.expected {
+						assert.Equal(t, want, query.Get(key), "query param %s", key)
+					}
 
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
+					responseWriter.Header().Set("Content-Type", "application/json")
+					responseWriter.WriteHeader(http.StatusOK)
 
-				_, _ = w.Write([]byte(`{
+					_, _ = responseWriter.Write([]byte(`{
 					"content": [],
 					"page": {"number": 0, "size": 20, "totalElements": 0, "totalPages": 0}
 				}`))
-			}))
+				},
+			))
 
-			_, err := c.Users().Search(t.Context(), "test", tt.option)
+			_, err := testClient.Users().Search(t.Context(), "test", testCase.option)
 			require.NoError(t, err)
 		})
 	}
@@ -437,34 +467,41 @@ func TestUsersScope_Search_WithAdditionalOptions(t *testing.T) {
 func TestUsersScope_Search_WithSortCleared(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Empty(t, r.URL.Query().Get("page.sort"))
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assert.Empty(t, httpReq.URL.Query().Get("page.sort"))
 
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"content":[],"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			_, _ = responseWriter.Write([]byte(`{
+				"content":[],
+				"page":{"number":1,"size":20,"totalElements":0,"totalPages":0}
+			}`))
+		},
+	))
 
-	_, err := c.Users().Search(t.Context(), "test", client.WithSearchUsersSort())
+	_, err := testClient.Users().Search(t.Context(), "test", client.WithSearchUsersSort())
 	require.NoError(t, err)
 }
 
 func TestUsersScope_Search_EmptyPage(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertPath(t, r, "/api/users/search")
-		assert.Equal(t, "nonexistent", r.URL.Query().Get("term"))
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertPath(t, httpReq, "/api/users/search")
+			assert.Equal(t, "nonexistent", httpReq.URL.Query().Get("term"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"content": [],
 			"page": {"number": 0, "size": 20, "totalElements": 0, "totalPages": 0}
 		}`))
-	}))
+		},
+	))
 
-	page, err := c.Users().Search(t.Context(), "nonexistent")
+	page, err := testClient.Users().Search(t.Context(), "nonexistent")
 	require.NoError(t, err)
 	require.NotNil(t, page)
 	require.NotNil(t, page.Content)
@@ -485,20 +522,24 @@ func TestUsersScope_Search_Forbidden(t *testing.T) {
 func TestUsersScope_Export_Success(t *testing.T) {
 	t.Parallel()
 
-	csvData := []byte("id,userId,email,role\n1,admin,admin@example.com,ADMINISTRATOR\n2,user1,user1@example.com,USER\n")
+	csvData := []byte(
+		"id,userId,email,role\n1,admin,admin@example.com,ADMINISTRATOR\n2,user1,user1@example.com,USER\n",
+	)
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodGet)
-		assertPath(t, r, "/api/users/export")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodGet)
+			assertPath(t, httpReq, "/api/users/export")
 
-		w.Header().Set("Content-Type", "application/octet-stream")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/octet-stream")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write(csvData)
-	}))
+			_, _ = responseWriter.Write(csvData)
+		},
+	))
 
-	data, err := c.Users().Export(t.Context())
+	data, err := testClient.Users().Export(t.Context())
 	require.NoError(t, err)
 	assert.Equal(t, csvData, data)
 }
@@ -506,17 +547,19 @@ func TestUsersScope_Export_Success(t *testing.T) {
 func TestUsersScope_Export_WithFilter(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertPath(t, r, "/api/users/export")
-		assert.Equal(t, "ADMINISTRATOR", r.URL.Query().Get("filter.eq.role"))
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertPath(t, httpReq, "/api/users/export")
+			assert.Equal(t, "ADMINISTRATOR", httpReq.URL.Query().Get("filter.eq.role"))
 
-		w.Header().Set("Content-Type", "application/octet-stream")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/octet-stream")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte("id,userId\n1,admin\n"))
-	}))
+			_, _ = responseWriter.Write([]byte("id,userId\n1,admin\n"))
+		},
+	))
 
-	data, err := c.Users().Export(t.Context(), client.WithUsersRole("ADMINISTRATOR"))
+	data, err := testClient.Users().Export(t.Context(), client.WithUsersRole("ADMINISTRATOR"))
 	require.NoError(t, err)
 	assert.Contains(t, string(data), "admin")
 }
@@ -535,32 +578,39 @@ func TestUsersScope_Export_Forbidden(t *testing.T) {
 func TestUsersScope_Create_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodPost)
-		assertPath(t, r, "/api/users")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodPost)
+			assertPath(t, httpReq, "/api/users")
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var req types.CreateUserRQFull
-		require.NoError(t, json.Unmarshal(body, &req))
-		assert.Equal(t, "newuser", req.Login)
-		assert.Equal(t, "new@example.com", req.Email)
-		assert.Equal(t, "New User", req.FullName)
+			var req types.CreateUserRQFull
+			if !assert.NoError(t, json.Unmarshal(body, &req)) {
+				return
+			}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
+			assert.Equal(t, "newuser", req.Login)
+			assert.Equal(t, "new@example.com", req.Email)
+			assert.Equal(t, "New User", req.FullName)
 
-		_, _ = w.Write([]byte(`{
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusCreated)
+
+			_, _ = responseWriter.Write([]byte(`{
 			"id": 10,
 			"login": "newuser",
 			"email": "new@example.com",
 			"fullName": "New User"
 		}`))
-	}))
+		},
+	))
 
-	result, err := c.Users().Create(t.Context(), types.CreateUserRQFull{
+	result, err := testClient.Users().Create(t.Context(), types.CreateUserRQFull{
 		Login:    "newuser",
 		Email:    "new@example.com",
 		FullName: "New User",
@@ -591,27 +641,36 @@ func TestUsersScope_Create_Forbidden(t *testing.T) {
 func TestUsersScope_Edit_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodPut)
-		assertPath(t, r, "/api/users/testuser")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodPut)
+			assertPath(t, httpReq, "/api/users/testuser")
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var req types.EditUserRQ
-		require.NoError(t, json.Unmarshal(body, &req))
-		assert.Equal(t, "Updated Name", req.FullName)
+			var req types.EditUserRQ
+			if !assert.NoError(t, json.Unmarshal(body, &req)) {
+				return
+			}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			assert.Equal(t, "Updated Name", req.FullName)
 
-		_, _ = w.Write([]byte(`{"message": "User with login = 'testuser' successfully updated."}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+
+			_, _ = responseWriter.Write([]byte(
+				`{"message": "User with login = 'testuser' successfully updated."}`,
+			))
+		},
+	))
 
 	newEmail := "updated@example.com"
 
-	result, err := c.Users().Edit(t.Context(), "testuser", types.EditUserRQ{
+	result, err := testClient.Users().Edit(t.Context(), "testuser", types.EditUserRQ{
 		FullName: "Updated Name",
 		Email:    &newEmail,
 	})
@@ -650,18 +709,22 @@ func TestUsersScope_Edit_Forbidden(t *testing.T) {
 func TestUsersScope_Delete_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodDelete)
-		assertPath(t, r, "/api/users/42")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodDelete)
+			assertPath(t, httpReq, "/api/users/42")
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{"message": "User with id = '42' successfully deleted."}`))
-	}))
+			_, _ = responseWriter.Write([]byte(
+				`{"message": "User with id = '42' successfully deleted."}`,
+			))
+		},
+	))
 
-	result, err := c.Users().Delete(t.Context(), 42)
+	result, err := testClient.Users().Delete(t.Context(), 42)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.Message)
@@ -693,27 +756,29 @@ func TestUsersScope_Delete_Forbidden(t *testing.T) {
 func TestUsersScope_DeleteBulk_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodDelete)
-		assertPath(t, r, "/api/users")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodDelete)
+			assertPath(t, httpReq, "/api/users")
 
-		ids := r.URL.Query()["ids"]
-		assert.Contains(t, ids, "10")
-		assert.Contains(t, ids, "20")
-		assert.Contains(t, ids, "30")
+			ids := httpReq.URL.Query()["ids"]
+			assert.Contains(t, ids, "10")
+			assert.Contains(t, ids, "20")
+			assert.Contains(t, ids, "30")
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"successfullyDeleted": [10, 20, 30],
 			"notFound": [],
 			"errors": []
 		}`))
-	}))
+		},
+	))
 
-	result, err := c.Users().DeleteBulk(t.Context(), []int64{10, 20, 30})
+	result, err := testClient.Users().DeleteBulk(t.Context(), []int64{10, 20, 30})
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.SuccessfullyDeleted)
@@ -723,21 +788,23 @@ func TestUsersScope_DeleteBulk_Success(t *testing.T) {
 func TestUsersScope_DeleteBulk_PartialFailure(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertMethod(t, r, http.MethodDelete)
-		assertPath(t, r, "/api/users")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertMethod(t, httpReq, http.MethodDelete)
+			assertPath(t, httpReq, "/api/users")
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"successfullyDeleted": [10],
 			"notFound": [999],
 			"errors": []
 		}`))
-	}))
+		},
+	))
 
-	result, err := c.Users().DeleteBulk(t.Context(), []int64{10, 999})
+	result, err := testClient.Users().DeleteBulk(t.Context(), []int64{10, 999})
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.SuccessfullyDeleted)
@@ -760,31 +827,38 @@ func TestUsersScope_DeleteBulk_Forbidden(t *testing.T) {
 func TestUsersScope_CreateInvitation_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodPost)
-		assertPath(t, r, "/api/users/bid")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodPost)
+			assertPath(t, httpReq, "/api/users/bid")
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var req types.CreateUserRQ
-		require.NoError(t, json.Unmarshal(body, &req))
-		assert.Equal(t, "invite@example.com", req.Email)
-		assert.Equal(t, "my_project", req.DefaultProject)
-		assert.Equal(t, "MEMBER", req.Role)
+			var req types.CreateUserRQ
+			if !assert.NoError(t, json.Unmarshal(body, &req)) {
+				return
+			}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
+			assert.Equal(t, "invite@example.com", req.Email)
+			assert.Equal(t, "my_project", req.DefaultProject)
+			assert.Equal(t, "MEMBER", req.Role)
 
-		_, _ = w.Write([]byte(`{
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusCreated)
+
+			_, _ = responseWriter.Write([]byte(`{
 			"bid": "abc-123-def",
 			"backLink": "http://example.com/register?uuid=abc-123-def",
 			"message": "Invitation sent."
 		}`))
-	}))
+		},
+	))
 
-	result, err := c.Users().CreateInvitation(t.Context(), types.CreateUserRQ{
+	result, err := testClient.Users().CreateInvitation(t.Context(), types.CreateUserRQ{
 		Email:          "invite@example.com",
 		DefaultProject: "my_project",
 		Role:           "MEMBER",
@@ -813,24 +887,26 @@ func TestUsersScope_CreateInvitation_Forbidden(t *testing.T) {
 func TestUsersScope_GetInvitation_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodGet)
-		assertPath(t, r, "/api/users/registration")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodGet)
+			assertPath(t, httpReq, "/api/users/registration")
 
-		assert.Equal(t, "abc-123-def", r.URL.Query().Get("uuid"))
+			assert.Equal(t, "abc-123-def", httpReq.URL.Query().Get("uuid"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte(`{
+			_, _ = responseWriter.Write([]byte(`{
 			"uuid": "abc-123-def",
 			"email": "invite@example.com",
 			"isActive": true
 		}`))
-	}))
+		},
+	))
 
-	result, err := c.Users().GetInvitation(t.Context(), "abc-123-def")
+	result, err := testClient.Users().GetInvitation(t.Context(), "abc-123-def")
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.Uuid)
@@ -853,39 +929,50 @@ func TestUsersScope_GetInvitation_NotFound(t *testing.T) {
 func TestUsersScope_Register_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodPost)
-		assertPath(t, r, "/api/users/registration")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodPost)
+			assertPath(t, httpReq, "/api/users/registration")
 
-		assert.Equal(t, "abc-123-def", r.URL.Query().Get("uuid"))
+			assert.Equal(t, "abc-123-def", httpReq.URL.Query().Get("uuid"))
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var req types.CreateUserRQConfirm
-		require.NoError(t, json.Unmarshal(body, &req))
-		assert.Equal(t, "newuser", req.Login)
-		assert.Equal(t, "New User", req.FullName)
-		assert.Equal(t, "new@example.com", req.Email)
+			var req types.CreateUserRQConfirm
+			if !assert.NoError(t, json.Unmarshal(body, &req)) {
+				return
+			}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
+			assert.Equal(t, "newuser", req.Login)
+			assert.Equal(t, "New User", req.FullName)
+			assert.Equal(t, "new@example.com", req.Email)
 
-		_, _ = w.Write([]byte(`{
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusCreated)
+
+			_, _ = responseWriter.Write([]byte(`{
 			"id": 15,
 			"login": "newuser",
 			"email": "new@example.com",
 			"fullName": "New User"
 		}`))
-	}))
+		},
+	))
 
-	result, err := c.Users().Register(t.Context(), "abc-123-def", types.CreateUserRQConfirm{
-		Login:    "newuser",
-		FullName: "New User",
-		Email:    "new@example.com",
-		Password: "secure123",
-	})
+	result, err := testClient.Users().Register(
+		t.Context(),
+		"abc-123-def",
+		types.CreateUserRQConfirm{
+			Login:    "newuser",
+			FullName: "New User",
+			Email:    "new@example.com",
+			Password: "secure123",
+		},
+	)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.Id)
@@ -915,26 +1002,36 @@ func TestUsersScope_Register_BadRequest(t *testing.T) {
 func TestUsersScope_ChangePassword_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodPost)
-		assertPath(t, r, "/api/users/password/change")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodPost)
+			assertPath(t, httpReq, "/api/users/password/change")
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
-		assert.Equal(t, "oldPass123", payload["oldPassword"])
-		assert.Equal(t, "newPass456", payload["newPassword"])
+			var payload map[string]any
+			if !assert.NoError(t, json.Unmarshal(body, &payload)) {
+				return
+			}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message": "Password has been changed successfully."}`))
-	}))
+			assert.Equal(t, "oldPass123", payload["oldPassword"])
+			assert.Equal(t, "newPass456", payload["newPassword"])
+
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+
+			_, _ = responseWriter.Write([]byte(
+				`{"message": "Changed successfully."}`,
+			))
+		},
+	))
 
 	newPass := "newPass456"
-	result, err := c.Users().ChangePassword(t.Context(), types.ChangePasswordRQ{
+	result, err := testClient.Users().ChangePassword(t.Context(), types.ChangePasswordRQ{
 		OldPassword: "oldPass123",
 		NewPassword: &newPass,
 	})
@@ -961,24 +1058,33 @@ func TestUsersScope_ChangePassword_BadRequest(t *testing.T) {
 func TestUsersScope_RestorePassword_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodPost)
-		assertPath(t, r, "/api/users/password/restore")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodPost)
+			assertPath(t, httpReq, "/api/users/password/restore")
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
-		assert.Equal(t, "user@example.com", payload["email"])
+			var payload map[string]any
+			if !assert.NoError(t, json.Unmarshal(body, &payload)) {
+				return
+			}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message": "Password restore instruction has been sent."}`))
-	}))
+			assert.Equal(t, "user@example.com", payload["email"])
 
-	result, err := c.Users().RestorePassword(t.Context(), types.RestorePasswordRQ{
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(
+				`{"message": "Password restore instruction has been sent."}`,
+			))
+		},
+	))
+
+	result, err := testClient.Users().RestorePassword(t.Context(), types.RestorePasswordRQ{
 		Email: "user@example.com",
 	})
 	require.NoError(t, err)
@@ -1002,17 +1108,19 @@ func TestUsersScope_RestorePassword_Error(t *testing.T) {
 func TestUsersScope_IsRestorePasswordBidExist_Exists(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodGet)
-		assertPath(t, r, "/api/users/password/reset/abc-123-def")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodGet)
+			assertPath(t, httpReq, "/api/users/password/reset/abc-123-def")
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"is": true}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{"is": true}`))
+		},
+	))
 
-	exists, err := c.Users().IsRestorePasswordBidExist(t.Context(), "abc-123-def")
+	exists, err := testClient.Users().IsRestorePasswordBidExist(t.Context(), "abc-123-def")
 	require.NoError(t, err)
 	assert.True(t, exists)
 }
@@ -1020,16 +1128,18 @@ func TestUsersScope_IsRestorePasswordBidExist_Exists(t *testing.T) {
 func TestUsersScope_IsRestorePasswordBidExist_DoesNotExist(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"is": false}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{"is": false}`))
+		},
+	))
 
-	exists, err := c.Users().IsRestorePasswordBidExist(t.Context(), "invalid-uuid")
+	exists, err := testClient.Users().IsRestorePasswordBidExist(t.Context(), "invalid-uuid")
 	require.NoError(t, err)
 	assert.False(t, exists)
 }
@@ -1048,25 +1158,34 @@ func TestUsersScope_IsRestorePasswordBidExist_NotFound(t *testing.T) {
 func TestUsersScope_ResetPassword_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodPost)
-		assertPath(t, r, "/api/users/password/reset")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodPost)
+			assertPath(t, httpReq, "/api/users/password/reset")
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
-		assert.Equal(t, "newSecurePass", payload["password"])
-		assert.Equal(t, "abc-123-def", payload["uuid"])
+			var payload map[string]any
+			if !assert.NoError(t, json.Unmarshal(body, &payload)) {
+				return
+			}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message": "Password has been reset successfully."}`))
-	}))
+			assert.Equal(t, "newSecurePass", payload["password"])
+			assert.Equal(t, "abc-123-def", payload["uuid"])
 
-	result, err := c.Users().ResetPassword(t.Context(), types.ResetPasswordRQ{
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(
+				`{"message": "Password has been reset successfully."}`,
+			))
+		},
+	))
+
+	result, err := testClient.Users().ResetPassword(t.Context(), types.ResetPasswordRQ{
 		Password: "newSecurePass",
 		Uuid:     "abc-123-def",
 	})
@@ -1094,22 +1213,35 @@ func TestUsersScope_ResetPassword_Error(t *testing.T) {
 func TestUsersScope_ListAPIKeys_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodGet)
-		assertPath(t, r, "/api/users/42/api-keys")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodGet)
+			assertPath(t, httpReq, "/api/users/42/api-keys")
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{
 			"items": [
-				{"id": 1, "name": "ci-key", "created_at": "2025-01-15T10:00:00Z", "user_id": 42},
-				{"id": 2, "name": "dev-key", "created_at": "2025-02-20T14:30:00Z", "last_used_at": "2025-03-01T09:00:00Z", "user_id": 42}
+				{
+					"id": 1,
+					"name": "ci-key",
+					"created_at": "2025-01-15T10:00:00Z",
+					"user_id": 42
+				},
+				{
+					"id": 2,
+					"name": "dev-key",
+					"created_at": "2025-02-20T14:30:00Z",
+					"last_used_at": "2025-03-01T09:00:00Z",
+					"user_id": 42
+				}
 			]
 		}`))
-	}))
+		},
+	))
 
-	keys, err := c.Users().ListAPIKeys(t.Context(), 42)
+	keys, err := testClient.Users().ListAPIKeys(t.Context(), 42)
 	require.NoError(t, err)
 	require.Len(t, keys, 2)
 
@@ -1125,17 +1257,19 @@ func TestUsersScope_ListAPIKeys_Success(t *testing.T) {
 func TestUsersScope_ListAPIKeys_Empty(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodGet)
-		assertPath(t, r, "/api/users/42/api-keys")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodGet)
+			assertPath(t, httpReq, "/api/users/42/api-keys")
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"items": []}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{"items": []}`))
+		},
+	))
 
-	keys, err := c.Users().ListAPIKeys(t.Context(), 42)
+	keys, err := testClient.Users().ListAPIKeys(t.Context(), 42)
 	require.NoError(t, err)
 	assert.Empty(t, keys)
 	assert.NotNil(t, keys)
@@ -1144,16 +1278,18 @@ func TestUsersScope_ListAPIKeys_Empty(t *testing.T) {
 func TestUsersScope_ListAPIKeys_NullItems(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodGet)
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodGet)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{}`))
+		},
+	))
 
-	keys, err := c.Users().ListAPIKeys(t.Context(), 42)
+	keys, err := testClient.Users().ListAPIKeys(t.Context(), 42)
 	require.NoError(t, err)
 	assert.Empty(t, keys)
 	assert.NotNil(t, keys)
@@ -1173,30 +1309,41 @@ func TestUsersScope_ListAPIKeys_Error(t *testing.T) {
 func TestUsersScope_CreateAPIKey_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodPost)
-		assertPath(t, r, fmt.Sprintf("/api/users/%d/api-keys", 42))
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodPost)
+			assertPath(t, httpReq, fmt.Sprintf("/api/users/%d/api-keys", 42))
 
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
 
-		var payload map[string]any
-		require.NoError(t, json.Unmarshal(body, &payload))
-		assert.Equal(t, "my-new-key", payload["name"])
+			var payload map[string]any
+			if !assert.NoError(t, json.Unmarshal(body, &payload)) {
+				return
+			}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		_, _ = w.Write([]byte(`{
+			assert.Equal(t, "my-new-key", payload["name"])
+
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusCreated)
+			_, _ = responseWriter.Write([]byte(`{
 			"id": 99,
 			"name": "my-new-key",
 			"created_at": "2025-06-01T12:00:00Z",
 			"user_id": 42,
 			"api_key": "rp_ultra_secret_key_value"
 		}`))
-	}))
+		},
+	))
 
-	result, err := c.Users().CreateAPIKey(t.Context(), 42, types.ApiKeyRQ{Name: "my-new-key"})
+	result, err := testClient.Users().CreateAPIKey(
+		t.Context(),
+		42,
+		types.ApiKeyRQ{Name: "my-new-key"},
+	)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
@@ -1221,17 +1368,19 @@ func TestUsersScope_CreateAPIKey_Error(t *testing.T) {
 func TestUsersScope_DeleteAPIKey_Success(t *testing.T) {
 	t.Parallel()
 
-	c := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assertBearerToken(t, r, "test-token")
-		assertMethod(t, r, http.MethodDelete)
-		assertPath(t, r, "/api/users/42/api-keys/99")
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			assertBearerToken(t, httpReq)
+			assertMethod(t, httpReq, http.MethodDelete)
+			assertPath(t, httpReq, "/api/users/42/api-keys/99")
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message": "API key has been deleted."}`))
-	}))
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusOK)
+			_, _ = responseWriter.Write([]byte(`{"message": "API key has been deleted."}`))
+		},
+	))
 
-	result, err := c.Users().DeleteAPIKey(t.Context(), 42, 99)
+	result, err := testClient.Users().DeleteAPIKey(t.Context(), 42, 99)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	assert.Contains(t, *result.Message, "deleted")

@@ -38,7 +38,13 @@ func (a *ActivityEventsScope) Search(
 
 	resp, err := a.client.raw.GetActivitiesWithResponse(ctx, params, criteria)
 
-	return execute[types.PagedResponseActivityEventResource](ctx, logger, "search activity events", resp, err)
+	return execute[types.PagedResponseActivityEventResource](
+		ctx,
+		logger,
+		"search activity events",
+		resp,
+		err,
+	)
 }
 
 // GetProjectSubjectNames returns the subject names (users) that have generated
@@ -72,7 +78,7 @@ func (a *ActivityEventsScope) GetProjectSubjectNames(
 
 // SearchActivityEventsOption configures pagination parameters for searching activity events.
 type SearchActivityEventsOption interface {
-	applySearchActivityEvents(*api.GetActivitiesParams)
+	applySearchActivityEvents(params *api.GetActivitiesParams)
 }
 
 type searchActivityEventsOptionFunc func(*api.GetActivitiesParams)
@@ -85,28 +91,28 @@ func (f searchActivityEventsOptionFunc) applySearchActivityEvents(params *api.Ge
 type EventSortOrder string
 
 // WithEventLimit sets the maximum number of results to return.
-func WithEventLimit(limit int32) SearchActivityEventsOption {
+func WithEventLimit(limit int32) searchActivityEventsOptionFunc {
 	return searchActivityEventsOptionFunc(func(params *api.GetActivitiesParams) {
 		params.Limit = limit
 	})
 }
 
 // WithEventOffset sets the offset for paginated results.
-func WithEventOffset(offset int32) SearchActivityEventsOption {
+func WithEventOffset(offset int32) searchActivityEventsOptionFunc {
 	return searchActivityEventsOptionFunc(func(params *api.GetActivitiesParams) {
 		params.Offset = offset
 	})
 }
 
 // WithEventSort sets the field to sort results by (e.g. "createdAt").
-func WithEventSort(field string) SearchActivityEventsOption {
+func WithEventSort(field string) searchActivityEventsOptionFunc {
 	return searchActivityEventsOptionFunc(func(params *api.GetActivitiesParams) {
 		params.Sort = field
 	})
 }
 
 // WithEventOrder sets the sort direction for activity event results.
-func WithEventOrder(order EventSortOrder) SearchActivityEventsOption {
+func WithEventOrder(order EventSortOrder) searchActivityEventsOptionFunc {
 	return searchActivityEventsOptionFunc(func(params *api.GetActivitiesParams) {
 		params.Order = api.GetActivitiesParamsOrder(order)
 	})
