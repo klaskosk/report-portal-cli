@@ -33,18 +33,18 @@ jobs:
       - name: Lint (root module)
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.11.4
+          version: v2.12.2
 
       - name: Lint (pkg module)
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.11.4
+          version: v2.12.2
           working-directory: pkg
 
       - name: Lint (test/integration module)
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.11.4
+          version: v2.12.2
           working-directory: test/integration
 
       - run: make test

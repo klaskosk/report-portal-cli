@@ -2,12 +2,15 @@ version: "2"
 linters:
   default: all
   enable:
+    - gomodguard_v2
     - wsl_v5
   disable:
     - depguard
     - err113
     - exhaustruct
+    - goconst
     - gochecknoglobals
+    - gomodguard
     - mnd
     - tagliatelle
     - wsl
