@@ -33,6 +33,7 @@ func assertCreateBatchMultipartRequest(
 
 	httpReq.Body = http.MaxBytesReader(responseWriter, httpReq.Body, 10<<20)
 
+	//nolint:gosec // G120: test handler caps body via MaxBytesReader and bounded ParseMultipartForm memory.
 	err := httpReq.ParseMultipartForm(10 << 20)
 	//nolint:testifylint // assert keeps this helper usable from HTTP handlers
 	if !assert.NoError(t, err) {
@@ -75,6 +76,7 @@ func createBatchAttachmentMultipartHandler(
 
 		httpReq.Body = http.MaxBytesReader(responseWriter, httpReq.Body, 10<<20)
 
+		//nolint:gosec // G120: test handler caps body via MaxBytesReader and bounded ParseMultipartForm memory.
 		err := httpReq.ParseMultipartForm(10 << 20)
 		if !assert.NoError(t, err) {
 			return

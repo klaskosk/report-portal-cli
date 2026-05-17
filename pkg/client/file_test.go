@@ -155,6 +155,7 @@ func TestFileStorageScope_UploadPhoto_Success(t *testing.T) {
 
 			httpReq.Body = http.MaxBytesReader(responseWriter, httpReq.Body, 10<<20)
 
+			//nolint:gosec // G120: test handler caps body via MaxBytesReader and bounded ParseMultipartForm memory.
 			err := httpReq.ParseMultipartForm(10 << 20)
 			if !assert.NoError(t, err) {
 				return
@@ -243,6 +244,7 @@ func TestFileStorageScope_CleanAttachments_Success(t *testing.T) {
 
 			httpReq.Body = http.MaxBytesReader(responseWriter, httpReq.Body, 10<<20)
 
+			//nolint:gosec // G120: test handler caps body via MaxBytesReader and bounded ParseMultipartForm memory.
 			err := httpReq.ParseMultipartForm(10 << 20)
 			if !assert.NoError(t, err) {
 				return

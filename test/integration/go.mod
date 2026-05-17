@@ -2,7 +2,7 @@ module github.com/klaskosk/report-portal-cli/test/integration
 
 go 1.26
 
-toolchain go1.26.2
+toolchain go1.26.3
 
 replace github.com/klaskosk/report-portal-cli/pkg => ../../pkg
 
