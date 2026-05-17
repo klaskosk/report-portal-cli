@@ -67,66 +67,36 @@ Examples:
 
 // runLaunchList executes the launch list command.
 func runLaunchList(cmd *cobra.Command, _ []string) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
-
-	conn, err := resolveConnection(cmd)
+	deps, err := resolveCmd(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	project, err := resolveProject(cmd, conn)
+	project, err := deps.resolveProject(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	clientInstance, err := newClient(conn, logger)
-	if err != nil {
-		printer.PrintError(err)
+	deps.logger.Debug("listing launches", "project", project)
 
-		return err
-	}
-
-	logger.Debug("listing launches", "project", project)
-
-	return listLaunches(cmd, clientInstance, project, printer)
+	return listLaunches(cmd, deps.client, project, deps.printer)
 }
 
 // runLaunchGet executes the launch get command.
 func runLaunchGet(cmd *cobra.Command, args []string) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
-
-	conn, err := resolveConnection(cmd)
+	deps, err := resolveCmd(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	project, err := resolveProject(cmd, conn)
+	project, err := deps.resolveProject(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	clientInstance, err := newClient(conn, logger)
-	if err != nil {
-		printer.PrintError(err)
+	deps.logger.Debug("getting single launch", "project", project, "idOrUUID", args[0])
 
-		return err
-	}
-
-	logger.Debug("getting single launch", "project", project, "idOrUUID", args[0])
-
-	return getSingleLaunch(cmd, clientInstance, project, args[0], printer)
+	return getSingleLaunch(cmd, deps.client, project, args[0], deps.printer)
 }
 
 // getSingleLaunch retrieves and prints a single launch by numeric ID or UUID.

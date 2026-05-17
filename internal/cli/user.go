@@ -181,59 +181,31 @@ Examples:
 
 // runUserList executes the user list command.
 func runUserList(cmd *cobra.Command, _ []string) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
-
-	conn, err := resolveConnection(cmd)
+	deps, err := resolveCmd(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	clientInstance, err := newClient(conn, logger)
-	if err != nil {
-		printer.PrintError(err)
+	deps.logger.Debug("listing users")
 
-		return err
-	}
-
-	logger.Debug("listing users")
-
-	return listUsers(cmd, clientInstance, printer)
+	return listUsers(cmd, deps.client, deps.printer)
 }
 
 // runUserGet executes the user get command.
 func runUserGet(cmd *cobra.Command, args []string) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
-
-	conn, err := resolveConnection(cmd)
+	deps, err := resolveCmd(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	clientInstance, err := newClient(conn, logger)
-	if err != nil {
-		printer.PrintError(err)
+	deps.logger.Debug("getting single user", "login", args[0])
 
-		return err
-	}
-
-	logger.Debug("getting single user", "login", args[0])
-
-	return getSingleUser(cmd, clientInstance, args[0], printer)
+	return getSingleUser(cmd, deps.client, args[0], deps.printer)
 }
 
 // runUserCreate executes the user create command.
 func runUserCreate(cmd *cobra.Command, _ []string) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
+	printer := resolvePrinter(cmd)
 
 	request, err := resolveCreateUserRequest(cmd)
 	if err != nil {
@@ -242,65 +214,45 @@ func runUserCreate(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	conn, err := resolveConnection(cmd)
+	deps, err := resolveCmd(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	clientInstance, err := newClient(conn, logger)
+	result, err := deps.client.Users().Create(cmd.Context(), request)
 	if err != nil {
-		printer.PrintError(err)
-
-		return err
-	}
-
-	result, err := clientInstance.Users().Create(cmd.Context(), request)
-	if err != nil {
-		printer.PrintError(err)
+		deps.printer.PrintError(err)
 
 		return fmt.Errorf("creating user %s: %w", request.Login, err)
 	}
 
 	headers, row := createUserRow(result)
 
-	return printer.Print(result, headers, [][]string{row})
+	return deps.printer.Print(result, headers, [][]string{row})
 }
 
 // runUserUpdate executes the user update command.
 func runUserUpdate(cmd *cobra.Command, args []string) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
+	printer := resolvePrinter(cmd)
 
 	flags := resolveEditUserFlags(cmd)
 	if !flags.hasChanges() {
-		err := errors.New("at least one mutable flag must be provided to update a user")
-		printer.PrintError(err)
+		noChangeErr := errors.New("at least one mutable flag must be provided to update a user")
+		printer.PrintError(noChangeErr)
 
-		return err
+		return noChangeErr
 	}
 
-	conn, err := resolveConnection(cmd)
+	deps, err := resolveCmd(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
-		return err
-	}
-
-	clientInstance, err := newClient(conn, logger)
-	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
 	var currentUser *types.UserResource
 	if flags.fullName == nil {
-		currentUser, err = getUserByLogin(cmd.Context(), clientInstance.Users(), args[0])
+		currentUser, err = getUserByLogin(cmd.Context(), deps.client.Users(), args[0])
 		if err != nil {
-			printer.PrintError(err)
+			deps.printer.PrintError(err)
 
 			return err
 		}
@@ -308,56 +260,43 @@ func runUserUpdate(cmd *cobra.Command, args []string) error {
 
 	request, err := buildEditUserRequest(currentUser, flags)
 	if err != nil {
-		printer.PrintError(err)
+		deps.printer.PrintError(err)
 
 		return err
 	}
 
-	result, err := clientInstance.Users().Edit(cmd.Context(), args[0], request)
+	result, err := deps.client.Users().Edit(cmd.Context(), args[0], request)
 	if err != nil {
-		printer.PrintError(err)
+		deps.printer.PrintError(err)
 
 		return fmt.Errorf("updating user %s: %w", args[0], err)
 	}
 
-	return printer.Print(result, operationResultHeaders(), operationResultRows(result))
+	return deps.printer.Print(result, operationResultHeaders(), operationResultRows(result))
 }
 
 // runUserDelete executes the user delete command.
 func runUserDelete(cmd *cobra.Command, args []string) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
-
-	conn, err := resolveConnection(cmd)
+	deps, err := resolveCmd(cmd)
 	if err != nil {
-		printer.PrintError(err)
+		return err
+	}
+
+	userID, err := resolveUserIDByLogin(cmd.Context(), deps.client.Users(), args[0])
+	if err != nil {
+		deps.printer.PrintError(err)
 
 		return err
 	}
 
-	clientInstance, err := newClient(conn, logger)
+	result, err := deps.client.Users().Delete(cmd.Context(), userID)
 	if err != nil {
-		printer.PrintError(err)
-
-		return err
-	}
-
-	userID, err := resolveUserIDByLogin(cmd.Context(), clientInstance.Users(), args[0])
-	if err != nil {
-		printer.PrintError(err)
-
-		return err
-	}
-
-	result, err := clientInstance.Users().Delete(cmd.Context(), userID)
-	if err != nil {
-		printer.PrintError(err)
+		deps.printer.PrintError(err)
 
 		return fmt.Errorf("deleting user %s: %w", args[0], err)
 	}
 
-	return printer.Print(result, operationResultHeaders(), operationResultRows(result))
+	return deps.printer.Print(result, operationResultHeaders(), operationResultRows(result))
 }
 
 // getSingleUser retrieves and prints a single user by login.
@@ -753,21 +692,12 @@ func createUserRow(result *types.CreateUserRS) ([]string, []string) {
 
 // operationResultHeaders returns the table column headers for mutation results that only contain a message.
 func operationResultHeaders() []string {
-	return []string{"MESSAGE"}
+	return messageHeaders()
 }
 
 // operationResultRows formats an operation-completion response as a single table row.
 func operationResultRows(result *types.OperationCompletionRS) [][]string {
-	return [][]string{{formatStringPtr(result.Message)}}
-}
-
-// formatBoolPtr returns the dereferenced bool as a string or an empty string if nil.
-func formatBoolPtr(value *bool) string {
-	if value == nil {
-		return ""
-	}
-
-	return strconv.FormatBool(*value)
+	return messageRows(formatMessage(result.Message))
 }
 
 // mustGetStringFlag returns the string value for name, ignoring impossible Cobra access errors.

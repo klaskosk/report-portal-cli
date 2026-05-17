@@ -269,6 +269,36 @@ func TestReadWidgetRequestFromFile_stdin(t *testing.T) { //nolint:paralleltest /
 	assert.Equal(t, types.WidgetRQWidgetType("launchStatistics"), request.WidgetType)
 }
 
+func TestRunWidgetCreate_requiresFromFileBeforeConnection(t *testing.T) {
+	t.Setenv("RP_URL", "")
+	t.Setenv("RP_TOKEN", "")
+	t.Setenv("RP_PROJECT", "")
+	t.Setenv("RP_INSECURE_SKIP_VERIFY", "")
+
+	cmd := attachCmdToRoot(t, newWidgetCreateCmd())
+
+	err := runWidgetCreate(cmd, nil)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "--from-file is required")
+	assert.NotContains(t, err.Error(), "no Report Portal URL configured")
+}
+
+func TestRunWidgetUpdate_requiresFromFileBeforeConnection(t *testing.T) {
+	t.Setenv("RP_URL", "")
+	t.Setenv("RP_TOKEN", "")
+	t.Setenv("RP_PROJECT", "")
+	t.Setenv("RP_INSECURE_SKIP_VERIFY", "")
+
+	cmd := attachCmdToRoot(t, newWidgetUpdateCmd())
+
+	err := runWidgetUpdate(cmd, []string{"42"})
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "--from-file is required")
+	assert.NotContains(t, err.Error(), "no Report Portal URL configured")
+}
+
 func TestApplyWidgetRequestFlagOverrides(t *testing.T) {
 	t.Parallel()
 

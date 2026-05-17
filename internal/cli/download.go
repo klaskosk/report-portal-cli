@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"log/slog"
 	"os"
 	"strconv"
 
@@ -41,11 +40,12 @@ Examples:
 // runDownload executes the download command, resolving the data ID and writing file content to either a named file or
 // stdout.
 func runDownload(cmd *cobra.Command, args []string) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
+	deps, err := resolveCmd(cmd)
+	if err != nil {
+		return err
+	}
 
-	clientInstance, project, err := resolveDownloadClientAndProject(cmd, printer, logger)
+	project, err := deps.resolveProject(cmd)
 	if err != nil {
 		return err
 	}
@@ -56,7 +56,7 @@ func runDownload(cmd *cobra.Command, args []string) error {
 	var dataID int64
 
 	if shouldResolveFromLog {
-		dataID, err = resolveDataIDFromLog(cmd, clientInstance, project, argumentValue, printer)
+		dataID, err = resolveDataIDFromLog(cmd, deps.client, project, argumentValue, deps.printer)
 		if err != nil {
 			return err
 		}
@@ -64,17 +64,17 @@ func runDownload(cmd *cobra.Command, args []string) error {
 		dataID, err = strconv.ParseInt(argumentValue, 10, 64)
 		if err != nil {
 			parseErr := fmt.Errorf("invalid data ID %q: %w", argumentValue, err)
-			printer.PrintError(parseErr)
+			deps.printer.PrintError(parseErr)
 
 			return parseErr
 		}
 	}
 
-	logger.Debug("downloading file", "project", project, "dataId", dataID)
+	deps.logger.Debug("downloading file", "project", project, "dataId", dataID)
 
-	content, err := clientInstance.Project(project).DownloadFile(cmd.Context(), dataID)
+	content, err := deps.client.Project(project).DownloadFile(cmd.Context(), dataID)
 	if err != nil {
-		printer.PrintError(err)
+		deps.printer.PrintError(err)
 
 		return fmt.Errorf("downloading file %d: %w", dataID, err)
 	}
@@ -132,36 +132,6 @@ func resolveDownloadOutputPath(cmd *cobra.Command) string {
 	outputPath, _ := cmd.Flags().GetString("output-file")
 
 	return outputPath
-}
-
-// resolveDownloadClientAndProject resolves connection, project, and API client dependencies for downloads.
-func resolveDownloadClientAndProject(
-	cmd *cobra.Command,
-	printer *Printer,
-	logger *slog.Logger,
-) (*client.Client, string, error) {
-	conn, err := resolveConnection(cmd)
-	if err != nil {
-		printer.PrintError(err)
-
-		return nil, "", err
-	}
-
-	project, err := resolveProject(cmd, conn)
-	if err != nil {
-		printer.PrintError(err)
-
-		return nil, "", err
-	}
-
-	clientInstance, err := newClient(conn, logger)
-	if err != nil {
-		printer.PrintError(err)
-
-		return nil, "", err
-	}
-
-	return clientInstance, project, nil
 }
 
 // writeDownloadedContent writes content to the requested output file or stdout when no file is configured.

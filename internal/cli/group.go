@@ -126,25 +126,12 @@ Examples:
 }
 
 func runGroupList(cmd *cobra.Command, _ []string) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
-
-	conn, err := resolveConnection(cmd)
+	deps, err := resolveCmd(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	clientInstance, err := newClient(conn, logger)
-	if err != nil {
-		printer.PrintError(err)
-
-		return err
-	}
-
-	return listGroups(cmd, clientInstance, printer)
+	return listGroups(cmd, deps.client, deps.printer)
 }
 
 func listGroups(cmd *cobra.Command, clientInstance *client.Client, printer *Printer) error {
@@ -217,9 +204,7 @@ func printGroupList(result *types.GroupPage, printer *Printer) error {
 }
 
 func runGroupGet(cmd *cobra.Command, args []string) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
+	printer := resolvePrinter(cmd)
 
 	groupID, err := parseGroupID(args[0])
 	if err != nil {
@@ -228,86 +213,63 @@ func runGroupGet(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	conn, err := resolveConnection(cmd)
+	deps, err := resolveCmd(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	clientInstance, err := newClient(conn, logger)
+	deps.logger.Debug("getting group", "id", groupID)
+
+	result, err := deps.client.Groups().Get(cmd.Context(), groupID)
 	if err != nil {
-		printer.PrintError(err)
-
-		return err
-	}
-
-	logger.Debug("getting group", "id", groupID)
-
-	result, err := clientInstance.Groups().Get(cmd.Context(), groupID)
-	if err != nil {
-		printer.PrintError(err)
+		deps.printer.PrintError(err)
 
 		return fmt.Errorf("getting group %d: %w", groupID, err)
 	}
 
 	headers, row := groupRow(result)
 
-	return printer.Print(result, headers, [][]string{row})
+	return deps.printer.Print(result, headers, [][]string{row})
 }
 
 func runGroupCreate(cmd *cobra.Command, _ []string) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
-
 	name := mustGetStringFlag(cmd, "name")
 	if name == "" {
 		err := errors.New("--name is required")
-		printer.PrintError(err)
+		outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
+		newPrinter(outputFmt).PrintError(err)
 
+		return err
+	}
+
+	deps, err := resolveCmd(cmd)
+	if err != nil {
 		return err
 	}
 
 	slugPtr := optionalStringFlag(cmd, "slug")
 
-	conn, err := resolveConnection(cmd)
-	if err != nil {
-		printer.PrintError(err)
-
-		return err
-	}
-
-	clientInstance, err := newClient(conn, logger)
-	if err != nil {
-		printer.PrintError(err)
-
-		return err
-	}
-
-	logger.Debug("creating group", "name", name)
+	deps.logger.Debug("creating group", "name", name)
 
 	request := types.CreateGroupRequest{
 		Name: name,
 		Slug: slugPtr,
 	}
 
-	result, err := clientInstance.Groups().Create(cmd.Context(), request)
+	result, err := deps.client.Groups().Create(cmd.Context(), request)
 	if err != nil {
-		printer.PrintError(err)
+		deps.printer.PrintError(err)
 
 		return fmt.Errorf("creating group: %w", err)
 	}
 
 	headers, row := groupRow(result)
 
-	return printer.Print(result, headers, [][]string{row})
+	return deps.printer.Print(result, headers, [][]string{row})
 }
 
 func runGroupUpdate(cmd *cobra.Command, args []string) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
+	printer := resolvePrinter(cmd)
 
 	groupID, err := parseGroupID(args[0])
 	if err != nil {
@@ -316,44 +278,35 @@ func runGroupUpdate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	conn, err := resolveConnection(cmd)
+	deps, err := resolveCmd(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	clientInstance, err := newClient(conn, logger)
+	name, err := resolveGroupUpdateName(cmd, deps.client.Groups(), groupID)
 	if err != nil {
-		printer.PrintError(err)
-
-		return err
-	}
-
-	name, err := resolveGroupUpdateName(cmd, clientInstance.Groups(), groupID)
-	if err != nil {
-		printer.PrintError(err)
+		deps.printer.PrintError(err)
 
 		return err
 	}
 
 	slugPtr := optionalStringFlag(cmd, "slug")
 
-	logger.Debug("updating group", "id", groupID, "name", name)
+	deps.logger.Debug("updating group", "id", groupID, "name", name)
 
 	request := types.UpdateGroupRequest{
 		Name: name,
 		Slug: slugPtr,
 	}
 
-	result, err := clientInstance.Groups().Update(cmd.Context(), groupID, request)
+	result, err := deps.client.Groups().Update(cmd.Context(), groupID, request)
 	if err != nil {
-		printer.PrintError(err)
+		deps.printer.PrintError(err)
 
 		return fmt.Errorf("updating group %d: %w", groupID, err)
 	}
 
-	return printer.Print(result, operationResultHeaders(), successfulUpdateRows(result))
+	return deps.printer.Print(result, operationResultHeaders(), successfulUpdateRows(result))
 }
 
 // resolveGroupUpdateName returns the name to use for a group update.
@@ -386,9 +339,7 @@ func resolveGroupUpdateName(
 }
 
 func runGroupDelete(cmd *cobra.Command, args []string) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
+	printer := resolvePrinter(cmd)
 
 	groupID, err := parseGroupID(args[0])
 	if err != nil {
@@ -397,25 +348,16 @@ func runGroupDelete(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	conn, err := resolveConnection(cmd)
+	deps, err := resolveCmd(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	clientInstance, err := newClient(conn, logger)
+	deps.logger.Debug("deleting group", "id", groupID)
+
+	err = deps.client.Groups().Delete(cmd.Context(), groupID)
 	if err != nil {
-		printer.PrintError(err)
-
-		return err
-	}
-
-	logger.Debug("deleting group", "id", groupID)
-
-	err = clientInstance.Groups().Delete(cmd.Context(), groupID)
-	if err != nil {
-		printer.PrintError(err)
+		deps.printer.PrintError(err)
 
 		return fmt.Errorf("deleting group %d: %w", groupID, err)
 	}
@@ -425,7 +367,7 @@ func runGroupDelete(cmd *cobra.Command, args []string) error {
 		Message string `json:"message"`
 	}{Message: msg}
 
-	return printer.Print(successMsg, operationResultHeaders(), [][]string{{msg}})
+	return deps.printer.Print(successMsg, operationResultHeaders(), messageRows(msg))
 }
 
 // groupHeaders returns the table column headers for group rows.
@@ -467,12 +409,7 @@ func formatInt32Ptr(value *int32) string {
 
 // parseGroupID parses a group ID from CLI input, which must be numeric.
 func parseGroupID(raw string) (int64, error) {
-	id, err := strconv.ParseInt(raw, 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("invalid group ID %q: must be a numeric ID", raw)
-	}
-
-	return id, nil
+	return parseIDArg(raw, "group")
 }
 
 // parseGroupSort parses a sort slice into a single field and order for the groups API.
@@ -511,8 +448,8 @@ func parseGroupSort(sort []string) (string, string) {
 // successfulUpdateRows formats a SuccessfulUpdate as a single table row.
 func successfulUpdateRows(result *types.SuccessfulUpdate) [][]string {
 	if result == nil {
-		return [][]string{{""}}
+		return messageRows("")
 	}
 
-	return [][]string{{formatStringPtr(result.Message)}}
+	return messageRows(formatMessage(result.Message))
 }

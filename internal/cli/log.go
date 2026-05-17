@@ -65,66 +65,36 @@ Examples:
 
 // runLogList executes the log list command.
 func runLogList(cmd *cobra.Command, _ []string) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
-
-	conn, err := resolveConnection(cmd)
+	deps, err := resolveCmd(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	project, err := resolveProject(cmd, conn)
+	project, err := deps.resolveProject(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	clientInstance, err := newClient(conn, logger)
-	if err != nil {
-		printer.PrintError(err)
+	deps.logger.Debug("listing logs", "project", project)
 
-		return err
-	}
-
-	logger.Debug("listing logs", "project", project)
-
-	return listLogs(cmd, clientInstance, project, printer)
+	return listLogs(cmd, deps.client, project, deps.printer)
 }
 
 // runLogGet executes the log get command.
 func runLogGet(cmd *cobra.Command, args []string) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
-
-	conn, err := resolveConnection(cmd)
+	deps, err := resolveCmd(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	project, err := resolveProject(cmd, conn)
+	project, err := deps.resolveProject(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	clientInstance, err := newClient(conn, logger)
-	if err != nil {
-		printer.PrintError(err)
+	deps.logger.Debug("getting single log", "project", project, "idOrUUID", args[0])
 
-		return err
-	}
-
-	logger.Debug("getting single log", "project", project, "idOrUUID", args[0])
-
-	return getSingleLog(cmd, clientInstance, project, args[0], printer)
+	return getSingleLog(cmd, deps.client, project, args[0], deps.printer)
 }
 
 // getSingleLog retrieves and prints a single log entry by numeric ID or UUID.

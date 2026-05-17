@@ -30,43 +30,27 @@ Examples:
 
 // runWhoami executes the whoami command, fetching the current user and their projects.
 func runWhoami(cmd *cobra.Command, _ []string) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
-
-	conn, err := resolveConnection(cmd)
+	deps, err := resolveCmd(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	clientInstance, err := newClient(conn, logger)
+	user, err := deps.client.Users().GetMyself(cmd.Context())
 	if err != nil {
-		printer.PrintError(err)
-
-		return err
-	}
-
-	ctx := cmd.Context()
-
-	user, err := clientInstance.Users().GetMyself(ctx)
-	if err != nil {
-		printer.PrintError(err)
+		deps.printer.PrintError(err)
 
 		return fmt.Errorf("getting current user: %w", err)
 	}
 
-	// Fetch projects for the user.
-	projects, err := clientInstance.Users().ListProjects(ctx, user.UserId)
+	projects, err := deps.client.Users().ListProjects(cmd.Context(), user.UserId)
 	if err != nil {
-		logger.Debug("could not list projects for user", "error", err)
-		printer.PrintWarning(fmt.Sprintf("could not list projects: %s", err))
+		deps.logger.Debug("could not list projects for user", "error", err)
+		deps.printer.PrintWarning(fmt.Sprintf("could not list projects: %s", err))
 	}
 
 	projectNames := sortedProjectNames(projects)
 
-	return printer.Print(user, whoamiHeaders(), whoamiRows(user, projectNames))
+	return deps.printer.Print(user, whoamiHeaders(), whoamiRows(user, projectNames))
 }
 
 // whoamiHeaders returns the table column headers for whoami output.

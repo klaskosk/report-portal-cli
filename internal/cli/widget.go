@@ -1,11 +1,8 @@
 package cli
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -120,9 +117,7 @@ Examples:
 }
 
 func runWidgetGet(cmd *cobra.Command, args []string) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
+	printer := resolvePrinter(cmd)
 
 	widgetID, err := parseWidgetID(args[0])
 	if err != nil {
@@ -131,49 +126,33 @@ func runWidgetGet(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	conn, err := resolveConnection(cmd)
+	deps, err := resolveCmd(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	project, err := resolveProject(cmd, conn)
+	project, err := deps.resolveProject(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	clientInstance, err := newClient(conn, logger)
+	deps.logger.Debug("getting widget", "project", project, "id", widgetID)
+
+	result, err := deps.client.Project(project).Widgets().GetByID(cmd.Context(), widgetID)
 	if err != nil {
-		printer.PrintError(err)
-
-		return err
-	}
-
-	logger.Debug("getting widget", "project", project, "id", widgetID)
-
-	result, err := clientInstance.Project(project).Widgets().GetByID(cmd.Context(), widgetID)
-	if err != nil {
-		printer.PrintError(err)
+		deps.printer.PrintError(err)
 
 		return fmt.Errorf("getting widget %d in project %s: %w", widgetID, project, err)
 	}
 
 	headers, row := widgetRow(result)
 
-	return printer.Print(result, headers, [][]string{row})
+	return deps.printer.Print(result, headers, [][]string{row})
 }
 
-//nolint:dupl // intentional duplication with filter; Phase 3 will extract shared helpers
-func runWidgetCreate(
-	cmd *cobra.Command,
-	_ []string,
-) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
+//nolint:dupl // structural similarity with filter create/update is inherent to the resource pattern
+func runWidgetCreate(cmd *cobra.Command, _ []string) error {
+	printer := resolvePrinter(cmd)
 
 	path, err := requireWidgetFromFile(
 		cmd,
@@ -189,30 +168,19 @@ func runWidgetCreate(
 		return err
 	}
 
-	conn, err := resolveConnection(cmd)
+	deps, err := resolveCmd(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	project, err := resolveProject(cmd, conn)
+	project, err := deps.resolveProject(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	clientInstance, err := newClient(conn, logger)
+	result, err := deps.client.Project(project).Widgets().Create(cmd.Context(), request)
 	if err != nil {
-		printer.PrintError(err)
-
-		return err
-	}
-
-	result, err := clientInstance.Project(project).Widgets().Create(cmd.Context(), request)
-	if err != nil {
-		printer.PrintError(err)
+		deps.printer.PrintError(err)
 
 		return fmt.Errorf("creating widget in project %s: %w", project, err)
 	}
@@ -220,13 +188,11 @@ func runWidgetCreate(
 	headers := []string{"ID"}
 	rows := [][]string{{formatInt64Ptr(result.Id)}}
 
-	return printer.Print(result, headers, rows)
+	return deps.printer.Print(result, headers, rows)
 }
 
 func runWidgetUpdate(cmd *cobra.Command, args []string) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
+	printer := resolvePrinter(cmd)
 
 	widgetID, err := parseWidgetID(args[0])
 	if err != nil {
@@ -249,43 +215,30 @@ func runWidgetUpdate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	conn, err := resolveConnection(cmd)
+	deps, err := resolveCmd(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	project, err := resolveProject(cmd, conn)
+	project, err := deps.resolveProject(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	clientInstance, err := newClient(conn, logger)
-	if err != nil {
-		printer.PrintError(err)
-
-		return err
-	}
-
-	result, err := clientInstance.Project(project).
+	result, err := deps.client.Project(project).
 		Widgets().
 		Update(cmd.Context(), widgetID, request)
 	if err != nil {
-		printer.PrintError(err)
+		deps.printer.PrintError(err)
 
 		return fmt.Errorf("updating widget %d in project %s: %w", widgetID, project, err)
 	}
 
-	return printer.Print(result, operationResultHeaders(), operationResultRows(result))
+	return deps.printer.Print(result, operationResultHeaders(), operationResultRows(result))
 }
 
 func runWidgetDataGet(cmd *cobra.Command, args []string) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
+	printer := resolvePrinter(cmd)
 
 	widgetID, err := parseWidgetID(args[0])
 	if err != nil {
@@ -294,48 +247,45 @@ func runWidgetDataGet(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	deps, err := resolveCmd(cmd)
+	if err != nil {
+		return err
+	}
+
 	attrs, _ := cmd.Flags().GetStringArray("attribute")
 
-	conn, err := resolveConnection(cmd)
+	project, err := deps.resolveProject(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	project, err := resolveProject(cmd, conn)
-	if err != nil {
-		printer.PrintError(err)
-
-		return err
-	}
-
-	clientInstance, err := newClient(conn, logger)
-	if err != nil {
-		printer.PrintError(err)
-
-		return err
-	}
-
-	logger.Debug("getting widget data", "project", project, "id", widgetID, "attributes", attrs)
+	deps.logger.Debug(
+		"getting widget data",
+		"project",
+		project,
+		"id",
+		widgetID,
+		"attributes",
+		attrs,
+	)
 
 	var options []client.GetWidgetDataOption
 	if len(attrs) > 0 {
 		options = append(options, client.WithWidgetAttributes(attrs...))
 	}
 
-	result, err := clientInstance.Project(project).
+	result, err := deps.client.Project(project).
 		Widgets().
 		GetData(cmd.Context(), widgetID, options...)
 	if err != nil {
-		printer.PrintError(err)
+		deps.printer.PrintError(err)
 
 		return fmt.Errorf("getting widget data %d in project %s: %w", widgetID, project, err)
 	}
 
 	headers, row := widgetDataRow(result)
 
-	return printer.Print(result, headers, [][]string{row})
+	return deps.printer.Print(result, headers, [][]string{row})
 }
 
 // requireWidgetFromFile returns the --from-file path after validating the flag was set.
@@ -396,30 +346,12 @@ func applyWidgetRequestFlagOverrides(cmd *cobra.Command, request *types.WidgetRQ
 
 // readWidgetRequestFromFile reads JSON from path (or stdin when path is "-") into a WidgetRQ.
 func readWidgetRequestFromFile(path string) (types.WidgetRQ, error) {
-	var (
-		payload []byte
-		readErr error
-	)
-
-	if path == "-" {
-		payload, readErr = io.ReadAll(os.Stdin)
-	} else {
-		//nolint:gosec // path is user-provided --from-file argument
-		payload, readErr = os.ReadFile(path)
-	}
-
-	if readErr != nil {
-		return types.WidgetRQ{}, fmt.Errorf("reading widget definition: %w", readErr)
-	}
-
-	var request types.WidgetRQ
-
-	err := json.Unmarshal(payload, &request)
+	result, err := readRequestFromFile[types.WidgetRQ](path)
 	if err != nil {
-		return types.WidgetRQ{}, fmt.Errorf("parsing widget JSON: %w", err)
+		return result, wrapFileError(err, "widget definition", "widget JSON")
 	}
 
-	return request, nil
+	return result, nil
 }
 
 // widgetHeaders returns the table column headers for widget rows.
@@ -485,10 +417,5 @@ func formatWidgetContentKeys(content *map[string]any) string {
 
 // parseWidgetID parses a widget ID from CLI input, which must be numeric.
 func parseWidgetID(raw string) (int64, error) {
-	id, err := strconv.ParseInt(raw, 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("invalid widget ID %q: must be a numeric ID", raw)
-	}
-
-	return id, nil
+	return parseIDArg(raw, "widget")
 }

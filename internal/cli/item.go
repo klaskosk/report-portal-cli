@@ -65,66 +65,36 @@ Examples:
 
 // runItemList executes the item list command.
 func runItemList(cmd *cobra.Command, _ []string) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
-
-	conn, err := resolveConnection(cmd)
+	deps, err := resolveCmd(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	project, err := resolveProject(cmd, conn)
+	project, err := deps.resolveProject(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	clientInstance, err := newClient(conn, logger)
-	if err != nil {
-		printer.PrintError(err)
+	deps.logger.Debug("listing test items", "project", project)
 
-		return err
-	}
-
-	logger.Debug("listing test items", "project", project)
-
-	return listItems(cmd, clientInstance, project, printer)
+	return listItems(cmd, deps.client, project, deps.printer)
 }
 
 // runItemGet executes the item get command.
 func runItemGet(cmd *cobra.Command, args []string) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
-
-	conn, err := resolveConnection(cmd)
+	deps, err := resolveCmd(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	project, err := resolveProject(cmd, conn)
+	project, err := deps.resolveProject(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	clientInstance, err := newClient(conn, logger)
-	if err != nil {
-		printer.PrintError(err)
+	deps.logger.Debug("getting single test item", "project", project, "idOrUUID", args[0])
 
-		return err
-	}
-
-	logger.Debug("getting single test item", "project", project, "idOrUUID", args[0])
-
-	return getSingleItem(cmd, clientInstance, project, args[0], printer)
+	return getSingleItem(cmd, deps.client, project, args[0], deps.printer)
 }
 
 // getSingleItem retrieves and prints a single test item by numeric ID or UUID.
@@ -237,24 +207,6 @@ func itemRow(item *types.TestItemResource) ([]string, []string) {
 		formatInt64Ptr(item.Parent),
 		formatInt64Ptr(item.LaunchId),
 	}
-}
-
-// formatStringPtr returns the dereferenced string or an empty string if nil.
-func formatStringPtr(value *string) string {
-	if value == nil {
-		return ""
-	}
-
-	return *value
-}
-
-// formatInt64Ptr returns the formatted int64 or an empty string if nil.
-func formatInt64Ptr(value *int64) string {
-	if value == nil {
-		return ""
-	}
-
-	return strconv.FormatInt(*value, 10)
 }
 
 // itemFilterFlags holds resolved filter flags for test item queries.
