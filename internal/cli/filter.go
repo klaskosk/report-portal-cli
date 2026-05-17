@@ -186,7 +186,11 @@ func runFilterGet(cmd *cobra.Command, args []string) error {
 	return getSingleFilter(cmd, clientInstance, project, filterID, printer)
 }
 
-func runFilterCreate(cmd *cobra.Command, _ []string) error {
+//nolint:dupl // intentional duplication with widget; Phase 3 will extract shared helpers
+func runFilterCreate(
+	cmd *cobra.Command,
+	_ []string,
+) error {
 	logger := loggerFromCmd(cmd)
 	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
 	printer := newPrinter(outputFmt)
