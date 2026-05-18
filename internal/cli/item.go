@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"strconv"
@@ -11,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// newItemCmd builds the "item" parent command with list and get subcommands.
+// newItemCmd builds the "item" parent command with list, get, update, and delete subcommands.
 func newItemCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "item",
@@ -22,6 +23,8 @@ func newItemCmd() *cobra.Command {
 	cmd.PersistentFlags().StringP("project", "p", "", "project name (overrides profile default)")
 	cmd.AddCommand(newItemListCmd())
 	cmd.AddCommand(newItemGetCmd())
+	cmd.AddCommand(newItemUpdateCmd())
+	cmd.AddCommand(newItemDeleteCmd())
 
 	return cmd
 }
@@ -95,6 +98,200 @@ func runItemGet(cmd *cobra.Command, args []string) error {
 	deps.logger.Debug("getting single test item", "project", project, "idOrUUID", args[0])
 
 	return getSingleItem(cmd, deps.client, project, args[0], deps.printer)
+}
+
+// newItemUpdateCmd builds the "item update" subcommand.
+func newItemUpdateCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "update <id>",
+		Short: "Update a test item by numeric ID",
+		Long: `Update a test item's description, status, or attributes.
+
+Flags or --from-file may be provided. When --from-file is given, flags are ignored.
+At least one flag must be set when not using --from-file.
+
+Examples:
+  rp item update 100 --description "Updated description" -p my_project
+  rp item update 100 --status PASSED -p my_project
+  rp item update 100 --attribute "env:prod" --attribute "feature:login" -p my_project
+  rp item update 100 --from-file item_update.json -p my_project`,
+		Args: cobra.ExactArgs(1),
+		RunE: withPrintedErrors(runItemUpdate),
+	}
+
+	cmd.Flags().String("description", "", "updated description")
+	cmd.Flags().String("status", "", "updated status (e.g. PASSED, FAILED, SKIPPED)")
+	cmd.Flags().StringArray("attribute", []string{}, "attribute in key:value format (repeatable)")
+	cmd.Flags().String("from-file", "", "path to JSON file containing UpdateTestItemRQ")
+
+	return cmd
+}
+
+// newItemDeleteCmd builds the "item delete" subcommand.
+func newItemDeleteCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "delete <id>",
+		Short: "Delete a test item by numeric ID",
+		Long: `Delete a test item by its numeric ID.
+
+Examples:
+  rp item delete 100 -p my_project`,
+		Args: cobra.ExactArgs(1),
+		RunE: withPrintedErrors(runItemDelete),
+	}
+}
+
+// runItemUpdate executes the item update command.
+func runItemUpdate(cmd *cobra.Command, args []string) error {
+	printer := resolvePrinter(cmd)
+
+	itemID, err := parseIDArg(args[0], "item")
+	if err != nil {
+		printer.PrintError(err)
+
+		return err
+	}
+
+	request, err := buildItemUpdateRequest(cmd)
+	if err != nil {
+		printer.PrintError(err)
+
+		return err
+	}
+
+	deps, err := resolveCmd(cmd)
+	if err != nil {
+		return err
+	}
+
+	project, err := deps.resolveProject(cmd)
+	if err != nil {
+		return err
+	}
+
+	deps.logger.Debug("updating test item", "project", project, "itemID", itemID)
+
+	result, err := deps.client.Project(project).Items().Update(cmd.Context(), itemID, request)
+	if err != nil {
+		deps.printer.PrintError(err)
+
+		return fmt.Errorf("updating item %d: %w", itemID, err)
+	}
+
+	return deps.printer.Print(result, operationResultHeaders(), operationResultRows(result))
+}
+
+// buildItemUpdateRequest builds an UpdateTestItemRQ from flags or a file.
+func buildItemUpdateRequest(cmd *cobra.Command) (types.UpdateTestItemRQ, error) {
+	if cmd.Flags().Changed("from-file") {
+		path, _ := cmd.Flags().GetString("from-file")
+
+		request, err := readRequestFromFile[types.UpdateTestItemRQ](path)
+		if err != nil {
+			return types.UpdateTestItemRQ{}, wrapFileError(
+				err,
+				"item update file",
+				"item update JSON",
+			)
+		}
+
+		return request, nil
+	}
+
+	return buildItemUpdateRequestFromFlags(cmd)
+}
+
+// buildItemUpdateRequestFromFlags builds an UpdateTestItemRQ from individual flags.
+func buildItemUpdateRequestFromFlags(cmd *cobra.Command) (types.UpdateTestItemRQ, error) {
+	attributes, _ := cmd.Flags().GetStringArray("attribute")
+
+	if !cmd.Flags().Changed("description") && !cmd.Flags().Changed("status") &&
+		len(attributes) == 0 {
+		return types.UpdateTestItemRQ{}, errors.New(
+			"at least one of --description, --status, or --attribute must be provided",
+		)
+	}
+
+	request := types.UpdateTestItemRQ{
+		Description: optionalStringFlag(cmd, "description"),
+		Status:      resolveItemStatus(cmd),
+	}
+
+	if len(attributes) > 0 {
+		attrResources, err := buildItemAttributeResources(attributes)
+		if err != nil {
+			return types.UpdateTestItemRQ{}, err
+		}
+
+		request.Attributes = &attrResources
+	}
+
+	return request, nil
+}
+
+// runItemDelete executes the item delete command.
+func runItemDelete(cmd *cobra.Command, args []string) error {
+	printer := resolvePrinter(cmd)
+
+	itemID, err := parseIDArg(args[0], "item")
+	if err != nil {
+		printer.PrintError(err)
+
+		return err
+	}
+
+	deps, err := resolveCmd(cmd)
+	if err != nil {
+		return err
+	}
+
+	project, err := deps.resolveProject(cmd)
+	if err != nil {
+		return err
+	}
+
+	deps.logger.Debug("deleting test item", "project", project, "itemID", itemID)
+
+	result, err := deps.client.Project(project).Items().Delete(cmd.Context(), itemID)
+	if err != nil {
+		deps.printer.PrintError(err)
+
+		return fmt.Errorf("deleting item %d: %w", itemID, err)
+	}
+
+	return deps.printer.Print(result, operationResultHeaders(), operationResultRows(result))
+}
+
+// buildItemAttributeResources converts "--attribute key:value" flag values to ItemAttributeResource slice.
+func buildItemAttributeResources(attributes []string) ([]types.ItemAttributeResource, error) {
+	resources := make([]types.ItemAttributeResource, 0, len(attributes))
+
+	for _, attr := range attributes {
+		key, value, found := parseAttribute(attr)
+		if !found {
+			return nil, fmt.Errorf("invalid attribute format %q (expected key:value)", attr)
+		}
+
+		k := key
+		resources = append(resources, types.ItemAttributeResource{
+			Key:   &k,
+			Value: value,
+		})
+	}
+
+	return resources, nil
+}
+
+// resolveItemStatus returns the normalized (uppercase) status from --status, or nil when unset.
+func resolveItemStatus(cmd *cobra.Command) *string {
+	if !cmd.Flags().Changed("status") {
+		return nil
+	}
+
+	raw, _ := cmd.Flags().GetString("status")
+	normalized := strings.ToUpper(strings.TrimSpace(raw))
+
+	return &normalized
 }
 
 // getSingleItem retrieves and prints a single test item by numeric ID or UUID.
