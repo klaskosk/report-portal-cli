@@ -234,6 +234,36 @@ func TestReadFilterRequestFromFile_stdin(t *testing.T) { //nolint:paralleltest /
 	assert.Equal(t, types.UpdateUserFilterRQTypeLaunch, request.Type)
 }
 
+func TestRunFilterCreate_requiresFromFileBeforeConnection(t *testing.T) {
+	t.Setenv("RP_URL", "")
+	t.Setenv("RP_TOKEN", "")
+	t.Setenv("RP_PROJECT", "")
+	t.Setenv("RP_INSECURE_SKIP_VERIFY", "")
+
+	cmd := attachCmdToRoot(t, newFilterCreateCmd())
+
+	err := runFilterCreate(cmd, nil)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "--from-file is required")
+	assert.NotContains(t, err.Error(), "no Report Portal URL configured")
+}
+
+func TestRunFilterUpdate_requiresFromFileBeforeConnection(t *testing.T) {
+	t.Setenv("RP_URL", "")
+	t.Setenv("RP_TOKEN", "")
+	t.Setenv("RP_PROJECT", "")
+	t.Setenv("RP_INSECURE_SKIP_VERIFY", "")
+
+	cmd := attachCmdToRoot(t, newFilterUpdateCmd())
+
+	err := runFilterUpdate(cmd, []string{"42"})
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "--from-file is required")
+	assert.NotContains(t, err.Error(), "no Report Portal URL configured")
+}
+
 func TestApplyFilterRequestFlagOverrides_nameAndDescription(t *testing.T) {
 	t.Parallel()
 

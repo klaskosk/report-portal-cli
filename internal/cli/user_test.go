@@ -118,6 +118,21 @@ func TestNewUserListCmd_RejectsPositionalArgs(t *testing.T) {
 	require.Error(t, cmd.Args(cmd, []string{"unexpected"}), "list should reject positional args")
 }
 
+func TestRunUserCreate_requiresRequiredFlagsBeforeConnection(t *testing.T) {
+	t.Setenv("RP_URL", "")
+	t.Setenv("RP_TOKEN", "")
+	t.Setenv("RP_PROJECT", "")
+	t.Setenv("RP_INSECURE_SKIP_VERIFY", "")
+
+	cmd := attachCmdToRoot(t, newUserCreateCmd())
+
+	err := runUserCreate(cmd, nil)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "missing required flags")
+	assert.NotContains(t, err.Error(), "no Report Portal URL configured")
+}
+
 func TestResolveCreateUserRequest_MissingRequiredFlags(t *testing.T) {
 	t.Parallel()
 

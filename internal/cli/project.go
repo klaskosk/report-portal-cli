@@ -60,52 +60,26 @@ Examples:
 
 // runProjectList executes the project list command.
 func runProjectList(cmd *cobra.Command, _ []string) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
-
-	conn, err := resolveConnection(cmd)
+	deps, err := resolveCmd(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	clientInstance, err := newClient(conn, logger)
-	if err != nil {
-		printer.PrintError(err)
+	deps.logger.Debug("listing projects")
 
-		return err
-	}
-
-	logger.Debug("listing projects")
-
-	return listProjects(cmd, clientInstance, printer)
+	return listProjects(cmd, deps.client, deps.printer)
 }
 
 // runProjectGet executes the project get command.
 func runProjectGet(cmd *cobra.Command, args []string) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
-
-	conn, err := resolveConnection(cmd)
+	deps, err := resolveCmd(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	clientInstance, err := newClient(conn, logger)
-	if err != nil {
-		printer.PrintError(err)
+	deps.logger.Debug("getting single project", "name", args[0])
 
-		return err
-	}
-
-	logger.Debug("getting single project", "name", args[0])
-
-	return getSingleProject(cmd, clientInstance, args[0], printer)
+	return getSingleProject(cmd, deps.client, args[0], deps.printer)
 }
 
 // getSingleProject retrieves and prints a single project by name.

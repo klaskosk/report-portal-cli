@@ -1,11 +1,8 @@
 package cli
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"os"
 	"strconv"
 
 	"github.com/klaskosk/report-portal-cli/pkg/client"
@@ -118,40 +115,23 @@ Examples:
 }
 
 func runFilterList(cmd *cobra.Command, _ []string) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
-
-	conn, err := resolveConnection(cmd)
+	deps, err := resolveCmd(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	project, err := resolveProject(cmd, conn)
+	project, err := deps.resolveProject(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	clientInstance, err := newClient(conn, logger)
-	if err != nil {
-		printer.PrintError(err)
+	deps.logger.Debug("listing filters", "project", project)
 
-		return err
-	}
-
-	logger.Debug("listing filters", "project", project)
-
-	return listFilters(cmd, clientInstance, project, printer)
+	return listFilters(cmd, deps.client, project, deps.printer)
 }
 
 func runFilterGet(cmd *cobra.Command, args []string) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
+	printer := resolvePrinter(cmd)
 
 	filterID, err := parseFilterID(args[0])
 	if err != nil {
@@ -160,40 +140,24 @@ func runFilterGet(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	conn, err := resolveConnection(cmd)
+	deps, err := resolveCmd(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	project, err := resolveProject(cmd, conn)
+	project, err := deps.resolveProject(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	clientInstance, err := newClient(conn, logger)
-	if err != nil {
-		printer.PrintError(err)
+	deps.logger.Debug("getting filter", "project", project, "id", filterID)
 
-		return err
-	}
-
-	logger.Debug("getting filter", "project", project, "id", filterID)
-
-	return getSingleFilter(cmd, clientInstance, project, filterID, printer)
+	return getSingleFilter(cmd, deps.client, project, filterID, deps.printer)
 }
 
-//nolint:dupl // intentional duplication with widget; Phase 3 will extract shared helpers
-func runFilterCreate(
-	cmd *cobra.Command,
-	_ []string,
-) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
+//nolint:dupl // structural similarity with widget create/update is inherent to the resource pattern
+func runFilterCreate(cmd *cobra.Command, _ []string) error {
+	printer := resolvePrinter(cmd)
 
 	path, err := requireFilterFromFile(
 		cmd,
@@ -209,30 +173,19 @@ func runFilterCreate(
 		return err
 	}
 
-	conn, err := resolveConnection(cmd)
+	deps, err := resolveCmd(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	project, err := resolveProject(cmd, conn)
+	project, err := deps.resolveProject(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	clientInstance, err := newClient(conn, logger)
+	result, err := deps.client.Project(project).Filters().Create(cmd.Context(), request)
 	if err != nil {
-		printer.PrintError(err)
-
-		return err
-	}
-
-	result, err := clientInstance.Project(project).Filters().Create(cmd.Context(), request)
-	if err != nil {
-		printer.PrintError(err)
+		deps.printer.PrintError(err)
 
 		return fmt.Errorf("creating filter in project %s: %w", project, err)
 	}
@@ -240,13 +193,11 @@ func runFilterCreate(
 	headers := []string{"ID"}
 	rows := [][]string{{formatInt64Ptr(result.Id)}}
 
-	return printer.Print(result, headers, rows)
+	return deps.printer.Print(result, headers, rows)
 }
 
 func runFilterUpdate(cmd *cobra.Command, args []string) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
+	printer := resolvePrinter(cmd)
 
 	filterID, err := parseFilterID(args[0])
 	if err != nil {
@@ -269,43 +220,30 @@ func runFilterUpdate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	conn, err := resolveConnection(cmd)
+	deps, err := resolveCmd(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	project, err := resolveProject(cmd, conn)
+	project, err := deps.resolveProject(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	clientInstance, err := newClient(conn, logger)
-	if err != nil {
-		printer.PrintError(err)
-
-		return err
-	}
-
-	result, err := clientInstance.Project(project).
+	result, err := deps.client.Project(project).
 		Filters().
 		Update(cmd.Context(), filterID, request)
 	if err != nil {
-		printer.PrintError(err)
+		deps.printer.PrintError(err)
 
 		return fmt.Errorf("updating filter %d in project %s: %w", filterID, project, err)
 	}
 
-	return printer.Print(result, operationResultHeaders(), operationResultRows(result))
+	return deps.printer.Print(result, operationResultHeaders(), operationResultRows(result))
 }
 
 func runFilterDelete(cmd *cobra.Command, args []string) error {
-	logger := loggerFromCmd(cmd)
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-	printer := newPrinter(outputFmt)
+	printer := resolvePrinter(cmd)
 
 	filterID, err := parseFilterID(args[0])
 	if err != nil {
@@ -314,35 +252,24 @@ func runFilterDelete(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	conn, err := resolveConnection(cmd)
+	deps, err := resolveCmd(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	project, err := resolveProject(cmd, conn)
+	project, err := deps.resolveProject(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	clientInstance, err := newClient(conn, logger)
+	result, err := deps.client.Project(project).Filters().Delete(cmd.Context(), filterID)
 	if err != nil {
-		printer.PrintError(err)
-
-		return err
-	}
-
-	result, err := clientInstance.Project(project).Filters().Delete(cmd.Context(), filterID)
-	if err != nil {
-		printer.PrintError(err)
+		deps.printer.PrintError(err)
 
 		return fmt.Errorf("deleting filter %d in project %s: %w", filterID, project, err)
 	}
 
-	return printer.Print(result, operationResultHeaders(), operationResultRows(result))
+	return deps.printer.Print(result, operationResultHeaders(), operationResultRows(result))
 }
 
 // requireFilterFromFile returns the --from-file path after validating the flag was set.
@@ -475,12 +402,7 @@ func filterRow(filterResource *types.UserFilterResource) ([]string, []string) {
 
 // parseFilterID parses a filter ID from CLI input, which must be numeric.
 func parseFilterID(raw string) (int64, error) {
-	id, err := strconv.ParseInt(raw, 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("invalid filter ID %q: must be a numeric ID", raw)
-	}
-
-	return id, nil
+	return parseIDArg(raw, "filter")
 }
 
 // applyFilterRequestFlagOverrides applies optional --name and --description overrides from cmd onto request.
@@ -496,32 +418,10 @@ func applyFilterRequestFlagOverrides(cmd *cobra.Command, request *types.UpdateUs
 
 // readFilterRequestFromFile reads JSON from path (or stdin when path is "-") into an UpdateUserFilterRQ.
 func readFilterRequestFromFile(path string) (types.UpdateUserFilterRQ, error) {
-	var (
-		payload []byte
-		readErr error
-	)
-
-	if path == "-" {
-		payload, readErr = io.ReadAll(os.Stdin)
-	} else {
-		//nolint:gosec // path is user-provided --from-file argument
-		payload, readErr = os.ReadFile(path)
-	}
-
-	if readErr != nil {
-		if path != "-" && errors.Is(readErr, os.ErrNotExist) {
-			return types.UpdateUserFilterRQ{}, fmt.Errorf("reading filter definition: %w", readErr)
-		}
-
-		return types.UpdateUserFilterRQ{}, fmt.Errorf("reading filter definition: %w", readErr)
-	}
-
-	var request types.UpdateUserFilterRQ
-
-	err := json.Unmarshal(payload, &request)
+	result, err := readRequestFromFile[types.UpdateUserFilterRQ](path)
 	if err != nil {
-		return types.UpdateUserFilterRQ{}, fmt.Errorf("parsing filter JSON: %w", err)
+		return result, wrapFileError(err, "filter definition", "filter JSON")
 	}
 
-	return request, nil
+	return result, nil
 }
