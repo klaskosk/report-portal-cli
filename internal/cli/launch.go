@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/klaskosk/report-portal-cli/pkg/client"
@@ -11,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// newLaunchCmd builds the "launch" parent command with list and get subcommands.
+// newLaunchCmd builds the "launch" parent command with list, get, update, and delete subcommands.
 func newLaunchCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "launch",
@@ -21,6 +22,8 @@ func newLaunchCmd() *cobra.Command {
 	cmd.PersistentFlags().StringP("project", "p", "", "project name (overrides profile default)")
 	cmd.AddCommand(newLaunchListCmd())
 	cmd.AddCommand(newLaunchGetCmd())
+	cmd.AddCommand(newLaunchUpdateCmd())
+	cmd.AddCommand(newLaunchDeleteCmd())
 
 	return cmd
 }
@@ -97,6 +100,215 @@ func runLaunchGet(cmd *cobra.Command, args []string) error {
 	deps.logger.Debug("getting single launch", "project", project, "idOrUUID", args[0])
 
 	return getSingleLaunch(cmd, deps.client, project, args[0], deps.printer)
+}
+
+// newLaunchUpdateCmd builds the "launch update" subcommand.
+func newLaunchUpdateCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "update <id>",
+		Short: "Update a launch by numeric ID",
+		Long: `Update a launch by numeric ID.
+
+Examples:
+  rp launch update 42 --description "Updated description" -p my_project
+  rp launch update 42 --mode DEBUG -p my_project
+  rp launch update 42 --attribute "env:staging" -p my_project
+  rp launch update 42 --from-file launch_update.json -p my_project`,
+		Args: cobra.ExactArgs(1),
+		RunE: withPrintedErrors(runLaunchUpdate),
+	}
+
+	cmd.Flags().String("description", "", "updated description")
+	cmd.Flags().String("mode", "", "updated mode (DEBUG or DEFAULT)")
+	cmd.Flags().StringArray("attribute", []string{}, "attribute in key:value format (repeatable)")
+	cmd.Flags().String("from-file", "", "read the full UpdateLaunchRQ from a JSON file")
+
+	return cmd
+}
+
+// newLaunchDeleteCmd builds the "launch delete" subcommand.
+func newLaunchDeleteCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "delete <id>",
+		Short: "Delete a launch by numeric ID",
+		Long: `Delete a launch by numeric ID.
+
+Examples:
+  rp launch delete 42 -p my_project`,
+		Args: cobra.ExactArgs(1),
+		RunE: withPrintedErrors(runLaunchDelete),
+	}
+}
+
+// runLaunchUpdate executes the launch update command.
+func runLaunchUpdate(cmd *cobra.Command, args []string) error {
+	printer := resolvePrinter(cmd)
+
+	launchID, err := parseIDArg(args[0], "launch")
+	if err != nil {
+		printer.PrintError(err)
+
+		return err
+	}
+
+	request, err := buildLaunchUpdateRequest(cmd)
+	if err != nil {
+		printer.PrintError(err)
+
+		return err
+	}
+
+	deps, err := resolveCmd(cmd)
+	if err != nil {
+		return err
+	}
+
+	project, err := deps.resolveProject(cmd)
+	if err != nil {
+		return err
+	}
+
+	result, err := deps.client.Project(project).Launches().Update(cmd.Context(), launchID, request)
+	if err != nil {
+		deps.printer.PrintError(err)
+
+		return fmt.Errorf("updating launch %d in project %s: %w", launchID, project, err)
+	}
+
+	return deps.printer.Print(result, operationResultHeaders(), operationResultRows(result))
+}
+
+// runLaunchDelete executes the launch delete command.
+func runLaunchDelete(cmd *cobra.Command, args []string) error {
+	printer := resolvePrinter(cmd)
+
+	launchID, err := parseIDArg(args[0], "launch")
+	if err != nil {
+		printer.PrintError(err)
+
+		return err
+	}
+
+	deps, err := resolveCmd(cmd)
+	if err != nil {
+		return err
+	}
+
+	project, err := deps.resolveProject(cmd)
+	if err != nil {
+		return err
+	}
+
+	result, err := deps.client.Project(project).Launches().Delete(cmd.Context(), launchID)
+	if err != nil {
+		deps.printer.PrintError(err)
+
+		return fmt.Errorf("deleting launch %d in project %s: %w", launchID, project, err)
+	}
+
+	return deps.printer.Print(result, operationResultHeaders(), operationResultRows(result))
+}
+
+// buildLaunchUpdateRequest builds the UpdateLaunchRQ for the update command. When --from-file is
+// set it takes precedence; otherwise the request is assembled from individual flags.
+func buildLaunchUpdateRequest(cmd *cobra.Command) (types.UpdateLaunchRQ, error) {
+	if cmd.Flags().Changed("from-file") {
+		path, _ := cmd.Flags().GetString("from-file")
+
+		req, err := readRequestFromFile[types.UpdateLaunchRQ](path)
+		if err != nil {
+			return types.UpdateLaunchRQ{}, wrapFileError(
+				err,
+				"launch update file",
+				"launch update JSON",
+			)
+		}
+
+		return req, nil
+	}
+
+	return buildUpdateLaunchRequestFromFlags(cmd)
+}
+
+// buildUpdateLaunchRequestFromFlags builds an UpdateLaunchRQ from individual flags.
+// Returns an error if no flags are provided.
+func buildUpdateLaunchRequestFromFlags(cmd *cobra.Command) (types.UpdateLaunchRQ, error) {
+	descriptionChanged := cmd.Flags().Changed("description")
+	modeChanged := cmd.Flags().Changed("mode")
+	attributeChanged := cmd.Flags().Changed("attribute")
+
+	if !descriptionChanged && !modeChanged && !attributeChanged {
+		return types.UpdateLaunchRQ{}, errors.New(
+			"at least one of --description, --mode, --attribute, or --from-file must be provided",
+		)
+	}
+
+	description := optionalStringFlag(cmd, "description")
+
+	var mode *types.UpdateLaunchRQMode
+
+	if modeChanged {
+		raw, _ := cmd.Flags().GetString("mode")
+
+		m, err := resolveUpdateLaunchMode(raw)
+		if err != nil {
+			return types.UpdateLaunchRQ{}, err
+		}
+
+		mode = &m
+	}
+
+	var attrs *[]types.ItemAttributeResource
+
+	if attributeChanged {
+		rawAttrs, _ := cmd.Flags().GetStringArray("attribute")
+
+		resources, buildErr := buildAttributeResources(rawAttrs)
+		if buildErr != nil {
+			return types.UpdateLaunchRQ{}, buildErr
+		}
+
+		attrs = &resources
+	}
+
+	return types.UpdateLaunchRQ{
+		Description: description,
+		Mode:        mode,
+		Attributes:  attrs,
+	}, nil
+}
+
+// resolveUpdateLaunchMode validates and normalizes a mode string for launch update.
+// Accepts case-insensitive input and normalizes to uppercase. The caller must only
+// invoke this when the --mode flag was explicitly set.
+func resolveUpdateLaunchMode(raw string) (types.UpdateLaunchRQMode, error) {
+	normalized := strings.ToUpper(strings.TrimSpace(raw))
+
+	switch normalized {
+	case "DEBUG", "DEFAULT":
+		return types.UpdateLaunchRQMode(normalized), nil
+	default:
+		return "", fmt.Errorf("invalid mode %q: must be DEBUG or DEFAULT", raw)
+	}
+}
+
+// buildAttributeResources converts --attribute flag values to []ItemAttributeResource.
+func buildAttributeResources(attributes []string) ([]types.ItemAttributeResource, error) {
+	resources := make([]types.ItemAttributeResource, 0, len(attributes))
+
+	for _, attr := range attributes {
+		key, value, found := parseAttribute(attr)
+		if !found {
+			return nil, fmt.Errorf("invalid attribute format %q (expected key:value)", attr)
+		}
+
+		resources = append(resources, types.ItemAttributeResource{
+			Key:   &key,
+			Value: value,
+		})
+	}
+
+	return resources, nil
 }
 
 // getSingleLaunch retrieves and prints a single launch by numeric ID or UUID.
