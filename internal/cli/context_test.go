@@ -6,15 +6,22 @@ import (
 	"testing"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestResolveCmd_failsWithoutConnection(t *testing.T) {
+	globalViperTestMu.Lock()
+	t.Cleanup(globalViperTestMu.Unlock)
+
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	t.Setenv("RP_URL", "")
 	t.Setenv("RP_TOKEN", "")
 	t.Setenv("RP_PROJECT", "")
 	t.Setenv("RP_INSECURE_SKIP_VERIFY", "")
+
+	viper.Reset()
 
 	cmd := newTestCmdForContext(t)
 

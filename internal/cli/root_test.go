@@ -16,7 +16,7 @@ func TestRootCmd_JSONFlagOverridesOutput(t *testing.T) {
 	cmd := newRootCmd()
 	cmd.SetContext(context.Background())
 	require.NoError(t, cmd.ParseFlags([]string{"--json"}))
-	require.NoError(t, cmd.PersistentPreRunE(cmd, nil))
+	runRootPersistentPreRunE(t, cmd)
 
 	output, _ := cmd.PersistentFlags().GetString("output")
 	assert.Equal(t, "json", output)
@@ -28,7 +28,7 @@ func TestRootCmd_JSONFlagWinsOverTableOutput(t *testing.T) {
 	cmd := newRootCmd()
 	cmd.SetContext(context.Background())
 	require.NoError(t, cmd.ParseFlags([]string{"-o", "table", "--json"}))
-	require.NoError(t, cmd.PersistentPreRunE(cmd, nil))
+	runRootPersistentPreRunE(t, cmd)
 
 	output, _ := cmd.PersistentFlags().GetString("output")
 	assert.Equal(t, "json", output, "--json should override -o table")
@@ -54,7 +54,7 @@ func TestRootCmd_JSONFlagFalseDoesNotOverrideOutput(t *testing.T) {
 			cmd := newRootCmd()
 			cmd.SetContext(context.Background())
 			require.NoError(t, cmd.ParseFlags(test.args))
-			require.NoError(t, cmd.PersistentPreRunE(cmd, nil))
+			runRootPersistentPreRunE(t, cmd)
 
 			output, _ := cmd.PersistentFlags().GetString("output")
 			assert.Equal(t, test.wantFmt, output)
