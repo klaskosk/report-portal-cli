@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -11,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// newProjectCmd builds the "project" parent command with list and get subcommands.
+// newProjectCmd builds the "project" parent command with list, get, create, update, and delete subcommands.
 func newProjectCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "project",
@@ -20,6 +21,9 @@ func newProjectCmd() *cobra.Command {
 
 	cmd.AddCommand(newProjectListCmd())
 	cmd.AddCommand(newProjectGetCmd())
+	cmd.AddCommand(newProjectCreateCmd())
+	cmd.AddCommand(newProjectUpdateCmd())
+	cmd.AddCommand(newProjectDeleteCmd())
 
 	return cmd
 }
@@ -167,4 +171,224 @@ func projectRow(project *types.ProjectResource) ([]string, []string) {
 		organization,
 		created,
 	}
+}
+
+// newProjectCreateCmd builds the "project create" subcommand.
+func newProjectCreateCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "create",
+		Short: "Create a new project",
+		Long: `Create a new project.
+
+This command does not require --project/-p since it operates on the instance level.
+
+Examples:
+  rp project create --name "new_project"                Create a project
+  rp project create --name "new_project" --entry-type INTERNAL  Create with explicit entry type`,
+		Args: cobra.NoArgs,
+		RunE: withPrintedErrors(runProjectCreate),
+	}
+
+	cmd.Flags().String("name", "", "project name (required)")
+	cmd.Flags().String("entry-type", "INTERNAL", "project entry type")
+
+	return cmd
+}
+
+// newProjectUpdateCmd builds the "project update" subcommand.
+func newProjectUpdateCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "update <name>",
+		Short: "Update a project from a JSON file",
+		Long: `Update a project using a JSON payload from a file.
+
+The JSON file may contain "configuration" (project attributes) and/or "users"
+(user-to-role assignments). Both fields are optional.
+
+This command does not require --project/-p since it operates on the instance level.
+
+Examples:
+  rp project update my_project --from-file config.json  Update project configuration`,
+		Args: cobra.ExactArgs(1),
+		RunE: withPrintedErrors(runProjectUpdate),
+	}
+
+	cmd.Flags().
+		String("from-file", "", "path to JSON file containing UpdateProjectRQ payload (use - for stdin)")
+
+	return cmd
+}
+
+// newProjectDeleteCmd builds the "project delete" subcommand.
+func newProjectDeleteCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "delete <name>",
+		Short: "Delete a project by name",
+		Long: `Delete a project by name.
+
+The project name is resolved to a numeric ID before deletion, since the API
+deletes by ID.
+
+This command does not require --project/-p since it operates on the instance level.
+
+Examples:
+  rp project delete old_project   Delete a project by name`,
+		Args: cobra.ExactArgs(1),
+		RunE: withPrintedErrors(runProjectDelete),
+	}
+}
+
+func runProjectCreate(cmd *cobra.Command, _ []string) error {
+	name := mustGetStringFlag(cmd, "name")
+	if name == "" {
+		err := errors.New("--name is required")
+		resolvePrinter(cmd).PrintError(err)
+
+		return err
+	}
+
+	entryType := mustGetStringFlag(cmd, "entry-type")
+
+	deps, err := resolveCmd(cmd)
+	if err != nil {
+		return err
+	}
+
+	deps.logger.Debug("creating project", "name", name, "entryType", entryType)
+
+	request := types.CreateProjectRQ{
+		ProjectName: name,
+		EntryType:   types.CreateProjectRQEntryType(entryType),
+	}
+
+	result, err := deps.client.Projects().Create(cmd.Context(), request)
+	if err != nil {
+		deps.printer.PrintError(err)
+
+		return fmt.Errorf("creating project: %w", err)
+	}
+
+	headers := []string{"ID"}
+	rows := [][]string{{formatInt64Ptr(result.Id)}}
+
+	return deps.printer.Print(result, headers, rows)
+}
+
+func runProjectUpdate(cmd *cobra.Command, args []string) error {
+	printer := resolvePrinter(cmd)
+
+	if !cmd.Flags().Changed("from-file") {
+		err := errors.New(
+			"--from-file is required for project update (the payload contains structured configuration and user fields)",
+		)
+		printer.PrintError(err)
+
+		return err
+	}
+
+	path := mustGetStringFlag(cmd, "from-file")
+
+	request, err := readProjectUpdateFromFile(path)
+	if err != nil {
+		printer.PrintError(err)
+
+		return err
+	}
+
+	projectName := args[0]
+
+	deps, err := resolveCmd(cmd)
+	if err != nil {
+		return err
+	}
+
+	deps.logger.Debug("updating project", "name", projectName)
+
+	result, err := deps.client.Projects().Update(cmd.Context(), projectName, request)
+	if err != nil {
+		deps.printer.PrintError(err)
+
+		return fmt.Errorf("updating project %s: %w", projectName, err)
+	}
+
+	return deps.printer.Print(result, operationResultHeaders(), operationResultRows(result))
+}
+
+func runProjectDelete(cmd *cobra.Command, args []string) error {
+	projectName := args[0]
+
+	deps, err := resolveCmd(cmd)
+	if err != nil {
+		return err
+	}
+
+	deps.logger.Debug("resolving project ID for deletion", "name", projectName)
+
+	return deleteProject(cmd, deps.client, projectName, deps.printer)
+}
+
+func deleteProject(
+	cmd *cobra.Command,
+	clientInstance *client.Client,
+	name string,
+	printer *Printer,
+) error {
+	project, err := clientInstance.Projects().Get(cmd.Context(), name)
+	if err != nil {
+		var wrappedErr error
+		if client.IsNotFound(err) {
+			wrappedErr = fmt.Errorf("project %q not found: cannot delete: %w", name, err)
+		} else {
+			wrappedErr = fmt.Errorf("resolving project %q for deletion: %w", name, err)
+		}
+
+		printer.PrintError(wrappedErr)
+
+		return wrappedErr
+	}
+
+	result, err := clientInstance.Projects().Delete(cmd.Context(), project.ProjectId)
+	if err != nil {
+		printer.PrintError(err)
+
+		return fmt.Errorf("deleting project %s: %w", name, err)
+	}
+
+	headers, rows := formatDeleteBulkResult(result, fmt.Sprintf("Project '%s'", name))
+
+	return printer.Print(result, headers, rows)
+}
+
+// readProjectUpdateFromFile reads a JSON file into an UpdateProjectRQ.
+func readProjectUpdateFromFile(path string) (types.UpdateProjectRQ, error) {
+	result, err := readRequestFromFile[types.UpdateProjectRQ](path)
+	if err != nil {
+		return result, wrapFileError(err, "project update payload", "project update JSON")
+	}
+
+	return result, nil
+}
+
+// formatDeleteBulkResult formats a DeleteBulkRS response as table headers and rows.
+func formatDeleteBulkResult(
+	result *types.DeleteBulkRS,
+	resourceName string,
+) ([]string, [][]string) {
+	headers := []string{"STATUS", "MESSAGE"}
+
+	if result.SuccessfullyDeleted != nil && len(*result.SuccessfullyDeleted) > 0 {
+		return headers, [][]string{{"Deleted", resourceName + " deleted successfully"}}
+	}
+
+	if result.Errors != nil && len(*result.Errors) > 0 {
+		return headers, [][]string{{"Error", (*result.Errors)[0].Message}}
+	}
+
+	if result.NotFound != nil && len(*result.NotFound) > 0 {
+		return headers, [][]string{
+			{"Not Found", fmt.Sprintf("ID %d not found", (*result.NotFound)[0])},
+		}
+	}
+
+	return headers, [][]string{{"Unknown", "No status information in response"}}
 }
