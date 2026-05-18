@@ -88,6 +88,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newWhoamiCmd())
 	cmd.AddCommand(newWidgetCmd())
 	cmd.AddCommand(newPluginCmd())
+	cmd.AddCommand(newDashboardCmd())
 
 	return cmd
 }
