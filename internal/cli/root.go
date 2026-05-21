@@ -87,6 +87,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newDownloadCmd())
 	cmd.AddCommand(newWhoamiCmd())
 	cmd.AddCommand(newWidgetCmd())
+	cmd.AddCommand(newPluginCmd())
 
 	return cmd
 }
