@@ -1,6 +1,11 @@
 package cli
 
-import "strconv"
+import (
+	"fmt"
+
+	"github.com/klaskosk/report-portal-cli/pkg/types"
+	"github.com/spf13/cobra"
+)
 
 // messageHeaders returns the table column headers for mutation results that only contain a message.
 func messageHeaders() []string {
@@ -12,38 +17,82 @@ func messageRows(message string) [][]string {
 	return [][]string{{message}}
 }
 
-// formatMessage returns the dereferenced string or an empty string if the pointer is nil.
-func formatMessage(msg *string) string {
-	if msg == nil {
-		return ""
-	}
-
-	return *msg
-}
-
-// formatStringPtr returns the dereferenced string or an empty string if nil.
-func formatStringPtr(value *string) string {
+// formatOptional returns a string representation of the pointed-to value, or empty if nil.
+func formatOptional[T any](value *T) string {
 	if value == nil {
 		return ""
 	}
 
-	return *value
+	return fmt.Sprintf("%v", *value)
 }
 
-// formatInt64Ptr returns the formatted int64 or an empty string if nil.
-func formatInt64Ptr(value *int64) string {
-	if value == nil {
-		return ""
-	}
-
-	return strconv.FormatInt(*value, 10)
+// operationResultHeaders returns the table column headers for mutation results that only contain a message.
+func operationResultHeaders() []string {
+	return messageHeaders()
 }
 
-// formatBoolPtr returns the dereferenced bool as a string or an empty string if nil.
-func formatBoolPtr(value *bool) string {
-	if value == nil {
-		return ""
+// operationResultRows formats an operation-completion response as a single table row.
+func operationResultRows(result *types.OperationCompletionRS) [][]string {
+	return messageRows(formatOptional(result.Message))
+}
+
+// successfulUpdateRows formats a SuccessfulUpdate as a single table row.
+func successfulUpdateRows(result *types.SuccessfulUpdate) [][]string {
+	if result == nil {
+		return messageRows("")
 	}
 
-	return strconv.FormatBool(*value)
+	return messageRows(formatOptional(result.Message))
+}
+
+// mustGetStringFlag returns the string value for name, ignoring impossible Cobra access errors.
+func mustGetStringFlag(cmd *cobra.Command, name string) string {
+	value, _ := cmd.Flags().GetString(name)
+
+	return value
+}
+
+// optionalStringFlag returns a pointer to the explicit string flag value, or nil when the flag was omitted.
+func optionalStringFlag(cmd *cobra.Command, name string) *string {
+	if !cmd.Flags().Changed(name) {
+		return nil
+	}
+
+	value, _ := cmd.Flags().GetString(name)
+
+	return &value
+}
+
+// formatDeleteBulkResult formats a DeleteBulkRS response as table headers and rows.
+func formatDeleteBulkResult(
+	result *types.DeleteBulkRS,
+	resourceName string,
+) ([]string, [][]string) {
+	headers := []string{"STATUS", "MESSAGE"}
+
+	if result.SuccessfullyDeleted != nil && len(*result.SuccessfullyDeleted) > 0 {
+		return headers, [][]string{{"Deleted", resourceName + " deleted successfully"}}
+	}
+
+	if result.Errors != nil && len(*result.Errors) > 0 {
+		return headers, [][]string{{"Error", (*result.Errors)[0].Message}}
+	}
+
+	if result.NotFound != nil && len(*result.NotFound) > 0 {
+		return headers, [][]string{
+			{"Not Found", fmt.Sprintf("ID %d not found", (*result.NotFound)[0])},
+		}
+	}
+
+	return headers, [][]string{{"Unknown", "No status information in response"}}
+}
+
+// deleteSuccessMessage is the JSON shape for void-response delete operations.
+type deleteSuccessMessage struct {
+	Message string `json:"message"`
+}
+
+// deleteSuccessResult returns a JSON-serializable result and table output for a successful delete.
+func deleteSuccessResult(msg string) (deleteSuccessMessage, []string, [][]string) {
+	return deleteSuccessMessage{Message: msg}, operationResultHeaders(), messageRows(msg)
 }

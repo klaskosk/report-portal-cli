@@ -66,7 +66,10 @@ Examples:
 		RunE: withPrintedErrors(runWidgetCreate),
 	}
 
-	cmd.Flags().String("from-file", "", "path to JSON file (use - for stdin)")
+	cmd.Flags().String(
+		"from-file", "",
+		"path to JSON file containing WidgetRQ (use - for stdin; flags override file values)",
+	)
 	cmd.Flags().String("name", "", "override widget name from file")
 	cmd.Flags().String("description", "", "override widget description from file")
 
@@ -86,7 +89,10 @@ Examples:
 		RunE: withPrintedErrors(runWidgetUpdate),
 	}
 
-	cmd.Flags().String("from-file", "", "path to JSON file (use - for stdin)")
+	cmd.Flags().String(
+		"from-file", "",
+		"path to JSON file containing WidgetRQ (use - for stdin; flags override file values)",
+	)
 	cmd.Flags().String("name", "", "override widget name from file")
 	cmd.Flags().String("description", "", "override widget description from file")
 
@@ -186,7 +192,7 @@ func runWidgetCreate(cmd *cobra.Command, _ []string) error {
 	}
 
 	headers := []string{"ID"}
-	rows := [][]string{{formatInt64Ptr(result.Id)}}
+	rows := [][]string{{formatOptional(result.Id)}}
 
 	return deps.printer.Print(result, headers, rows)
 }
@@ -361,7 +367,7 @@ func widgetHeaders() []string {
 
 // widgetRow formats a WidgetResource as a table row, returning both headers and column values.
 func widgetRow(widget *types.WidgetResource) ([]string, []string) {
-	description := formatStringPtr(widget.Description)
+	description := formatOptional(widget.Description)
 	if len(description) > 50 {
 		description = description[:50] + "..."
 	}
@@ -375,7 +381,7 @@ func widgetRow(widget *types.WidgetResource) ([]string, []string) {
 		strconv.FormatInt(widget.Id, 10),
 		widget.Name,
 		string(widget.WidgetType),
-		formatStringPtr(widget.Owner),
+		formatOptional(widget.Owner),
 		description,
 		strconv.Itoa(filterCount),
 	}

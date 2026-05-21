@@ -2,10 +2,13 @@ package cli
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"strings"
+
+	"github.com/spf13/cobra"
 )
 
 //nolint:ireturn // generic helper intentionally returns type parameter T
@@ -38,6 +41,20 @@ func readRequestFromFile[T any](path string) (T, error) {
 	}
 
 	return request, nil
+}
+
+// requireFromFile returns the --from-file path after validating the flag was set.
+func requireFromFile(cmd *cobra.Command, printer *Printer, missingMessage string) (string, error) {
+	if !cmd.Flags().Changed("from-file") {
+		err := errors.New(missingMessage)
+		printer.PrintError(err)
+
+		return "", err
+	}
+
+	path, _ := cmd.Flags().GetString("from-file")
+
+	return path, nil
 }
 
 // wrapFileError rewrites generic readRequestFromFile errors into resource-specific messages.

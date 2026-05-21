@@ -166,10 +166,10 @@ func pluginHeaders() []string {
 // pluginRow formats a plugin resource as a table row, returning both headers and column values.
 func pluginRow(plugin *types.IntegrationTypeResource) ([]string, []string) {
 	return pluginHeaders(), []string{
-		formatInt64Ptr(plugin.Type),
-		formatStringPtr(plugin.Name),
-		formatStringPtr(plugin.GroupType),
-		formatBoolPtr(plugin.Enabled),
-		formatStringPtr(plugin.PluginType),
+		formatOptional(plugin.Type),
+		formatOptional(plugin.Name),
+		formatOptional(plugin.GroupType),
+		formatOptional(plugin.Enabled),
+		formatOptional(plugin.PluginType),
 	}
 }

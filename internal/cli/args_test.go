@@ -1,55 +1,94 @@
-package cli //nolint:testpackage // white-box tests for args CLI helper
+package cli //nolint:testpackage // white-box tests for CLI arg helpers
 
 import (
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestParseIDArg_valid(t *testing.T) {
+func TestParseOptionalInt64Flag(t *testing.T) {
 	t.Parallel()
 
-	id, err := parseIDArg("42", "filter")
+	tests := []struct {
+		name      string
+		flagName  string
+		value     string
+		wantVal   int64
+		wantFound bool
+		wantErr   string
+	}{
+		{
+			name:      "empty value returns not found",
+			flagName:  "launch",
+			value:     "",
+			wantVal:   0,
+			wantFound: false,
+		},
+		{
+			name:      "valid positive ID",
+			flagName:  "launch",
+			value:     "101",
+			wantVal:   101,
+			wantFound: true,
+		},
+		{
+			name:      "valid negative ID",
+			flagName:  "parent",
+			value:     "-1",
+			wantVal:   -1,
+			wantFound: true,
+		},
+		{
+			name:      "max int32 is accepted",
+			flagName:  "launch",
+			value:     "2147483647",
+			wantVal:   math.MaxInt32,
+			wantFound: true,
+		},
+		{
+			name:      "min int32 is accepted",
+			flagName:  "launch",
+			value:     "-2147483648",
+			wantVal:   math.MinInt32,
+			wantFound: true,
+		},
+		{
+			name:     "non-numeric value",
+			flagName: "launch",
+			value:    "abc",
+			wantErr:  `invalid --launch value "abc": must be a numeric ID`,
+		},
+		{
+			name:     "value exceeds int32 max",
+			flagName: "launch",
+			value:    "2147483648",
+			wantErr:  `invalid --launch value "2147483648": ID must fit in a signed 32-bit integer`,
+		},
+		{
+			name:     "value below int32 min",
+			flagName: "parent",
+			value:    "-2147483649",
+			wantErr:  `invalid --parent value "-2147483649": ID must fit in a signed 32-bit integer`,
+		},
+	}
 
-	require.NoError(t, err)
-	assert.Equal(t, int64(42), id)
-}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 
-func TestParseIDArg_nonNumeric(t *testing.T) {
-	t.Parallel()
+			got, found, err := parseOptionalInt64Flag(test.flagName, test.value)
 
-	_, err := parseIDArg("abc", "filter")
+			if test.wantErr != "" {
+				require.ErrorContains(t, err, test.wantErr)
 
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid filter ID")
-	assert.Contains(t, err.Error(), `"abc"`)
-	assert.Contains(t, err.Error(), "must be a numeric ID")
-}
+				return
+			}
 
-func TestParseIDArg_emptyString(t *testing.T) {
-	t.Parallel()
-
-	_, err := parseIDArg("", "widget")
-
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid widget ID")
-}
-
-func TestParseIDArg_overflow(t *testing.T) {
-	t.Parallel()
-
-	_, err := parseIDArg("99999999999999999999", "group")
-
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid group ID")
-}
-
-func TestParseIDArg_resourceNameInError(t *testing.T) {
-	t.Parallel()
-
-	_, err := parseIDArg("xyz", "dashboard")
-
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid dashboard ID")
+			require.NoError(t, err)
+			assert.Equal(t, test.wantVal, got)
+			assert.Equal(t, test.wantFound, found)
+		})
+	}
 }

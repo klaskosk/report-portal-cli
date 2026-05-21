@@ -3,7 +3,6 @@ package cli
 import (
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -233,11 +232,12 @@ func runGroupGet(cmd *cobra.Command, args []string) error {
 }
 
 func runGroupCreate(cmd *cobra.Command, _ []string) error {
+	printer := resolvePrinter(cmd)
+
 	name := mustGetStringFlag(cmd, "name")
 	if name == "" {
 		err := errors.New("--name is required")
-		outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-		newPrinter(outputFmt).PrintError(err)
+		printer.PrintError(err)
 
 		return err
 	}
@@ -363,11 +363,9 @@ func runGroupDelete(cmd *cobra.Command, args []string) error {
 	}
 
 	msg := fmt.Sprintf("Group %d deleted", groupID)
-	successMsg := struct {
-		Message string `json:"message"`
-	}{Message: msg}
+	result, headers, rows := deleteSuccessResult(msg)
 
-	return deps.printer.Print(successMsg, operationResultHeaders(), messageRows(msg))
+	return deps.printer.Print(result, headers, rows)
 }
 
 // groupHeaders returns the table column headers for group rows.
@@ -379,8 +377,8 @@ func groupHeaders() []string {
 func groupRow(group *types.GroupInfo) ([]string, []string) {
 	var users, projects string
 	if group.Stats != nil {
-		users = formatInt32Ptr(group.Stats.UsersCount)
-		projects = formatInt32Ptr(group.Stats.ProjectsCount)
+		users = formatOptional(group.Stats.UsersCount)
+		projects = formatOptional(group.Stats.ProjectsCount)
 	}
 
 	var created string
@@ -389,22 +387,13 @@ func groupRow(group *types.GroupInfo) ([]string, []string) {
 	}
 
 	return groupHeaders(), []string{
-		formatInt64Ptr(group.Id),
-		formatStringPtr(group.Name),
-		formatStringPtr(group.Slug),
+		formatOptional(group.Id),
+		formatOptional(group.Name),
+		formatOptional(group.Slug),
 		users,
 		projects,
 		created,
 	}
-}
-
-// formatInt32Ptr returns the formatted int32 or an empty string if nil.
-func formatInt32Ptr(value *int32) string {
-	if value == nil {
-		return ""
-	}
-
-	return strconv.Itoa(int(*value))
 }
 
 // parseGroupID parses a group ID from CLI input, which must be numeric.
@@ -443,13 +432,4 @@ func parseGroupSort(sort []string) (string, string) {
 	}
 
 	return sortField, "ASC"
-}
-
-// successfulUpdateRows formats a SuccessfulUpdate as a single table row.
-func successfulUpdateRows(result *types.SuccessfulUpdate) [][]string {
-	if result == nil {
-		return messageRows("")
-	}
-
-	return messageRows(formatMessage(result.Message))
 }

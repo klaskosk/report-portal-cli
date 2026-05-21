@@ -325,7 +325,7 @@ func TestApplyFilterRequestFlagOverrides_nameAndDescription(t *testing.T) {
 				applyFilterRequestFlagOverrides(cmd, &request)
 
 				assert.Equal(t, testCase.wantName, request.Name)
-				assert.Equal(t, testCase.wantDesc, formatStringPtr(request.Description))
+				assert.Equal(t, testCase.wantDesc, formatOptional(request.Description))
 			})
 		}
 	}

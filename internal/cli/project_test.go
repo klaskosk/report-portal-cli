@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/klaskosk/report-portal-cli/pkg/client"
-	"github.com/klaskosk/report-portal-cli/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -118,67 +117,6 @@ func TestNewProjectDeleteCmd_requiresExactlyOneArg(t *testing.T) {
 	require.Error(t, cmd.Args(cmd, []string{}), "should reject zero args")
 	require.NoError(t, cmd.Args(cmd, []string{"my_project"}), "should accept exactly one arg")
 	require.Error(t, cmd.Args(cmd, []string{"a", "b"}), "should reject two args")
-}
-
-func TestFormatDeleteBulkResult_successfullyDeleted(t *testing.T) {
-	t.Parallel()
-
-	ids := []int64{42}
-	result := &types.DeleteBulkRS{
-		SuccessfullyDeleted: &ids,
-	}
-
-	headers, rows := formatDeleteBulkResult(result, "Project 'foo'")
-
-	assert.Equal(t, []string{"STATUS", "MESSAGE"}, headers)
-	require.Len(t, rows, 1)
-	assert.Equal(t, "Deleted", rows[0][0])
-	assert.Equal(t, "Project 'foo' deleted successfully", rows[0][1])
-}
-
-func TestFormatDeleteBulkResult_errors(t *testing.T) {
-	t.Parallel()
-
-	errs := []types.ErrorRS{{ErrorCode: 500, Message: "internal error"}}
-	result := &types.DeleteBulkRS{
-		Errors: &errs,
-	}
-
-	headers, rows := formatDeleteBulkResult(result, "Project 'foo'")
-
-	assert.Equal(t, []string{"STATUS", "MESSAGE"}, headers)
-	require.Len(t, rows, 1)
-	assert.Equal(t, "Error", rows[0][0])
-	assert.Equal(t, "internal error", rows[0][1])
-}
-
-func TestFormatDeleteBulkResult_notFound(t *testing.T) {
-	t.Parallel()
-
-	notFound := []int64{99}
-	result := &types.DeleteBulkRS{
-		NotFound: &notFound,
-	}
-
-	headers, rows := formatDeleteBulkResult(result, "Project 'foo'")
-
-	assert.Equal(t, []string{"STATUS", "MESSAGE"}, headers)
-	require.Len(t, rows, 1)
-	assert.Equal(t, "Not Found", rows[0][0])
-	assert.Equal(t, "ID 99 not found", rows[0][1])
-}
-
-func TestFormatDeleteBulkResult_emptyResponse(t *testing.T) {
-	t.Parallel()
-
-	result := &types.DeleteBulkRS{}
-
-	headers, rows := formatDeleteBulkResult(result, "Project 'foo'")
-
-	assert.Equal(t, []string{"STATUS", "MESSAGE"}, headers)
-	require.Len(t, rows, 1)
-	assert.Equal(t, "Unknown", rows[0][0])
-	assert.Equal(t, "No status information in response", rows[0][1])
 }
 
 func TestDeleteProject_notFound(t *testing.T) {

@@ -67,9 +67,9 @@ func whoamiRows(user *types.UserResource, projectNames []string) [][]string {
 
 	return [][]string{
 		{"Login", user.UserId},
-		{"Full Name", formatStringPtr(user.FullName)},
+		{"Full Name", formatOptional(user.FullName)},
 		{"Email", user.Email},
-		{"Role", formatStringPtr(user.UserRole)},
+		{"Role", formatOptional(user.UserRole)},
 		{"Projects", projectList},
 	}
 }

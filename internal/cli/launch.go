@@ -121,7 +121,8 @@ Examples:
 	cmd.Flags().String("description", "", "updated description")
 	cmd.Flags().String("mode", "", "updated mode (DEBUG or DEFAULT)")
 	cmd.Flags().StringArray("attribute", []string{}, "attribute in key:value format (repeatable)")
-	cmd.Flags().String("from-file", "", "read the full UpdateLaunchRQ from a JSON file")
+	cmd.Flags().
+		String("from-file", "", "path to JSON file containing UpdateLaunchRQ (use - for stdin)")
 
 	return cmd
 }
@@ -290,25 +291,6 @@ func resolveUpdateLaunchMode(raw string) (types.UpdateLaunchRQMode, error) {
 	default:
 		return "", fmt.Errorf("invalid mode %q: must be DEBUG or DEFAULT", raw)
 	}
-}
-
-// buildAttributeResources converts --attribute flag values to []ItemAttributeResource.
-func buildAttributeResources(attributes []string) ([]types.ItemAttributeResource, error) {
-	resources := make([]types.ItemAttributeResource, 0, len(attributes))
-
-	for _, attr := range attributes {
-		key, value, found := parseAttribute(attr)
-		if !found {
-			return nil, fmt.Errorf("invalid attribute format %q (expected key:value)", attr)
-		}
-
-		resources = append(resources, types.ItemAttributeResource{
-			Key:   &key,
-			Value: value,
-		})
-	}
-
-	return resources, nil
 }
 
 // getSingleLaunch retrieves and prints a single launch by numeric ID or UUID.

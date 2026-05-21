@@ -655,10 +655,10 @@ func userRow(user *types.UserResource) ([]string, []string) {
 		strconv.FormatInt(user.Id, 10),
 		user.UserId,
 		user.Email,
-		formatStringPtr(user.FullName),
-		formatStringPtr(user.UserRole),
-		formatBoolPtr(user.Active),
-		formatStringPtr(user.AccountType),
+		formatOptional(user.FullName),
+		formatOptional(user.UserRole),
+		formatOptional(user.Active),
+		formatOptional(user.AccountType),
 	}
 }
 
@@ -679,43 +679,15 @@ func createUserHeaders() []string {
 // createUserRow formats a create-user response as a table row, returning both headers and column values.
 func createUserRow(result *types.CreateUserRS) ([]string, []string) {
 	return createUserHeaders(), []string{
-		formatInt64Ptr(result.Id),
-		formatStringPtr(result.Login),
-		formatStringPtr(result.Email),
-		formatStringPtr(result.FullName),
-		formatStringPtr(result.AccountRole),
-		formatBoolPtr(result.Active),
-		formatStringPtr(result.AccountType),
-		formatStringPtr(result.Warning),
+		formatOptional(result.Id),
+		formatOptional(result.Login),
+		formatOptional(result.Email),
+		formatOptional(result.FullName),
+		formatOptional(result.AccountRole),
+		formatOptional(result.Active),
+		formatOptional(result.AccountType),
+		formatOptional(result.Warning),
 	}
-}
-
-// operationResultHeaders returns the table column headers for mutation results that only contain a message.
-func operationResultHeaders() []string {
-	return messageHeaders()
-}
-
-// operationResultRows formats an operation-completion response as a single table row.
-func operationResultRows(result *types.OperationCompletionRS) [][]string {
-	return messageRows(formatMessage(result.Message))
-}
-
-// mustGetStringFlag returns the string value for name, ignoring impossible Cobra access errors.
-func mustGetStringFlag(cmd *cobra.Command, name string) string {
-	value, _ := cmd.Flags().GetString(name)
-
-	return value
-}
-
-// optionalStringFlag returns a pointer to the explicit string flag value, or nil when the flag was omitted.
-func optionalStringFlag(cmd *cobra.Command, name string) *string {
-	if !cmd.Flags().Changed(name) {
-		return nil
-	}
-
-	value, _ := cmd.Flags().GetString(name)
-
-	return &value
 }
 
 // optionalBoolFlag returns a pointer to the explicit bool flag value, or nil when the flag was omitted.

@@ -245,7 +245,7 @@ func runDashboardCreate(cmd *cobra.Command, _ []string) error {
 	}
 
 	headers := []string{"ID"}
-	rows := [][]string{{formatInt64Ptr(result.Id)}}
+	rows := [][]string{{formatOptional(result.Id)}}
 
 	return deps.printer.Print(result, headers, rows)
 }
@@ -367,7 +367,7 @@ func dashboardHeaders() []string {
 
 // dashboardRow formats a DashboardResource as a table row, returning both headers and column values.
 func dashboardRow(dashboard *types.DashboardResource) ([]string, []string) {
-	description := formatStringPtr(dashboard.Description)
+	description := formatOptional(dashboard.Description)
 	if len(description) > 60 {
 		description = description[:60] + "..."
 	}
@@ -375,7 +375,7 @@ func dashboardRow(dashboard *types.DashboardResource) ([]string, []string) {
 	return dashboardHeaders(), []string{
 		strconv.FormatInt(dashboard.Id, 10),
 		dashboard.Name,
-		formatStringPtr(dashboard.Owner),
+		formatOptional(dashboard.Owner),
 		description,
 	}
 }

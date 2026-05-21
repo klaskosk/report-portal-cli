@@ -73,7 +73,10 @@ Examples:
 		RunE: withPrintedErrors(runFilterCreate),
 	}
 
-	cmd.Flags().String("from-file", "", "path to JSON file (use - for stdin)")
+	cmd.Flags().String(
+		"from-file", "",
+		"path to JSON file containing UpdateUserFilterRQ (use - for stdin; flags override file values)",
+	)
 	cmd.Flags().String("name", "", "override filter name from file")
 	cmd.Flags().String("description", "", "override filter description from file")
 
@@ -93,7 +96,10 @@ Examples:
 		RunE: withPrintedErrors(runFilterUpdate),
 	}
 
-	cmd.Flags().String("from-file", "", "path to JSON file (use - for stdin)")
+	cmd.Flags().String(
+		"from-file", "",
+		"path to JSON file containing UpdateUserFilterRQ (use - for stdin; flags override file values)",
+	)
 	cmd.Flags().String("name", "", "override filter name from file")
 	cmd.Flags().String("description", "", "override filter description from file")
 
@@ -159,7 +165,7 @@ func runFilterGet(cmd *cobra.Command, args []string) error {
 func runFilterCreate(cmd *cobra.Command, _ []string) error {
 	printer := resolvePrinter(cmd)
 
-	path, err := requireFilterFromFile(
+	path, err := requireFromFile(
 		cmd,
 		printer,
 		"--from-file is required for filter creation (filter definitions contain structured conditions and orders)",
@@ -191,7 +197,7 @@ func runFilterCreate(cmd *cobra.Command, _ []string) error {
 	}
 
 	headers := []string{"ID"}
-	rows := [][]string{{formatInt64Ptr(result.Id)}}
+	rows := [][]string{{formatOptional(result.Id)}}
 
 	return deps.printer.Print(result, headers, rows)
 }
@@ -206,7 +212,7 @@ func runFilterUpdate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	path, err := requireFilterFromFile(
+	path, err := requireFromFile(
 		cmd,
 		printer,
 		"--from-file is required for filter update (the API expects the complete filter definition)",
@@ -270,24 +276,6 @@ func runFilterDelete(cmd *cobra.Command, args []string) error {
 	}
 
 	return deps.printer.Print(result, operationResultHeaders(), operationResultRows(result))
-}
-
-// requireFilterFromFile returns the --from-file path after validating the flag was set.
-func requireFilterFromFile(
-	cmd *cobra.Command,
-	printer *Printer,
-	missingMessage string,
-) (string, error) {
-	if !cmd.Flags().Changed("from-file") {
-		err := errors.New(missingMessage)
-		printer.PrintError(err)
-
-		return "", err
-	}
-
-	path, _ := cmd.Flags().GetString("from-file")
-
-	return path, nil
 }
 
 // loadFilterMutationRequest reads the JSON file, applies CLI overrides, and validates name.
@@ -386,7 +374,7 @@ func filterHeaders() []string {
 
 // filterRow formats a user filter resource as a table row, returning both headers and column values.
 func filterRow(filterResource *types.UserFilterResource) ([]string, []string) {
-	description := formatStringPtr(filterResource.Description)
+	description := formatOptional(filterResource.Description)
 	if len(description) > 50 {
 		description = description[:50] + "..."
 	}

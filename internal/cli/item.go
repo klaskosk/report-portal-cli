@@ -3,7 +3,6 @@ package cli
 import (
 	"errors"
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
 
@@ -122,7 +121,8 @@ Examples:
 	cmd.Flags().String("description", "", "updated description")
 	cmd.Flags().String("status", "", "updated status (e.g. PASSED, FAILED, SKIPPED)")
 	cmd.Flags().StringArray("attribute", []string{}, "attribute in key:value format (repeatable)")
-	cmd.Flags().String("from-file", "", "path to JSON file containing UpdateTestItemRQ")
+	cmd.Flags().
+		String("from-file", "", "path to JSON file containing UpdateTestItemRQ (use - for stdin)")
 
 	return cmd
 }
@@ -218,7 +218,7 @@ func buildItemUpdateRequestFromFlags(cmd *cobra.Command) (types.UpdateTestItemRQ
 	}
 
 	if len(attributes) > 0 {
-		attrResources, err := buildItemAttributeResources(attributes)
+		attrResources, err := buildAttributeResources(attributes)
 		if err != nil {
 			return types.UpdateTestItemRQ{}, err
 		}
@@ -260,26 +260,6 @@ func runItemDelete(cmd *cobra.Command, args []string) error {
 	}
 
 	return deps.printer.Print(result, operationResultHeaders(), operationResultRows(result))
-}
-
-// buildItemAttributeResources converts "--attribute key:value" flag values to ItemAttributeResource slice.
-func buildItemAttributeResources(attributes []string) ([]types.ItemAttributeResource, error) {
-	resources := make([]types.ItemAttributeResource, 0, len(attributes))
-
-	for _, attr := range attributes {
-		key, value, found := parseAttribute(attr)
-		if !found {
-			return nil, fmt.Errorf("invalid attribute format %q (expected key:value)", attr)
-		}
-
-		k := key
-		resources = append(resources, types.ItemAttributeResource{
-			Key:   &k,
-			Value: value,
-		})
-	}
-
-	return resources, nil
 }
 
 // resolveItemStatus returns the normalized (uppercase) status from --status, or nil when unset.
@@ -396,13 +376,13 @@ func itemHeaders() []string {
 // itemRow formats a test item as a table row, returning both headers and column values.
 func itemRow(item *types.TestItemResource) ([]string, []string) {
 	return itemHeaders(), []string{
-		formatInt64Ptr(item.Id),
-		formatStringPtr(item.Uuid),
-		formatStringPtr(item.Name),
-		formatStringPtr(item.Type),
-		formatStringPtr(item.Status),
-		formatInt64Ptr(item.Parent),
-		formatInt64Ptr(item.LaunchId),
+		formatOptional(item.Id),
+		formatOptional(item.Uuid),
+		formatOptional(item.Name),
+		formatOptional(item.Type),
+		formatOptional(item.Status),
+		formatOptional(item.Parent),
+		formatOptional(item.LaunchId),
 	}
 }
 
@@ -471,28 +451,6 @@ func resolveItemFilterFlags(cmd *cobra.Command) (itemFilterFlags, error) {
 		hasChildren:    hasChildren,
 		hasChildrenSet: hasChildrenSet,
 	}, nil
-}
-
-// parseOptionalInt64Flag parses value as an int64 if non-empty, returning (0, false, nil) when empty.
-// Returns an error when the value is out of the signed 32-bit range required by the upstream API.
-func parseOptionalInt64Flag(name, value string) (int64, bool, error) {
-	if value == "" {
-		return 0, false, nil
-	}
-
-	parsed, err := strconv.ParseInt(value, 10, 64)
-	if err != nil {
-		return 0, false, fmt.Errorf("invalid --%s value %q: must be a numeric ID", name, value)
-	}
-
-	if parsed > math.MaxInt32 || parsed < math.MinInt32 {
-		return 0, false, fmt.Errorf(
-			"invalid --%s value %q: ID must fit in a signed 32-bit integer (max %d)",
-			name, value, int64(math.MaxInt32),
-		)
-	}
-
-	return parsed, true, nil
 }
 
 // applyItemFilterOptions converts itemFilterFlags to client options.
