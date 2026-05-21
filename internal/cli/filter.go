@@ -315,6 +315,7 @@ func loadFilterMutationRequest(
 	return request, nil
 }
 
+//nolint:dupl // structural similarity with listDashboards is inherent to the project-scoped list pattern
 func listFilters(
 	cmd *cobra.Command,
 	clientInstance *client.Client,
