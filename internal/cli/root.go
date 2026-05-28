@@ -96,6 +96,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newActivityCmd())
 	cmd.AddCommand(newBtsCmd())
 	cmd.AddCommand(newDemoDataCmd())
+	cmd.AddCommand(newSettingCmd())
 
 	return cmd
 }
