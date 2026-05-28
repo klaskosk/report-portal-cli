@@ -18,7 +18,7 @@ func TestNewItemCmd_Subcommands(t *testing.T) {
 
 	assert.Equal(
 		t,
-		[]string{"delete", "finish", "get", "list", "start", "update"},
+		[]string{"delete", "finish", "get", "issue", "list", "start", "update"},
 		commandNames(cmd),
 	)
 }

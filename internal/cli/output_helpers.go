@@ -36,6 +36,16 @@ func operationResultRows(result *types.OperationCompletionRS) [][]string {
 	return messageRows(formatOptional(result.Message))
 }
 
+// operationResultsRows formats multiple operation-completion responses as table rows.
+func operationResultsRows(results []types.OperationCompletionRS) [][]string {
+	rows := make([][]string, 0, len(results))
+	for i := range results {
+		rows = append(rows, []string{formatOptional(results[i].Message)})
+	}
+
+	return rows
+}
+
 // successfulUpdateRows formats a SuccessfulUpdate as a single table row.
 func successfulUpdateRows(result *types.SuccessfulUpdate) [][]string {
 	if result == nil {
