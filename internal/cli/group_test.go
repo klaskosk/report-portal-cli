@@ -15,7 +15,11 @@ func TestNewGroupCmd_Subcommands(t *testing.T) {
 
 	cmd := newGroupCmd()
 
-	assert.Equal(t, []string{"create", "delete", "get", "list", "update"}, commandNames(cmd))
+	assert.Equal(
+		t,
+		[]string{"create", "delete", "get", "list", "project", "update", "user"},
+		commandNames(cmd),
+	)
 }
 
 func TestGroupRow_populated(t *testing.T) {
