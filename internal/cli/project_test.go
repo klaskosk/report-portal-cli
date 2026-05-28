@@ -18,7 +18,11 @@ func TestNewProjectCmd_Subcommands(t *testing.T) {
 
 	cmd := newProjectCmd()
 
-	assert.Equal(t, []string{"create", "delete", "get", "list", "update"}, commandNames(cmd))
+	assert.Equal(
+		t,
+		[]string{"create", "delete", "export", "get", "list", "update"},
+		commandNames(cmd),
+	)
 }
 
 func TestNewProjectCreateCmd_DefaultEntryType(t *testing.T) {
