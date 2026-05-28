@@ -36,7 +36,7 @@ func TestNewDashboardWidgetAddCmd_dashboardIDRequired(t *testing.T) {
 	assert.Contains(t, err.Error(), "accepts 1 arg")
 }
 
-func TestNewDashboardWidgetAddCmd_requiredFlags(t *testing.T) {
+func TestResolveAddWidgetRequest_noInputProvided(t *testing.T) {
 	t.Parallel()
 
 	cmd := newDashboardWidgetAddCmd()
@@ -47,7 +47,7 @@ func TestNewDashboardWidgetAddCmd_requiredFlags(t *testing.T) {
 	_, err := resolveAddWidgetRequest(cmd, printer)
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "--widget-id")
+	assert.Contains(t, err.Error(), "no input provided")
 }
 
 func TestResolveAddWidgetRequest_fromFlags(t *testing.T) {
