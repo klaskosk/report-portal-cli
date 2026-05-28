@@ -24,6 +24,8 @@ func newItemCmd() *cobra.Command {
 	cmd.AddCommand(newItemGetCmd())
 	cmd.AddCommand(newItemUpdateCmd())
 	cmd.AddCommand(newItemDeleteCmd())
+	cmd.AddCommand(newItemStartCmd())
+	cmd.AddCommand(newItemFinishCmd())
 
 	return cmd
 }

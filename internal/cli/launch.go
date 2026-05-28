@@ -25,6 +25,8 @@ func newLaunchCmd() *cobra.Command {
 	cmd.AddCommand(newLaunchUpdateCmd())
 	cmd.AddCommand(newLaunchDeleteCmd())
 	cmd.AddCommand(newLaunchReportCmd())
+	cmd.AddCommand(newLaunchStartCmd())
+	cmd.AddCommand(newLaunchFinishCmd())
 
 	return cmd
 }
@@ -280,18 +282,30 @@ func buildUpdateLaunchRequestFromFlags(cmd *cobra.Command) (types.UpdateLaunchRQ
 	}, nil
 }
 
-// resolveUpdateLaunchMode validates and normalizes a mode string for launch update.
-// Accepts case-insensitive input and normalizes to uppercase. The caller must only
-// invoke this when the --mode flag was explicitly set.
-func resolveUpdateLaunchMode(raw string) (types.UpdateLaunchRQMode, error) {
+// resolveLaunchMode validates and normalizes a launch mode string (DEBUG or DEFAULT).
+// Accepts case-insensitive input and normalizes to uppercase.
+//
+//nolint:ireturn // generic helper intentionally returns type parameter T
+func resolveLaunchMode[T ~string](raw string) (T, error) {
 	normalized := strings.ToUpper(strings.TrimSpace(raw))
 
 	switch normalized {
 	case "DEBUG", "DEFAULT":
-		return types.UpdateLaunchRQMode(normalized), nil
+		return T(normalized), nil
 	default:
 		return "", fmt.Errorf("invalid mode %q: must be DEBUG or DEFAULT", raw)
 	}
+}
+
+// resolveUpdateLaunchMode validates and normalizes a mode string for launch update.
+// The caller must only invoke this when the --mode flag was explicitly set.
+func resolveUpdateLaunchMode(raw string) (types.UpdateLaunchRQMode, error) {
+	return resolveLaunchMode[types.UpdateLaunchRQMode](raw)
+}
+
+// resolveStartLaunchMode validates and normalizes a mode string for launch start.
+func resolveStartLaunchMode(raw string) (types.StartLaunchRQMode, error) {
+	return resolveLaunchMode[types.StartLaunchRQMode](raw)
 }
 
 // getSingleLaunch retrieves and prints a single launch by numeric ID or UUID.

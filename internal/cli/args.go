@@ -58,3 +58,21 @@ func buildAttributeResources(attributes []string) ([]types.ItemAttributeResource
 
 	return resources, nil
 }
+
+// buildItemAttributesRQ converts --attribute flag values to []ItemAttributesRQ.
+func buildItemAttributesRQ(attributes []string) ([]types.ItemAttributesRQ, error) {
+	resources, err := buildAttributeResources(attributes)
+	if err != nil {
+		return nil, err
+	}
+
+	attrs := make([]types.ItemAttributesRQ, len(resources))
+	for i, resource := range resources {
+		attrs[i] = types.ItemAttributesRQ{
+			Key:   resource.Key,
+			Value: resource.Value,
+		}
+	}
+
+	return attrs, nil
+}
