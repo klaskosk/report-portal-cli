@@ -13,7 +13,7 @@ func TestNewPluginCmd_Subcommands(t *testing.T) {
 
 	cmd := newPluginCmd()
 
-	assert.Equal(t, []string{"delete", "list", "update"}, commandNames(cmd))
+	assert.Equal(t, []string{"create", "delete", "exec", "list", "update"}, commandNames(cmd))
 }
 
 func TestNewPluginCmd_NoProjectFlag(t *testing.T) {
@@ -24,13 +24,21 @@ func TestNewPluginCmd_NoProjectFlag(t *testing.T) {
 	assert.Nil(
 		t,
 		cmd.PersistentFlags().Lookup("project"),
-		"plugin command must not have a --project flag",
+		"plugin command must not have a persistent --project flag",
 	)
 	assert.Nil(t, cmd.Flags().Lookup("project"), "plugin command must not have a --project flag")
 
 	for _, sub := range cmd.Commands() {
 		t.Run(sub.Name(), func(t *testing.T) {
 			t.Parallel()
+
+			if sub.Name() == "exec" {
+				flag := sub.Flags().Lookup("project")
+				require.NotNil(t, flag, "exec subcommand must have a local --project flag")
+				assert.Equal(t, "p", flag.Shorthand)
+
+				return
+			}
 
 			assert.Nil(
 				t,
@@ -145,4 +153,71 @@ func TestPluginHeaders(t *testing.T) {
 	t.Parallel()
 
 	assert.Equal(t, []string{"ID", "NAME", "GROUP", "ENABLED", "PLUGIN TYPE"}, pluginHeaders())
+}
+
+func TestNewPluginExecCmd_projectRequired(t *testing.T) {
+	t.Parallel()
+
+	cmd := attachCmdToRoot(t, newPluginExecCmd())
+	require.NoError(t, cmd.ParseFlags(nil))
+
+	err := cmd.ValidateRequiredFlags()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "project")
+}
+
+func TestLoadPluginExecBody_emptyWhenFromFileOmitted(t *testing.T) {
+	t.Parallel()
+
+	cmd := newPluginExecCmd()
+	require.NoError(t, cmd.ParseFlags([]string{"-p", "my_project"}))
+
+	body, err := loadPluginExecBody(cmd)
+	require.NoError(t, err)
+	assert.Empty(t, body)
+}
+
+func TestNewPluginCreateCmd_fileRequired(t *testing.T) {
+	t.Parallel()
+
+	cmd := newPluginCreateCmd()
+	require.NoError(t, cmd.ParseFlags([]string{}))
+
+	err := cmd.ValidateRequiredFlags()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "file")
+}
+
+func TestPluginExecTable_emptyResult(t *testing.T) {
+	t.Parallel()
+
+	headers, rows := pluginExecTable(map[string]any{})
+
+	assert.Equal(t, []string{"STATUS"}, headers)
+	assert.Equal(t, [][]string{{"Command executed successfully"}}, rows)
+}
+
+func TestPluginExecTable_withKeys(t *testing.T) {
+	t.Parallel()
+
+	headers, rows := pluginExecTable(map[string]any{"count": 3, "ok": true})
+
+	assert.Equal(t, []string{"KEY", "VALUE"}, headers)
+	assert.Equal(t, [][]string{{"count", "3"}, {"ok", "true"}}, rows)
+}
+
+func TestRunPluginCreate_missingFileError(t *testing.T) {
+	t.Setenv("RP_URL", "")
+	t.Setenv("RP_TOKEN", "")
+	t.Setenv("RP_PROJECT", "")
+	t.Setenv("RP_INSECURE_SKIP_VERIFY", "")
+
+	cmd := attachCmdToRoot(t, newPluginCreateCmd())
+	require.NoError(t, cmd.ParseFlags([]string{"--file", "/nonexistent/plugin.jar"}))
+
+	err := runPluginCreate(cmd, nil)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "reading plugin file")
+	assert.NotContains(t, err.Error(), "no Report Portal URL configured")
 }

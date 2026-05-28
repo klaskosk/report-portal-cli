@@ -14,7 +14,11 @@ func TestNewDashboardCmd_Subcommands(t *testing.T) {
 
 	cmd := newDashboardCmd()
 
-	assert.Equal(t, []string{"create", "delete", "get", "list", "update"}, commandNames(cmd))
+	assert.Equal(
+		t,
+		[]string{"config", "create", "delete", "get", "list", "preconfigured", "update"},
+		commandNames(cmd),
+	)
 }
 
 func TestNewDashboardCmd_ProjectFlagInheritedBySubcommands(t *testing.T) {
@@ -222,4 +226,116 @@ func TestRunDashboardUpdate_descriptionFlagRecognized(t *testing.T) {
 	assert.False(t, cmd.Flags().Changed("name"))
 	assert.True(t, cmd.Flags().Changed("description"))
 	assert.Equal(t, "New desc", mustGetStringFlag(cmd, "description"))
+}
+
+func TestNewDashboardConfigCmd_Subcommands(t *testing.T) {
+	t.Parallel()
+
+	cmd := newDashboardConfigCmd()
+
+	assert.Equal(t, []string{"get"}, commandNames(cmd))
+}
+
+func TestNewDashboardPreconfiguredCmd_Subcommands(t *testing.T) {
+	t.Parallel()
+
+	cmd := newDashboardPreconfiguredCmd()
+
+	assert.Equal(t, []string{"create"}, commandNames(cmd))
+}
+
+func TestNewDashboardPreconfiguredCreateCmd_fromFileRequired(t *testing.T) {
+	t.Parallel()
+
+	cmd := newDashboardPreconfiguredCreateCmd()
+	require.NoError(t, cmd.ParseFlags([]string{}))
+
+	err := cmd.ValidateRequiredFlags()
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "from-file")
+}
+
+func TestRunDashboardPreconfiguredCreate_requiresFromFileBeforeConnection(t *testing.T) {
+	t.Setenv("RP_URL", "")
+	t.Setenv("RP_TOKEN", "")
+	t.Setenv("RP_PROJECT", "")
+	t.Setenv("RP_INSECURE_SKIP_VERIFY", "")
+
+	cmd := attachCmdToRoot(t, newDashboardPreconfiguredCreateCmd())
+
+	err := runDashboardPreconfiguredCreate(cmd, nil)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "--from-file is required")
+	assert.NotContains(t, err.Error(), "no Report Portal URL configured")
+}
+
+func TestDashboardConfigRow_populated(t *testing.T) {
+	t.Parallel()
+
+	widgetName := "Launch statistics"
+	widgetType := "launchStatistics"
+	posX := int32(0)
+	posY := int32(1)
+	width := int32(6)
+	height := int32(4)
+
+	widget := &types.WidgetConfigResource{
+		WidgetObject: types.WidgetObjectModel{
+			WidgetId:   5,
+			WidgetName: &widgetName,
+			WidgetType: &widgetType,
+			WidgetPosition: &types.Position{
+				PositionX: &posX,
+				PositionY: &posY,
+			},
+			WidgetSize: &types.Size{
+				Width:  &width,
+				Height: &height,
+			},
+		},
+		WidgetResource: types.WidgetResource{
+			Id:   5,
+			Name: "Fallback name",
+		},
+	}
+
+	headers := dashboardConfigHeaders()
+	row := dashboardConfigRow(widget)
+
+	assert.Equal(t, dashboardConfigHeaders(), headers)
+	assert.Equal(t, []string{"5", "Launch statistics", "launchStatistics", "0,1", "6x4"}, row)
+}
+
+func TestDashboardConfigRow_usesResourceNameWhenWidgetNameMissing(t *testing.T) {
+	t.Parallel()
+
+	widget := &types.WidgetConfigResource{
+		WidgetObject: types.WidgetObjectModel{
+			WidgetId: 7,
+		},
+		WidgetResource: types.WidgetResource{
+			Id:   7,
+			Name: "From resource",
+		},
+	}
+
+	row := dashboardConfigRow(widget)
+
+	assert.Equal(t, "From resource", row[1])
+}
+
+func TestApplyDashboardPreconfiguredFlagOverrides(t *testing.T) {
+	t.Parallel()
+
+	cmd := newDashboardPreconfiguredCreateCmd()
+	require.NoError(t, cmd.ParseFlags([]string{"--name", "Override", "--description", "desc"}))
+
+	request := types.DashboardPreconfiguredRq{Name: "from-file"}
+	applyDashboardPreconfiguredFlagOverrides(cmd, &request)
+
+	assert.Equal(t, "Override", request.Name)
+	require.NotNil(t, request.Description)
+	assert.Equal(t, "desc", *request.Description)
 }
