@@ -24,6 +24,7 @@ func newLaunchCmd() *cobra.Command {
 	cmd.AddCommand(newLaunchGetCmd())
 	cmd.AddCommand(newLaunchUpdateCmd())
 	cmd.AddCommand(newLaunchDeleteCmd())
+	cmd.AddCommand(newLaunchReportCmd())
 
 	return cmd
 }

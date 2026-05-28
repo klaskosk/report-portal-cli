@@ -1,7 +1,12 @@
 package cli
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
 
 	"github.com/klaskosk/report-portal-cli/pkg/types"
 	"github.com/spf13/cobra"
@@ -18,6 +23,54 @@ func newPluginCmd() *cobra.Command {
 	cmd.AddCommand(newPluginListCmd())
 	cmd.AddCommand(newPluginUpdateCmd())
 	cmd.AddCommand(newPluginDeleteCmd())
+	cmd.AddCommand(newPluginExecCmd())
+	cmd.AddCommand(newPluginCreateCmd())
+
+	return cmd
+}
+
+// newPluginExecCmd builds the "plugin exec" subcommand.
+func newPluginExecCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "exec <plugin-name> <command>",
+		Short: "Execute a plugin command in a project",
+		Long: `Execute a named command on a plugin within a project context.
+
+If --from-file is omitted, an empty JSON object ({}) is sent as the request body.
+
+Examples:
+  rp plugin exec my-plugin run -p my_project
+  rp plugin exec my-plugin run -p my_project --from-file body.json
+  rp plugin exec my-plugin run -p my_project -o json`,
+		Args: cobra.ExactArgs(2),
+		RunE: withPrintedErrors(runPluginExec),
+	}
+
+	cmd.Flags().StringP("project", "p", "", "project name (required)")
+	cmd.Flags().String(
+		"from-file", "",
+		"path to JSON file containing the command request body (use - for stdin)",
+	)
+	_ = cmd.MarkFlagRequired("project")
+
+	return cmd
+}
+
+// newPluginCreateCmd builds the "plugin create" subcommand.
+func newPluginCreateCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "create",
+		Short: "Upload and install a plugin archive",
+		Long: `Upload a plugin archive file to install a new plugin.
+
+Examples:
+  rp plugin create --file my-plugin.jar`,
+		Args: cobra.NoArgs,
+		RunE: withPrintedErrors(runPluginCreate),
+	}
+
+	cmd.Flags().String("file", "", "path to the plugin archive file (required)")
+	_ = cmd.MarkFlagRequired("file")
 
 	return cmd
 }
@@ -156,6 +209,132 @@ func runPluginDelete(cmd *cobra.Command, args []string) error {
 	}
 
 	return deps.printer.Print(result, operationResultHeaders(), operationResultRows(result))
+}
+
+func runPluginExec(cmd *cobra.Command, args []string) error {
+	pluginName := args[0]
+	commandName := args[1]
+
+	body, err := loadPluginExecBody(cmd)
+	if err != nil {
+		return err
+	}
+
+	deps, err := resolveCmd(cmd)
+	if err != nil {
+		return err
+	}
+
+	project := mustGetStringFlag(cmd, "project")
+	if project == "" {
+		projectErr := errors.New("--project is required for plugin exec")
+		deps.printer.PrintError(projectErr)
+
+		return projectErr
+	}
+
+	deps.logger.Debug(
+		"executing plugin command",
+		"project", project,
+		"plugin", pluginName,
+		"command", commandName,
+	)
+
+	result, err := deps.client.Plugins().ExecuteCommand(
+		cmd.Context(), project, pluginName, commandName, body,
+	)
+	if err != nil {
+		deps.printer.PrintError(err)
+
+		return fmt.Errorf(
+			"executing plugin command %s/%s in project %s: %w",
+			pluginName, commandName, project, err,
+		)
+	}
+
+	headers, rows := pluginExecTable(result)
+
+	return deps.printer.Print(result, headers, rows)
+}
+
+// pluginExecTable formats a plugin command response for table output.
+// An empty response shows a single success status row; otherwise keys are listed.
+func pluginExecTable(result map[string]any) ([]string, [][]string) {
+	if len(result) == 0 {
+		return []string{"STATUS"}, [][]string{{"Command executed successfully"}}
+	}
+
+	keys := make([]string, 0, len(result))
+	for key := range result {
+		keys = append(keys, key)
+	}
+
+	sort.Strings(keys)
+
+	rows := make([][]string, 0, len(keys))
+	for _, key := range keys {
+		rows = append(rows, []string{key, fmt.Sprintf("%v", result[key])})
+	}
+
+	return []string{"KEY", "VALUE"}, rows
+}
+
+func loadPluginExecBody(cmd *cobra.Command) (map[string]any, error) {
+	if !cmd.Flags().Changed("from-file") {
+		return map[string]any{}, nil
+	}
+
+	path, _ := cmd.Flags().GetString("from-file")
+
+	body, err := readRequestFromFile[map[string]any](path)
+	if err != nil {
+		printer := resolvePrinter(cmd)
+		printer.PrintError(err)
+
+		return nil, wrapFileError(err, "plugin command body", "plugin command JSON")
+	}
+
+	if body == nil {
+		return map[string]any{}, nil
+	}
+
+	return body, nil
+}
+
+func runPluginCreate(cmd *cobra.Command, _ []string) error {
+	filePath := mustGetStringFlag(cmd, "file")
+
+	//nolint:gosec // path is user-provided --file argument
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		readErr := fmt.Errorf("reading plugin file %s: %w", filePath, err)
+		resolvePrinter(cmd).PrintError(readErr)
+
+		return readErr
+	}
+
+	deps, err := resolveCmd(cmd)
+	if err != nil {
+		return err
+	}
+
+	filename := filepath.Base(filePath)
+
+	deps.logger.Debug("uploading plugin", "file", filename)
+
+	result, err := deps.client.Plugins().Upload(
+		cmd.Context(), filename, bytes.NewReader(data),
+	)
+	if err != nil {
+		deps.printer.PrintError(err)
+
+		return fmt.Errorf("uploading plugin %s: %w", filename, err)
+	}
+
+	headers := []string{"ID"}
+	rows := [][]string{{formatOptional(result.Id)}}
+
+	return deps.printer.Print(result, headers, rows)
 }
 
 // pluginHeaders returns uppercase table headers for plugin rows.

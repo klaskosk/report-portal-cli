@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/klaskosk/report-portal-cli/pkg/client"
 	"github.com/klaskosk/report-portal-cli/pkg/types"
@@ -23,6 +24,72 @@ func newDashboardCmd() *cobra.Command {
 	cmd.AddCommand(newDashboardCreateCmd())
 	cmd.AddCommand(newDashboardUpdateCmd())
 	cmd.AddCommand(newDashboardDeleteCmd())
+	cmd.AddCommand(newDashboardConfigCmd())
+	cmd.AddCommand(newDashboardPreconfiguredCmd())
+
+	return cmd
+}
+
+// newDashboardConfigCmd builds the "dashboard config" grouping command.
+func newDashboardConfigCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "config",
+		Short: "Access dashboard widget configuration",
+	}
+	cmd.AddCommand(newDashboardConfigGetCmd())
+
+	return cmd
+}
+
+// newDashboardConfigGetCmd builds the "dashboard config get <id>" subcommand.
+func newDashboardConfigGetCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "get <id>",
+		Short: "Get dashboard widget configuration by numeric ID",
+		Long: `Get the widget layout configuration for a dashboard.
+
+The table view lists one row per widget. Use -o json for the full DashboardConfigResource.
+
+Examples:
+  rp dashboard config get 42                 Get widget configuration
+  rp dashboard config get 42 -o json         Get configuration as JSON`,
+		Args: cobra.ExactArgs(1),
+		RunE: withPrintedErrors(runDashboardConfigGet),
+	}
+}
+
+// newDashboardPreconfiguredCmd builds the "dashboard preconfigured" grouping command.
+func newDashboardPreconfiguredCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "preconfigured",
+		Short: "Create dashboards from preconfigured templates",
+	}
+	cmd.AddCommand(newDashboardPreconfiguredCreateCmd())
+
+	return cmd
+}
+
+// newDashboardPreconfiguredCreateCmd builds the "dashboard preconfigured create" subcommand.
+func newDashboardPreconfiguredCreateCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "create",
+		Short: "Create a dashboard from a preconfigured template file",
+		Long: `Create a dashboard from a JSON file describing a preconfigured dashboard.
+
+Examples:
+  rp dashboard preconfigured create --from-file dash.json
+  rp dashboard preconfigured create --from-file dash.json --name "My Dashboard"`,
+		Args: cobra.NoArgs,
+		RunE: withPrintedErrors(runDashboardPreconfiguredCreate),
+	}
+
+	cmd.Flags().String(
+		"from-file", "",
+		"path to JSON file containing DashboardPreconfiguredRq (use - for stdin)",
+	)
+	cmd.Flags().String("name", "", "override dashboard name from file")
+	cmd.Flags().String("description", "", "override dashboard description from file")
+	_ = cmd.MarkFlagRequired("from-file")
 
 	return cmd
 }
@@ -383,4 +450,184 @@ func dashboardRow(dashboard *types.DashboardResource) ([]string, []string) {
 // parseDashboardID parses a dashboard ID from CLI input, which must be numeric.
 func parseDashboardID(raw string) (int64, error) {
 	return parseIDArg(raw, "dashboard")
+}
+
+func runDashboardConfigGet(cmd *cobra.Command, args []string) error {
+	printer := resolvePrinter(cmd)
+
+	dashboardID, err := parseDashboardID(args[0])
+	if err != nil {
+		printer.PrintError(err)
+
+		return err
+	}
+
+	deps, err := resolveCmd(cmd)
+	if err != nil {
+		return err
+	}
+
+	project, err := deps.resolveProject(cmd)
+	if err != nil {
+		return err
+	}
+
+	deps.logger.Debug("getting dashboard config", "project", project, "id", dashboardID)
+
+	config, err := deps.client.Project(project).Dashboards().GetConfig(cmd.Context(), dashboardID)
+	if err != nil {
+		deps.printer.PrintError(err)
+
+		return fmt.Errorf("getting dashboard config %d: %w", dashboardID, err)
+	}
+
+	headers := dashboardConfigHeaders()
+	rows := dashboardConfigRows(config)
+
+	return deps.printer.Print(config, headers, rows)
+}
+
+func runDashboardPreconfiguredCreate(cmd *cobra.Command, _ []string) error {
+	printer := resolvePrinter(cmd)
+
+	path, err := requireFromFile(
+		cmd,
+		printer,
+		"--from-file is required for preconfigured dashboard creation",
+	)
+	if err != nil {
+		return err
+	}
+
+	request, err := loadDashboardPreconfiguredRequest(cmd, printer, path)
+	if err != nil {
+		return err
+	}
+
+	deps, err := resolveCmd(cmd)
+	if err != nil {
+		return err
+	}
+
+	project, err := deps.resolveProject(cmd)
+	if err != nil {
+		return err
+	}
+
+	deps.logger.Debug("creating preconfigured dashboard", "project", project, "name", request.Name)
+
+	result, err := deps.client.Project(project).
+		Dashboards().
+		CreatePreconfigured(cmd.Context(), request)
+	if err != nil {
+		deps.printer.PrintError(err)
+
+		return fmt.Errorf("creating preconfigured dashboard in project %s: %w", project, err)
+	}
+
+	headers := []string{"ID"}
+	rows := [][]string{{formatOptional(result.Id)}}
+
+	return deps.printer.Print(result, headers, rows)
+}
+
+func loadDashboardPreconfiguredRequest(
+	cmd *cobra.Command,
+	printer *Printer,
+	path string,
+) (types.DashboardPreconfiguredRq, error) {
+	request, err := readRequestFromFile[types.DashboardPreconfiguredRq](path)
+	if err != nil {
+		printer.PrintError(err)
+
+		return types.DashboardPreconfiguredRq{}, wrapFileError(
+			err,
+			"preconfigured dashboard definition",
+			"preconfigured dashboard JSON",
+		)
+	}
+
+	applyDashboardPreconfiguredFlagOverrides(cmd, &request)
+
+	if request.Name == "" {
+		nameErr := errors.New(
+			"dashboard name is required (provide via --from-file or --name flag)",
+		)
+		printer.PrintError(nameErr)
+
+		return types.DashboardPreconfiguredRq{}, nameErr
+	}
+
+	return request, nil
+}
+
+func applyDashboardPreconfiguredFlagOverrides(
+	cmd *cobra.Command,
+	request *types.DashboardPreconfiguredRq,
+) {
+	if name := optionalStringFlag(cmd, "name"); name != nil {
+		request.Name = *name
+	}
+
+	if description := optionalStringFlag(cmd, "description"); description != nil {
+		request.Description = description
+	}
+}
+
+func dashboardConfigHeaders() []string {
+	return []string{"WIDGET ID", "WIDGET NAME", "WIDGET TYPE", "POSITION", "SIZE"}
+}
+
+func dashboardConfigRows(config *types.DashboardConfigResource) [][]string {
+	if config.Widgets == nil || len(*config.Widgets) == 0 {
+		return nil
+	}
+
+	rows := make([][]string, 0, len(*config.Widgets))
+
+	for i := range *config.Widgets {
+		widget := &(*config.Widgets)[i]
+		rows = append(rows, dashboardConfigRow(widget))
+	}
+
+	return rows
+}
+
+func dashboardConfigRow(widget *types.WidgetConfigResource) []string {
+	widgetName := formatOptional(widget.WidgetObject.WidgetName)
+	if widgetName == "" {
+		widgetName = widget.WidgetResource.Name
+	}
+
+	return []string{
+		strconv.FormatInt(widget.WidgetObject.WidgetId, 10),
+		widgetName,
+		formatOptional(widget.WidgetObject.WidgetType),
+		formatWidgetPosition(widget.WidgetObject.WidgetPosition),
+		formatWidgetSize(widget.WidgetObject.WidgetSize),
+	}
+}
+
+func formatWidgetPosition(position *types.Position) string {
+	if position == nil {
+		return ""
+	}
+
+	return strings.TrimSpace(fmt.Sprintf(
+		"%s,%s",
+		formatOptional(position.PositionX),
+		formatOptional(position.PositionY),
+	))
+}
+
+func formatWidgetSize(size *types.Size) string {
+	if size == nil {
+		return ""
+	}
+
+	return strings.TrimSpace(fmt.Sprintf(
+		"%sx%s",
+		formatOptional(size.Width),
+		formatOptional(size.Height),
+	))
 }
