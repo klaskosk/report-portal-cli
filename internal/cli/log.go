@@ -161,7 +161,7 @@ Examples:
 		RunE: withPrintedErrors(runLogCreate),
 	}
 
-	cmd.Flags().String("from-file", "", "path to JSON file containing log entry (use - for stdin)")
+	cmd.Flags().String("from-file", "", "path to JSON file containing SaveLogRQ (use - for stdin)")
 	cmd.Flags().Bool("async", false, "use the asynchronous API variant")
 	cmd.Flags().
 		Bool("batch", false, "interpret file as an array of batch log entries (attachments not supported)")
@@ -278,7 +278,7 @@ func runLogCreateSingle(cmd *cobra.Command, printer *Printer, path string, async
 	}
 
 	headers := []string{"ID"}
-	rows := [][]string{{formatStringPtr(result.Id)}}
+	rows := [][]string{{formatOptional(result.Id)}}
 
 	return deps.printer.Print(result, headers, rows)
 }
@@ -474,7 +474,7 @@ func logHeaders() []string {
 // logRow formats a log entry as a table row, returning both headers and column values. The message is truncated to 80
 // characters for readability.
 func logRow(logEntry *types.LogResource) ([]string, []string) {
-	message := formatStringPtr(logEntry.Message)
+	message := formatOptional(logEntry.Message)
 	if len(message) > 80 {
 		message = message[:80] + "..."
 	}
@@ -492,8 +492,8 @@ func logRow(logEntry *types.LogResource) ([]string, []string) {
 	return logHeaders(), []string{
 		strconv.FormatInt(logEntry.Id, 10),
 		level,
-		formatInt64Ptr(logEntry.ItemId),
-		formatInt64Ptr(logEntry.LaunchId),
+		formatOptional(logEntry.ItemId),
+		formatOptional(logEntry.LaunchId),
 		message,
 		hasAttachment,
 	}
@@ -536,8 +536,8 @@ func batchLogRows(result *types.BatchSaveOperatingRS) [][]string {
 	rows := make([][]string, 0, len(*result.Responses))
 	for _, r := range *result.Responses {
 		rows = append(rows, []string{
-			formatStringPtr(r.Id),
-			formatStringPtr(r.Message),
+			formatOptional(r.Id),
+			formatOptional(r.Message),
 		})
 	}
 

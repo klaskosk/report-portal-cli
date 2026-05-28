@@ -370,7 +370,7 @@ func runIntegrationCreate(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	path, err := requireIntegrationFromFile(
+	path, err := requireFromFile(
 		cmd,
 		printer,
 		"--from-file is required for integration creation (integration parameters are specified in a JSON file)",
@@ -408,7 +408,7 @@ func runIntegrationCreate(cmd *cobra.Command, _ []string) error {
 	}
 
 	headers := []string{"ID"}
-	rows := [][]string{{formatInt64Ptr(result.Id)}}
+	rows := [][]string{{formatOptional(result.Id)}}
 
 	return deps.printer.Print(result, headers, rows)
 }
@@ -423,7 +423,7 @@ func runIntegrationUpdate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	path, err := requireIntegrationFromFile(
+	path, err := requireFromFile(
 		cmd,
 		printer,
 		"--from-file is required for integration update",
@@ -497,24 +497,6 @@ func runIntegrationDelete(cmd *cobra.Command, args []string) error {
 	return deps.printer.Print(result, operationResultHeaders(), operationResultRows(result))
 }
 
-// requireIntegrationFromFile returns the --from-file path after validating the flag was set.
-func requireIntegrationFromFile(
-	cmd *cobra.Command,
-	printer *Printer,
-	missingMessage string,
-) (string, error) {
-	if !cmd.Flags().Changed("from-file") {
-		err := errors.New(missingMessage)
-		printer.PrintError(err)
-
-		return "", err
-	}
-
-	path, _ := cmd.Flags().GetString("from-file")
-
-	return path, nil
-}
-
 // readIntegrationRequestFromFile reads JSON from path (or stdin when path is "-") into an IntegrationRQ.
 func readIntegrationRequestFromFile(path string) (types.IntegrationRQ, error) {
 	result, err := readRequestFromFile[types.IntegrationRQ](path)
@@ -534,15 +516,15 @@ func integrationHeaders() []string {
 func integrationRow(resource *types.IntegrationResource) ([]string, []string) {
 	plugin := ""
 	if resource.IntegrationType != nil {
-		plugin = formatStringPtr(resource.IntegrationType.Name)
+		plugin = formatOptional(resource.IntegrationType.Name)
 	}
 
 	return integrationHeaders(), []string{
-		formatInt64Ptr(resource.Id),
-		formatStringPtr(resource.Name),
+		formatOptional(resource.Id),
+		formatOptional(resource.Name),
 		plugin,
-		formatBoolPtr(resource.Enabled),
-		formatStringPtr(resource.Creator),
+		formatOptional(resource.Enabled),
+		formatOptional(resource.Creator),
 	}
 }
 

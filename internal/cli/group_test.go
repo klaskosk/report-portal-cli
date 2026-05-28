@@ -216,30 +216,6 @@ func TestGroupPaginationOffset(t *testing.T) {
 	}
 }
 
-func TestFormatInt32Ptr(t *testing.T) {
-	t.Parallel()
-
-	t.Run("nil returns empty string", func(t *testing.T) {
-		t.Parallel()
-
-		assert.Empty(t, formatInt32Ptr(nil))
-	})
-
-	t.Run("non-nil returns formatted integer", func(t *testing.T) {
-		t.Parallel()
-
-		v := int32(42)
-		assert.Equal(t, "42", formatInt32Ptr(&v))
-	})
-
-	t.Run("zero value", func(t *testing.T) {
-		t.Parallel()
-
-		v := int32(0)
-		assert.Equal(t, "0", formatInt32Ptr(&v))
-	})
-}
-
 func TestGroupCreateCmd_missingName(t *testing.T) {
 	t.Parallel()
 

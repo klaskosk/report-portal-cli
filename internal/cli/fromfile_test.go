@@ -1,10 +1,12 @@
 package cli //nolint:testpackage // white-box tests for fromfile CLI helper
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -68,4 +70,37 @@ func TestReadRequestFromFile_emptyFile(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "parsing JSON from")
+}
+
+func TestRequireFromFile_missingFlag(t *testing.T) {
+	t.Parallel()
+
+	cmd := &cobra.Command{}
+	cmd.Flags().String("from-file", "", "")
+
+	var stderr bytes.Buffer
+
+	printer := newPrinterWithErrOut("json", &stderr)
+
+	path, err := requireFromFile(cmd, printer, "--from-file is required for update")
+
+	require.Error(t, err)
+	assert.Empty(t, path)
+	assert.Contains(t, err.Error(), "--from-file is required for update")
+	assert.Contains(t, stderr.String(), "--from-file is required for update")
+}
+
+func TestRequireFromFile_returnsPath(t *testing.T) {
+	t.Parallel()
+
+	cmd := &cobra.Command{}
+	cmd.Flags().String("from-file", "", "")
+	require.NoError(t, cmd.Flags().Set("from-file", "/tmp/payload.json"))
+
+	printer := newPrinter("json")
+
+	path, err := requireFromFile(cmd, printer, "--from-file is required")
+
+	require.NoError(t, err)
+	assert.Equal(t, "/tmp/payload.json", path)
 }

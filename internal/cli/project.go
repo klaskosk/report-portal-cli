@@ -269,7 +269,7 @@ func runProjectCreate(cmd *cobra.Command, _ []string) error {
 	}
 
 	headers := []string{"ID"}
-	rows := [][]string{{formatInt64Ptr(result.Id)}}
+	rows := [][]string{{formatOptional(result.Id)}}
 
 	return deps.printer.Print(result, headers, rows)
 }
@@ -367,28 +367,4 @@ func readProjectUpdateFromFile(path string) (types.UpdateProjectRQ, error) {
 	}
 
 	return result, nil
-}
-
-// formatDeleteBulkResult formats a DeleteBulkRS response as table headers and rows.
-func formatDeleteBulkResult(
-	result *types.DeleteBulkRS,
-	resourceName string,
-) ([]string, [][]string) {
-	headers := []string{"STATUS", "MESSAGE"}
-
-	if result.SuccessfullyDeleted != nil && len(*result.SuccessfullyDeleted) > 0 {
-		return headers, [][]string{{"Deleted", resourceName + " deleted successfully"}}
-	}
-
-	if result.Errors != nil && len(*result.Errors) > 0 {
-		return headers, [][]string{{"Error", (*result.Errors)[0].Message}}
-	}
-
-	if result.NotFound != nil && len(*result.NotFound) > 0 {
-		return headers, [][]string{
-			{"Not Found", fmt.Sprintf("ID %d not found", (*result.NotFound)[0])},
-		}
-	}
-
-	return headers, [][]string{{"Unknown", "No status information in response"}}
 }

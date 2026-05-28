@@ -64,7 +64,7 @@ Examples:
 	cmd.Flags().String(
 		"from-file",
 		"",
-		"path to JSON file containing a full LogTypeRequest (use - for stdin; overrides flags)",
+		"path to JSON file containing LogTypeRequest (use - for stdin)",
 	)
 
 	return cmd
@@ -86,7 +86,7 @@ Examples:
 	}
 
 	cmd.Flags().
-		String("from-file", "", "path to JSON file containing a full LogTypeRequest (use - for stdin)")
+		String("from-file", "", "path to JSON file containing LogTypeRequest (use - for stdin)")
 
 	return cmd
 }
@@ -178,7 +178,11 @@ func runLogTypeUpdate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	path, err := requireLogTypeFromFile(cmd, printer)
+	path, err := requireFromFile(
+		cmd,
+		printer,
+		"--from-file is required for log type update (the API expects the complete log type definition)",
+	)
 	if err != nil {
 		return err
 	}
@@ -207,7 +211,7 @@ func runLogTypeUpdate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("updating log type %d in project %s: %w", logTypeID, project, err)
 	}
 
-	return deps.printer.Print(result, messageHeaders(), messageRows(formatMessage(result.Message)))
+	return deps.printer.Print(result, messageHeaders(), messageRows(formatOptional(result.Message)))
 }
 
 func runLogTypeDelete(cmd *cobra.Command, args []string) error {
@@ -241,11 +245,9 @@ func runLogTypeDelete(cmd *cobra.Command, args []string) error {
 
 	const successMsg = "Log type deleted successfully"
 
-	successResult := struct {
-		Message string `json:"message"`
-	}{Message: successMsg}
+	result, headers, rows := deleteSuccessResult(successMsg)
 
-	return deps.printer.Print(successResult, messageHeaders(), messageRows(successMsg))
+	return deps.printer.Print(result, headers, rows)
 }
 
 // resolveLogTypeCreateRequest determines the LogTypeRequest from either --from-file or flags.
@@ -327,22 +329,6 @@ func validateLogTypeRequest(request types.LogTypeRequest) error {
 	return nil
 }
 
-// requireLogTypeFromFile validates that --from-file was set and returns the path.
-func requireLogTypeFromFile(cmd *cobra.Command, printer *Printer) (string, error) {
-	if !cmd.Flags().Changed("from-file") {
-		err := errors.New(
-			"--from-file is required for log type update (the API expects the complete log type definition)",
-		)
-		printer.PrintError(err)
-
-		return "", err
-	}
-
-	path, _ := cmd.Flags().GetString("from-file")
-
-	return path, nil
-}
-
 // readLogTypeRequestFromFile reads JSON from path (or stdin when path is "-") into a LogTypeRequest.
 func readLogTypeRequestFromFile(path string) (types.LogTypeRequest, error) {
 	result, err := readRequestFromFile[types.LogTypeRequest](path)
@@ -361,11 +347,11 @@ func logTypeHeaders() []string {
 // logTypeRow formats a LogTypeResponse as a table row, returning both headers and column values.
 func logTypeRow(logType *types.LogTypeResponse) ([]string, []string) {
 	return logTypeHeaders(), []string{
-		formatInt64Ptr(logType.Id),
+		formatOptional(logType.Id),
 		logType.Name,
 		strconv.FormatInt(int64(logType.Level), 10),
 		strconv.FormatBool(logType.IsFilterable),
-		formatBoolPtr(logType.IsSystem),
+		formatOptional(logType.IsSystem),
 	}
 }
 
