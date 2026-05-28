@@ -844,8 +844,14 @@ func TestUsersScope_CreateInvitation_Success(t *testing.T) {
 			}
 
 			assert.Equal(t, "invite@example.com", req.Email)
-			assert.Equal(t, "my_project", req.DefaultProject)
-			assert.Equal(t, "MEMBER", req.Role)
+
+			if assert.NotNil(t, req.DefaultProject) {
+				assert.Equal(t, "my_project", *req.DefaultProject)
+			}
+
+			if assert.NotNil(t, req.Role) {
+				assert.Equal(t, "MEMBER", *req.Role)
+			}
 
 			responseWriter.Header().Set("Content-Type", "application/json")
 			responseWriter.WriteHeader(http.StatusCreated)
@@ -858,15 +864,44 @@ func TestUsersScope_CreateInvitation_Success(t *testing.T) {
 		},
 	))
 
+	defaultProject := "my_project"
+	role := "MEMBER"
 	result, err := testClient.Users().CreateInvitation(t.Context(), types.CreateUserRQ{
 		Email:          "invite@example.com",
-		DefaultProject: "my_project",
-		Role:           "MEMBER",
+		DefaultProject: &defaultProject,
+		Role:           &role,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.Bid)
 	assert.Equal(t, "abc-123-def", *result.Bid)
+}
+
+func TestUsersScope_CreateInvitation_emailOnly(t *testing.T) {
+	t.Parallel()
+
+	testClient := newTestClient(t, http.HandlerFunc(
+		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
+			body, err := io.ReadAll(httpReq.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
+
+			assert.JSONEq(t, `{"email":"invite@example.com"}`, string(body))
+
+			responseWriter.Header().Set("Content-Type", "application/json")
+			responseWriter.WriteHeader(http.StatusCreated)
+			_, _ = responseWriter.Write(
+				[]byte(`{"bid":"abc-123-def","message":"Invitation sent."}`),
+			)
+		},
+	))
+
+	result, err := testClient.Users().CreateInvitation(t.Context(), types.CreateUserRQ{
+		Email: "invite@example.com",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
 }
 
 func TestUsersScope_CreateInvitation_Forbidden(t *testing.T) {
@@ -875,10 +910,12 @@ func TestUsersScope_CreateInvitation_Forbidden(t *testing.T) {
 	c := newTestClient(t, jsonResponse(http.StatusForbidden,
 		`{"errorCode": 4031, "message": "forbidden"}`))
 
+	defaultProject := "my_project"
+	role := "MEMBER"
 	_, err := c.Users().CreateInvitation(t.Context(), types.CreateUserRQ{
 		Email:          "invite@example.com",
-		DefaultProject: "my_project",
-		Role:           "MEMBER",
+		DefaultProject: &defaultProject,
+		Role:           &role,
 	})
 	require.Error(t, err)
 	assert.True(t, client.IsForbidden(err))

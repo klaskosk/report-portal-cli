@@ -613,9 +613,7 @@ components:
           minLength: 1
           type: string
       required:
-        - defaultProject
         - email
-        - role
       type: object
     CreateUserRQConfirm:
       properties:
