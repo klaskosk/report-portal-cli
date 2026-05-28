@@ -49,7 +49,11 @@ func TestNewUserCmd_Subcommands(t *testing.T) {
 
 	cmd := newUserCmd()
 
-	assert.Equal(t, []string{"create", "delete", "get", "list", "update"}, commandNames(cmd))
+	assert.Equal(
+		t,
+		[]string{"create", "delete", "export", "get", "list", "update"},
+		commandNames(cmd),
+	)
 }
 
 func TestNewUserListCmd_DefaultListOptions(t *testing.T) {

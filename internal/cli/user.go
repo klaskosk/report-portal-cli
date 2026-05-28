@@ -72,6 +72,7 @@ func newUserCmd() *cobra.Command {
 	cmd.AddCommand(newUserCreateCmd())
 	cmd.AddCommand(newUserUpdateCmd())
 	cmd.AddCommand(newUserDeleteCmd())
+	cmd.AddCommand(newUserExportCmd())
 
 	return cmd
 }
@@ -395,31 +396,46 @@ func resolveUserListOptions(cmd *cobra.Command) (userListOptions, error) {
 	return options, nil
 }
 
+// userFilterClientOptions converts user list filter flags into client options.
+func userFilterClientOptions(filters userListFilterFlags) []client.ListUsersOption {
+	var options []client.ListUsersOption
+
+	if filters.role != nil {
+		options = append(options, client.WithUsersRole(*filters.role))
+	}
+
+	if filters.accountType != nil {
+		options = append(options, client.WithUsersType(*filters.accountType))
+	}
+
+	if filters.email != nil {
+		options = append(options, client.WithUsersEmail(*filters.email))
+	}
+
+	if filters.active != nil {
+		options = append(options, client.WithUsersActive(*filters.active))
+	}
+
+	return options
+}
+
 // clientOptions converts resolved list options into client.ListUsersOption values.
 func (options userListOptions) clientOptions() []client.ListUsersOption {
-	resolved := []client.ListUsersOption{
+	filterOpts := userFilterClientOptions(userListFilterFlags{
+		role:        options.role,
+		accountType: options.accountType,
+		email:       options.email,
+		active:      options.active,
+	})
+
+	resolved := make([]client.ListUsersOption, 0, 3+len(filterOpts))
+	resolved = append(resolved,
 		client.WithUsersPageSize(options.pageSize),
 		client.WithUsersPageNumber(options.page),
 		client.WithUsersSort(options.sort...),
-	}
+	)
 
-	if options.role != nil {
-		resolved = append(resolved, client.WithUsersRole(*options.role))
-	}
-
-	if options.accountType != nil {
-		resolved = append(resolved, client.WithUsersType(*options.accountType))
-	}
-
-	if options.email != nil {
-		resolved = append(resolved, client.WithUsersEmail(*options.email))
-	}
-
-	if options.active != nil {
-		resolved = append(resolved, client.WithUsersActive(*options.active))
-	}
-
-	return resolved
+	return append(resolved, filterOpts...)
 }
 
 // registerCreateUserFlags adds the supported user-create flags to cmd.
