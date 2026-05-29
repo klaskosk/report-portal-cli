@@ -19,7 +19,18 @@ func TestNewLaunchCmd_Subcommands_IncludesLifecycle(t *testing.T) {
 
 	assert.Equal(
 		t,
-		[]string{"delete", "finish", "get", "list", "report", "start", "update"},
+		[]string{
+			"analyze",
+			"compare",
+			"delete",
+			"finish",
+			"get",
+			"list",
+			"merge",
+			"report",
+			"start",
+			"update",
+		},
 		commandNames(cmd),
 	)
 }
