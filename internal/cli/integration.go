@@ -194,6 +194,7 @@ project-scoped integrations.
 
 Examples:
   rp integration list                          List all global integrations
+  rp integration list -o json                  List global integrations as JSON
   rp integration list --plugin jira            List global integrations by plugin
   rp integration list -p my_project            List project integrations`,
 		Args: cobra.NoArgs,
@@ -214,7 +215,8 @@ func newIntegrationGetCmd() *cobra.Command {
 
 Examples:
   rp integration get 1                         Get global integration
-  rp integration get 10 -p my_project          Get project integration`,
+  rp integration get 10 -p my_project          Get project integration
+  rp integration get 10 -o json -p my_project  Get integration as JSON`,
 		Args: cobra.ExactArgs(1),
 		RunE: withPrintedErrors(runIntegrationGet),
 	}

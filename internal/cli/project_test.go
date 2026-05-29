@@ -1,7 +1,10 @@
 package cli //nolint:testpackage // white-box tests for project CLI helpers
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -12,6 +15,126 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestProjectListRows(t *testing.T) {
+	t.Parallel()
+
+	headers, rows := projectListRows([]string{"alpha", "beta"})
+
+	assert.Equal(t, []string{"PROJECT NAME"}, headers)
+	assert.Equal(t, [][]string{{"alpha"}, {"beta"}}, rows)
+}
+
+func TestProjectListRows_empty(t *testing.T) {
+	t.Parallel()
+
+	headers, rows := projectListRows(nil)
+
+	assert.Equal(t, []string{"PROJECT NAME"}, headers)
+	assert.Empty(t, rows)
+}
+
+func TestListProjects_success(t *testing.T) {
+	t.Parallel()
+
+	srv := newProjectListTestServer(t)
+	apiClient, err := client.New(srv.URL, "test-token")
+	require.NoError(t, err)
+
+	cmd := attachCmdToRoot(t, newProjectListCmd())
+
+	var buf bytes.Buffer
+
+	printer := &Printer{format: "json", out: &buf, errOut: io.Discard}
+
+	err = listProjects(cmd, apiClient, printer)
+	require.NoError(t, err)
+
+	var names []string
+	require.NoError(t, json.Unmarshal(buf.Bytes(), &names))
+	assert.Equal(t, []string{"beta_proj", "zebra_proj"}, names)
+}
+
+func TestPrinter_Print_projectNameList_formats(t *testing.T) {
+	t.Parallel()
+
+	names := []string{"beta_proj", "zebra_proj"}
+	headers, rows := projectListRows(names)
+
+	t.Run("table", func(t *testing.T) {
+		t.Parallel()
+
+		var buf bytes.Buffer
+
+		printer := &Printer{format: "table", out: &buf, errOut: io.Discard}
+
+		require.NoError(t, printer.Print(names, headers, rows))
+
+		out := buf.String()
+		assert.Contains(t, out, "PROJECT NAME")
+		assert.Contains(t, out, "beta_proj")
+	})
+
+	t.Run("json", func(t *testing.T) {
+		t.Parallel()
+
+		var buf bytes.Buffer
+
+		printer := &Printer{format: "json", out: &buf, errOut: io.Discard}
+
+		require.NoError(t, printer.Print(names, headers, rows))
+
+		var decoded []string
+		require.NoError(t, json.Unmarshal(buf.Bytes(), &decoded))
+		assert.Equal(t, names, decoded)
+	})
+
+	t.Run("go-template", func(t *testing.T) {
+		t.Parallel()
+
+		var buf bytes.Buffer
+
+		printer := &Printer{
+			format: `go-template={{range .}}{{.}};{{end}}`,
+			out:    &buf,
+			errOut: io.Discard,
+		}
+
+		require.NoError(t, printer.Print(names, headers, rows))
+
+		assert.Equal(t, "beta_proj;zebra_proj;\n", buf.String())
+	})
+}
+
+func newProjectListTestServer(t *testing.T) *httptest.Server {
+	t.Helper()
+
+	srv := httptest.NewServer(
+		http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
+			responseWriter.Header().Set("Content-Type", "application/json")
+
+			switch {
+			case request.Method == http.MethodGet && request.URL.Path == "/api/users":
+				responseWriter.WriteHeader(http.StatusOK)
+				_, _ = responseWriter.Write(
+					[]byte(`{"id":1,"userId":"tester","email":"t@example.com"}`),
+				)
+			case request.Method == http.MethodGet && request.URL.Path == "/api/users/tester/projects":
+				responseWriter.WriteHeader(http.StatusOK)
+				_, _ = responseWriter.Write([]byte(`{
+				"zebra_proj": {"entryType": "INTERNAL", "projectRole": "MEMBER"},
+				"beta_proj": {"entryType": "INTERNAL", "projectRole": "MEMBER"}
+			}`))
+			default:
+				t.Errorf("unexpected request: %s %s", request.Method, request.URL.Path)
+				responseWriter.WriteHeader(http.StatusNotFound)
+			}
+		}),
+	)
+	t.Cleanup(srv.Close)
+
+	return srv
+}
 
 func TestNewProjectCmd_Subcommands(t *testing.T) {
 	t.Parallel()

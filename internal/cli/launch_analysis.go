@@ -47,6 +47,7 @@ func newLaunchCompareCmd() *cobra.Command {
 
 Examples:
   rp launch compare --id 41 --id 42 -p my_project
+  rp launch compare --id 41 --id 42 -o json -p my_project
   rp launch compare --id 41 --id 42 --id 43 -p my_project`,
 		Args: cobra.NoArgs,
 		RunE: withPrintedErrors(runLaunchCompare),

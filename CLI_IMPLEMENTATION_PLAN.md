@@ -98,7 +98,7 @@ These should not be collapsed into one fuzzy "activity" command.
 | Family | Scope | Client surface | Proposed CLI shape | Status |
 |--------|-------|---------------|-------------------|--------|
 | activity | project | `ActivityScope.{GetByID, ListForItem}` | `rp activity get <id>`, `rp activity list --item <id>` | Ready to implement (read-only, no mutations) |
-| activity-event | instance | `ActivityEventsScope.{Search, GetProjectSubjectNames}` | `rp activity-event list` with search filters | Needs UX decision on filter ergonomics |
+| activity-event | instance | `ActivityEventsScope.{Search, GetProjectSubjectNames}` | `rp activity-event list` with search filters | Implemented (Phase 7 / PR 32–34) |
 
 #### Plugin — not CRUD-shaped
 
@@ -135,7 +135,7 @@ The bug tracking scope depends on an active integration and does not follow stan
 - `rp bts issue create --integration <id> --from-file <path>` — create issue
 - `rp bts field list --integration <id>` — query available fields
 
-**Status:** Needs UX decision. The multi-flag lookup pattern for ticket retrieval is awkward.
+**Status:** Implemented (Phase 7 / PR 32–34). Ticket lookup uses `--bts-url` and `--bts-project` as required flags.
 
 #### Settings — grouped sub-resource CRUD
 
@@ -187,7 +187,7 @@ These are domain-specific operations that don't fit standard patterns.
 | export project | instance | `ProjectsScope.Export` | `rp project export` | Returns CSV bytes |
 | export users | instance | `UsersScope.Export` | `rp user export` | Returns CSV bytes |
 | generate demo-data | project | `DemoDataScope.Generate` | `rp demo-data generate` | |
-| get launch report | project | `LaunchScope.GetReport` | `rp launch report get <id>` | Returns bytes; needs UX decision |
+| get launch report | project | `LaunchScope.GetReport` | `rp launch report get <id>` | Implemented (Phase 7 / PR 32–34); returns bytes; `-o` ignored |
 
 ### Auth / credential operations
 

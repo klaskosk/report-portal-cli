@@ -35,9 +35,12 @@ func newGroupListCmd() *cobra.Command {
 		Short: "List groups",
 		Long: `List groups.
 
+This command operates at the instance level and does not require --project/-p.
+
 Examples:
   rp group list                              List groups
-  rp group list --page-size 25              List with custom page size`,
+  rp group list -o json                      List groups as JSON
+  rp group list --page-size 25               List with custom page size`,
 		Args: cobra.NoArgs,
 		RunE: withPrintedErrors(runGroupList),
 	}

@@ -34,8 +34,9 @@ func newFilterListCmd() *cobra.Command {
 		Long: `List saved filters in a project.
 
 Examples:
-  rp filter list                             List saved filters
-  rp filter list --page-size 25              List with custom page size`,
+  rp filter list -p my_project               List saved filters
+  rp filter list -o json -p my_project       List filters as JSON
+  rp filter list --page-size 25 -p my_project  List with custom page size`,
 		Args: cobra.NoArgs,
 		RunE: withPrintedErrors(runFilterList),
 	}
@@ -53,8 +54,8 @@ func newFilterGetCmd() *cobra.Command {
 		Long: `Get a saved filter by numeric ID.
 
 Examples:
-  rp filter get 42                           Get filter by ID
-  rp filter get 42 -o json                   Get filter as JSON`,
+  rp filter get 42 -p my_project             Get filter by ID
+  rp filter get 42 -o json -p my_project     Get filter as JSON`,
 		Args: cobra.ExactArgs(1),
 		RunE: withPrintedErrors(runFilterGet),
 	}

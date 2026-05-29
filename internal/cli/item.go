@@ -40,6 +40,7 @@ func newItemListCmd() *cobra.Command {
 
 Examples:
   rp item list                                      List recent test items
+  rp item list -o json -p my_project                List test items as JSON
   rp item list --launch 101                         List test items for launch 101
   rp item list --launch 101 --suites                List suite items for launch 101
   rp item list --parent 2001                        List child items under suite item 2001`,
@@ -62,7 +63,8 @@ func newItemGetCmd() *cobra.Command {
 
 Examples:
   rp item get 42                                   Get test item by numeric ID
-  rp item get 550e8400-e29b-41d4-a716-446655440000 Get test item by UUID`,
+  rp item get 550e8400-e29b-41d4-a716-446655440000 Get test item by UUID
+  rp item get 42 -o json -p my_project             Get test item as JSON`,
 		Args: cobra.ExactArgs(1),
 		RunE: withPrintedErrors(runItemGet),
 	}

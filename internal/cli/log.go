@@ -104,9 +104,9 @@ func newLogListCmd() *cobra.Command {
 At least one of --item or --launch is required to scope the results.
 
 Examples:
-  rp log list --item 42                List logs for test item 42
-  rp log list --launch 10              List logs for launch 10
-  rp log list --item 42 --level ERROR  List error-level logs for item 42`,
+  rp log list --item 42 -p my_project  List logs for test item 42
+  rp log list --launch 10 -o json -p my_project  List logs as JSON
+  rp log list --item 42 --level ERROR -p my_project  List error-level logs for item 42`,
 		Args: cobra.NoArgs,
 		RunE: withPrintedErrors(runLogList),
 	}
@@ -125,8 +125,9 @@ func newLogGetCmd() *cobra.Command {
 		Long: `Get a single log entry by numeric ID or UUID.
 
 Examples:
-  rp log get 100                      Get log by numeric ID
-  rp log get abc-def-123              Get log by UUID`,
+  rp log get 100 -p my_project        Get log by numeric ID
+  rp log get abc-def-123 -p my_project  Get log by UUID
+  rp log get 100 -o json -p my_project  Get log as JSON`,
 		Args: cobra.ExactArgs(1),
 		RunE: withPrintedErrors(runLogGet),
 	}
