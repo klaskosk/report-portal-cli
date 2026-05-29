@@ -20,7 +20,7 @@ func TestNewProjectCmd_Subcommands(t *testing.T) {
 
 	assert.Equal(
 		t,
-		[]string{"create", "delete", "export", "get", "list", "update"},
+		[]string{"create", "delete", "export", "get", "list", "update", "user"},
 		commandNames(cmd),
 	)
 }
