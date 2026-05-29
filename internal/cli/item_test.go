@@ -16,7 +16,11 @@ func TestNewItemCmd_Subcommands(t *testing.T) {
 
 	cmd := newItemCmd()
 
-	assert.Equal(t, []string{"delete", "get", "list", "update"}, commandNames(cmd))
+	assert.Equal(
+		t,
+		[]string{"delete", "finish", "get", "list", "start", "update"},
+		commandNames(cmd),
+	)
 }
 
 func TestItemUpdateCmd_InvalidID(t *testing.T) {

@@ -90,7 +90,11 @@ func TestNewLaunchCmd_Subcommands(t *testing.T) {
 
 	cmd := newLaunchCmd()
 
-	assert.Equal(t, []string{"delete", "get", "list", "report", "update"}, commandNames(cmd))
+	assert.Equal(
+		t,
+		[]string{"delete", "finish", "get", "list", "report", "start", "update"},
+		commandNames(cmd),
+	)
 }
 
 func TestLaunchUpdateCmd_NonNumericID(t *testing.T) {
