@@ -16,7 +16,7 @@ func TestNewDashboardCmd_Subcommands(t *testing.T) {
 
 	assert.Equal(
 		t,
-		[]string{"config", "create", "delete", "get", "list", "preconfigured", "update"},
+		[]string{"config", "create", "delete", "get", "list", "preconfigured", "update", "widget"},
 		commandNames(cmd),
 	)
 }
