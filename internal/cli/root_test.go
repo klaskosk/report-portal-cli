@@ -6,6 +6,9 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/klaskosk/report-portal-cli/internal/cli/launch"
+	"github.com/klaskosk/report-portal-cli/internal/cli/testutil"
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -16,7 +19,7 @@ func TestRootCmd_JSONFlagOverridesOutput(t *testing.T) {
 	cmd := newRootCmd()
 	cmd.SetContext(context.Background())
 	require.NoError(t, cmd.ParseFlags([]string{"--json"}))
-	runRootPersistentPreRunE(t, cmd)
+	testutil.RunPersistentPreRunE(t, cmd)
 
 	output, _ := cmd.PersistentFlags().GetString("output")
 	assert.Equal(t, "json", output)
@@ -28,7 +31,7 @@ func TestRootCmd_JSONFlagWinsOverTableOutput(t *testing.T) {
 	cmd := newRootCmd()
 	cmd.SetContext(context.Background())
 	require.NoError(t, cmd.ParseFlags([]string{"-o", "table", "--json"}))
-	runRootPersistentPreRunE(t, cmd)
+	testutil.RunPersistentPreRunE(t, cmd)
 
 	output, _ := cmd.PersistentFlags().GetString("output")
 	assert.Equal(t, "json", output, "--json should override -o table")
@@ -54,7 +57,7 @@ func TestRootCmd_JSONFlagFalseDoesNotOverrideOutput(t *testing.T) {
 			cmd := newRootCmd()
 			cmd.SetContext(context.Background())
 			require.NoError(t, cmd.ParseFlags(test.args))
-			runRootPersistentPreRunE(t, cmd)
+			testutil.RunPersistentPreRunE(t, cmd)
 
 			output, _ := cmd.PersistentFlags().GetString("output")
 			assert.Equal(t, test.wantFmt, output)
@@ -97,7 +100,7 @@ func TestExecute_JSONFlagProducesJSONErrorBeforePersistentPreRunE(t *testing.T) 
 func TestNewLaunchGetCmd_RequiresExactlyOneArg(t *testing.T) {
 	t.Parallel()
 
-	cmd := newLaunchGetCmd()
+	cmd := findLaunchSubcommand(t, "get")
 
 	require.Error(t, cmd.Args(cmd, []string{}), "should reject zero args")
 	require.NoError(t, cmd.Args(cmd, []string{"42"}), "should accept exactly one arg")
@@ -107,7 +110,22 @@ func TestNewLaunchGetCmd_RequiresExactlyOneArg(t *testing.T) {
 func TestNewLaunchListCmd_RejectsPositionalArgs(t *testing.T) {
 	t.Parallel()
 
-	cmd := newLaunchListCmd()
+	cmd := findLaunchSubcommand(t, "list")
 
 	require.Error(t, cmd.Args(cmd, []string{"unexpected"}), "list should reject positional args")
+}
+
+func findLaunchSubcommand(t *testing.T, name string) *cobra.Command {
+	t.Helper()
+
+	parent := launch.NewCommand()
+	for _, cmd := range parent.Commands() {
+		if cmd.Name() == name {
+			return cmd
+		}
+	}
+
+	t.Fatalf("launch subcommand %q not found", name)
+
+	return nil
 }
