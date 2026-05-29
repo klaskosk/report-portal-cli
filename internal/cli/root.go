@@ -93,6 +93,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newPluginCmd())
 	cmd.AddCommand(newDashboardCmd())
 	cmd.AddCommand(newActivityEventCmd())
+	cmd.AddCommand(newActivityCmd())
 	cmd.AddCommand(newBtsCmd())
 	cmd.AddCommand(newDemoDataCmd())
 
