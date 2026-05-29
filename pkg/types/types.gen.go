@@ -662,9 +662,9 @@ type CreateUserBidRS struct {
 
 // CreateUserRQ defines model for CreateUserRQ.
 type CreateUserRQ struct {
-	DefaultProject string `json:"defaultProject"`
-	Email          string `json:"email"`
-	Role           string `json:"role"`
+	DefaultProject *string `json:"defaultProject,omitempty"`
+	Email          string  `json:"email"`
+	Role           *string `json:"role,omitempty"`
 }
 
 // CreateUserRQConfirm defines model for CreateUserRQConfirm.

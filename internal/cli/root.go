@@ -78,6 +78,7 @@ func newRootCmd() *cobra.Command {
 	flags.Bool("json", false, "shorthand for -o json")
 
 	cmd.AddCommand(newUserCmd())
+	cmd.AddCommand(newAuthCmd())
 	cmd.AddCommand(newFilterCmd())
 	cmd.AddCommand(newGroupCmd())
 	cmd.AddCommand(newIntegrationCmd())
