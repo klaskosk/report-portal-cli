@@ -22,6 +22,8 @@ confirmation is printed to stderr. Otherwise, raw bytes are written to stdout.
 If --log is specified, the argument is treated as a log ID and the attachment's
 data ID is resolved automatically from the log's binaryContent field.
 
+The -o/--output format flags do not affect the downloaded payload.
+
 Examples:
   rp download 12345 -p my_project                   Write file bytes to stdout
   rp download 12345 -p my_project --output-file out.png  Save to a file

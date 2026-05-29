@@ -29,8 +29,11 @@ func registerListFlags(cmd *cobra.Command) {
 func registerListFlagsWithDefaults(cmd *cobra.Command, defaults listFlagDefaults) {
 	cmd.Flags().Int32("page-size", 10, "number of results per page")
 	cmd.Flags().Int32("page", 1, "page number (1-based, must be >= 1)")
-	cmd.Flags().
-		StringArray("sort", defaults.sort, `sort criteria (e.g. "startTime,desc")`)
+	cmd.Flags().StringArray(
+		"sort",
+		defaults.sort,
+		`sort criteria as field,direction (e.g. "startTime,desc"); default varies by command`,
+	)
 }
 
 // resolveListFlags reads the standard list flags from cmd and returns them.

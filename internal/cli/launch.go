@@ -44,6 +44,7 @@ func newLaunchListCmd() *cobra.Command {
 Examples:
   rp launch list                     List the 10 most recent launches
   rp launch list -p other_project    List launches in a different project
+  rp launch list -o json -p my_project  List launches as JSON
   rp launch list --user john         List launches by user john
   rp launch list --mode DEBUG        List debug-mode launches
   rp launch list --latest            List latest launches
@@ -68,7 +69,8 @@ func newLaunchGetCmd() *cobra.Command {
 Examples:
   rp launch get 42                  Get launch by numeric ID
   rp launch get abc-def-123         Get launch by UUID
-  rp launch get 42 -p other_project Get launch in a different project`,
+  rp launch get 42 -p other_project Get launch in a different project
+  rp launch get 42 -o json -p my_project  Get launch as JSON`,
 		Args: cobra.ExactArgs(1),
 		RunE: withPrintedErrors(runLaunchGet),
 	}

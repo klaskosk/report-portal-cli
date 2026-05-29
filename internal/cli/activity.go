@@ -47,6 +47,7 @@ func newActivityListCmd() *cobra.Command {
 
 Examples:
   rp activity list --item 456 -p my_project
+  rp activity list --item 456 -o json -p my_project  List activities as JSON
   rp activity list --item 456 -p my_project --page 2 --page-size 25`,
 		Args: cobra.NoArgs,
 		RunE: withPrintedErrors(runActivityList),

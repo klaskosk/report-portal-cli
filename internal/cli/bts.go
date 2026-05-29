@@ -43,7 +43,9 @@ func newBtsTicketGetCmd() *cobra.Command {
 
 Examples:
   rp bts ticket get PROJ-123 --bts-url https://jira.example.com \
-    --bts-project PROJ -p my_project`,
+    --bts-project PROJ -p my_project
+  rp bts ticket get PROJ-123 --bts-url https://jira.example.com \
+    --bts-project PROJ -o json -p my_project`,
 		Args: cobra.ExactArgs(1),
 		RunE: withPrintedErrors(runBtsTicketGet),
 	}
@@ -75,7 +77,8 @@ func newBtsFieldListCmd() *cobra.Command {
 		Long: `List the form fields available when creating issues in a BTS integration.
 
 Examples:
-  rp bts field list --integration 1 -p my_project`,
+  rp bts field list --integration 1 -p my_project
+  rp bts field list --integration 1 -o json -p my_project`,
 		Args: cobra.NoArgs,
 		RunE: withPrintedErrors(runBtsFieldList),
 	}

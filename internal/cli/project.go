@@ -41,7 +41,8 @@ This command does not require --project/-p since it operates on the instance lev
 
 Examples:
   rp project list                   List accessible projects
-  rp project list -o json           List accessible projects as JSON`,
+  rp project list -o json           List accessible projects as JSON
+  rp project list -o go-template='{{range .}}{{.}}{{"\n"}}{{end}}'  Custom template over name list`,
 		Args: cobra.NoArgs,
 		RunE: withPrintedErrors(runProjectList),
 	}
@@ -137,14 +138,13 @@ func listProjects(
 
 	sort.Strings(names)
 
-	if printer.isJSON() {
-		return printer.PrintJSON(names)
-	}
+	headers, rows := projectListRows(names)
 
-	if tmpl, ok := printer.goTemplateString(); ok {
-		return printer.PrintTemplate(tmpl, names)
-	}
+	return printer.Print(names, headers, rows)
+}
 
+// projectListRows builds table headers and rows for a sorted list of project names.
+func projectListRows(names []string) ([]string, [][]string) {
 	headers := []string{"PROJECT NAME"}
 	rows := make([][]string, 0, len(names))
 
@@ -152,7 +152,7 @@ func listProjects(
 		rows = append(rows, []string{name})
 	}
 
-	return printer.PrintTable(headers, rows)
+	return headers, rows
 }
 
 // projectRow formats a project resource as a table row, returning both headers and column values.

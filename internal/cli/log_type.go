@@ -34,7 +34,8 @@ func newLogTypeListCmd() *cobra.Command {
 Returns all log types for the project. No pagination is available.
 
 Examples:
-  rp log-type list -p my_project               List all log types`,
+  rp log-type list -p my_project               List all log types
+  rp log-type list -o json -p my_project       List log types as JSON`,
 		Args: cobra.NoArgs,
 		RunE: withPrintedErrors(runLogTypeList),
 	}

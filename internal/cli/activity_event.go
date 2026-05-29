@@ -29,8 +29,11 @@ func newActivityEventListCmd() *cobra.Command {
 		Short: "List activity events with optional filters",
 		Long: `List activity audit events across all projects.
 
+This command operates at the instance level and does not require --project/-p.
+
 Examples:
   rp activity-event list
+  rp activity-event list -o json
   rp activity-event list --user admin
   rp activity-event list --object-type launch --event-name startLaunch
   rp activity-event list --project-name my_project --page 2 --page-size 25`,
