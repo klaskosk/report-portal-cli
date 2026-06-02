@@ -9,7 +9,7 @@ Two main packages, intentionally separated:
 - `pkg/` — Standalone, reusable API client module. Public API, meant for consumption by other libraries.
 - `internal/cli/` — CLI built on Cobra/Viper. Consumes `pkg/client`.
 
-The API client wraps a generated OpenAPI client (`pkg/internal/api/`) with a scope-based API: `Client` → `ProjectScope` → `LaunchScope`. The generated client should never be exposed publically. However, the generated types are publically accessible in `pkg/types/`.
+The API client wraps a generated OpenAPI client (`pkg/internal/api/`) with a scope-based API: `Client` → `ProjectScope` → `LaunchScope`. Application code imports only `pkg/client`; domain logic lives in `pkg/client/<domain>/` with shared execution in `pkg/client/internal/core`. The generated client should never be exposed publicly on exported surfaces. Public DTOs live in `pkg/types/`.
 
 ## Key patterns
 

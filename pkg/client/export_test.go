@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/klaskosk/report-portal-cli/pkg/client/internal/core"
 	"github.com/klaskosk/report-portal-cli/pkg/types"
 )
 
@@ -11,24 +12,21 @@ var FailingOption = func(err error) Option {
 	}
 }
 
-// NewTestAPIError exposes newAPIError for external test packages.
+// NewTestAPIError exposes core.NewAPIError for external test packages.
 var NewTestAPIError = func(statusCode int, resp *types.ErrorRS) error {
-	return newAPIError(statusCode, resp)
+	return core.NewAPIError(statusCode, resp)
 }
 
-// NewTestUnexpectedStatusError exposes newUnexpectedStatusError for external test packages.
+// NewTestUnexpectedStatusError exposes core.NewUnexpectedStatusError for external test packages.
 var NewTestUnexpectedStatusError = func(statusCode int) error {
-	return newUnexpectedStatusError(statusCode, nil)
+	return core.NewUnexpectedStatusError(statusCode, nil)
 }
 
-// NewTestUnexpectedStatusErrorWithBody exposes newUnexpectedStatusError with a
+// NewTestUnexpectedStatusErrorWithBody exposes core.NewUnexpectedStatusError with a
 // body for external test packages.
 var NewTestUnexpectedStatusErrorWithBody = func(statusCode int, body []byte) error {
-	return newUnexpectedStatusError(statusCode, body)
+	return core.NewUnexpectedStatusError(statusCode, body)
 }
-
-// ParseErrorBody exposes parseErrorBody for external test packages.
-var ParseErrorBody = parseErrorBody
 
 // NewTestActivityScope creates an ActivityScope for testing without requiring a full Client setup.
 var NewTestActivityScope = func(c *Client, projectName string) *ActivityScope {

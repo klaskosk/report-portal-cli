@@ -42,6 +42,7 @@ linters:
       - path: _test\.go
         linters:
           - funlen
+          - dupl
       - path: internal/cli/core/.*_test\.go
         linters:
           - testpackage
@@ -52,6 +53,17 @@ linters:
       - path: internal/cli/group/group_associations\.go
         linters:
           - dupl
+      # Domain packages return core errors without re-wrapping; same as pre-refactor flat package.
+      - path: pkg/client/(activity|bts|dashboard|demodata|files|filter|groups|integrations|item|launch|log|logtypes|onboarding|plugin|projects|settings|users|widget)/
+        linters:
+          - wrapcheck
+          - funcorder
+      - path: pkg/client/project\.go
+        linters:
+          - wrapcheck
+      - path: pkg/client/internal/core/
+        linters:
+          - funcorder
 formatters:
   enable:
     - gci

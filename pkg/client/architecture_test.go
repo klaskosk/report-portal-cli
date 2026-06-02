@@ -13,32 +13,61 @@ import (
 
 const internalAPIImportPath = "github.com/klaskosk/report-portal-cli/pkg/internal/api"
 
+var architecturePackages = []string{
+	"github.com/klaskosk/report-portal-cli/pkg/client",
+	"github.com/klaskosk/report-portal-cli/pkg/client/activity",
+	"github.com/klaskosk/report-portal-cli/pkg/client/bts",
+	"github.com/klaskosk/report-portal-cli/pkg/client/dashboard",
+	"github.com/klaskosk/report-portal-cli/pkg/client/demodata",
+	"github.com/klaskosk/report-portal-cli/pkg/client/files",
+	"github.com/klaskosk/report-portal-cli/pkg/client/filter",
+	"github.com/klaskosk/report-portal-cli/pkg/client/groups",
+	"github.com/klaskosk/report-portal-cli/pkg/client/integrations",
+	"github.com/klaskosk/report-portal-cli/pkg/client/item",
+	"github.com/klaskosk/report-portal-cli/pkg/client/launch",
+	"github.com/klaskosk/report-portal-cli/pkg/client/log",
+	"github.com/klaskosk/report-portal-cli/pkg/client/logtypes",
+	"github.com/klaskosk/report-portal-cli/pkg/client/onboarding",
+	"github.com/klaskosk/report-portal-cli/pkg/client/plugin",
+	"github.com/klaskosk/report-portal-cli/pkg/client/projects",
+	"github.com/klaskosk/report-portal-cli/pkg/client/settings",
+	"github.com/klaskosk/report-portal-cli/pkg/client/users",
+	"github.com/klaskosk/report-portal-cli/pkg/client/widget",
+}
+
 // TestArchitecture_NoExportedAPIReferences verifies that no exported
-// declaration in pkg/client exposes generated types from pkg/internal/api.
-// Generated types may appear in unexported struct fields, unexported interface
-// methods, and function bodies, but exported type definitions, function
-// signatures, and var/const types must remain free of internal API references.
+// declaration in pkg/client (facade and domain subpackages) exposes generated
+// types from pkg/internal/api. Generated types may appear in unexported struct
+// fields, unexported interface methods, and function bodies, but exported type
+// definitions, function signatures, and var/const types must remain free of
+// internal API references.
 func TestArchitecture_NoExportedAPIReferences(t *testing.T) {
 	t.Parallel()
 
 	pkgs, err := packages.Load(&packages.Config{
 		Mode: packages.NeedName | packages.NeedTypes,
-	}, ".")
+	}, architecturePackages...)
 	require.NoError(t, err)
-	require.Len(t, pkgs, 1)
-	require.Empty(t, pkgs[0].Errors, "package loading errors")
-
-	scope := pkgs[0].Types.Scope()
 
 	var violations []string
 
-	for _, name := range scope.Names() {
-		obj := scope.Lookup(name)
-		if !obj.Exported() {
-			continue
-		}
+	for _, pkg := range pkgs {
+		require.Empty(t, pkg.Errors, "package loading errors for %s", pkg.PkgPath)
 
-		violations = append(violations, checkExportedObject(obj)...)
+		scope := pkg.Types.Scope()
+		for _, name := range scope.Names() {
+			obj := scope.Lookup(name)
+			if !obj.Exported() {
+				continue
+			}
+
+			found := checkExportedObject(obj)
+			for i := range found {
+				found[i] = fmt.Sprintf("%s: %s", pkg.PkgPath, found[i])
+			}
+
+			violations = append(violations, found...)
+		}
 	}
 
 	assert.Empty(t, violations,
