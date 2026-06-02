@@ -43,3 +43,5 @@ pkg/preprocess
 
 # Claude local settings
 .claude/settings.local.json
+
+scripts/__pycache__/

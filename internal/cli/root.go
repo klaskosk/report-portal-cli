@@ -1,12 +1,31 @@
 package cli
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"io"
 	"os"
 
+	"github.com/klaskosk/report-portal-cli/internal/cli/activity"
+	"github.com/klaskosk/report-portal-cli/internal/cli/activityevent"
+	"github.com/klaskosk/report-portal-cli/internal/cli/auth"
+	"github.com/klaskosk/report-portal-cli/internal/cli/bts"
+	"github.com/klaskosk/report-portal-cli/internal/cli/core"
+	"github.com/klaskosk/report-portal-cli/internal/cli/dashboard"
+	"github.com/klaskosk/report-portal-cli/internal/cli/demodata"
+	"github.com/klaskosk/report-portal-cli/internal/cli/download"
+	"github.com/klaskosk/report-portal-cli/internal/cli/filter"
+	"github.com/klaskosk/report-portal-cli/internal/cli/group"
+	"github.com/klaskosk/report-portal-cli/internal/cli/integration"
+	"github.com/klaskosk/report-portal-cli/internal/cli/item"
+	"github.com/klaskosk/report-portal-cli/internal/cli/launch"
+	"github.com/klaskosk/report-portal-cli/internal/cli/log"
+	"github.com/klaskosk/report-portal-cli/internal/cli/logtype"
+	"github.com/klaskosk/report-portal-cli/internal/cli/plugin"
+	"github.com/klaskosk/report-portal-cli/internal/cli/project"
+	"github.com/klaskosk/report-portal-cli/internal/cli/setting"
+	"github.com/klaskosk/report-portal-cli/internal/cli/user"
+	"github.com/klaskosk/report-portal-cli/internal/cli/whoami"
+	"github.com/klaskosk/report-portal-cli/internal/cli/widget"
 	"github.com/spf13/cobra"
 )
 
@@ -29,24 +48,11 @@ func execute(args []string, errOut io.Writer) error {
 		return nil
 	}
 
-	var printed *printedError
-	if !errors.As(err, &printed) {
-		newPrinterWithErrOut(effectiveOutputFormat(cmd.Root()), errOut).PrintError(err)
+	if !core.IsPrintedError(err) {
+		core.NewPrinterWithErrOut(core.EffectiveOutputFormat(cmd.Root()), errOut).PrintError(err)
 	}
 
 	return fmt.Errorf("executing command: %w", err)
-}
-
-// effectiveOutputFormat derives the output format from the root command's persistent flags,
-// giving --json precedence over -o/--output.
-func effectiveOutputFormat(cmd *cobra.Command) string {
-	if useJSON, _ := cmd.PersistentFlags().GetBool("json"); useJSON {
-		return "json"
-	}
-
-	outputFmt, _ := cmd.PersistentFlags().GetString("output")
-
-	return outputFmt
 }
 
 // newRootCmd builds the root "rp" command with global flags and subcommands.
@@ -57,13 +63,17 @@ func newRootCmd() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			if core.IsGroupCommand(cmd) {
+				return nil
+			}
+
 			verbosity, _ := cmd.Flags().GetInt("verbosity")
-			logger := newLogger(verbosity)
-			cmd.SetContext(context.WithValue(cmd.Context(), loggerKey{}, logger))
+			logger := core.NewLogger(verbosity)
+			cmd.SetContext(core.WithLogger(cmd.Context(), logger))
 
-			_ = cmd.Root().PersistentFlags().Set("output", effectiveOutputFormat(cmd.Root()))
+			_ = cmd.Root().PersistentFlags().Set("output", core.EffectiveOutputFormat(cmd.Root()))
 
-			return initConfig(cmd)
+			return core.InitConfig(cmd)
 		},
 	}
 
@@ -77,26 +87,30 @@ func newRootCmd() *cobra.Command {
 	flags.IntP("verbosity", "v", 0, "log verbosity level (0=off, 1=info, 2+=debug)")
 	flags.Bool("json", false, "shorthand for -o json")
 
-	cmd.AddCommand(newUserCmd())
-	cmd.AddCommand(newAuthCmd())
-	cmd.AddCommand(newFilterCmd())
-	cmd.AddCommand(newGroupCmd())
-	cmd.AddCommand(newIntegrationCmd())
-	cmd.AddCommand(newLaunchCmd())
-	cmd.AddCommand(newItemCmd())
-	cmd.AddCommand(newLogCmd())
-	cmd.AddCommand(newLogTypeCmd())
-	cmd.AddCommand(newProjectCmd())
-	cmd.AddCommand(newDownloadCmd())
-	cmd.AddCommand(newWhoamiCmd())
-	cmd.AddCommand(newWidgetCmd())
-	cmd.AddCommand(newPluginCmd())
-	cmd.AddCommand(newDashboardCmd())
-	cmd.AddCommand(newActivityEventCmd())
-	cmd.AddCommand(newActivityCmd())
-	cmd.AddCommand(newBtsCmd())
-	cmd.AddCommand(newDemoDataCmd())
-	cmd.AddCommand(newSettingCmd())
+	registerNounCommands(cmd)
 
 	return cmd
+}
+
+func registerNounCommands(root *cobra.Command) {
+	root.AddCommand(user.NewCommand())
+	root.AddCommand(auth.NewCommand())
+	root.AddCommand(filter.NewCommand())
+	root.AddCommand(group.NewCommand())
+	root.AddCommand(integration.NewCommand())
+	root.AddCommand(launch.NewCommand())
+	root.AddCommand(item.NewCommand())
+	root.AddCommand(log.NewCommand())
+	root.AddCommand(logtype.NewCommand())
+	root.AddCommand(project.NewCommand())
+	root.AddCommand(download.NewCommand())
+	root.AddCommand(whoami.NewCommand())
+	root.AddCommand(widget.NewCommand())
+	root.AddCommand(plugin.NewCommand())
+	root.AddCommand(dashboard.NewCommand())
+	root.AddCommand(activityevent.NewCommand())
+	root.AddCommand(activity.NewCommand())
+	root.AddCommand(bts.NewCommand())
+	root.AddCommand(demodata.NewCommand())
+	root.AddCommand(setting.NewCommand())
 }
