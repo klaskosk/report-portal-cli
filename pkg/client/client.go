@@ -1,4 +1,10 @@
-// Package client provides a high-level client for the Report Portal API.
+// Package client is the supported entry point for the Report Portal API client.
+//
+// Construct clients and scopes only through this package (for example [Client.Project]
+// and [ProjectScope.Launches]). Subpackages such as launch and item exist so
+// scope and option types can be named in function signatures and documentation; they
+// are not a separate public API surface. Do not call domain New*Scope constructors from
+// application code—wire scopes through [Client] and [ProjectScope] instead.
 package client
 
 import (
@@ -11,6 +17,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/klaskosk/report-portal-cli/pkg/client/internal/core"
 	"github.com/klaskosk/report-portal-cli/pkg/internal/api"
 )
 
@@ -89,6 +96,10 @@ func New(baseURL, bearerToken string, opts ...Option) (*Client, error) {
 	return &Client{raw: raw, rawClient: raw.ClientInterface, logger: logger}, nil
 }
 
+func (c *Client) scope() core.Scope {
+	return core.NewScope(c.raw, c.rawClient, c.logger)
+}
+
 // normalizeBaseURL parses a user-provided Report Portal URL and returns a normalized API base URL with an explicit
 // scheme and /api path prefix. The default scheme is https.
 func normalizeBaseURL(baseURL string) (string, error) {
@@ -127,56 +138,6 @@ func WithHTTPClient(httpClient *http.Client) Option {
 
 		return nil
 	}
-}
-
-// Users returns a UsersScope for instance-level user operations.
-func (c *Client) Users() *UsersScope {
-	return &UsersScope{client: c}
-}
-
-// Projects returns a ProjectsScope for instance-level project operations.
-func (c *Client) Projects() *ProjectsScope {
-	return &ProjectsScope{client: c}
-}
-
-// Groups returns a GroupsScope for instance-level group operations.
-func (c *Client) Groups() *GroupsScope {
-	return &GroupsScope{client: c}
-}
-
-// Integrations returns an IntegrationsScope for instance-level global integration operations.
-func (c *Client) Integrations() *IntegrationsScope {
-	return &IntegrationsScope{client: c}
-}
-
-// Files returns a FileStorageScope for instance-level file storage operations.
-func (c *Client) Files() *FileStorageScope {
-	return &FileStorageScope{client: c}
-}
-
-// Settings returns a SettingsScope for server-level settings operations.
-func (c *Client) Settings() *SettingsScope {
-	return &SettingsScope{client: c}
-}
-
-// InstanceBugTracking returns an InstanceBugTrackingScope for instance-level BTS operations.
-func (c *Client) InstanceBugTracking() *InstanceBugTrackingScope {
-	return &InstanceBugTrackingScope{client: c}
-}
-
-// Plugins returns a PluginScope for instance-level plugin operations.
-func (c *Client) Plugins() *PluginScope {
-	return &PluginScope{client: c}
-}
-
-// Onboarding returns an OnboardingScope for first-run onboarding operations.
-func (c *Client) Onboarding() *OnboardingScope {
-	return &OnboardingScope{client: c}
-}
-
-// ActivityEvents returns an ActivityEventsScope for instance-level activity event queries.
-func (c *Client) ActivityEvents() *ActivityEventsScope {
-	return &ActivityEventsScope{client: c}
 }
 
 // WithLogger configures the logger used by the client for structured diagnostic
