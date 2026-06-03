@@ -75,6 +75,27 @@ Configuration is loaded from `$XDG_CONFIG_HOME/rp/config.yaml` (or
 Multiple named profiles are supported under the `profiles` key; select one with
 `--profile` or set `default-profile` in the config file.
 
+### Getting started
+
+Create a config file with `rp init`:
+
+```bash
+# Interactive wizard
+rp init
+
+# Non-interactive (CI/scripts) — both --url and --token are required
+rp init --url https://reportportal.example.com --token my-api-token
+
+# Optional: set profile name, default project, or overwrite an existing file
+rp init --profile staging --default-project my_project
+rp init --force --url https://reportportal.example.com --token my-api-token
+
+# Verify the connection
+rp whoami
+```
+
+### Config file format
+
 ```yaml
 default-profile: work
 

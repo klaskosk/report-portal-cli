@@ -15,11 +15,13 @@ type Deps struct {
 	Logger     *slog.Logger
 }
 
-// NewPrinterFromCmd returns a Printer configured from the root command's --output flag.
+// NewPrinterFromCmd returns a Printer configured from the root command's output flags.
 func NewPrinterFromCmd(cmd *cobra.Command) *Printer {
-	outputFmt, _ := cmd.Root().PersistentFlags().GetString("output")
-
-	return NewPrinter(outputFmt)
+	return NewTestPrinter(
+		EffectiveOutputFormat(cmd.Root()),
+		cmd.OutOrStdout(),
+		cmd.ErrOrStderr(),
+	)
 }
 
 // ResolveCmd resolves the common command preamble: logger, printer, connection, and client.

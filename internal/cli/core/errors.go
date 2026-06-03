@@ -28,6 +28,13 @@ func WithPrintedErrors(
 	}
 }
 
+// PrintAndReturnError prints err to stderr and returns it for wrapping by WithPrintedErrors.
+func PrintAndReturnError(printer *Printer, err error) error {
+	printer.PrintError(err)
+
+	return err
+}
+
 // IsPrintedError reports whether err (or any error in its chain) has
 // already been printed to stderr.
 func IsPrintedError(err error) bool {
