@@ -49,6 +49,7 @@ func legacyPayloadPresent(legacySuccess any) bool {
 		return false
 	}
 
+	// Interface nil checks miss typed nil pointers (e.g. (*T)(nil) in any).
 	legacyReflect := reflect.ValueOf(legacySuccess)
 	switch legacyReflect.Kind() {
 	case reflect.Invalid:

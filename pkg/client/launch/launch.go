@@ -915,7 +915,7 @@ func (l *LaunchScope) GetReport(
 	return response.Body, nil
 }
 
-// NewScope constructs a LaunchScope for wiring from the facade.
-func NewScope(s core.Scope) *LaunchScope {
+// NewLaunchScope constructs a LaunchScope for wiring from the facade.
+func NewLaunchScope(s core.Scope) *LaunchScope {
 	return &LaunchScope{scope: s}
 }

@@ -32,12 +32,12 @@ func (c *Client) Project(name string) *ProjectScope {
 
 // Launches returns a LaunchScope for querying launches in this project.
 func (p *ProjectScope) Launches() *LaunchScope {
-	return launch.NewScope(p.scope)
+	return launch.NewLaunchScope(p.scope)
 }
 
 // Items returns a TestItemScope for querying test items in this project.
 func (p *ProjectScope) Items() *TestItemScope {
-	return item.NewTestItemScope(p.scope)
+	return item.NewItemScope(p.scope)
 }
 
 // Logs returns a LogScope for querying log entries in this project.

@@ -1231,7 +1231,7 @@ func (i *TestItemScope) UnlinkExternalIssues(
 	return *results, nil
 }
 
-// NewTestItemScope constructs a TestItemScope for wiring from the facade.
-func NewTestItemScope(s core.Scope) *TestItemScope {
+// NewItemScope constructs a TestItemScope for wiring from the facade.
+func NewItemScope(s core.Scope) *TestItemScope {
 	return &TestItemScope{scope: s}
 }
