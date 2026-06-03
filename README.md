@@ -90,6 +90,27 @@ The CLI reads a YAML config file from `$XDG_CONFIG_HOME/rp/config.yaml`
 (typically `~/.config/rp/config.yaml`). The config supports multiple named
 profiles so you can manage connections to different Report Portal instances.
 
+### Getting started
+
+Create a config file with `rp init`:
+
+```bash
+# Interactive wizard
+rp init
+
+# Non-interactive (CI/scripts) — both --url and --token are required
+rp init --url https://reportportal.example.com --token my-api-token
+
+# Optional: set profile name, default project, or overwrite an existing file
+rp init --profile staging --default-project my_project
+rp init --force --url https://reportportal.example.com --token my-api-token
+
+# Verify the connection
+rp whoami
+```
+
+### Config file format
+
 ```yaml
 default-profile: work
 

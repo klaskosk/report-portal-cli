@@ -88,6 +88,7 @@ func newRootCmd() *cobra.Command {
 	flags.Bool("json", false, "shorthand for -o json")
 
 	registerNounCommands(cmd)
+	cmd.AddCommand(newInitCmd())
 
 	return cmd
 }

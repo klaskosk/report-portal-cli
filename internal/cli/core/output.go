@@ -117,6 +117,21 @@ func (p *Printer) PrintWarning(message string) {
 	_, _ = fmt.Fprintf(p.errOut, "Warning: %s\n", message)
 }
 
+// PrintMessage prints a status message to stdout. In JSON mode, it prints {"message": "..."}.
+// In other modes, it prints the message as plain text.
+func (p *Printer) PrintMessage(msg string) error {
+	if p.isJSON() {
+		return p.PrintJSON(map[string]string{"message": msg})
+	}
+
+	_, err := fmt.Fprintln(p.out, strings.TrimRight(msg, "\n"))
+	if err != nil {
+		return fmt.Errorf("writing message: %w", err)
+	}
+
+	return nil
+}
+
 // EffectiveOutputFormat derives the output format from the root command's persistent flags,
 // giving --json precedence over -o/--output.
 func EffectiveOutputFormat(cmd *cobra.Command) string {

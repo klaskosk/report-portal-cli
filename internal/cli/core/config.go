@@ -52,14 +52,7 @@ func InitConfig(cmd *cobra.Command) error {
 	if cfgFile != "" {
 		viperInst.SetConfigFile(cfgFile)
 	} else {
-		cfgDir, err := configDir()
-		if err != nil {
-			return err
-		}
-
-		viperInst.AddConfigPath(cfgDir)
-		viperInst.SetConfigName("config")
-		viperInst.SetConfigType("yaml")
+		viperInst.SetConfigFile(DefaultConfigPath())
 	}
 
 	viperInst.SetEnvPrefix("RP")
@@ -88,6 +81,16 @@ func viperFromCmd(cmd *cobra.Command) *viper.Viper {
 	v, _ := cmd.Context().Value(viperContextKey{}).(*viper.Viper)
 
 	return v
+}
+
+// DefaultConfigPath returns the default rp config file path ($XDG_CONFIG_HOME/rp/config.yaml).
+func DefaultConfigPath() string {
+	dir, err := configDir()
+	if err != nil {
+		return filepath.Join(".config", "rp", "config.yaml")
+	}
+
+	return filepath.Join(dir, "config.yaml")
 }
 
 // configDir returns the XDG-compatible configuration directory for rp (~/.config/rp).
