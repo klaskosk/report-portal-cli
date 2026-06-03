@@ -2,27 +2,26 @@
 
 > komandlinia interfaco por interagi kun raportportalo
 
-A Go project with two complementary goals: a command-line tool (`rp`) for
-interacting with [Report Portal](https://reportportal.io/) from the terminal,
-and a reusable Go client library (`pkg/client`) that can be imported into other
-programs. Both target **Report Portal API v5.11** (Report Portal **24.1**).
+A command-line tool and reusable Go client library for the
+[Report Portal](https://reportportal.io/) REST API. The CLI uses a noun-first
+command structure (`rp <resource> <verb>`) for managing Report Portal resources
+from the terminal.
 
 The API client is generated from the official OpenAPI specification using
-[oapi-codegen](https://github.com/oapi-codegen/oapi-codegen), and a
-hand-crafted high-level wrapper in `pkg/client` provides an ergonomic,
-scope-based interface on top of it.
+[oapi-codegen](https://github.com/oapi-codegen/oapi-codegen). A hand-crafted
+wrapper in `pkg/client` provides a scope-based interface (`Client` →
+`ProjectScope` → domain scopes such as launches and items) on top of the
+generated client. The bundled spec targets **Report Portal API v5.15.0**.
 
-## Install
+## Installation
 
-### From source
-
-Requires **Go 1.25+**.
+Requires **Go 1.26+**.
 
 ```bash
 go install github.com/klaskosk/report-portal-cli/cmd/rp@latest
 ```
 
-### Build locally
+Or build from source:
 
 ```bash
 git clone https://github.com/klaskosk/report-portal-cli.git
@@ -30,65 +29,51 @@ cd report-portal-cli
 make build        # produces ./rp
 ```
 
-## CLI usage
+Shell completions are available via `rp completion <shell>`.
 
-### Global flags
-
-| Flag | Short | Description |
-| --- | --- | --- |
-| `--config` | | Path to config file (default `$XDG_CONFIG_HOME/rp/config.yaml`) |
-| `--profile` | | Config profile to use (overrides `default-profile`) |
-| `--url` | | Report Portal base URL (overrides profile) |
-| `--token` | | API bearer token (overrides profile) |
-| `--insecure-skip-verify` | | Skip TLS certificate verification |
-| `--output` | `-o` | Output format: `table`, `json`, `go-template=<tmpl>` |
-| `--json` | | Shorthand for `-o json` |
-| `--verbosity` | `-v` | Log verbosity (0=off, 1=info, 2+=debug) |
-
-### Examples
+## Usage
 
 ```bash
-# List the 10 most recent launches (table output)
+# Launches and test items
 rp launch list -p my_project
-
-# Get a single launch by numeric ID
 rp launch get 42 -p my_project
+rp item list --launch 42 -p my_project
 
-# Get a launch by UUID
-rp launch get abc-def-123 -p my_project
+# Projects, users, and identity
+rp project list
+rp project get my_project
+rp user list
+rp whoami
+
+# Dashboards, widgets, and filters
+rp dashboard list -p my_project
+rp widget list -p my_project
+rp filter list -p my_project
+
+# Logs and settings
+rp log list --item 123 -p my_project
+rp setting pattern list -p my_project
 
 # JSON output (--json is shorthand for -o json)
 rp launch list -p my_project --json
-
-# Custom Go template
-rp launch get 42 -p my_project -o 'go-template={{.Name}} — {{.Status}}'
-
-# List users, create, update, delete
-rp user list
-rp user get superadmin
-rp user create --login jane --email jane@example.com --full-name "Jane Doe"
-rp user update jane --email jane.doe@example.com
-rp user delete jane
-
-# List or get projects
-rp project list
-rp project get my_project
-
-# Use env vars instead of flags
-export RP_URL=https://reportportal.example.com
-export RP_TOKEN=my-api-token
-export RP_PROJECT=my_project
-rp launch list
-
-# Increase verbosity for debugging
-rp launch list -p my_project -vv
 ```
 
-## Configuration
+Every command and subcommand supports `--help` with detailed usage, flags, and
+examples:
 
-The CLI reads a YAML config file from `$XDG_CONFIG_HOME/rp/config.yaml`
-(typically `~/.config/rp/config.yaml`). The config supports multiple named
-profiles so you can manage connections to different Report Portal instances.
+```bash
+rp --help
+rp launch --help
+rp launch get --help
+```
+
+### Configuration
+
+Configuration is loaded from `$XDG_CONFIG_HOME/rp/config.yaml` (or
+`$HOME/.config/rp/config.yaml`). Override with `--config`.
+
+Multiple named profiles are supported under the `profiles` key; select one with
+`--profile` or set `default-profile` in the config file.
 
 ```yaml
 default-profile: work
@@ -106,122 +91,95 @@ profiles:
     insecure-skip-verify: true
 ```
 
-### Resolution order
+Environment variables `RP_URL`, `RP_TOKEN`, `RP_PROJECT`, and
+`RP_INSECURE_SKIP_VERIFY` are also recognized. CLI flags take the highest
+precedence, then environment variables, then the active profile.
 
-Connection parameters are resolved with the following precedence (highest wins):
+### Request bodies
 
-1. CLI flags (`--url`, `--token`, `--insecure-skip-verify`)
-2. Environment variables (`RP_URL`, `RP_TOKEN`, `RP_PROJECT`, `RP_INSECURE_SKIP_VERIFY`)
-3. Active profile from config file
+Many `create` and `update` commands accept a request body via `--from-file`
+(JSON; stdin with `-f -`). When flags and `--from-file` are both supported,
+either can supply the payload depending on the command.
+
+```bash
+rp user create --from-file user.json
+rp setting pattern create --from-file pattern.json -p my_project
+```
+
+### Output
+
+Global flags control connection, logging, and output format:
+
+- `-p` / project from config — project scope (required on most project-scoped commands)
+- `-o` / `--json` — `table`, `json`, or `go-template=<tmpl>`
+- `-v` — verbosity (0=off, 1=info, 2+=debug)
+- `--url`, `--token`, `--profile`, `--insecure-skip-verify`
 
 ## Client library
 
-The `pkg/client` package can be imported independently. It is a separate Go
-module, so consumers pull in only the client and its dependencies — not the CLI
-framework.
+The `pkg/` module can be imported independently — consumers pull in only the
+client and its dependencies, not the CLI framework.
 
 ```bash
 go get github.com/klaskosk/report-portal-cli/pkg@latest
 ```
 
-### Example
+Import `github.com/klaskosk/report-portal-cli/pkg/client` for the API and
+`github.com/klaskosk/report-portal-cli/pkg/types` for DTOs. Wire scopes through
+[`Client`](pkg/client/client.go) and [`ProjectScope`](pkg/client/project.go);
+do not use generated API types from application code.
 
-```go
-package main
+API errors are returned as `*client.APIError` and should be handled with
+predicate helpers such as `client.IsNotFound`, `client.IsUnauthorized`, and
+`client.HasStatusCode` rather than type assertions.
 
-import (
-        "context"
-        "fmt"
-        "log"
+See [`pkg/client/launch/example_launch_test.go`](pkg/client/launch/example_launch_test.go)
+for a minimal usage example.
 
-        "github.com/klaskosk/report-portal-cli/pkg/client"
-)
+## Development
 
-func main() {
-        c, err := client.New("https://reportportal.example.com", "my-api-token")
-        if err != nil {
-                log.Fatal(err)
-        }
+Run `make help` to see all available targets. Key commands:
 
-        // Get a launch by numeric ID
-        launch, err := c.Project("my_project").Launches().GetByID(context.Background(), 42)
-        if err != nil {
-                if client.IsNotFound(err) {
-                        log.Fatal("launch not found")
-                }
-                log.Fatal(err)
-        }
-
-        fmt.Println(launch.Name, launch.Status)
-
-        // List launches with filtering
-        result, err := c.Project("my_project").Launches().List(
-                context.Background(),
-                client.WithLaunchPageSize(5),
-                client.WithLaunchSort("startTime,desc"),
-                client.WithLaunchStatus("PASSED"),
-        )
-        if err != nil {
-                log.Fatal(err)
-        }
-
-        for _, l := range result.Content {
-                fmt.Printf("%d  %s  %s\n", l.Id, l.Name, l.Status)
-        }
-}
+```bash
+make build              # build the CLI (./rp)
+make test               # unit tests
+make test-integration   # integration tests (requires Docker)
+make verify             # lint, vet, and all tests
+make lint               # golangci-lint
+make generate           # regenerate OpenAPI client and types
 ```
 
-### Client options
+To import an upstream OpenAPI spec before regenerating:
 
-```go
-// Custom HTTP client (e.g. for TLS configuration)
-c, err := client.New(url, token,
-        client.WithHTTPClient(myHTTPClient),
-        client.WithLogger(slog.Default()),
-)
+```bash
+make import-spec SPEC=path/to/spec.json
+make generate
 ```
 
-### Error handling
+Integration tests use [testcontainers](https://golang.testcontainers.org/) to
+run the Report Portal stack from `test/integration/docker-compose.test.yml`.
 
-API errors are returned as `*client.APIError` and can be inspected with
-predicate functions:
+### Code generation
 
-```go
-if client.IsNotFound(err) { /* 404 */ }
-if client.IsUnauthorized(err) { /* 401 */ }
-if client.IsForbidden(err) { /* 403 */ }
-if client.IsBadRequest(err) { /* 400 */ }
-if client.IsConflict(err) { /* 409 */ }
+Two `go:generate` directives in `pkg/internal/openapi/generate.go` produce:
 
-// General-purpose predicates
-if client.HasStatusCode(err, 429) { /* rate limited */ }
-if client.HasErrorCode(err, 4004) { /* application error code */ }
-```
+1. `pkg/types/types.gen.go` — data models
+2. `pkg/internal/api/api.gen.go` — HTTP client
 
-## Makefile
+Regenerate with `make generate`. Do not hand-edit `*.gen.go` files.
 
-| Target | Description |
-| --- | --- |
-| `make all` | Run tidy, generate, lint, and build |
-| `make build` | Build the `rp` binary |
-| `make vet` | Run `go vet` on all packages |
-| `make generate` | Run `go generate` for all packages (regenerates OpenAPI client and types) |
-| `make tidy` | Run `go mod tidy` for all modules (root + `pkg`) |
-| `make lint` | Run `golangci-lint-v2 run --fix` |
-| `make clean` | Remove the built binary |
-| `make help` | Show available targets |
-
-## Project structure
+### Project layout
 
 ```text
 cmd/rp/              CLI entry point
-internal/cli/        Command definitions, config, output formatting, logging
+internal/cli/        Commands, config, output formatting, logging
 pkg/
   client/            High-level client library (importable)
-  types/             Generated Report Portal types + custom helpers
+  types/             Generated types and helpers
   internal/
     api/             Generated low-level API client (not importable)
     openapi/         OpenAPI specs, overlays, and generation config
+test/integration/    Docker-based integration tests
 ```
 
 ## License
