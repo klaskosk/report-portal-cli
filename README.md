@@ -14,22 +14,16 @@ HTTP client. The bundled specification targets Report Portal API **v5.15.0**.
 
 ## Installation
 
-Requires **Go 1.27 or newer**.
-
-```bash
-go install github.com/klaskosk/report-portal-cli/cmd/rp@latest
-```
-
-Or build from source:
+Requires **Go 1.27 or newer**. Clone the repository and install the CLI:
 
 ```bash
 git clone https://github.com/klaskosk/report-portal-cli.git
 cd report-portal-cli
-make build
+go install ./cmd/rp
 ```
 
-The resulting binary is named `rp`. Shell completions are available through
-`rp completion <shell>`.
+To build a local binary instead, run `make build`. The resulting binary is named
+`rp`. Shell completions are available through `rp completion <shell>`.
 
 ## Getting started
 
@@ -115,7 +109,7 @@ rp whoami
 
 # Dashboards, widgets, and filters
 rp dashboard list -p my_project
-rp widget list -p my_project
+rp widget get 42 -p my_project
 rp filter list -p my_project
 
 # Logs and settings
@@ -124,10 +118,10 @@ rp setting pattern list -p my_project
 ```
 
 Many `create` and `update` commands accept a JSON request body with
-`--from-file` (or `-f -` for standard input):
+`--from-file` (or `--from-file -` for standard input):
 
 ```bash
-rp user create --from-file user.json
+rp widget create --from-file widget.json -p my_project
 rp setting pattern create --from-file pattern.json -p my_project
 ```
 
