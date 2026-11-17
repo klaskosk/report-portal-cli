@@ -29,8 +29,8 @@ const (
 
 // Defines values for GetActivitiesParamsOrder.
 const (
-	ASC  GetActivitiesParamsOrder = "ASC"
-	DESC GetActivitiesParamsOrder = "DESC"
+	GetActivitiesParamsOrderASC  GetActivitiesParamsOrder = "ASC"
+	GetActivitiesParamsOrderDESC GetActivitiesParamsOrder = "DESC"
 )
 
 // Defines values for ExportProjectsParamsView.
@@ -40,9 +40,9 @@ const (
 
 // Defines values for GetLaunchReportParamsView.
 const (
-	Html GetLaunchReportParamsView = "html"
-	Pdf  GetLaunchReportParamsView = "pdf"
-	Xls  GetLaunchReportParamsView = "xls"
+	GetLaunchReportParamsViewHtml GetLaunchReportParamsView = "html"
+	GetLaunchReportParamsViewPdf  GetLaunchReportParamsView = "pdf"
+	GetLaunchReportParamsViewXls  GetLaunchReportParamsView = "xls"
 )
 
 // GetGroupsParams defines parameters for GetGroups.

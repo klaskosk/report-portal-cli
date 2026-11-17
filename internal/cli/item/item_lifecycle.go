@@ -301,21 +301,21 @@ func resolveStartTestItemType(raw string) (types.StartTestItemRQType, error) {
 	}
 
 	switch types.StartTestItemRQType(normalized) {
-	case types.AFTERCLASS,
-		types.AFTERGROUPS,
-		types.AFTERMETHOD,
-		types.AFTERSUITE,
-		types.AFTERTEST,
-		types.BEFORECLASS,
-		types.BEFOREGROUPS,
-		types.BEFOREMETHOD,
-		types.BEFORESUITE,
-		types.BEFORETEST,
-		types.SCENARIO,
-		types.STEP,
-		types.STORY,
-		types.SUITE,
-		types.TEST:
+	case types.StartTestItemRQTypeAFTERCLASS,
+		types.StartTestItemRQTypeAFTERGROUPS,
+		types.StartTestItemRQTypeAFTERMETHOD,
+		types.StartTestItemRQTypeAFTERSUITE,
+		types.StartTestItemRQTypeAFTERTEST,
+		types.StartTestItemRQTypeBEFORECLASS,
+		types.StartTestItemRQTypeBEFOREGROUPS,
+		types.StartTestItemRQTypeBEFOREMETHOD,
+		types.StartTestItemRQTypeBEFORESUITE,
+		types.StartTestItemRQTypeBEFORETEST,
+		types.StartTestItemRQTypeSCENARIO,
+		types.StartTestItemRQTypeSTEP,
+		types.StartTestItemRQTypeSTORY,
+		types.StartTestItemRQTypeSUITE,
+		types.StartTestItemRQTypeTEST:
 		return types.StartTestItemRQType(normalized), nil
 	default:
 		return "", fmt.Errorf("invalid type %q: must be a known test item type", raw)

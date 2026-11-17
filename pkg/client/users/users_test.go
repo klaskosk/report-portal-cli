@@ -873,7 +873,10 @@ func TestUsersScope_CreateInvitation_Success(t *testing.T) {
 	assert.Equal(t, "abc-123-def", *result.Bid)
 }
 
-func TestUsersScope_CreateInvitation_emailOnly(t *testing.T) {
+// TestUsersScope_CreateInvitation_emptyRequiredFields documents that omitted
+// CreateUserRQ fields are serialized as empty strings: the API requires both
+// defaultProject and role, so callers must populate them.
+func TestUsersScope_CreateInvitation_emptyRequiredFields(t *testing.T) {
 	t.Parallel()
 
 	testClient := clienttest.NewClient(t, http.HandlerFunc(

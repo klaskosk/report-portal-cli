@@ -219,7 +219,7 @@ var _ = Describe("Client: Logs", Label("client", "logs"), func() {
 		It("searches logs with current-launch mode", func(ctx SpecContext) {
 			result, err := c.Project(projectName).Logs().Search(ctx,
 				seeded.SuiteID,
-				types.SearchLogRq{SearchMode: types.CurrentLaunch},
+				types.SearchLogRq{SearchMode: types.SearchLogRqSearchModeCurrentLaunch},
 			)
 			if err != nil {
 				Expect(client.IsConflict(err)).To(BeTrue(),
@@ -232,7 +232,7 @@ var _ = Describe("Client: Logs", Label("client", "logs"), func() {
 		It("searches logs with launch-name mode", func(ctx SpecContext) {
 			result, err := c.Project(projectName).Logs().Search(ctx,
 				seeded.SuiteID,
-				types.SearchLogRq{SearchMode: types.LaunchName},
+				types.SearchLogRq{SearchMode: types.SearchLogRqSearchModeLaunchName},
 			)
 			if err != nil {
 				Expect(client.IsConflict(err)).To(BeTrue(),
@@ -245,7 +245,7 @@ var _ = Describe("Client: Logs", Label("client", "logs"), func() {
 		It("returns empty results for an item with no matching logs", func(ctx SpecContext) {
 			result, err := c.Project(projectName).Logs().Search(ctx,
 				seeded.TestID,
-				types.SearchLogRq{SearchMode: types.CurrentLaunch},
+				types.SearchLogRq{SearchMode: types.SearchLogRqSearchModeCurrentLaunch},
 			)
 			if err != nil {
 				Expect(client.IsConflict(err)).To(BeTrue(),

@@ -144,6 +144,7 @@ func TestRunLogTypeCreate_validFlags(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "TRACE", request.Name)
 	assert.Equal(t, int32(5000), request.Level)
+	require.NotNil(t, request.IsFilterable)
 	assert.False(t, *request.IsFilterable)
 }
 
@@ -158,6 +159,7 @@ func TestRunLogTypeCreate_filterableDefaultsFalse(t *testing.T) {
 
 	request, err := resolveLogTypeCreateRequest(cmd, printer)
 	require.NoError(t, err)
+	require.NotNil(t, request.IsFilterable)
 	assert.False(t, *request.IsFilterable)
 }
 
@@ -175,6 +177,7 @@ func TestRunLogTypeCreate_filterableExplicitTrue(t *testing.T) {
 
 	request, err := resolveLogTypeCreateRequest(cmd, printer)
 	require.NoError(t, err)
+	require.NotNil(t, request.IsFilterable)
 	assert.True(t, *request.IsFilterable)
 }
 
@@ -202,6 +205,7 @@ func TestRunLogTypeCreate_fromFile_valid(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "CUSTOM", request.Name)
 	assert.Equal(t, int32(15000), request.Level)
+	require.NotNil(t, request.IsFilterable)
 	assert.True(t, *request.IsFilterable)
 }
 
@@ -436,17 +440,14 @@ func TestLogTypeRow_notFilterable(t *testing.T) {
 
 	id := int64(3)
 	isSystem := false
+	filterable := false
 
 	logType := &types.LogTypeResponse{
-		Id:    &id,
-		Name:  "DEBUG",
-		Level: 10000,
-		IsFilterable: func() *bool {
-			v := false
-
-			return &v
-		}(),
-		IsSystem: &isSystem,
+		Id:           &id,
+		Name:         "DEBUG",
+		Level:        10000,
+		IsFilterable: &filterable,
+		IsSystem:     &isSystem,
 	}
 
 	_, row := logTypeRow(logType)

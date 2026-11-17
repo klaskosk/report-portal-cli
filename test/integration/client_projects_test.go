@@ -411,11 +411,11 @@ var _ = Describe("Client: Projects Write", Label("client", "projects", "write"),
 					Cases: &[]types.SenderCaseDTO{
 						{
 							RuleName:           "test-notification-rule",
-							SendCase:           types.Always,
+							SendCase:           types.SenderCaseDTOSendCaseAlways,
 							Recipients:         &recipients,
 							LaunchNames:        &launchNames,
 							Enabled:            &caseEnabled,
-							AttributesOperator: types.AND,
+							AttributesOperator: types.SenderCaseDTOAttributesOperatorAND,
 							Type:               &ruleType,
 						},
 					},

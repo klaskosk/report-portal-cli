@@ -41,6 +41,7 @@ func TestLogTypesScope_List_Success(t *testing.T) {
 	assert.Equal(t, int64(1), *result[0].Id)
 	assert.Equal(t, "INFO", result[0].Name)
 	assert.Equal(t, int32(20000), result[0].Level)
+	require.NotNil(t, result[0].IsFilterable)
 	assert.True(t, *result[0].IsFilterable)
 	assert.True(t, *result[0].IsSystem)
 }
@@ -112,7 +113,10 @@ func TestLogTypesScope_Create_Success(t *testing.T) {
 
 			assert.Equal(t, "CUSTOM", req.Name)
 			assert.Equal(t, int32(50000), req.Level)
-			assert.True(t, *req.IsFilterable)
+
+			if assert.NotNil(t, req.IsFilterable) {
+				assert.True(t, *req.IsFilterable)
+			}
 
 			responseWriter.Header().Set("Content-Type", "application/json")
 			responseWriter.WriteHeader(http.StatusOK)
@@ -126,15 +130,13 @@ func TestLogTypesScope_Create_Success(t *testing.T) {
 		},
 	))
 
+	filterable := true
+
 	result, err := testClient.Project("my_project").LogTypes().
 		Create(t.Context(), types.LogTypeRequest{
-			Name:  "CUSTOM",
-			Level: 50000,
-			IsFilterable: func() *bool {
-				v := true
-
-				return &v
-			}(),
+			Name:         "CUSTOM",
+			Level:        50000,
+			IsFilterable: &filterable,
 		})
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -163,16 +165,14 @@ func TestLogTypesScope_Create_201Response(t *testing.T) {
 		},
 	))
 
+	filterable := true
+
 	result, err := testClient.Project("my_project").LogTypes().Create(
 		t.Context(),
 		types.LogTypeRequest{
-			Name:  "CUSTOM201",
-			Level: 55000,
-			IsFilterable: func() *bool {
-				v := true
-
-				return &v
-			}(),
+			Name:         "CUSTOM201",
+			Level:        55000,
+			IsFilterable: &filterable,
 		},
 	)
 	require.NoError(t, err)

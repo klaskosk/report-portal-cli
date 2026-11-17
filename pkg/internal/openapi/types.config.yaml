@@ -5,6 +5,12 @@ output: ../../types/types.gen.go
 generate:
   models: true
 
+compatibility:
+  # Keep generated enum constant names stable and descriptive; without this,
+  # oapi-codegen only prefixes names when it detects a conflict, which depends
+  # on schema ordering and can silently rename constants between spec syncs.
+  always-prefix-enum-values: true
+
 output-options:
   skip-fmt: false
   skip-prune: true

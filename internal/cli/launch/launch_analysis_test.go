@@ -54,8 +54,8 @@ func TestBuildAnalyzeLaunchRequest_ValidAnalyzerMode(t *testing.T) {
 	assert.Equal(t, int64(42), req.LaunchId)
 	assert.Equal(t, types.AnalyzeLaunchRQAnalyzerMode("ALL"), req.AnalyzerMode)
 	require.Len(t, req.AnalyzeItemsMode, 1)
-	assert.Equal(t, types.TOINVESTIGATE, req.AnalyzeItemsMode[0])
-	assert.Equal(t, types.AutoAnalyzer, req.AnalyzerTypeName)
+	assert.Equal(t, types.AnalyzeLaunchRQAnalyzeItemsModeTOINVESTIGATE, req.AnalyzeItemsMode[0])
+	assert.Equal(t, types.AnalyzeLaunchRQAnalyzerTypeNameAutoAnalyzer, req.AnalyzerTypeName)
 }
 
 func TestBuildAnalyzeLaunchRequest_InvalidAnalyzerMode(t *testing.T) {
@@ -102,7 +102,7 @@ func TestResolveAnalyzeLaunchItemsMode_Default(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Len(t, modes, 1)
-	assert.Equal(t, types.TOINVESTIGATE, modes[0])
+	assert.Equal(t, types.AnalyzeLaunchRQAnalyzeItemsModeTOINVESTIGATE, modes[0])
 }
 
 func TestResolveCompareLaunchIDs_RequiresAtLeastTwo(t *testing.T) {

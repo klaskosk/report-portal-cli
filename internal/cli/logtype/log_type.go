@@ -81,9 +81,9 @@ func newLogTypeUpdateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update <id>",
 		Short: "Update a log type from a JSON file",
-		Long: `Update a log type using a complete JSON definition from a file.
+		Long: `Update a log type using a JSON definition from a file.
 
-Update is full-replacement only. All fields in LogTypeRequest must be provided.
+Name and level are required. is_filterable is optional and may be omitted.
 
 Examples:
   rp log-type update 5 --from-file updated.json -p my_project`,
@@ -291,11 +291,10 @@ func resolveLogTypeCreateRequest(
 		return types.LogTypeRequest{}, err
 	}
 
-	filterablePtr := filterable
 	request := types.LogTypeRequest{
 		Name:         name,
 		Level:        level,
-		IsFilterable: &filterablePtr,
+		IsFilterable: &filterable,
 	}
 
 	err := validateLogTypeRequest(request)

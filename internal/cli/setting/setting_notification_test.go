@@ -108,7 +108,7 @@ func TestNotificationRow_populated(t *testing.T) {
 	notification := &types.SenderCaseDTO{
 		Id:         &id,
 		RuleName:   "rule-1",
-		SendCase:   types.Failed,
+		SendCase:   types.SenderCaseDTOSendCaseFailed,
 		Recipients: &recipients,
 		Enabled:    &enabled,
 	}
