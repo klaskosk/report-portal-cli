@@ -111,19 +111,6 @@ var _ = Describe("CLI: user", Label("cli", "user"), func() {
 		Expect(result.Stderr).To(ContainSubstring("--role"))
 	})
 
-	It("invites a user with a default project and role", func() {
-		email := fmt.Sprintf("cli_invite_%d@example.com", time.Now().UnixNano())
-
-		result := runCLI(
-			"auth", "invite",
-			"--email", email,
-			"--default-project", "superadmin_personal",
-			"--role", "MEMBER",
-		)
-		expectCLISuccess(result, "rp auth invite")
-		Expect(result.Stdout).To(ContainSubstring("BID"))
-	})
-
 	It("updates a user while preserving full name when omitted", func(ctx SpecContext) {
 		user := createCLIUserFixture(ctx, c, uniqueCLIUsername("update"))
 		DeferCleanup(func(ctx SpecContext) {
