@@ -854,6 +854,12 @@ func expectContent[T any](content *[]T, description ...string) []T {
 	return *content
 }
 
+// ptr returns a pointer to v, useful for building request structs with
+// optional pointer fields.
+func ptr[T any](v T) *T {
+	return &v
+}
+
 // expectLogLevel asserts that stderr contains log output at the given level.
 func expectLogLevel(result cliResult, level string, description string) {
 	GinkgoHelper()

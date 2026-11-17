@@ -619,7 +619,7 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("waiting for the attribute to become filterable")
-			var content []types.LaunchResource
+			var content []types.LaunchViewModel
 			resolved := waitForSeedResolution(ctx, seedResolutionAttempts, seedResolutionInterval, func() bool {
 				filtered, listErr := c.Project(projectName).Launches().List(ctx,
 					client.WithLaunchAttribute(attrKey, attrValue),

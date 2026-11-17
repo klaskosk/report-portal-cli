@@ -391,8 +391,11 @@ var _ = Describe("Client: Test Items", Label("client", "items"), func() {
 			Expect(err.Error()).To(ContainSubstring("operator does not exist: ltree = bigint"))
 		})
 
-		It("smoke tests name-substring search while indexing catches up", func(ctx SpecContext) {
-			searchTerm := "suite"
+		It("smoke tests name-prefix search while indexing catches up", func(ctx SpecContext) {
+			// Report Portal 5.15.3 maps the name filter to filter.swt (starts-with)
+			// rather than filter.cnt (contains), so the term must be a real prefix
+			// of the seeded item name.
+			searchTerm := "integration-suite"
 			var searchResult *types.PageTestItemResource
 
 			waitForSeedResolution(ctx, 15, seedResolutionInterval, func() bool {
@@ -437,7 +440,7 @@ var _ = Describe("Client: Test Items", Label("client", "items"), func() {
 			for _, item := range content {
 				Expect(item.Id).NotTo(BeNil())
 				Expect(item.Name).NotTo(BeNil())
-				Expect(strings.ToLower(*item.Name)).To(ContainSubstring(searchTerm))
+				Expect(strings.ToLower(*item.Name)).To(HavePrefix(searchTerm))
 				if *item.Id == seeded.SuiteID {
 					matchedSeededSuite = true
 				}

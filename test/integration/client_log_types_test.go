@@ -40,7 +40,7 @@ var _ = Describe("Client: Log Types", Label("client", "log-types"), func() {
 			created, err := logTypes.Create(ctx, types.LogTypeRequest{
 				Name:         logTypeName,
 				Level:        45000,
-				IsFilterable: false,
+				IsFilterable: ptr(false),
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(created).NotTo(BeNil())
@@ -66,7 +66,7 @@ var _ = Describe("Client: Log Types", Label("client", "log-types"), func() {
 			_, err = logTypes.Update(ctx, logTypeID, types.LogTypeRequest{
 				Name:         updatedName,
 				Level:        45000,
-				IsFilterable: false,
+				IsFilterable: ptr(false),
 			})
 			Expect(err).NotTo(HaveOccurred())
 
