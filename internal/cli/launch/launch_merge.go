@@ -65,7 +65,7 @@ func runLaunchMerge(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("merging launches in project %s: %w", project, err)
 	}
 
-	headers, row := launchRow(result)
+	headers, row := launchRowFromResource(result)
 
 	return deps.Printer.Print(result, headers, [][]string{row})
 }

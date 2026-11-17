@@ -2,17 +2,35 @@ openapi: 3.1.0
 info:
   contact:
     email: support@reportportal.io
-    name: Support
-  description: ReportPortal API documentation
+    name: ReportPortal Team
+  description: |
+    ReportPortal is a continuous testing service that helps teams analyze and manage test results across different environments.
+
+    It provides both a web application and an API for integrating test automation workflows and processing test data.
+
+    The platform is designed according to established [API Principles](https://github.com/reportportal/reportportal-common-api/blob/main/docs/api-principles.md)
+    and [RESTful API Guidelines](https://opensource.zalando.com/restful-api-guidelines/), which define consistent standards for how the API is structured and used.
+
+    For authentication, ReportPortal uses [JWT](https://jwt.io/) tokens for UI-based access
+    and [API Keys](https://reportportal.io/docs/reportportal-configuration/HowToGetAnAccessTokenInReportPortal/#2-authorization-with-users-api-key-for-agents) for agent-based access.
+    Both methods rely on the same Bearer authentication scheme.
   license:
     name: Apache 2.0
-    url: http://www.apache.org/licenses/LICENSE-2.0
-  title: ReportPortal
-  version: 5.15.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+  title: ReportPortal Service API
+  version: 5.15.3
 servers:
-  - url: /api
+  - description: ReportPortal server
+    url: '{host}{basePath}'
+    variables:
+      basePath:
+        default: /api
+        description: Base path of Report Portal API
+      host:
+        default: https://demo.reportportal.io
+        description: Host name and port (if needed) of Report Portal server
 security:
-  - bearerAuth: []
+  - BearerAuth: []
 tags:
   - description: Activities API collection
     name: Activity
@@ -114,7 +132,7 @@ paths:
                 $ref: components.openapi.yaml#/components/schemas/Error
           description: Error response
       security:
-        - bearerAuth: []
+        - BearerAuth: []
       summary: Get all groups
       tags:
         - groups
@@ -147,7 +165,7 @@ paths:
                 $ref: components.openapi.yaml#/components/schemas/Error
           description: Error response
       security:
-        - bearerAuth: []
+        - BearerAuth: []
       summary: Create a group
       tags:
         - groups
@@ -180,7 +198,7 @@ paths:
                 $ref: components.openapi.yaml#/components/schemas/Error
           description: Error response
       security:
-        - bearerAuth: []
+        - BearerAuth: []
       summary: Delete group
       tags:
         - groups
@@ -216,7 +234,7 @@ paths:
                 $ref: components.openapi.yaml#/components/schemas/Error
           description: Error response
       security:
-        - bearerAuth: []
+        - BearerAuth: []
       summary: Get group
       tags:
         - groups
@@ -264,7 +282,7 @@ paths:
                 $ref: components.openapi.yaml#/components/schemas/Error
           description: Error response
       security:
-        - bearerAuth: []
+        - BearerAuth: []
       summary: Update group
       tags:
         - groups
@@ -319,7 +337,7 @@ paths:
                 $ref: components.openapi.yaml#/components/schemas/Error
           description: Error response
       security:
-        - bearerAuth: []
+        - BearerAuth: []
       summary: Get all group projects
       tags:
         - groups
@@ -360,7 +378,7 @@ paths:
                 $ref: components.openapi.yaml#/components/schemas/Error
           description: Error response
       security:
-        - bearerAuth: []
+        - BearerAuth: []
       summary: Delete group project
       tags:
         - groups
@@ -404,7 +422,7 @@ paths:
                 $ref: components.openapi.yaml#/components/schemas/Error
           description: Error response
       security:
-        - bearerAuth: []
+        - BearerAuth: []
       summary: Get group project
       tags:
         - groups
@@ -453,7 +471,7 @@ paths:
                 $ref: components.openapi.yaml#/components/schemas/Error
           description: Error response
       security:
-        - bearerAuth: []
+        - BearerAuth: []
       summary: Add or update group project
       tags:
         - groups
@@ -508,7 +526,7 @@ paths:
                 $ref: components.openapi.yaml#/components/schemas/Error
           description: Error response
       security:
-        - bearerAuth: []
+        - BearerAuth: []
       summary: Get all group users
       tags:
         - groups
@@ -549,7 +567,7 @@ paths:
                 $ref: components.openapi.yaml#/components/schemas/Error
           description: Error response
       security:
-        - bearerAuth: []
+        - BearerAuth: []
       summary: Delete group user
       tags:
         - groups
@@ -593,7 +611,7 @@ paths:
                 $ref: components.openapi.yaml#/components/schemas/Error
           description: Error response
       security:
-        - bearerAuth: []
+        - BearerAuth: []
       summary: Get group user
       tags:
         - groups
@@ -637,7 +655,7 @@ paths:
                 $ref: components.openapi.yaml#/components/schemas/Error
           description: Error response
       security:
-        - bearerAuth: []
+        - BearerAuth: []
       summary: Add group user
       tags:
         - groups
@@ -690,7 +708,7 @@ paths:
                 $ref: components.openapi.yaml#/components/schemas/Error
           description: Error response
       security:
-        - bearerAuth: []
+        - BearerAuth: []
       summary: Get all groups of project
       tags:
         - projects
@@ -729,7 +747,7 @@ paths:
                 $ref: components.openapi.yaml#/components/schemas/Error
           description: Error response
       security:
-        - bearerAuth: []
+        - BearerAuth: []
       summary: Delete group from project by id
       tags:
         - projects
@@ -771,7 +789,7 @@ paths:
                 $ref: components.openapi.yaml#/components/schemas/Error
           description: Error response
       security:
-        - bearerAuth: []
+        - BearerAuth: []
       summary: Get group by id
       tags:
         - projects
@@ -818,7 +836,7 @@ paths:
                 $ref: components.openapi.yaml#/components/schemas/Error
           description: Error response
       security:
-        - bearerAuth: []
+        - BearerAuth: []
       summary: Add or update group to project
       tags:
         - projects
@@ -853,7 +871,7 @@ paths:
                 $ref: components.openapi.yaml#/components/schemas/Error
           description: Error response
       security:
-        - bearerAuth: []
+        - BearerAuth: []
       summary: Get log types of project
       tags:
         - projects
@@ -893,7 +911,7 @@ paths:
                 $ref: components.openapi.yaml#/components/schemas/Error
           description: Error response
       security:
-        - bearerAuth: []
+        - BearerAuth: []
       summary: Create new log type
       tags:
         - projects
@@ -932,7 +950,7 @@ paths:
                 $ref: components.openapi.yaml#/components/schemas/Error
           description: Error response
       security:
-        - bearerAuth: []
+        - BearerAuth: []
       summary: Delete log type
       tags:
         - projects
@@ -980,7 +998,7 @@ paths:
                 $ref: components.openapi.yaml#/components/schemas/Error
           description: Error response
       security:
-        - bearerAuth: []
+        - BearerAuth: []
       summary: Update log type
       tags:
         - projects
@@ -1635,83 +1653,10 @@ paths:
         - Activity
   /v1/{projectName}/activity/item/{itemId}:
     get:
-      description: |
-        Fetches a list of item activities for a specific project.
-        <p>Action field can have these values:</p>
-        <ul>
-        <li>'create'</li>
-        <li>'update'</li>
-        <li>'delete'</li>
-        <li>'bulkCreate'</li>
-        <li>'bulkUpdate'</li>
-        <li>'bulkDelete'</li>
-        <li>'analyze'</li>
-        <li>'start'</li>
-        <li>'finish'</li>
-        <li>'post'</li>
-        <li>'link'</li>
-        <li>'unlink'</li>
-        <li>'assign'</li>
-        <li>'unassign'</li>
-        <li>'generate'</li>
-        <li>'match'</li>
-        <li>'changeRole'</li>
-        <li>'updateUserRole'</li>
-        </ul>
-        <p>Priority field can have these values:</p>
-        <ul>
-        <li>'critical'</li>
-        <li>'high'</li>
-        <li>'medium'</li>
-        <li>'low'</li>
-        <li>'info'</li>
-        </ul>
-        <p>Object type field can have these values:</p>
-        <ul>
-        <li>'launch'</li>
-        <li>'dashboard'</li>
-        <li>'defectType'</li>
-        <li>'emailConfig'</li>
-        <li>'filter'</li>
-        <li>'import'</li>
-        <li>'integration'</li>
-        <li>'itemIssue'</li>
-        <li>'project'</li>
-        <li>'sharing'</li>
-        <li>'user'</li>
-        <li>'widget'</li>
-        <li>'pattern'</li>
-        <li>'index'</li>
-        <li>'plugin'</li>
-        <li>'invitationLink'</li>
-        </ul>
-        <p>Subject type field can have these values:</p>
-        <ul>
-        <li>'user'</li>
-        <li>'application'</li>
-        <li>'rule'</li>
-        <li>'custom'</li>
-        </ul>
-        <p> You can filter by different operators:</p>
-        <ul>
-        <li>eq (Equals condition)</li>
-        <li>ne (Not equals condition)</li>
-        <li>cnt (Contains condition)</li>
-        <li>under</li>
-        <li>level (Number of labels in path)</li>
-        <li>ex (Exists condition)</li>
-        <li>in (Accepts filter value as comma-separated list)</li>
-        <li>ea (Equals any. Accepts filter value as comma-separated list)</li>
-        <li>has (Accepts filter value as comma-separated list. Returns 'TRUE' of all
-        provided values exist in collection)</li>
-        <li>any (Overlap condition between two arrays)</li>
-        <li>gt (Greater than condition)</li>
-        <li>gte (Greater than or Equals condition)</li>
-        <li>lt (Lower than condition)</li>
-        <li>lte (Lower than or Equals condition)</li>
-        <li>btw (Between condition. Include boundaries. 'Between' condition applicable only for
-        positive Numbers, Dates or specific TimeStamp values)</li>
-        </ul>
+      description: |-
+        Fetches a list of item activities for a specific project.<p>Action field can have these values:</p><ul><li>'create'</li><li>'update'</li><li>'delete'</li><li>'bulkCreate'</li><li>'bulkUpdate'</li><li>'bulkDelete'</li><li>'analyze'</li><li>'start'</li><li>'finish'</li><li>'post'</li><li>'link'</li><li>'unlink'</li><li>'assign'</li><li>'unassign'</li><li>'generate'</li><li>'match'</li><li>'changeRole'</li><li>'updateUserRole'</li></ul><p>Priority field can have these values:</p><ul><li>'critical'</li><li>'high'</li><li>'medium'</li><li>'low'</li><li>'info'</li></ul><p>Object type field can have these values:</p><ul><li>'launch'</li><li>'dashboard'</li><li>'defectType'</li><li>'emailConfig'</li><li>'filter'</li><li>'import'</li><li>'integration'</li><li>'itemIssue'</li><li>'project'</li><li>'sharing'</li><li>'user'</li><li>'widget'</li><li>'pattern'</li><li>'index'</li><li>'plugin'</li><li>'invitationLink'</li></ul><p>Subject type field can have these values:</p><ul><li>'user'</li><li>'application'</li><li>'rule'</li><li>'custom'</li></ul><p> You can filter by different operators:</p><ul><li>eq (Equals condition)</li><li>ne (Not equals condition)</li><li>cnt (Contains condition)</li><li>under</li><li>level (Number of labels in path)</li><li>ex (Exists condition)</li><li>in (Accepts filter value as comma-separated list)</li><li>ea (Equals any. Accepts filter value as comma-separated list)</li><li>has (Accepts filter value as comma-separated list. Returns 'TRUE' of all
+        provided values exist in collection)</li><li>any (Overlap condition between two arrays)</li><li>gt (Greater than condition)</li><li>gte (Greater than or Equals condition)</li><li>lt (Lower than condition)</li><li>lte (Lower than or Equals condition)</li><li>btw (Between condition. Include boundaries. 'Between' condition applicable only for
+        positive Numbers, Dates or specific TimeStamp values)</li></ul>
       operationId: getTestItemActivities
       parameters:
         - description: The ID of the test item for which all its activities should be searched
@@ -1899,6 +1844,11 @@ paths:
           schema:
             format: int32
             type: integer
+        - description: Filters by 'locked'
+          in: query
+          name: filter.eq.locked
+          schema:
+            type: boolean
         - description: Filters by 'projectId'
           in: query
           name: filter.eq.projectId
@@ -2002,6 +1952,36 @@ paths:
                 $ref: components.openapi.yaml#/components/schemas/DashboardResource
           description: OK
       summary: Get specified dashboard by ID for specified project
+      tags:
+        - Dashboard
+    patch:
+      operationId: patchDashboard
+      parameters:
+        - in: path
+          name: dashboardId
+          required: true
+          schema:
+            format: int64
+            type: integer
+        - in: path
+          name: projectName
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: components.openapi.yaml#/components/schemas/PatchDashboardRQ
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: components.openapi.yaml#/components/schemas/OperationCompletionRS
+          description: OK
+      summary: Patch specified dashboard for specified project
       tags:
         - Dashboard
     put:
@@ -2180,6 +2160,11 @@ paths:
           schema:
             format: int32
             type: integer
+        - description: Filters by 'locked'
+          in: query
+          name: filter.eq.locked
+          schema:
+            type: boolean
         - description: Filters by 'projectId'
           in: query
           name: filter.eq.projectId
@@ -2396,6 +2381,11 @@ paths:
           schema:
             format: int32
             type: integer
+        - description: Filters by 'locked'
+          in: query
+          name: filter.eq.locked
+          schema:
+            type: boolean
         - description: Filters by 'projectId'
           in: query
           name: filter.eq.projectId
@@ -2549,6 +2539,11 @@ paths:
         - description: Filters by 'issueType'
           in: query
           name: filter.eq.issueType
+          schema:
+            type: string
+        - description: Filters by 'launchOwner'
+          in: query
+          name: filter.eq.launchOwner
           schema:
             type: string
         - description: Filters by 'statistics$executions$skipped'
@@ -3161,6 +3156,33 @@ paths:
       summary: Get all unique attribute values on the project
       tags:
         - Test Item
+  /v1/{projectName}/item/bulk:
+    post:
+      operationId: getTestItemsByIds
+      parameters:
+        - in: path
+          name: projectName
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: components.openapi.yaml#/components/schemas/BulkItemsRQ
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: components.openapi.yaml#/components/schemas/TestItemResource
+                type: array
+          description: OK
+      summary: Get test items by list of IDs (max 300)
+      tags:
+        - Test Item
   /v1/{projectName}/item/history:
     get:
       operationId: getItemsHistory
@@ -3271,6 +3293,11 @@ paths:
         - description: Filters by 'issueType'
           in: query
           name: filter.eq.issueType
+          schema:
+            type: string
+        - description: Filters by 'launchOwner'
+          in: query
+          name: filter.eq.launchOwner
           schema:
             type: string
         - description: Filters by 'statistics$executions$skipped'
@@ -3576,6 +3603,7 @@ paths:
         - Test Item
   /v1/{projectName}/item/items:
     get:
+      deprecated: true
       operationId: getTestItems_3
       parameters:
         - in: query
@@ -3608,17 +3636,17 @@ paths:
       operationId: getTestItems_2
       parameters:
         - in: query
-          name: filter.cnt.name
-          required: false
-          schema:
-            type: string
-        - in: query
           name: filter.has.compositeAttribute
           required: false
           schema:
             type: string
         - in: query
           name: filter.in.status
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: filter.swt.name
           required: false
           schema:
             type: string
@@ -3740,6 +3768,11 @@ paths:
         - description: Filters by 'issueType'
           in: query
           name: filter.eq.issueType
+          schema:
+            type: string
+        - description: Filters by 'launchOwner'
+          in: query
+          name: filter.eq.launchOwner
           schema:
             type: string
         - description: Filters by 'statistics$executions$skipped'
@@ -4268,6 +4301,11 @@ paths:
           name: filter.eq.issueType
           schema:
             type: string
+        - description: Filters by 'launchOwner'
+          in: query
+          name: filter.eq.launchOwner
+          schema:
+            type: string
         - description: Filters by 'statistics$executions$skipped'
           in: query
           name: filter.eq.statistics$executions$skipped
@@ -4536,6 +4574,11 @@ paths:
           schema:
             format: date
             type: string
+        - description: Filters by 'launchType'
+          in: query
+          name: filter.eq.launchType
+          schema:
+            type: string
         - description: Filters by 'user'
           in: query
           name: filter.eq.user
@@ -4693,7 +4736,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: components.openapi.yaml#/components/schemas/PageLaunchResource
+                $ref: components.openapi.yaml#/components/schemas/PageLaunchViewModel
           description: OK
       summary: Get list of project launches by filter
       tags:
@@ -4765,7 +4808,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: components.openapi.yaml#/components/schemas/LaunchResource
+                $ref: components.openapi.yaml#/components/schemas/LaunchViewModel
           description: OK
       summary: Get specified launch by ID
       tags:
@@ -4805,6 +4848,12 @@ paths:
       description: 'Only following formats are supported: pdf (by default), xls, html.'
       operationId: getLaunchReport
       parameters:
+        - in: query
+          name: flatAttachments
+          required: false
+          schema:
+            default: false
+            type: boolean
         - in: query
           name: includeAttachments
           required: false
@@ -5123,6 +5172,11 @@ paths:
           schema:
             format: date
             type: string
+        - description: Filters by 'launchType'
+          in: query
+          name: filter.eq.launchType
+          schema:
+            type: string
         - description: Filters by 'user'
           in: query
           name: filter.eq.user
@@ -5280,7 +5334,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: components.openapi.yaml#/components/schemas/PageLaunchResource
+                $ref: components.openapi.yaml#/components/schemas/PageLaunchViewModel
           description: OK
       summary: Get list of latest project launches by filter
       tags:
@@ -5334,6 +5388,11 @@ paths:
           schema:
             format: date
             type: string
+        - description: Filters by 'launchType'
+          in: query
+          name: filter.eq.launchType
+          schema:
+            type: string
         - description: Filters by 'user'
           in: query
           name: filter.eq.user
@@ -5491,7 +5550,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: components.openapi.yaml#/components/schemas/PageLaunchResource
+                $ref: components.openapi.yaml#/components/schemas/PageLaunchViewModel
           description: OK
       summary: Get launches of specified project from DEBUG mode
       tags:
@@ -5660,7 +5719,7 @@ paths:
                 $ref: components.openapi.yaml#/components/schemas/LaunchResourceOld
             application/x.reportportal.launch.v2+json:
               schema:
-                $ref: components.openapi.yaml#/components/schemas/LaunchResource
+                $ref: components.openapi.yaml#/components/schemas/LaunchViewModel
           description: 'Successful response with dates in timestamp format. Response with dates in ISO-8601 format if the custom header ''Accept: application/x.reportportal.launch.v2+json'' is used.'
       summary: Get specified launch by UUID
       tags:
@@ -6963,6 +7022,11 @@ paths:
           schema:
             format: int32
             type: integer
+        - description: Filters by 'locked'
+          in: query
+          name: filter.eq.locked
+          schema:
+            type: boolean
         - description: Filters by 'projectId'
           in: query
           name: filter.eq.projectId

@@ -414,10 +414,13 @@ func resolveInviteRequest(cmd *cobra.Command) (types.CreateUserRQ, error) {
 		return types.CreateUserRQ{}, errors.New("missing required flags: --email")
 	}
 
+	defaultProject, _ := cmd.Flags().GetString("default-project")
+	role, _ := cmd.Flags().GetString("role")
+
 	return types.CreateUserRQ{
 		Email:          email,
-		DefaultProject: core.OptionalStringFlag(cmd, "default-project"),
-		Role:           core.OptionalStringFlag(cmd, "role"),
+		DefaultProject: defaultProject,
+		Role:           role,
 	}, nil
 }
 

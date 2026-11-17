@@ -184,8 +184,8 @@ func TestResolveInviteRequest_optionalProjectAndRole(t *testing.T) {
 	request, err := resolveInviteRequest(cmd)
 	require.NoError(t, err)
 	assert.Equal(t, "new@example.com", request.Email)
-	assert.Nil(t, request.DefaultProject)
-	assert.Nil(t, request.Role)
+	assert.Empty(t, request.DefaultProject)
+	assert.Empty(t, request.Role)
 
 	require.NoError(t, cmd.ParseFlags([]string{
 		"--email", "new@example.com",
@@ -195,10 +195,8 @@ func TestResolveInviteRequest_optionalProjectAndRole(t *testing.T) {
 
 	request, err = resolveInviteRequest(cmd)
 	require.NoError(t, err)
-	require.NotNil(t, request.DefaultProject)
-	assert.Equal(t, "my_project", *request.DefaultProject)
-	require.NotNil(t, request.Role)
-	assert.Equal(t, "USER", *request.Role)
+	assert.Equal(t, "my_project", request.DefaultProject)
+	assert.Equal(t, "USER", request.Role)
 }
 
 func TestApiKeyListRow(t *testing.T) {

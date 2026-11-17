@@ -291,10 +291,11 @@ func resolveLogTypeCreateRequest(
 		return types.LogTypeRequest{}, err
 	}
 
+	filterablePtr := filterable
 	request := types.LogTypeRequest{
 		Name:         name,
 		Level:        level,
-		IsFilterable: filterable,
+		IsFilterable: &filterablePtr,
 	}
 
 	err := validateLogTypeRequest(request)
@@ -359,11 +360,16 @@ func logTypeHeaders() []string {
 
 // logTypeRow formats a LogTypeResponse as a table row, returning both headers and column values.
 func logTypeRow(logType *types.LogTypeResponse) ([]string, []string) {
+	filterable := ""
+	if logType.IsFilterable != nil {
+		filterable = strconv.FormatBool(*logType.IsFilterable)
+	}
+
 	return logTypeHeaders(), []string{
 		core.FormatOptional(logType.Id),
 		logType.Name,
 		strconv.FormatInt(int64(logType.Level), 10),
-		strconv.FormatBool(logType.IsFilterable),
+		filterable,
 		core.FormatOptional(logType.IsSystem),
 	}
 }

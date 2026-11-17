@@ -379,7 +379,7 @@ func listLaunches(
 		return err
 	}
 
-	var result *types.PageLaunchResource
+	var result *types.PageLaunchViewModel
 
 	switch {
 	case filterFlags.latest:
@@ -396,7 +396,7 @@ func listLaunches(
 		return fmt.Errorf("listing launches: %w", err)
 	}
 
-	var launches []types.LaunchResource
+	var launches []types.LaunchViewModel
 	if result.Content != nil {
 		launches = *result.Content
 	}
@@ -455,7 +455,21 @@ func launchHeaders() []string {
 }
 
 // launchRow formats a launch resource as a table row, returning both headers and column values.
-func launchRow(launch *types.LaunchResource) ([]string, []string) {
+func launchRow(launch *types.LaunchViewModel) ([]string, []string) {
+	startTime := launch.StartTime.UTC().Format(time.DateTime)
+
+	return launchHeaders(), []string{
+		strconv.FormatInt(launch.Id, 10),
+		launch.Uuid,
+		launch.Name,
+		launch.Status,
+		startTime,
+		strconv.FormatInt(launch.Number, 10),
+	}
+}
+
+// launchRowFromResource adapts a legacy LaunchResource to the table row format.
+func launchRowFromResource(launch *types.LaunchResource) ([]string, []string) {
 	startTime := launch.StartTime.UTC().Format(time.DateTime)
 
 	return launchHeaders(), []string{

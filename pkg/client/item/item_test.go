@@ -2167,7 +2167,7 @@ func TestTestItemScope_Search_WithOptions(t *testing.T) {
 			testutil.AssertPath(t, httpReq, "/api/v1/my_project/item/search")
 
 			query := httpReq.URL.Query()
-			assert.Equal(t, "Login", query.Get("filter.cnt.name"))
+			assert.Equal(t, "Login", query.Get("filter.swt.name"))
 			assert.Equal(t, "env:prod", query.Get("filter.has.compositeAttribute"))
 			assert.Equal(t, "FAILED", query.Get("filter.in.status"))
 			assert.Equal(t, "1", query.Get("page.page"))

@@ -161,7 +161,7 @@ func TestBuildUpdateLaunchRequestFromFlags_ModeAlone(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, req.Description)
 	require.NotNil(t, req.Mode)
-	assert.Equal(t, types.UpdateLaunchRQModeDEBUG, *req.Mode)
+	assert.Equal(t, types.DEBUG, *req.Mode)
 	assert.Nil(t, req.Attributes)
 }
 
@@ -198,7 +198,7 @@ func TestResolveUpdateLaunchMode_DEBUG(t *testing.T) {
 	mode, err := resolveUpdateLaunchMode("DEBUG")
 
 	require.NoError(t, err)
-	assert.Equal(t, types.UpdateLaunchRQModeDEBUG, mode)
+	assert.Equal(t, types.DEBUG, mode)
 }
 
 func TestResolveUpdateLaunchMode_DEFAULT(t *testing.T) {
@@ -207,7 +207,7 @@ func TestResolveUpdateLaunchMode_DEFAULT(t *testing.T) {
 	mode, err := resolveUpdateLaunchMode("DEFAULT")
 
 	require.NoError(t, err)
-	assert.Equal(t, types.UpdateLaunchRQModeDEFAULT, mode)
+	assert.Equal(t, types.DEFAULT, mode)
 }
 
 func TestResolveUpdateLaunchMode_LowercaseNormalized(t *testing.T) {
@@ -216,7 +216,7 @@ func TestResolveUpdateLaunchMode_LowercaseNormalized(t *testing.T) {
 	mode, err := resolveUpdateLaunchMode("debug")
 
 	require.NoError(t, err)
-	assert.Equal(t, types.UpdateLaunchRQModeDEBUG, mode)
+	assert.Equal(t, types.DEBUG, mode)
 }
 
 func TestResolveUpdateLaunchMode_Invalid(t *testing.T) {
@@ -292,7 +292,7 @@ func TestLaunchUpdateCmd_FromFile_Valid(t *testing.T) {
 	require.NotNil(t, req.Description)
 	assert.Equal(t, "from file", *req.Description)
 	require.NotNil(t, req.Mode)
-	assert.Equal(t, types.UpdateLaunchRQModeDEFAULT, *req.Mode)
+	assert.Equal(t, types.DEFAULT, *req.Mode)
 }
 
 func TestLaunchUpdateCmd_FromFilePrecedence(t *testing.T) {
