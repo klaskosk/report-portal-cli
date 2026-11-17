@@ -411,11 +411,11 @@ var _ = Describe("Client: Projects Write", Label("client", "projects", "write"),
 					Cases: &[]types.SenderCaseDTO{
 						{
 							RuleName:           "test-notification-rule",
-							SendCase:           types.Always,
+							SendCase:           types.SenderCaseDTOSendCaseAlways,
 							Recipients:         &recipients,
 							LaunchNames:        &launchNames,
 							Enabled:            &caseEnabled,
-							AttributesOperator: types.AND,
+							AttributesOperator: types.SenderCaseDTOAttributesOperatorAND,
 							Type:               &ruleType,
 						},
 					},
@@ -443,10 +443,15 @@ var _ = Describe("Client: Projects Write", Label("client", "projects", "write"),
 		It("deletes project index", func(ctx SpecContext) {
 			result, err := c.Projects().DeleteIndex(ctx, projectName)
 
-			// CI environment may not have an analyzer deployed (409 Conflict, error code 40302).
+			// This stack intentionally runs without the analyzer service, so Report
+			// Portal rejects the request before deleting the index (HTTP 409,
+			// UNABLE_INTERACT_WITH_INTEGRATION). That condition's numeric error code
+			// changed to 4092 in 5.15.3, so assert on the status and message rather
+			// than the version-specific code.
 			if err != nil {
-				Expect(client.HasErrorCode(err, 40302)).To(BeTrue(),
-					"unexpected error from DeleteIndex (expected error code 40302): %v", err)
+				Expect(client.IsConflict(err)).To(BeTrue(),
+					"unexpected error from DeleteIndex: %v", err)
+				Expect(err.Error()).To(ContainSubstring("no analyzer deployed"))
 
 				return
 			}

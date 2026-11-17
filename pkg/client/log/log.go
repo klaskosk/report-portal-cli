@@ -408,7 +408,7 @@ func (l *LogScope) Search(
 	logger.InfoContext(ctx, "API request")
 
 	if request.SearchMode == "" {
-		request.SearchMode = types.CurrentLaunch
+		request.SearchMode = types.SearchLogRqSearchModeCurrentLaunch
 	}
 
 	response, err := l.scope.Client.SearchLogsWithResponse(

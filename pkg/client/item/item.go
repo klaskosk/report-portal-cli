@@ -668,10 +668,10 @@ func (i *TestItemScope) Search(
 	return core.Execute[types.PageTestItemResource](ctx, logger, "search test items", resp, err)
 }
 
-// WithSearchItemName filters search results by a contains-match on item name.
+// WithSearchItemName filters search results by name (server now uses starts-with semantics via filter.swt.name).
 func WithSearchItemName(name string) searchTestItemsOptionFunc {
 	return searchTestItemsOptionFunc(func(params *api.GetTestItems2Params) {
-		params.FilterCntName = &name
+		params.FilterSwtName = &name
 	})
 }
 

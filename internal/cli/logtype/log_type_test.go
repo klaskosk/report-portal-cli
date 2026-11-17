@@ -144,7 +144,8 @@ func TestRunLogTypeCreate_validFlags(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "TRACE", request.Name)
 	assert.Equal(t, int32(5000), request.Level)
-	assert.False(t, request.IsFilterable)
+	require.NotNil(t, request.IsFilterable)
+	assert.False(t, *request.IsFilterable)
 }
 
 func TestRunLogTypeCreate_filterableDefaultsFalse(t *testing.T) {
@@ -158,7 +159,8 @@ func TestRunLogTypeCreate_filterableDefaultsFalse(t *testing.T) {
 
 	request, err := resolveLogTypeCreateRequest(cmd, printer)
 	require.NoError(t, err)
-	assert.False(t, request.IsFilterable)
+	require.NotNil(t, request.IsFilterable)
+	assert.False(t, *request.IsFilterable)
 }
 
 func TestRunLogTypeCreate_filterableExplicitTrue(t *testing.T) {
@@ -175,7 +177,8 @@ func TestRunLogTypeCreate_filterableExplicitTrue(t *testing.T) {
 
 	request, err := resolveLogTypeCreateRequest(cmd, printer)
 	require.NoError(t, err)
-	assert.True(t, request.IsFilterable)
+	require.NotNil(t, request.IsFilterable)
+	assert.True(t, *request.IsFilterable)
 }
 
 // --- Create from-file mode ---
@@ -202,7 +205,8 @@ func TestRunLogTypeCreate_fromFile_valid(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "CUSTOM", request.Name)
 	assert.Equal(t, int32(15000), request.Level)
-	assert.True(t, request.IsFilterable)
+	require.NotNil(t, request.IsFilterable)
+	assert.True(t, *request.IsFilterable)
 }
 
 func TestRunLogTypeCreate_fromFile_missingName(t *testing.T) {
@@ -387,11 +391,12 @@ func TestLogTypeRow_allFieldsPopulated(t *testing.T) {
 	id := int64(5)
 	isSystem := true
 
+	filterable := true
 	logType := &types.LogTypeResponse{
 		Id:           &id,
 		Name:         "TRACE",
 		Level:        5000,
-		IsFilterable: true,
+		IsFilterable: &filterable,
 		IsSystem:     &isSystem,
 	}
 
@@ -435,12 +440,13 @@ func TestLogTypeRow_notFilterable(t *testing.T) {
 
 	id := int64(3)
 	isSystem := false
+	filterable := false
 
 	logType := &types.LogTypeResponse{
 		Id:           &id,
 		Name:         "DEBUG",
 		Level:        10000,
-		IsFilterable: false,
+		IsFilterable: &filterable,
 		IsSystem:     &isSystem,
 	}
 

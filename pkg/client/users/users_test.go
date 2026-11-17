@@ -846,14 +846,8 @@ func TestUsersScope_CreateInvitation_Success(t *testing.T) {
 			}
 
 			assert.Equal(t, "invite@example.com", req.Email)
-
-			if assert.NotNil(t, req.DefaultProject) {
-				assert.Equal(t, "my_project", *req.DefaultProject)
-			}
-
-			if assert.NotNil(t, req.Role) {
-				assert.Equal(t, "MEMBER", *req.Role)
-			}
+			assert.Equal(t, "my_project", req.DefaultProject)
+			assert.Equal(t, "MEMBER", req.Role)
 
 			responseWriter.Header().Set("Content-Type", "application/json")
 			responseWriter.WriteHeader(http.StatusCreated)
@@ -870,8 +864,8 @@ func TestUsersScope_CreateInvitation_Success(t *testing.T) {
 	role := "MEMBER"
 	result, err := testClient.Users().CreateInvitation(t.Context(), types.CreateUserRQ{
 		Email:          "invite@example.com",
-		DefaultProject: &defaultProject,
-		Role:           &role,
+		DefaultProject: defaultProject,
+		Role:           role,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -879,7 +873,10 @@ func TestUsersScope_CreateInvitation_Success(t *testing.T) {
 	assert.Equal(t, "abc-123-def", *result.Bid)
 }
 
-func TestUsersScope_CreateInvitation_emailOnly(t *testing.T) {
+// TestUsersScope_CreateInvitation_emptyRequiredFields documents that omitted
+// CreateUserRQ fields are serialized as empty strings: the API requires both
+// defaultProject and role, so callers must populate them.
+func TestUsersScope_CreateInvitation_emptyRequiredFields(t *testing.T) {
 	t.Parallel()
 
 	testClient := clienttest.NewClient(t, http.HandlerFunc(
@@ -889,7 +886,11 @@ func TestUsersScope_CreateInvitation_emailOnly(t *testing.T) {
 				return
 			}
 
-			assert.JSONEq(t, `{"email":"invite@example.com"}`, string(body))
+			assert.JSONEq(
+				t,
+				`{"defaultProject":"","email":"invite@example.com","role":""}`,
+				string(body),
+			)
 
 			responseWriter.Header().Set("Content-Type", "application/json")
 			responseWriter.WriteHeader(http.StatusCreated)
@@ -916,8 +917,8 @@ func TestUsersScope_CreateInvitation_Forbidden(t *testing.T) {
 	role := "MEMBER"
 	_, err := c.Users().CreateInvitation(t.Context(), types.CreateUserRQ{
 		Email:          "invite@example.com",
-		DefaultProject: &defaultProject,
-		Role:           &role,
+		DefaultProject: defaultProject,
+		Role:           role,
 	})
 	require.Error(t, err)
 	assert.True(t, client.IsForbidden(err))

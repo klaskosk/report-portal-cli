@@ -798,7 +798,7 @@ func TestLogScope_Search_Success(t *testing.T) {
 				return
 			}
 
-			assert.Equal(t, types.CurrentLaunch, request.SearchMode)
+			assert.Equal(t, types.SearchLogRqSearchModeCurrentLaunch, request.SearchMode)
 
 			responseWriter.Header().Set("Content-Type", "application/json")
 			responseWriter.WriteHeader(http.StatusOK)
@@ -873,7 +873,7 @@ func TestLogScope_Search_Errors(t *testing.T) {
 func TestLogScope_Search_PreservesProvidedSearchMode(t *testing.T) {
 	t.Parallel()
 
-	expectedMode := types.LaunchName
+	expectedMode := types.SearchLogRqSearchModeLaunchName
 	testClient := clienttest.NewClient(t, http.HandlerFunc(
 		func(responseWriter http.ResponseWriter, httpReq *http.Request) {
 			testutil.AssertBearerToken(t, httpReq)

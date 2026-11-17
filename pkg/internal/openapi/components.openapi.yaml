@@ -2,17 +2,35 @@ openapi: 3.1.0
 info:
   contact:
     email: support@reportportal.io
-    name: Support
-  description: ReportPortal API documentation
+    name: ReportPortal Team
+  description: |
+    ReportPortal is a continuous testing service that helps teams analyze and manage test results across different environments.
+
+    It provides both a web application and an API for integrating test automation workflows and processing test data.
+
+    The platform is designed according to established [API Principles](https://github.com/reportportal/reportportal-common-api/blob/main/docs/api-principles.md)
+    and [RESTful API Guidelines](https://opensource.zalando.com/restful-api-guidelines/), which define consistent standards for how the API is structured and used.
+
+    For authentication, ReportPortal uses [JWT](https://jwt.io/) tokens for UI-based access
+    and [API Keys](https://reportportal.io/docs/reportportal-configuration/HowToGetAnAccessTokenInReportPortal/#2-authorization-with-users-api-key-for-agents) for agent-based access.
+    Both methods rely on the same Bearer authentication scheme.
   license:
     name: Apache 2.0
-    url: http://www.apache.org/licenses/LICENSE-2.0
-  title: ReportPortal
-  version: 5.15.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+  title: ReportPortal Service API
+  version: 5.15.3
 servers:
-  - url: /api
+  - description: ReportPortal server
+    url: '{host}{basePath}'
+    variables:
+      basePath:
+        default: /api
+        description: Base path of Report Portal API
+      host:
+        default: https://demo.reportportal.io
+        description: Host name and port (if needed) of Report Portal server
 security:
-  - bearerAuth: []
+  - BearerAuth: []
 tags:
   - description: Activities API collection
     name: Activity
@@ -365,6 +383,18 @@ components:
       required:
         - ids
       type: object
+    BulkItemsRQ:
+      properties:
+        ids:
+          items:
+            format: int64
+            type: integer
+          maxItems: 300
+          minItems: 0
+          type: array
+      required:
+        - ids
+      type: object
     BulkRQLongFinishExecutionRQ:
       properties:
         entities:
@@ -613,7 +643,9 @@ components:
           minLength: 1
           type: string
       required:
+        - defaultProject
         - email
+        - role
       type: object
     CreateUserRQConfirm:
       properties:
@@ -742,6 +774,8 @@ components:
         id:
           format: int64
           type: integer
+        locked:
+          type: boolean
         name:
           maxLength: 128
           minLength: 3
@@ -901,13 +935,13 @@ components:
             - UNABLE_MODIFY_SHARABLE_RESOURCE
             - INCORRECT_AUTHENTICATION_TYPE
             - UNABLE_POST_TICKET
-            - UNABLE_INTERACT_WITH_INTEGRATION
             - UNABLE_ASSIGN_UNASSIGN_USER_TO_PROJECT
             - EMAIL_CONFIGURATION_IS_INCORRECT
             - PROJECT_UPDATE_NOT_ALLOWED
             - UNABLE_TO_UPDATE_YOURSELF_ROLE
             - FORBIDDEN_OPERATION
             - RESOURCE_ALREADY_EXISTS
+            - UNABLE_INTERACT_WITH_INTEGRATION
             - ROLE_ALREADY_EXISTS_ERROR
             - USER_ALREADY_EXISTS
             - USER_FILTER_ALREADY_EXISTS
@@ -1526,6 +1560,8 @@ components:
         lastModified:
           format: date-time
           type: string
+        locked:
+          type: boolean
         metadata:
           additionalProperties: {}
           type: object
@@ -1598,6 +1634,87 @@ components:
         lastModified:
           format: date-time
           type: string
+        locked:
+          type: boolean
+        metadata:
+          additionalProperties: {}
+          type: object
+        mode:
+          enum:
+            - DEFAULT
+            - DEBUG
+          type: string
+        name:
+          maxLength: 256
+          minLength: 3
+          type: string
+        number:
+          format: int64
+          type: integer
+        owner:
+          type: string
+        rerun:
+          type: boolean
+        retentionPolicy:
+          enum:
+            - IMPORTANT
+            - REGULAR
+          type: string
+        startTime:
+          format: date-time
+          type: string
+        statistics:
+          $ref: components.openapi.yaml#/components/schemas/StatisticsResource
+        status:
+          type: string
+        uuid:
+          minLength: 1
+          type: string
+      required:
+        - id
+        - name
+        - number
+        - startTime
+        - status
+        - uuid
+      type: object
+    LaunchViewModel:
+      properties:
+        analysing:
+          items:
+            type: string
+          type: array
+          uniqueItems: true
+        approximateDuration:
+          format: double
+          type: number
+        attributes:
+          items:
+            $ref: components.openapi.yaml#/components/schemas/ItemAttributeResource
+          type: array
+          uniqueItems: true
+        description:
+          maxLength: 2048
+          minLength: 0
+          type: string
+        endTime:
+          format: date-time
+          type: string
+        hasRetries:
+          type: boolean
+        id:
+          format: int64
+          type: integer
+        lastModified:
+          format: date-time
+          type: string
+        launchType:
+          enum:
+            - AUTOMATION
+            - AGENTIC
+          type: string
+        locked:
+          type: boolean
         metadata:
           additionalProperties: {}
           type: object
@@ -1719,7 +1836,6 @@ components:
         style:
           $ref: components.openapi.yaml#/components/schemas/LogTypeStyle
       required:
-        - is_filterable
         - level
         - name
       type: object
@@ -1754,7 +1870,6 @@ components:
         style:
           $ref: components.openapi.yaml#/components/schemas/LogTypeStyle
       required:
-        - is_filterable
         - level
         - name
       type: object
@@ -1869,6 +1984,8 @@ components:
           type: string
         id:
           type: string
+        locked:
+          type: boolean
         name:
           type: string
         owner:
@@ -1900,11 +2017,11 @@ components:
         page:
           $ref: components.openapi.yaml#/components/schemas/PageMetadata
       type: object
-    PageLaunchResource:
+    PageLaunchViewModel:
       properties:
         content:
           items:
-            $ref: components.openapi.yaml#/components/schemas/LaunchResource
+            $ref: components.openapi.yaml#/components/schemas/LaunchViewModel
           type: array
         page:
           $ref: components.openapi.yaml#/components/schemas/PageMetadata
@@ -2089,6 +2206,13 @@ components:
           type: string
       required:
         - key
+      type: object
+    PatchDashboardRQ:
+      properties:
+        locked:
+          type: boolean
+      required:
+        - locked
       type: object
     PathNameResource:
       properties:
@@ -2715,7 +2839,8 @@ components:
             - SCENARIO
             - STEP
             - BEFORE_CLASS
-            - BEFORE_GROUPS,BEFORE_METHOD
+            - BEFORE_GROUPS
+            - BEFORE_METHOD
             - BEFORE_SUITE
             - BEFORE_TEST
             - AFTER_CLASS
@@ -3257,6 +3382,8 @@ components:
         id:
           format: int64
           type: integer
+        locked:
+          type: boolean
         name:
           maxLength: 128
           minLength: 3
@@ -3445,6 +3572,8 @@ components:
         id:
           format: int64
           type: integer
+        locked:
+          type: boolean
         name:
           maxLength: 128
           minLength: 3
@@ -3486,8 +3615,6 @@ components:
           type: boolean
       type: object
   securitySchemes:
-    bearerAuth:
-      bearerFormat: JWT
-      name: bearerAuth
+    BearerAuth:
       scheme: bearer
       type: http

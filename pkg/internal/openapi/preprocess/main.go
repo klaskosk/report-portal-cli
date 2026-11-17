@@ -7,7 +7,7 @@
 //   - $ref retarget: #/components/… → components.openapi.yaml#/components/…
 //   - Content type normalization: */* → application/json
 //   - Error response stripping: removes 400/401/403/500 (overlay adds default)
-//   - Security injection: ensures security: [{bearerAuth: []}] is present
+//   - Security injection: ensures security: [{BearerAuth: []}] is present
 //
 // Usage:
 //
@@ -82,7 +82,7 @@ func runPreprocess(specPath, outDirFlag string) error {
 
 	security := raw["security"]
 	if security == nil {
-		security = []any{map[string]any{"bearerAuth": []any{}}}
+		security = []any{map[string]any{"BearerAuth": []any{}}}
 	}
 
 	openapi, ok := raw["openapi"].(string)
@@ -286,9 +286,9 @@ func normalizeSecurityRefs(paths any) {
 				continue
 			}
 
-			if scopes, exists := securityItem["BearerAuth"]; exists {
-				delete(securityItem, "BearerAuth")
-				securityItem["bearerAuth"] = scopes
+			if scopes, exists := securityItem["bearerAuth"]; exists {
+				delete(securityItem, "bearerAuth")
+				securityItem["BearerAuth"] = scopes
 			}
 		}
 	})

@@ -86,8 +86,8 @@ var _ = Describe("Client: ProjectSettings Write", Label("client", "project-setti
 			// Create.
 			ruleName := fmt.Sprintf("test-rule-%d", time.Now().UnixNano())
 			enabled := true
-			sendCase := types.Always
-			attributesOperator := types.AND
+			sendCase := types.SenderCaseDTOSendCaseAlways
+			attributesOperator := types.SenderCaseDTOAttributesOperatorAND
 			attributes := []types.ItemAttributeResource{}
 			recipients := []string{"test@example.com"}
 

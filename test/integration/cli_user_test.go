@@ -104,6 +104,13 @@ var _ = Describe("CLI: user", Label("cli", "user"), func() {
 		Expect(fetched.Email).To(Equal(email))
 	})
 
+	It("requires a default project and role when inviting a user", func() {
+		result := runCLI("auth", "invite", "--email", "invite@example.com")
+		expectCLIError(result, "rp auth invite without required flags")
+		Expect(result.Stderr).To(ContainSubstring("--default-project"))
+		Expect(result.Stderr).To(ContainSubstring("--role"))
+	})
+
 	It("updates a user while preserving full name when omitted", func(ctx SpecContext) {
 		user := createCLIUserFixture(ctx, c, uniqueCLIUsername("update"))
 		DeferCleanup(func(ctx SpecContext) {

@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	BearerAuthScopes = "bearerAuth.Scopes"
+	BearerAuthScopes = "BearerAuth.Scopes"
 )
 
 // Defines values for ExportParamsView.
@@ -29,8 +29,8 @@ const (
 
 // Defines values for GetActivitiesParamsOrder.
 const (
-	ASC  GetActivitiesParamsOrder = "ASC"
-	DESC GetActivitiesParamsOrder = "DESC"
+	GetActivitiesParamsOrderASC  GetActivitiesParamsOrder = "ASC"
+	GetActivitiesParamsOrderDESC GetActivitiesParamsOrder = "DESC"
 )
 
 // Defines values for ExportProjectsParamsView.
@@ -40,9 +40,9 @@ const (
 
 // Defines values for GetLaunchReportParamsView.
 const (
-	Html GetLaunchReportParamsView = "html"
-	Pdf  GetLaunchReportParamsView = "pdf"
-	Xls  GetLaunchReportParamsView = "xls"
+	GetLaunchReportParamsViewHtml GetLaunchReportParamsView = "html"
+	GetLaunchReportParamsViewPdf  GetLaunchReportParamsView = "pdf"
+	GetLaunchReportParamsViewXls  GetLaunchReportParamsView = "xls"
 )
 
 // GetGroupsParams defines parameters for GetGroups.
@@ -581,6 +581,9 @@ type GetAllDashboardsParams struct {
 	// FilterEqId Filters by 'id'
 	FilterEqId *int32 `form:"filter.eq.id,omitempty" json:"filter.eq.id,omitempty"`
 
+	// FilterEqLocked Filters by 'locked'
+	FilterEqLocked *bool `form:"filter.eq.locked,omitempty" json:"filter.eq.locked,omitempty"`
+
 	// FilterEqProjectId Filters by 'projectId'
 	FilterEqProjectId *int32 `form:"filter.eq.projectId,omitempty" json:"filter.eq.projectId,omitempty"`
 
@@ -607,6 +610,9 @@ type GetAllFiltersParams struct {
 
 	// FilterEqId Filters by 'id'
 	FilterEqId *int32 `form:"filter.eq.id,omitempty" json:"filter.eq.id,omitempty"`
+
+	// FilterEqLocked Filters by 'locked'
+	FilterEqLocked *bool `form:"filter.eq.locked,omitempty" json:"filter.eq.locked,omitempty"`
 
 	// FilterEqProjectId Filters by 'projectId'
 	FilterEqProjectId *int32 `form:"filter.eq.projectId,omitempty" json:"filter.eq.projectId,omitempty"`
@@ -636,6 +642,9 @@ type GetAllFiltersNamesParams struct {
 
 	// FilterEqId Filters by 'id'
 	FilterEqId *int32 `form:"filter.eq.id,omitempty" json:"filter.eq.id,omitempty"`
+
+	// FilterEqLocked Filters by 'locked'
+	FilterEqLocked *bool `form:"filter.eq.locked,omitempty" json:"filter.eq.locked,omitempty"`
 
 	// FilterEqProjectId Filters by 'projectId'
 	FilterEqProjectId *int32 `form:"filter.eq.projectId,omitempty" json:"filter.eq.projectId,omitempty"`
@@ -696,6 +705,9 @@ type GetTestItemsParams struct {
 
 	// FilterEqIssueType Filters by 'issueType'
 	FilterEqIssueType *string `form:"filter.eq.issueType,omitempty" json:"filter.eq.issueType,omitempty"`
+
+	// FilterEqLaunchOwner Filters by 'launchOwner'
+	FilterEqLaunchOwner *string `form:"filter.eq.launchOwner,omitempty" json:"filter.eq.launchOwner,omitempty"`
 
 	// FilterEqStatisticsExecutionsSkipped Filters by 'statistics$executions$skipped'
 	FilterEqStatisticsExecutionsSkipped *int32 `form:"filter.eq.statistics$executions$skipped,omitempty" json:"filter.eq.statistics$executions$skipped,omitempty"`
@@ -883,6 +895,9 @@ type GetItemsHistoryParams struct {
 	// FilterEqIssueType Filters by 'issueType'
 	FilterEqIssueType *string `form:"filter.eq.issueType,omitempty" json:"filter.eq.issueType,omitempty"`
 
+	// FilterEqLaunchOwner Filters by 'launchOwner'
+	FilterEqLaunchOwner *string `form:"filter.eq.launchOwner,omitempty" json:"filter.eq.launchOwner,omitempty"`
+
 	// FilterEqStatisticsExecutionsSkipped Filters by 'statistics$executions$skipped'
 	FilterEqStatisticsExecutionsSkipped *int32 `form:"filter.eq.statistics$executions$skipped,omitempty" json:"filter.eq.statistics$executions$skipped,omitempty"`
 
@@ -1008,9 +1023,9 @@ type GetTestItems3Params struct {
 
 // GetTestItems2Params defines parameters for GetTestItems2.
 type GetTestItems2Params struct {
-	FilterCntName               *string `form:"filter.cnt.name,omitempty" json:"filter.cnt.name,omitempty"`
 	FilterHasCompositeAttribute *string `form:"filter.has.compositeAttribute,omitempty" json:"filter.has.compositeAttribute,omitempty"`
 	FilterInStatus              *string `form:"filter.in.status,omitempty" json:"filter.in.status,omitempty"`
+	FilterSwtName               *string `form:"filter.swt.name,omitempty" json:"filter.swt.name,omitempty"`
 
 	// PagePage Results page you want to retrieve (0..N)
 	PagePage *int32 `form:"page.page,omitempty" json:"page.page,omitempty"`
@@ -1064,6 +1079,9 @@ type GetTestItems1Params struct {
 
 	// FilterEqIssueType Filters by 'issueType'
 	FilterEqIssueType *string `form:"filter.eq.issueType,omitempty" json:"filter.eq.issueType,omitempty"`
+
+	// FilterEqLaunchOwner Filters by 'launchOwner'
+	FilterEqLaunchOwner *string `form:"filter.eq.launchOwner,omitempty" json:"filter.eq.launchOwner,omitempty"`
 
 	// FilterEqStatisticsExecutionsSkipped Filters by 'statistics$executions$skipped'
 	FilterEqStatisticsExecutionsSkipped *int32 `form:"filter.eq.statistics$executions$skipped,omitempty" json:"filter.eq.statistics$executions$skipped,omitempty"`
@@ -1244,6 +1262,9 @@ type GetTestItemsV2Params struct {
 	// FilterEqIssueType Filters by 'issueType'
 	FilterEqIssueType *string `form:"filter.eq.issueType,omitempty" json:"filter.eq.issueType,omitempty"`
 
+	// FilterEqLaunchOwner Filters by 'launchOwner'
+	FilterEqLaunchOwner *string `form:"filter.eq.launchOwner,omitempty" json:"filter.eq.launchOwner,omitempty"`
+
 	// FilterEqStatisticsExecutionsSkipped Filters by 'statistics$executions$skipped'
 	FilterEqStatisticsExecutionsSkipped *int32 `form:"filter.eq.statistics$executions$skipped,omitempty" json:"filter.eq.statistics$executions$skipped,omitempty"`
 
@@ -1375,6 +1396,9 @@ type GetProjectLaunchesParams struct {
 	// FilterEqEndTime Filters by 'endTime'
 	FilterEqEndTime *openapi_types.Date `form:"filter.eq.endTime,omitempty" json:"filter.eq.endTime,omitempty"`
 
+	// FilterEqLaunchType Filters by 'launchType'
+	FilterEqLaunchType *string `form:"filter.eq.launchType,omitempty" json:"filter.eq.launchType,omitempty"`
+
 	// FilterEqUser Filters by 'user'
 	FilterEqUser *string `form:"filter.eq.user,omitempty" json:"filter.eq.user,omitempty"`
 
@@ -1493,6 +1517,9 @@ type GetLatestLaunchesParams struct {
 	// FilterEqEndTime Filters by 'endTime'
 	FilterEqEndTime *openapi_types.Date `form:"filter.eq.endTime,omitempty" json:"filter.eq.endTime,omitempty"`
 
+	// FilterEqLaunchType Filters by 'launchType'
+	FilterEqLaunchType *string `form:"filter.eq.launchType,omitempty" json:"filter.eq.launchType,omitempty"`
+
 	// FilterEqUser Filters by 'user'
 	FilterEqUser *string `form:"filter.eq.user,omitempty" json:"filter.eq.user,omitempty"`
 
@@ -1582,6 +1609,9 @@ type GetDebugLaunchesParams struct {
 
 	// FilterEqEndTime Filters by 'endTime'
 	FilterEqEndTime *openapi_types.Date `form:"filter.eq.endTime,omitempty" json:"filter.eq.endTime,omitempty"`
+
+	// FilterEqLaunchType Filters by 'launchType'
+	FilterEqLaunchType *string `form:"filter.eq.launchType,omitempty" json:"filter.eq.launchType,omitempty"`
 
 	// FilterEqUser Filters by 'user'
 	FilterEqUser *string `form:"filter.eq.user,omitempty" json:"filter.eq.user,omitempty"`
@@ -1683,6 +1713,7 @@ type GetStatusesParams struct {
 
 // GetLaunchReportParams defines parameters for GetLaunchReport.
 type GetLaunchReportParams struct {
+	FlatAttachments    *bool                      `form:"flatAttachments,omitempty" json:"flatAttachments,omitempty"`
 	IncludeAttachments *bool                      `form:"includeAttachments,omitempty" json:"includeAttachments,omitempty"`
 	View               *GetLaunchReportParamsView `form:"view,omitempty" json:"view,omitempty"`
 }
@@ -2023,6 +2054,9 @@ type GetWidgetNamesParams struct {
 	// FilterEqId Filters by 'id'
 	FilterEqId *int32 `form:"filter.eq.id,omitempty" json:"filter.eq.id,omitempty"`
 
+	// FilterEqLocked Filters by 'locked'
+	FilterEqLocked *bool `form:"filter.eq.locked,omitempty" json:"filter.eq.locked,omitempty"`
+
 	// FilterEqProjectId Filters by 'projectId'
 	FilterEqProjectId *int32 `form:"filter.eq.projectId,omitempty" json:"filter.eq.projectId,omitempty"`
 
@@ -2158,6 +2192,9 @@ type CreateDashboardJSONRequestBody = externalRef0.CreateDashboardRQ
 // CreatePreconfiguredJSONRequestBody defines body for CreatePreconfigured for application/json ContentType.
 type CreatePreconfiguredJSONRequestBody = externalRef0.DashboardPreconfiguredRq
 
+// PatchDashboardJSONRequestBody defines body for PatchDashboard for application/json ContentType.
+type PatchDashboardJSONRequestBody = externalRef0.PatchDashboardRQ
+
 // UpdateDashboardJSONRequestBody defines body for UpdateDashboard for application/json ContentType.
 type UpdateDashboardJSONRequestBody = externalRef0.UpdateDashboardRQ
 
@@ -2181,6 +2218,9 @@ type DefineTestItemIssueTypeJSONRequestBody = externalRef0.DefineIssueRQ
 
 // StartRootItem3JSONRequestBody defines body for StartRootItem3 for application/json ContentType.
 type StartRootItem3JSONRequestBody = externalRef0.StartTestItemRQ
+
+// GetTestItemsByIdsJSONRequestBody defines body for GetTestItemsByIds for application/json ContentType.
+type GetTestItemsByIdsJSONRequestBody = externalRef0.BulkItemsRQ
 
 // BulkUpdate1JSONRequestBody defines body for BulkUpdate1 for application/json ContentType.
 type BulkUpdate1JSONRequestBody = externalRef0.BulkInfoUpdateRQ
@@ -2817,6 +2857,11 @@ type ClientInterface interface {
 	// GetDashboard request
 	GetDashboard(ctx context.Context, projectName string, dashboardId int64, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// PatchDashboardWithBody request with any body
+	PatchDashboardWithBody(ctx context.Context, projectName string, dashboardId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PatchDashboard(ctx context.Context, projectName string, dashboardId int64, body PatchDashboardJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// UpdateDashboardWithBody request with any body
 	UpdateDashboardWithBody(ctx context.Context, projectName string, dashboardId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -2892,6 +2937,11 @@ type ClientInterface interface {
 
 	// GetAttributeValues2 request
 	GetAttributeValues2(ctx context.Context, projectName string, params *GetAttributeValues2Params, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetTestItemsByIdsWithBody request with any body
+	GetTestItemsByIdsWithBody(ctx context.Context, projectName string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	GetTestItemsByIds(ctx context.Context, projectName string, body GetTestItemsByIdsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetItemsHistory request
 	GetItemsHistory(ctx context.Context, projectName string, params *GetItemsHistoryParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -5112,6 +5162,30 @@ func (c *Client) GetDashboard(ctx context.Context, projectName string, dashboard
 	return c.Client.Do(req)
 }
 
+func (c *Client) PatchDashboardWithBody(ctx context.Context, projectName string, dashboardId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPatchDashboardRequestWithBody(c.Server, projectName, dashboardId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PatchDashboard(ctx context.Context, projectName string, dashboardId int64, body PatchDashboardJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPatchDashboardRequest(c.Server, projectName, dashboardId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) UpdateDashboardWithBody(ctx context.Context, projectName string, dashboardId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateDashboardRequestWithBody(c.Server, projectName, dashboardId, contentType, body)
 	if err != nil {
@@ -5438,6 +5512,30 @@ func (c *Client) GetAttributeKeysForProject(ctx context.Context, projectName str
 
 func (c *Client) GetAttributeValues2(ctx context.Context, projectName string, params *GetAttributeValues2Params, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetAttributeValues2Request(c.Server, projectName, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetTestItemsByIdsWithBody(ctx context.Context, projectName string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetTestItemsByIdsRequestWithBody(c.Server, projectName, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetTestItemsByIds(ctx context.Context, projectName string, body GetTestItemsByIdsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetTestItemsByIdsRequest(c.Server, projectName, body)
 	if err != nil {
 		return nil, err
 	}
@@ -13837,6 +13935,22 @@ func NewGetAllDashboardsRequest(server string, projectName string, params *GetAl
 
 		}
 
+		if params.FilterEqLocked != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "filter.eq.locked", runtime.ParamLocationQuery, *params.FilterEqLocked); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.FilterEqProjectId != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "filter.eq.projectId", runtime.ParamLocationQuery, *params.FilterEqProjectId); err != nil {
@@ -14084,6 +14198,60 @@ func NewGetDashboardRequest(server string, projectName string, dashboardId int64
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewPatchDashboardRequest calls the generic PatchDashboard builder with application/json body
+func NewPatchDashboardRequest(server string, projectName string, dashboardId int64, body PatchDashboardJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPatchDashboardRequestWithBody(server, projectName, dashboardId, "application/json", bodyReader)
+}
+
+// NewPatchDashboardRequestWithBody generates requests for PatchDashboard with any type of body
+func NewPatchDashboardRequestWithBody(server string, projectName string, dashboardId int64, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectName", runtime.ParamLocationPath, projectName)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "dashboardId", runtime.ParamLocationPath, dashboardId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/%s/dashboard/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PATCH", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -14365,6 +14533,22 @@ func NewGetAllFiltersRequest(server string, projectName string, params *GetAllFi
 		if params.FilterEqId != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "filter.eq.id", runtime.ParamLocationQuery, *params.FilterEqId); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.FilterEqLocked != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "filter.eq.locked", runtime.ParamLocationQuery, *params.FilterEqLocked); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -14663,6 +14847,22 @@ func NewGetAllFiltersNamesRequest(server string, projectName string, params *Get
 		if params.FilterEqId != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "filter.eq.id", runtime.ParamLocationQuery, *params.FilterEqId); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.FilterEqLocked != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "filter.eq.locked", runtime.ParamLocationQuery, *params.FilterEqLocked); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -15195,6 +15395,22 @@ func NewGetTestItemsRequest(server string, projectName string, params *GetTestIt
 		if params.FilterEqIssueType != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "filter.eq.issueType", runtime.ParamLocationQuery, *params.FilterEqIssueType); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.FilterEqLaunchOwner != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "filter.eq.launchOwner", runtime.ParamLocationQuery, *params.FilterEqLaunchOwner); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -16232,6 +16448,53 @@ func NewGetAttributeValues2Request(server string, projectName string, params *Ge
 	return req, nil
 }
 
+// NewGetTestItemsByIdsRequest calls the generic GetTestItemsByIds builder with application/json body
+func NewGetTestItemsByIdsRequest(server string, projectName string, body GetTestItemsByIdsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewGetTestItemsByIdsRequestWithBody(server, projectName, "application/json", bodyReader)
+}
+
+// NewGetTestItemsByIdsRequestWithBody generates requests for GetTestItemsByIds with any type of body
+func NewGetTestItemsByIdsRequestWithBody(server string, projectName string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectName", runtime.ParamLocationPath, projectName)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/%s/item/bulk", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewGetItemsHistoryRequest generates requests for GetItemsHistory
 func NewGetItemsHistoryRequest(server string, projectName string, params *GetItemsHistoryParams) (*http.Request, error) {
 	var err error
@@ -16536,6 +16799,22 @@ func NewGetItemsHistoryRequest(server string, projectName string, params *GetIte
 		if params.FilterEqIssueType != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "filter.eq.issueType", runtime.ParamLocationQuery, *params.FilterEqIssueType); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.FilterEqLaunchOwner != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "filter.eq.launchOwner", runtime.ParamLocationQuery, *params.FilterEqLaunchOwner); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -17406,22 +17685,6 @@ func NewGetTestItems2Request(server string, projectName string, params *GetTestI
 	if params != nil {
 		queryValues := queryURL.Query()
 
-		if params.FilterCntName != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "filter.cnt.name", runtime.ParamLocationQuery, *params.FilterCntName); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
 		if params.FilterHasCompositeAttribute != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "filter.has.compositeAttribute", runtime.ParamLocationQuery, *params.FilterHasCompositeAttribute); err != nil {
@@ -17441,6 +17704,22 @@ func NewGetTestItems2Request(server string, projectName string, params *GetTestI
 		if params.FilterInStatus != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "filter.in.status", runtime.ParamLocationQuery, *params.FilterInStatus); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.FilterSwtName != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "filter.swt.name", runtime.ParamLocationQuery, *params.FilterSwtName); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -17749,6 +18028,22 @@ func NewGetTestItems1Request(server string, projectName string, params *GetTestI
 		if params.FilterEqIssueType != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "filter.eq.issueType", runtime.ParamLocationQuery, *params.FilterEqIssueType); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.FilterEqLaunchOwner != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "filter.eq.launchOwner", runtime.ParamLocationQuery, *params.FilterEqLaunchOwner); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -19036,6 +19331,22 @@ func NewGetTestItemsV2Request(server string, projectName string, params *GetTest
 
 		}
 
+		if params.FilterEqLaunchOwner != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "filter.eq.launchOwner", runtime.ParamLocationQuery, *params.FilterEqLaunchOwner); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.FilterEqStatisticsExecutionsSkipped != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "filter.eq.statistics$executions$skipped", runtime.ParamLocationQuery, *params.FilterEqStatisticsExecutionsSkipped); err != nil {
@@ -20136,6 +20447,22 @@ func NewGetProjectLaunchesRequest(server string, projectName string, params *Get
 
 		}
 
+		if params.FilterEqLaunchType != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "filter.eq.launchType", runtime.ParamLocationQuery, *params.FilterEqLaunchType); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.FilterEqUser != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "filter.eq.user", runtime.ParamLocationQuery, *params.FilterEqUser); err != nil {
@@ -21095,6 +21422,22 @@ func NewGetLatestLaunchesRequest(server string, projectName string, params *GetL
 
 		}
 
+		if params.FilterEqLaunchType != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "filter.eq.launchType", runtime.ParamLocationQuery, *params.FilterEqLaunchType); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.FilterEqUser != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "filter.eq.user", runtime.ParamLocationQuery, *params.FilterEqUser); err != nil {
@@ -21633,6 +21976,22 @@ func NewGetDebugLaunchesRequest(server string, projectName string, params *GetDe
 		if params.FilterEqEndTime != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "filter.eq.endTime", runtime.ParamLocationQuery, *params.FilterEqEndTime); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.FilterEqLaunchType != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "filter.eq.launchType", runtime.ParamLocationQuery, *params.FilterEqLaunchType); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -22571,6 +22930,22 @@ func NewGetLaunchReportRequest(server string, projectName string, launchId int64
 
 	if params != nil {
 		queryValues := queryURL.Query()
+
+		if params.FlatAttachments != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "flatAttachments", runtime.ParamLocationQuery, *params.FlatAttachments); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
 
 		if params.IncludeAttachments != nil {
 
@@ -25525,6 +25900,22 @@ func NewGetWidgetNamesRequest(server string, projectName string, params *GetWidg
 
 		}
 
+		if params.FilterEqLocked != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "filter.eq.locked", runtime.ParamLocationQuery, *params.FilterEqLocked); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.FilterEqProjectId != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "filter.eq.projectId", runtime.ParamLocationQuery, *params.FilterEqProjectId); err != nil {
@@ -26759,6 +27150,11 @@ type ClientWithResponsesInterface interface {
 	// GetDashboardWithResponse request
 	GetDashboardWithResponse(ctx context.Context, projectName string, dashboardId int64, reqEditors ...RequestEditorFn) (*GetDashboardResponse, error)
 
+	// PatchDashboardWithBodyWithResponse request with any body
+	PatchDashboardWithBodyWithResponse(ctx context.Context, projectName string, dashboardId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PatchDashboardResponse, error)
+
+	PatchDashboardWithResponse(ctx context.Context, projectName string, dashboardId int64, body PatchDashboardJSONRequestBody, reqEditors ...RequestEditorFn) (*PatchDashboardResponse, error)
+
 	// UpdateDashboardWithBodyWithResponse request with any body
 	UpdateDashboardWithBodyWithResponse(ctx context.Context, projectName string, dashboardId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateDashboardResponse, error)
 
@@ -26834,6 +27230,11 @@ type ClientWithResponsesInterface interface {
 
 	// GetAttributeValues2WithResponse request
 	GetAttributeValues2WithResponse(ctx context.Context, projectName string, params *GetAttributeValues2Params, reqEditors ...RequestEditorFn) (*GetAttributeValues2Response, error)
+
+	// GetTestItemsByIdsWithBodyWithResponse request with any body
+	GetTestItemsByIdsWithBodyWithResponse(ctx context.Context, projectName string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*GetTestItemsByIdsResponse, error)
+
+	GetTestItemsByIdsWithResponse(ctx context.Context, projectName string, body GetTestItemsByIdsJSONRequestBody, reqEditors ...RequestEditorFn) (*GetTestItemsByIdsResponse, error)
 
 	// GetItemsHistoryWithResponse request
 	GetItemsHistoryWithResponse(ctx context.Context, projectName string, params *GetItemsHistoryParams, reqEditors ...RequestEditorFn) (*GetItemsHistoryResponse, error)
@@ -31758,6 +32159,38 @@ func (r GetDashboardResponse) GetSuccess() *externalRef0.DashboardResource {
 	return r.JSON200
 }
 
+type PatchDashboardResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *externalRef0.OperationCompletionRS
+}
+
+// Status returns HTTPResponse.Status
+func (r PatchDashboardResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PatchDashboardResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r PatchDashboardResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r PatchDashboardResponse) GetSuccess() *externalRef0.OperationCompletionRS {
+	return r.JSON200
+}
+
 type UpdateDashboardResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -32515,6 +32948,44 @@ func (r GetAttributeValues2Response) GetJSONDefault() *externalRef0.ErrorRS {
 
 // GetSuccess returns the decoded success (2xx) response body, if any.
 func (r GetAttributeValues2Response) GetSuccess() *[]string {
+	return r.JSON200
+}
+
+type GetTestItemsByIdsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]externalRef0.TestItemResource
+	JSONDefault  *externalRef0.ErrorRS
+}
+
+// Status returns HTTPResponse.Status
+func (r GetTestItemsByIdsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetTestItemsByIdsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// GetBody returns the raw response body bytes.
+func (r GetTestItemsByIdsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// GetJSONDefault returns the decoded default (error) response body, if any.
+func (r GetTestItemsByIdsResponse) GetJSONDefault() *externalRef0.ErrorRS {
+	return r.JSONDefault
+}
+
+// GetSuccess returns the decoded success (2xx) response body, if any.
+func (r GetTestItemsByIdsResponse) GetSuccess() *[]externalRef0.TestItemResource {
 	return r.JSON200
 }
 
@@ -33429,7 +33900,7 @@ func (r DeleteLaunchesResponse) GetSuccess() *externalRef0.DeleteBulkRS {
 type GetProjectLaunchesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef0.PageLaunchResource
+	JSON200      *externalRef0.PageLaunchViewModel
 	JSONDefault  *externalRef0.ErrorRS
 }
 
@@ -33460,7 +33931,7 @@ func (r GetProjectLaunchesResponse) GetJSONDefault() *externalRef0.ErrorRS {
 }
 
 // GetSuccess returns the decoded success (2xx) response body, if any.
-func (r GetProjectLaunchesResponse) GetSuccess() *externalRef0.PageLaunchResource {
+func (r GetProjectLaunchesResponse) GetSuccess() *externalRef0.PageLaunchViewModel {
 	return r.JSON200
 }
 
@@ -33771,7 +34242,7 @@ func (r BulkUpdateResponse) GetSuccess() *externalRef0.OperationCompletionRS {
 type GetLatestLaunchesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef0.PageLaunchResource
+	JSON200      *externalRef0.PageLaunchViewModel
 	JSONDefault  *externalRef0.ErrorRS
 }
 
@@ -33802,7 +34273,7 @@ func (r GetLatestLaunchesResponse) GetJSONDefault() *externalRef0.ErrorRS {
 }
 
 // GetSuccess returns the decoded success (2xx) response body, if any.
-func (r GetLatestLaunchesResponse) GetSuccess() *externalRef0.PageLaunchResource {
+func (r GetLatestLaunchesResponse) GetSuccess() *externalRef0.PageLaunchViewModel {
 	return r.JSON200
 }
 
@@ -33843,7 +34314,7 @@ func (r MergeLaunchesOldUuid1Response) GetJSONDefault() *externalRef0.ErrorRS {
 type GetDebugLaunchesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef0.PageLaunchResource
+	JSON200      *externalRef0.PageLaunchViewModel
 	JSONDefault  *externalRef0.ErrorRS
 }
 
@@ -33874,7 +34345,7 @@ func (r GetDebugLaunchesResponse) GetJSONDefault() *externalRef0.ErrorRS {
 }
 
 // GetSuccess returns the decoded success (2xx) response body, if any.
-func (r GetDebugLaunchesResponse) GetSuccess() *externalRef0.PageLaunchResource {
+func (r GetDebugLaunchesResponse) GetSuccess() *externalRef0.PageLaunchViewModel {
 	return r.JSON200
 }
 
@@ -34072,7 +34543,7 @@ type GetLaunchByUuidOldTimestampResponse struct {
 	Body                                    []byte
 	HTTPResponse                            *http.Response
 	JSON200                                 *externalRef0.LaunchResourceOld
-	ApplicationXReportportalLaunchV2JSON200 *externalRef0.LaunchResource
+	ApplicationXReportportalLaunchV2JSON200 *externalRef0.LaunchViewModel
 	JSONDefault                             *externalRef0.ErrorRS
 }
 
@@ -34143,7 +34614,7 @@ func (r DeleteLaunchResponse) GetSuccess() *externalRef0.OperationCompletionRS {
 type GetLaunchResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef0.LaunchResource
+	JSON200      *externalRef0.LaunchViewModel
 	JSONDefault  *externalRef0.ErrorRS
 }
 
@@ -34174,7 +34645,7 @@ func (r GetLaunchResponse) GetJSONDefault() *externalRef0.ErrorRS {
 }
 
 // GetSuccess returns the decoded success (2xx) response body, if any.
-func (r GetLaunchResponse) GetSuccess() *externalRef0.LaunchResource {
+func (r GetLaunchResponse) GetSuccess() *externalRef0.LaunchViewModel {
 	return r.JSON200
 }
 
@@ -37209,6 +37680,23 @@ func (c *ClientWithResponses) GetDashboardWithResponse(ctx context.Context, proj
 	return ParseGetDashboardResponse(rsp)
 }
 
+// PatchDashboardWithBodyWithResponse request with arbitrary body returning *PatchDashboardResponse
+func (c *ClientWithResponses) PatchDashboardWithBodyWithResponse(ctx context.Context, projectName string, dashboardId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PatchDashboardResponse, error) {
+	rsp, err := c.PatchDashboardWithBody(ctx, projectName, dashboardId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePatchDashboardResponse(rsp)
+}
+
+func (c *ClientWithResponses) PatchDashboardWithResponse(ctx context.Context, projectName string, dashboardId int64, body PatchDashboardJSONRequestBody, reqEditors ...RequestEditorFn) (*PatchDashboardResponse, error) {
+	rsp, err := c.PatchDashboard(ctx, projectName, dashboardId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePatchDashboardResponse(rsp)
+}
+
 // UpdateDashboardWithBodyWithResponse request with arbitrary body returning *UpdateDashboardResponse
 func (c *ClientWithResponses) UpdateDashboardWithBodyWithResponse(ctx context.Context, projectName string, dashboardId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateDashboardResponse, error) {
 	rsp, err := c.UpdateDashboardWithBody(ctx, projectName, dashboardId, contentType, body, reqEditors...)
@@ -37451,6 +37939,23 @@ func (c *ClientWithResponses) GetAttributeValues2WithResponse(ctx context.Contex
 		return nil, err
 	}
 	return ParseGetAttributeValues2Response(rsp)
+}
+
+// GetTestItemsByIdsWithBodyWithResponse request with arbitrary body returning *GetTestItemsByIdsResponse
+func (c *ClientWithResponses) GetTestItemsByIdsWithBodyWithResponse(ctx context.Context, projectName string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*GetTestItemsByIdsResponse, error) {
+	rsp, err := c.GetTestItemsByIdsWithBody(ctx, projectName, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetTestItemsByIdsResponse(rsp)
+}
+
+func (c *ClientWithResponses) GetTestItemsByIdsWithResponse(ctx context.Context, projectName string, body GetTestItemsByIdsJSONRequestBody, reqEditors ...RequestEditorFn) (*GetTestItemsByIdsResponse, error) {
+	rsp, err := c.GetTestItemsByIds(ctx, projectName, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetTestItemsByIdsResponse(rsp)
 }
 
 // GetItemsHistoryWithResponse request returning *GetItemsHistoryResponse
@@ -42797,6 +43302,32 @@ func ParseGetDashboardResponse(rsp *http.Response) (*GetDashboardResponse, error
 	return response, nil
 }
 
+// ParsePatchDashboardResponse parses an HTTP response from a PatchDashboardWithResponse call
+func ParsePatchDashboardResponse(rsp *http.Response) (*PatchDashboardResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PatchDashboardResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef0.OperationCompletionRS
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseUpdateDashboardResponse parses an HTTP response from a UpdateDashboardWithResponse call
 func ParseUpdateDashboardResponse(rsp *http.Response) (*UpdateDashboardResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -43440,6 +43971,39 @@ func ParseGetAttributeValues2Response(rsp *http.Response) (*GetAttributeValues2R
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest []string
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest externalRef0.ErrorRS
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetTestItemsByIdsResponse parses an HTTP response from a GetTestItemsByIdsWithResponse call
+func ParseGetTestItemsByIdsResponse(rsp *http.Response) (*GetTestItemsByIdsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetTestItemsByIdsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []externalRef0.TestItemResource
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -44271,7 +44835,7 @@ func ParseGetProjectLaunchesResponse(rsp *http.Response) (*GetProjectLaunchesRes
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef0.PageLaunchResource
+		var dest externalRef0.PageLaunchViewModel
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -44568,7 +45132,7 @@ func ParseGetLatestLaunchesResponse(rsp *http.Response) (*GetLatestLaunchesRespo
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef0.PageLaunchResource
+		var dest externalRef0.PageLaunchViewModel
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -44641,7 +45205,7 @@ func ParseGetDebugLaunchesResponse(rsp *http.Response) (*GetDebugLaunchesRespons
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef0.PageLaunchResource
+		var dest externalRef0.PageLaunchViewModel
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -44846,7 +45410,7 @@ func ParseGetLaunchByUuidOldTimestampResponse(rsp *http.Response) (*GetLaunchByU
 		response.JSON200 = &dest
 
 	case rsp.Header.Get("Content-Type") == "application/x.reportportal.launch.v2+json" && rsp.StatusCode == 200:
-		var dest externalRef0.LaunchResource
+		var dest externalRef0.LaunchViewModel
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -44912,7 +45476,7 @@ func ParseGetLaunchResponse(rsp *http.Response) (*GetLaunchResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef0.LaunchResource
+		var dest externalRef0.LaunchViewModel
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

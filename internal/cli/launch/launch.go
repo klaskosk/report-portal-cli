@@ -379,7 +379,7 @@ func listLaunches(
 		return err
 	}
 
-	var result *types.PageLaunchResource
+	var result *types.PageLaunchViewModel
 
 	switch {
 	case filterFlags.latest:
@@ -396,7 +396,7 @@ func listLaunches(
 		return fmt.Errorf("listing launches: %w", err)
 	}
 
-	var launches []types.LaunchResource
+	var launches []types.LaunchViewModel
 	if result.Content != nil {
 		launches = *result.Content
 	}
@@ -454,17 +454,46 @@ func launchHeaders() []string {
 	return []string{"ID", "UUID", "NAME", "STATUS", "START TIME", "NUMBER"}
 }
 
-// launchRow formats a launch resource as a table row, returning both headers and column values.
-func launchRow(launch *types.LaunchResource) ([]string, []string) {
-	startTime := launch.StartTime.UTC().Format(time.DateTime)
-
-	return launchHeaders(), []string{
-		strconv.FormatInt(launch.Id, 10),
+// launchRow formats a launch view model as a table row, returning both headers and column values.
+func launchRow(launch *types.LaunchViewModel) ([]string, []string) {
+	return launchRowValues(
+		launch.Id,
 		launch.Uuid,
 		launch.Name,
 		launch.Status,
-		startTime,
-		strconv.FormatInt(launch.Number, 10),
+		launch.StartTime,
+		launch.Number,
+	)
+}
+
+// launchRowFromResource adapts a legacy LaunchResource to the table row format.
+func launchRowFromResource(launch *types.LaunchResource) ([]string, []string) {
+	return launchRowValues(
+		launch.Id,
+		launch.Uuid,
+		launch.Name,
+		launch.Status,
+		launch.StartTime,
+		launch.Number,
+	)
+}
+
+// launchRowValues formats the columns shared by the launch response shapes.
+func launchRowValues(
+	launchID int64,
+	uuid string,
+	name string,
+	status string,
+	startTime time.Time,
+	number int64,
+) ([]string, []string) {
+	return launchHeaders(), []string{
+		strconv.FormatInt(launchID, 10),
+		uuid,
+		name,
+		status,
+		startTime.UTC().Format(time.DateTime),
+		strconv.FormatInt(number, 10),
 	}
 }
 

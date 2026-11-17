@@ -21,24 +21,24 @@ const (
 
 // Defines values for AnalyzeLaunchRQAnalyzeItemsMode.
 const (
-	AUTOANALYZED     AnalyzeLaunchRQAnalyzeItemsMode = "AUTO_ANALYZED"
-	MANUALLYANALYZED AnalyzeLaunchRQAnalyzeItemsMode = "MANUALLY_ANALYZED"
-	TOINVESTIGATE    AnalyzeLaunchRQAnalyzeItemsMode = "TO_INVESTIGATE"
+	AnalyzeLaunchRQAnalyzeItemsModeAUTOANALYZED     AnalyzeLaunchRQAnalyzeItemsMode = "AUTO_ANALYZED"
+	AnalyzeLaunchRQAnalyzeItemsModeMANUALLYANALYZED AnalyzeLaunchRQAnalyzeItemsMode = "MANUALLY_ANALYZED"
+	AnalyzeLaunchRQAnalyzeItemsModeTOINVESTIGATE    AnalyzeLaunchRQAnalyzeItemsMode = "TO_INVESTIGATE"
 )
 
 // Defines values for AnalyzeLaunchRQAnalyzerMode.
 const (
-	ALL                   AnalyzeLaunchRQAnalyzerMode = "ALL"
-	CURRENTANDTHESAMENAME AnalyzeLaunchRQAnalyzerMode = "CURRENT_AND_THE_SAME_NAME"
-	CURRENTLAUNCH         AnalyzeLaunchRQAnalyzerMode = "CURRENT_LAUNCH"
-	LAUNCHNAME            AnalyzeLaunchRQAnalyzerMode = "LAUNCH_NAME"
-	PREVIOUSLAUNCH        AnalyzeLaunchRQAnalyzerMode = "PREVIOUS_LAUNCH"
+	AnalyzeLaunchRQAnalyzerModeALL                   AnalyzeLaunchRQAnalyzerMode = "ALL"
+	AnalyzeLaunchRQAnalyzerModeCURRENTANDTHESAMENAME AnalyzeLaunchRQAnalyzerMode = "CURRENT_AND_THE_SAME_NAME"
+	AnalyzeLaunchRQAnalyzerModeCURRENTLAUNCH         AnalyzeLaunchRQAnalyzerMode = "CURRENT_LAUNCH"
+	AnalyzeLaunchRQAnalyzerModeLAUNCHNAME            AnalyzeLaunchRQAnalyzerMode = "LAUNCH_NAME"
+	AnalyzeLaunchRQAnalyzerModePREVIOUSLAUNCH        AnalyzeLaunchRQAnalyzerMode = "PREVIOUS_LAUNCH"
 )
 
 // Defines values for AnalyzeLaunchRQAnalyzerTypeName.
 const (
-	AutoAnalyzer    AnalyzeLaunchRQAnalyzerTypeName = "autoAnalyzer"
-	PatternAnalyzer AnalyzeLaunchRQAnalyzerTypeName = "patternAnalyzer"
+	AnalyzeLaunchRQAnalyzerTypeNameAutoAnalyzer    AnalyzeLaunchRQAnalyzerTypeName = "autoAnalyzer"
+	AnalyzeLaunchRQAnalyzerTypeNamePatternAnalyzer AnalyzeLaunchRQAnalyzerTypeName = "patternAnalyzer"
 )
 
 // Defines values for BulkUpdateFilterRQType.
@@ -190,10 +190,28 @@ const (
 	LaunchResourceOldRetentionPolicyREGULAR   LaunchResourceOldRetentionPolicy = "REGULAR"
 )
 
+// Defines values for LaunchViewModelLaunchType.
+const (
+	LaunchViewModelLaunchTypeAGENTIC    LaunchViewModelLaunchType = "AGENTIC"
+	LaunchViewModelLaunchTypeAUTOMATION LaunchViewModelLaunchType = "AUTOMATION"
+)
+
+// Defines values for LaunchViewModelMode.
+const (
+	LaunchViewModelModeDEBUG   LaunchViewModelMode = "DEBUG"
+	LaunchViewModelModeDEFAULT LaunchViewModelMode = "DEFAULT"
+)
+
+// Defines values for LaunchViewModelRetentionPolicy.
+const (
+	LaunchViewModelRetentionPolicyIMPORTANT LaunchViewModelRetentionPolicy = "IMPORTANT"
+	LaunchViewModelRetentionPolicyREGULAR   LaunchViewModelRetentionPolicy = "REGULAR"
+)
+
 // Defines values for LogTypeStyleTextStyle.
 const (
-	Bold   LogTypeStyleTextStyle = "bold"
-	Normal LogTypeStyleTextStyle = "normal"
+	LogTypeStyleTextStyleBold   LogTypeStyleTextStyle = "bold"
+	LogTypeStyleTextStyleNormal LogTypeStyleTextStyle = "normal"
 )
 
 // Defines values for MergeLaunchesRQMergeType.
@@ -224,35 +242,35 @@ const (
 
 // Defines values for SearchCriteriaOperation.
 const (
-	BTW    SearchCriteriaOperation = "BTW"
-	CNT    SearchCriteriaOperation = "CNT"
-	EQ     SearchCriteriaOperation = "EQ"
-	IN     SearchCriteriaOperation = "IN"
-	NE     SearchCriteriaOperation = "NE"
-	NONCNT SearchCriteriaOperation = "NON_CNT"
+	SearchCriteriaOperationBTW    SearchCriteriaOperation = "BTW"
+	SearchCriteriaOperationCNT    SearchCriteriaOperation = "CNT"
+	SearchCriteriaOperationEQ     SearchCriteriaOperation = "EQ"
+	SearchCriteriaOperationIN     SearchCriteriaOperation = "IN"
+	SearchCriteriaOperationNE     SearchCriteriaOperation = "NE"
+	SearchCriteriaOperationNONCNT SearchCriteriaOperation = "NON_CNT"
 )
 
 // Defines values for SearchLogRqSearchMode.
 const (
-	CurrentLaunch SearchLogRqSearchMode = "currentLaunch"
-	Filter        SearchLogRqSearchMode = "filter"
-	LaunchName    SearchLogRqSearchMode = "launchName"
+	SearchLogRqSearchModeCurrentLaunch SearchLogRqSearchMode = "currentLaunch"
+	SearchLogRqSearchModeFilter        SearchLogRqSearchMode = "filter"
+	SearchLogRqSearchModeLaunchName    SearchLogRqSearchMode = "launchName"
 )
 
 // Defines values for SenderCaseDTOAttributesOperator.
 const (
-	AND SenderCaseDTOAttributesOperator = "AND"
-	OR  SenderCaseDTOAttributesOperator = "OR"
+	SenderCaseDTOAttributesOperatorAND SenderCaseDTOAttributesOperator = "AND"
+	SenderCaseDTOAttributesOperatorOR  SenderCaseDTOAttributesOperator = "OR"
 )
 
 // Defines values for SenderCaseDTOSendCase.
 const (
-	Always        SenderCaseDTOSendCase = "always"
-	Failed        SenderCaseDTOSendCase = "failed"
-	More10        SenderCaseDTOSendCase = "more10"
-	More20        SenderCaseDTOSendCase = "more20"
-	More50        SenderCaseDTOSendCase = "more50"
-	ToInvestigate SenderCaseDTOSendCase = "toInvestigate"
+	SenderCaseDTOSendCaseAlways        SenderCaseDTOSendCase = "always"
+	SenderCaseDTOSendCaseFailed        SenderCaseDTOSendCase = "failed"
+	SenderCaseDTOSendCaseMore10        SenderCaseDTOSendCase = "more10"
+	SenderCaseDTOSendCaseMore20        SenderCaseDTOSendCase = "more20"
+	SenderCaseDTOSendCaseMore50        SenderCaseDTOSendCase = "more50"
+	SenderCaseDTOSendCaseToInvestigate SenderCaseDTOSendCase = "toInvestigate"
 )
 
 // Defines values for StartLaunchRQMode.
@@ -263,20 +281,21 @@ const (
 
 // Defines values for StartTestItemRQType.
 const (
-	AFTERCLASS               StartTestItemRQType = "AFTER_CLASS"
-	AFTERGROUPS              StartTestItemRQType = "AFTER_GROUPS"
-	AFTERMETHOD              StartTestItemRQType = "AFTER_METHOD"
-	AFTERSUITE               StartTestItemRQType = "AFTER_SUITE"
-	AFTERTEST                StartTestItemRQType = "AFTER_TEST"
-	BEFORECLASS              StartTestItemRQType = "BEFORE_CLASS"
-	BEFOREGROUPSBEFOREMETHOD StartTestItemRQType = "BEFORE_GROUPS,BEFORE_METHOD"
-	BEFORESUITE              StartTestItemRQType = "BEFORE_SUITE"
-	BEFORETEST               StartTestItemRQType = "BEFORE_TEST"
-	SCENARIO                 StartTestItemRQType = "SCENARIO"
-	STEP                     StartTestItemRQType = "STEP"
-	STORY                    StartTestItemRQType = "STORY"
-	SUITE                    StartTestItemRQType = "SUITE"
-	TEST                     StartTestItemRQType = "TEST"
+	StartTestItemRQTypeAFTERCLASS   StartTestItemRQType = "AFTER_CLASS"
+	StartTestItemRQTypeAFTERGROUPS  StartTestItemRQType = "AFTER_GROUPS"
+	StartTestItemRQTypeAFTERMETHOD  StartTestItemRQType = "AFTER_METHOD"
+	StartTestItemRQTypeAFTERSUITE   StartTestItemRQType = "AFTER_SUITE"
+	StartTestItemRQTypeAFTERTEST    StartTestItemRQType = "AFTER_TEST"
+	StartTestItemRQTypeBEFORECLASS  StartTestItemRQType = "BEFORE_CLASS"
+	StartTestItemRQTypeBEFOREGROUPS StartTestItemRQType = "BEFORE_GROUPS"
+	StartTestItemRQTypeBEFOREMETHOD StartTestItemRQType = "BEFORE_METHOD"
+	StartTestItemRQTypeBEFORESUITE  StartTestItemRQType = "BEFORE_SUITE"
+	StartTestItemRQTypeBEFORETEST   StartTestItemRQType = "BEFORE_TEST"
+	StartTestItemRQTypeSCENARIO     StartTestItemRQType = "SCENARIO"
+	StartTestItemRQTypeSTEP         StartTestItemRQType = "STEP"
+	StartTestItemRQTypeSTORY        StartTestItemRQType = "STORY"
+	StartTestItemRQTypeSUITE        StartTestItemRQType = "SUITE"
+	StartTestItemRQTypeTEST         StartTestItemRQType = "TEST"
 )
 
 // Defines values for UpdateItemAttributeRQAction.
@@ -353,26 +372,26 @@ const (
 
 // Defines values for WidgetResourceWidgetType.
 const (
-	ActivityStream          WidgetResourceWidgetType = "activityStream"
-	BugTrend                WidgetResourceWidgetType = "bugTrend"
-	CasesTrend              WidgetResourceWidgetType = "casesTrend"
-	Cumulative              WidgetResourceWidgetType = "cumulative"
-	FlakyTestCases          WidgetResourceWidgetType = "flakyTestCases"
-	InvestigatedTrend       WidgetResourceWidgetType = "investigatedTrend"
-	LaunchStatistics        WidgetResourceWidgetType = "launchStatistics"
-	LaunchesComparisonChart WidgetResourceWidgetType = "launchesComparisonChart"
-	LaunchesDurationChart   WidgetResourceWidgetType = "launchesDurationChart"
-	LaunchesTable           WidgetResourceWidgetType = "launchesTable"
-	MostTimeConsuming       WidgetResourceWidgetType = "mostTimeConsuming"
-	NotPassed               WidgetResourceWidgetType = "notPassed"
-	OldLineChart            WidgetResourceWidgetType = "oldLineChart"
-	OverallStatistics       WidgetResourceWidgetType = "overallStatistics"
-	PassingRatePerLaunch    WidgetResourceWidgetType = "passingRatePerLaunch"
-	PassingRateSummary      WidgetResourceWidgetType = "passingRateSummary"
-	ProductStatus           WidgetResourceWidgetType = "productStatus"
-	StatisticTrend          WidgetResourceWidgetType = "statisticTrend"
-	TopTestCases            WidgetResourceWidgetType = "topTestCases"
-	UniqueBugTable          WidgetResourceWidgetType = "uniqueBugTable"
+	WidgetResourceWidgetTypeActivityStream          WidgetResourceWidgetType = "activityStream"
+	WidgetResourceWidgetTypeBugTrend                WidgetResourceWidgetType = "bugTrend"
+	WidgetResourceWidgetTypeCasesTrend              WidgetResourceWidgetType = "casesTrend"
+	WidgetResourceWidgetTypeCumulative              WidgetResourceWidgetType = "cumulative"
+	WidgetResourceWidgetTypeFlakyTestCases          WidgetResourceWidgetType = "flakyTestCases"
+	WidgetResourceWidgetTypeInvestigatedTrend       WidgetResourceWidgetType = "investigatedTrend"
+	WidgetResourceWidgetTypeLaunchStatistics        WidgetResourceWidgetType = "launchStatistics"
+	WidgetResourceWidgetTypeLaunchesComparisonChart WidgetResourceWidgetType = "launchesComparisonChart"
+	WidgetResourceWidgetTypeLaunchesDurationChart   WidgetResourceWidgetType = "launchesDurationChart"
+	WidgetResourceWidgetTypeLaunchesTable           WidgetResourceWidgetType = "launchesTable"
+	WidgetResourceWidgetTypeMostTimeConsuming       WidgetResourceWidgetType = "mostTimeConsuming"
+	WidgetResourceWidgetTypeNotPassed               WidgetResourceWidgetType = "notPassed"
+	WidgetResourceWidgetTypeOldLineChart            WidgetResourceWidgetType = "oldLineChart"
+	WidgetResourceWidgetTypeOverallStatistics       WidgetResourceWidgetType = "overallStatistics"
+	WidgetResourceWidgetTypePassingRatePerLaunch    WidgetResourceWidgetType = "passingRatePerLaunch"
+	WidgetResourceWidgetTypePassingRateSummary      WidgetResourceWidgetType = "passingRateSummary"
+	WidgetResourceWidgetTypeProductStatus           WidgetResourceWidgetType = "productStatus"
+	WidgetResourceWidgetTypeStatisticTrend          WidgetResourceWidgetType = "statisticTrend"
+	WidgetResourceWidgetTypeTopTestCases            WidgetResourceWidgetType = "topTestCases"
+	WidgetResourceWidgetTypeUniqueBugTable          WidgetResourceWidgetType = "uniqueBugTable"
 )
 
 // ActivityEventResource defines model for ActivityEventResource.
@@ -547,6 +566,11 @@ type BulkInfoUpdateRQ struct {
 	Ids         []int64                  `json:"ids"`
 }
 
+// BulkItemsRQ defines model for BulkItemsRQ.
+type BulkItemsRQ struct {
+	Ids []int64 `json:"ids"`
+}
+
 // BulkRQLongFinishExecutionRQ defines model for BulkRQLongFinishExecutionRQ.
 type BulkRQLongFinishExecutionRQ struct {
 	Entities map[string]FinishExecutionRQ `json:"entities"`
@@ -662,9 +686,9 @@ type CreateUserBidRS struct {
 
 // CreateUserRQ defines model for CreateUserRQ.
 type CreateUserRQ struct {
-	DefaultProject *string `json:"defaultProject,omitempty"`
-	Email          string  `json:"email"`
-	Role           *string `json:"role,omitempty"`
+	DefaultProject string `json:"defaultProject"`
+	Email          string `json:"email"`
+	Role           string `json:"role"`
 }
 
 // CreateUserRQConfirm defines model for CreateUserRQConfirm.
@@ -728,6 +752,7 @@ type DashboardPreconfiguredRq struct {
 type DashboardResource struct {
 	Description *string              `json:"description,omitempty"`
 	Id          int64                `json:"id"`
+	Locked      *bool                `json:"locked,omitempty"`
 	Name        string               `json:"name"`
 	Owner       *string              `json:"owner,omitempty"`
 	Widgets     *[]WidgetObjectModel `json:"widgets,omitempty"`
@@ -1128,6 +1153,7 @@ type LaunchResource struct {
 	HasRetries          *bool                          `json:"hasRetries,omitempty"`
 	Id                  int64                          `json:"id"`
 	LastModified        *time.Time                     `json:"lastModified,omitempty"`
+	Locked              *bool                          `json:"locked,omitempty"`
 	Metadata            *map[string]interface{}        `json:"metadata,omitempty"`
 	Mode                *LaunchResourceMode            `json:"mode,omitempty"`
 	Name                string                         `json:"name"`
@@ -1157,6 +1183,7 @@ type LaunchResourceOld struct {
 	HasRetries          *bool                             `json:"hasRetries,omitempty"`
 	Id                  int64                             `json:"id"`
 	LastModified        *time.Time                        `json:"lastModified,omitempty"`
+	Locked              *bool                             `json:"locked,omitempty"`
 	Metadata            *map[string]interface{}           `json:"metadata,omitempty"`
 	Mode                *LaunchResourceOldMode            `json:"mode,omitempty"`
 	Name                string                            `json:"name"`
@@ -1175,6 +1202,40 @@ type LaunchResourceOldMode string
 
 // LaunchResourceOldRetentionPolicy defines model for LaunchResourceOld.RetentionPolicy.
 type LaunchResourceOldRetentionPolicy string
+
+// LaunchViewModel defines model for LaunchViewModel.
+type LaunchViewModel struct {
+	Analysing           *[]string                       `json:"analysing,omitempty"`
+	ApproximateDuration *float64                        `json:"approximateDuration,omitempty"`
+	Attributes          *[]ItemAttributeResource        `json:"attributes,omitempty"`
+	Description         *string                         `json:"description,omitempty"`
+	EndTime             *time.Time                      `json:"endTime,omitempty"`
+	HasRetries          *bool                           `json:"hasRetries,omitempty"`
+	Id                  int64                           `json:"id"`
+	LastModified        *time.Time                      `json:"lastModified,omitempty"`
+	LaunchType          *LaunchViewModelLaunchType      `json:"launchType,omitempty"`
+	Locked              *bool                           `json:"locked,omitempty"`
+	Metadata            *map[string]interface{}         `json:"metadata,omitempty"`
+	Mode                *LaunchViewModelMode            `json:"mode,omitempty"`
+	Name                string                          `json:"name"`
+	Number              int64                           `json:"number"`
+	Owner               *string                         `json:"owner,omitempty"`
+	Rerun               *bool                           `json:"rerun,omitempty"`
+	RetentionPolicy     *LaunchViewModelRetentionPolicy `json:"retentionPolicy,omitempty"`
+	StartTime           time.Time                       `json:"startTime"`
+	Statistics          *StatisticsResource             `json:"statistics,omitempty"`
+	Status              string                          `json:"status"`
+	Uuid                string                          `json:"uuid"`
+}
+
+// LaunchViewModelLaunchType defines model for LaunchViewModel.LaunchType.
+type LaunchViewModelLaunchType string
+
+// LaunchViewModelMode defines model for LaunchViewModel.Mode.
+type LaunchViewModelMode string
+
+// LaunchViewModelRetentionPolicy defines model for LaunchViewModel.RetentionPolicy.
+type LaunchViewModelRetentionPolicy string
 
 // LaunchesPerUser defines model for LaunchesPerUser.
 type LaunchesPerUser struct {
@@ -1210,7 +1271,7 @@ type LogResource struct {
 // LogTypeRequest Information required to create/update a log type in project.
 type LogTypeRequest struct {
 	// IsFilterable Indicates if the log level is filterable.
-	IsFilterable bool `json:"is_filterable"`
+	IsFilterable *bool `json:"is_filterable,omitempty"`
 
 	// Level Numeric value of log type. Unique within project.
 	Level int32 `json:"level"`
@@ -1228,7 +1289,7 @@ type LogTypeResponse struct {
 	Id *int64 `json:"id,omitempty"`
 
 	// IsFilterable Indicates if the log level is filterable.
-	IsFilterable bool `json:"is_filterable"`
+	IsFilterable *bool `json:"is_filterable,omitempty"`
 
 	// IsSystem Indicates if the log type is a system log type. You cannot modify its name and log level or delete system log types.
 	IsSystem *bool `json:"is_system,omitempty"`
@@ -1310,6 +1371,7 @@ type Order struct {
 type OwnedEntityResource struct {
 	Description *string `json:"description,omitempty"`
 	Id          *string `json:"id,omitempty"`
+	Locked      *bool   `json:"locked,omitempty"`
 	Name        *string `json:"name,omitempty"`
 	Owner       *string `json:"owner,omitempty"`
 }
@@ -1338,10 +1400,10 @@ type PageDashboardResource struct {
 	Page    *PageMetadata        `json:"page,omitempty"`
 }
 
-// PageLaunchResource defines model for PageLaunchResource.
-type PageLaunchResource struct {
-	Content *[]LaunchResource `json:"content,omitempty"`
-	Page    *PageMetadata     `json:"page,omitempty"`
+// PageLaunchViewModel defines model for PageLaunchViewModel.
+type PageLaunchViewModel struct {
+	Content *[]LaunchViewModel `json:"content,omitempty"`
+	Page    *PageMetadata      `json:"page,omitempty"`
 }
 
 // PageLogResource defines model for PageLogResource.
@@ -1444,6 +1506,11 @@ type PagedResponseActivityEventResource struct {
 type ParameterResource struct {
 	Key   string  `json:"key"`
 	Value *string `json:"value,omitempty"`
+}
+
+// PatchDashboardRQ defines model for PatchDashboardRQ.
+type PatchDashboardRQ struct {
+	Locked bool `json:"locked"`
 }
 
 // PathNameResource defines model for PathNameResource.
@@ -2009,6 +2076,7 @@ type UserFilterResource struct {
 	Conditions  []UserFilterCondition `json:"conditions"`
 	Description *string               `json:"description,omitempty"`
 	Id          int64                 `json:"id"`
+	Locked      *bool                 `json:"locked,omitempty"`
 	Name        string                `json:"name"`
 	Orders      []Order               `json:"orders"`
 	Owner       string                `json:"owner"`
@@ -2084,6 +2152,7 @@ type WidgetResource struct {
 	ContentParameters ContentParameters        `json:"contentParameters"`
 	Description       *string                  `json:"description,omitempty"`
 	Id                int64                    `json:"id"`
+	Locked            *bool                    `json:"locked,omitempty"`
 	Name              string                   `json:"name"`
 	Owner             *string                  `json:"owner,omitempty"`
 	WidgetType        WidgetResourceWidgetType `json:"widgetType"`

@@ -106,7 +106,7 @@ func (l *LaunchScope) FinishAsync(
 func (l *LaunchScope) GetByUUID(
 	ctx context.Context,
 	uuid string,
-) (*types.LaunchResource, error) {
+) (*types.LaunchViewModel, error) {
 	logger := l.scope.OperationLogger("GetLaunchByUUID", slog.String("uuid", uuid))
 	logger.InfoContext(ctx, "API request")
 
@@ -140,13 +140,13 @@ func (l *LaunchScope) GetByUUID(
 func (l *LaunchScope) GetByID(
 	ctx context.Context,
 	id int64,
-) (*types.LaunchResource, error) {
+) (*types.LaunchViewModel, error) {
 	logger := l.scope.OperationLogger("GetLaunchByID", slog.Int64("id", id))
 	logger.InfoContext(ctx, "API request")
 
 	response, err := l.scope.Client.GetLaunchWithResponse(ctx, l.scope.ProjectName, id)
 
-	return core.Execute[types.LaunchResource](ctx, logger, "get launch by id", response, err)
+	return core.Execute[types.LaunchViewModel](ctx, logger, "get launch by id", response, err)
 }
 
 // ListLaunchesOption configures the filter and pagination parameters for listing launches.
@@ -164,7 +164,7 @@ func (f listLaunchesOptionFunc) applyListLaunches(params *api.GetProjectLaunches
 func (l *LaunchScope) List(
 	ctx context.Context,
 	options ...ListLaunchesOption,
-) (*types.PageLaunchResource, error) {
+) (*types.PageLaunchViewModel, error) {
 	logger := l.scope.OperationLogger("ListLaunches")
 
 	params := &api.GetProjectLaunchesParams{}
@@ -180,7 +180,7 @@ func (l *LaunchScope) List(
 		params,
 	)
 
-	return core.Execute[types.PageLaunchResource](ctx, logger, "list launches", response, err)
+	return core.Execute[types.PageLaunchViewModel](ctx, logger, "list launches", response, err)
 }
 
 // WithLaunchName filters launches by name.
@@ -295,7 +295,7 @@ func WithLaunchHasRetries(hasRetries bool) listLaunchesOptionFunc {
 func (l *LaunchScope) GetLatest(
 	ctx context.Context,
 	options ...ListLaunchesOption,
-) (*types.PageLaunchResource, error) {
+) (*types.PageLaunchViewModel, error) {
 	logger := l.scope.OperationLogger("GetLatestLaunches")
 
 	baseParams := &api.GetProjectLaunchesParams{}
@@ -314,14 +314,20 @@ func (l *LaunchScope) GetLatest(
 		params,
 	)
 
-	return core.Execute[types.PageLaunchResource](ctx, logger, "get latest launches", response, err)
+	return core.Execute[types.PageLaunchViewModel](
+		ctx,
+		logger,
+		"get latest launches",
+		response,
+		err,
+	)
 }
 
 // GetDebug returns debug-mode launches (uses /launch/mode endpoint).
 func (l *LaunchScope) GetDebug(
 	ctx context.Context,
 	options ...ListLaunchesOption,
-) (*types.PageLaunchResource, error) {
+) (*types.PageLaunchViewModel, error) {
 	logger := l.scope.OperationLogger("GetDebugLaunches")
 
 	baseParams := &api.GetProjectLaunchesParams{}
@@ -340,7 +346,7 @@ func (l *LaunchScope) GetDebug(
 		params,
 	)
 
-	return core.Execute[types.PageLaunchResource](ctx, logger, "get debug launches", response, err)
+	return core.Execute[types.PageLaunchViewModel](ctx, logger, "get debug launches", response, err)
 }
 
 // Update modifies a single launch's attributes, description, or mode.

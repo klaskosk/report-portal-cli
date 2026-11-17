@@ -1,20 +1,36 @@
 # Minimal Report Portal stack for integration tests.
 #
-# Derived from the official Report Portal docker-compose.yml (25.2 tag):
-# https://raw.githubusercontent.com/reportportal/reportportal/refs/tags/25.2/docker-compose.yml
+# Derived from the official Report Portal docker-compose.yml (26.0.4 tag):
+# https://raw.githubusercontent.com/reportportal/reportportal/refs/tags/26.0.4/docker-compose.yml
 # See also: https://reportportal.io/docs/installation-steps/DeployWithDocker
 #
 # The upstream docker-compose.yml is licensed under the Apache License, Version 2.0.
 # Copyright (c) EPAM Systems.
 # See: https://github.com/reportportal/reportportal/blob/master/LICENSE
 #
-# Pinned to Report Portal 5.15.0 (release 25.2).
+# Pinned to Report Portal 5.15.3 (release 26.0.4). Service versions follow
+# upstream 26.0.4, where each service is released independently:
+#   migrations 5.15.3, api 5.15.3, authorization 5.15.1.
+#
 # Only services required for API testing are included.
 # Excluded: ui, index, analyzer, analyzer-train, metrics-gatherer, jobs.
+#
+# Notes on deliberate deviations from upstream:
+#   - jobs is not run. Upstream points RP_JOBS_BASEURL at the jobs service
+#     (http://jobs:8686); without that service the API keeps serving requests
+#     normally, so RP_JOBS_BASEURL is pointed at the API itself to avoid DNS
+#     failures and retries in its logs.
+#   - index is not run, so logs are not indexed into OpenSearch; the API still
+#     serves logs from PostgreSQL, which is all the suite needs.
+#   - The gateway uses a per-run stack identifier so parallel runs do not
+#     discover each other's containers through the Docker provider.
+#   - Postgres stays on the postgres:16-alpine image (upstream 26.0.4 uses
+#     Bitnami PostgreSQL 17). Report Portal 5.15.x supports PostgreSQL 16, and
+#     the official image is smaller and simpler to start in CI.
 
 services:
   gateway:
-    image: traefik:v2.11.32
+    image: traefik:v2.11.46
     ports:
       - "8080"
     volumes:
@@ -93,11 +109,12 @@ services:
       interval: 30s
       timeout: 30s
       retries: 5
+      start_period: 60s
     networks:
       - reportportal
 
   migrations:
-    image: reportportal/migrations:5.15.0
+    image: reportportal/migrations:5.15.3
     depends_on:
       postgres:
         condition: service_healthy
@@ -107,15 +124,14 @@ services:
       POSTGRES_DB: *db_name
       POSTGRES_USER: *db_user
       POSTGRES_PASSWORD: *db_password
-      OS_HOST: opensearch
-      OS_PORT: 9200
-      OS_PROTOCOL: http
     networks:
       - reportportal
 
   api:
-    image: reportportal/service-api:5.15.0
+    image: reportportal/service-api:5.15.3
     depends_on:
+      migrations:
+        condition: service_completed_successfully
       rabbitmq:
         condition: service_healthy
       gateway:
@@ -124,6 +140,7 @@ services:
         condition: service_healthy
     environment:
       RP_DB_HOST: postgres
+      RP_DB_PORT: 5432
       RP_DB_USER: *db_user
       RP_DB_PASS: *db_password
       RP_DB_NAME: *db_name
@@ -137,6 +154,7 @@ services:
       DATASTORE_TYPE: filesystem
       LOGGING_LEVEL_ORG_HIBERNATE_SQL: info
       RP_REQUESTLOGGING: "false"
+      AUDIT_LOGGER: "OFF"
       MANAGEMENT_HEALTH_ELASTICSEARCH_ENABLED: "false"
       RP_ENVIRONMENT_VARIABLE_ALLOW_DELETE_ACCOUNT: "false"
       JAVA_OPTS: >
@@ -149,6 +167,7 @@ services:
       - "traefik.http.routers.api.middlewares=api-strip-prefix@docker"
       - "traefik.http.routers.api.rule=PathPrefix(`/api`)"
       - "traefik.http.routers.api.service=api"
+      - "traefik.http.routers.api.entrypoints=web"
       - "traefik.http.services.api.loadbalancer.server.port=8585"
       - "traefik.http.services.api.loadbalancer.server.scheme=http"
       - "traefik.expose=${RP_TEST_STACK_ID:-rptest}"
@@ -156,12 +175,15 @@ services:
       - reportportal
 
   uat:
-    image: reportportal/service-authorization:5.15.0
+    image: reportportal/service-authorization:5.15.1
     depends_on:
+      migrations:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
     environment:
       RP_DB_HOST: postgres
+      RP_DB_PORT: 5432
       RP_DB_USER: *db_user
       RP_DB_PASS: *db_password
       RP_DB_NAME: *db_name
@@ -174,9 +196,13 @@ services:
       DATASTORE_TYPE: filesystem
       RP_SESSION_LIVE: 86400
       RP_INITIAL_ADMIN_PASSWORD: "test-password"
-      JAVA_OPTS: -Djava.security.egd=file:/dev/./urandom -XX:MinRAMPercentage=60.0 -XX:MaxRAMPercentage=90.0
+      JAVA_OPTS: >
+        -Djava.security.egd=file:/dev/./urandom
+        -XX:MinRAMPercentage=60.0
+        -XX:MaxRAMPercentage=90.0
+        --add-opens=java.base/java.lang=ALL-UNNAMED
     healthcheck:
-      test: curl -f http://0.0.0.0:9999/health
+      test: ["CMD-SHELL", "curl -f http://localhost:9999/health || wget -q --spider http://localhost:9999/health || exit 1"]
       interval: 5s
       timeout: 10s
       retries: 30
@@ -186,6 +212,7 @@ services:
       - "traefik.http.routers.uat.middlewares=uat-strip-prefix@docker"
       - "traefik.http.routers.uat.rule=PathPrefix(`/uat`)"
       - "traefik.http.routers.uat.service=uat"
+      - "traefik.http.routers.uat.entrypoints=web"
       - "traefik.http.services.uat.loadbalancer.server.port=9999"
       - "traefik.http.services.uat.loadbalancer.server.scheme=http"
       - "traefik.expose=${RP_TEST_STACK_ID:-rptest}"

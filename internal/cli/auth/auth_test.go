@@ -163,7 +163,7 @@ func TestRunAuthResetPassword_requiresEmail(t *testing.T) {
 	assert.NotContains(t, err.Error(), "no Report Portal URL configured")
 }
 
-func TestResolveInviteRequest_requiresEmail(t *testing.T) {
+func TestResolveInviteRequest_missingRequiredFlags(t *testing.T) {
 	t.Parallel()
 
 	cmd := newAuthInviteCmd()
@@ -171,9 +171,11 @@ func TestResolveInviteRequest_requiresEmail(t *testing.T) {
 	_, err := resolveInviteRequest(cmd)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "--email")
+	assert.Contains(t, err.Error(), "--default-project")
+	assert.Contains(t, err.Error(), "--role")
 }
 
-func TestResolveInviteRequest_optionalProjectAndRole(t *testing.T) {
+func TestResolveInviteRequest_emailOnlyIsRejected(t *testing.T) {
 	t.Parallel()
 
 	cmd := newAuthInviteCmd()
@@ -181,24 +183,27 @@ func TestResolveInviteRequest_optionalProjectAndRole(t *testing.T) {
 		"--email", "new@example.com",
 	}))
 
-	request, err := resolveInviteRequest(cmd)
-	require.NoError(t, err)
-	assert.Equal(t, "new@example.com", request.Email)
-	assert.Nil(t, request.DefaultProject)
-	assert.Nil(t, request.Role)
+	_, err := resolveInviteRequest(cmd)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "--default-project")
+	assert.Contains(t, err.Error(), "--role")
+}
 
+func TestResolveInviteRequest_success(t *testing.T) {
+	t.Parallel()
+
+	cmd := newAuthInviteCmd()
 	require.NoError(t, cmd.ParseFlags([]string{
 		"--email", "new@example.com",
 		"--default-project", "my_project",
-		"--role", "USER",
+		"--role", "MEMBER",
 	}))
 
-	request, err = resolveInviteRequest(cmd)
+	request, err := resolveInviteRequest(cmd)
 	require.NoError(t, err)
-	require.NotNil(t, request.DefaultProject)
-	assert.Equal(t, "my_project", *request.DefaultProject)
-	require.NotNil(t, request.Role)
-	assert.Equal(t, "USER", *request.Role)
+	assert.Equal(t, "new@example.com", request.Email)
+	assert.Equal(t, "my_project", request.DefaultProject)
+	assert.Equal(t, "MEMBER", request.Role)
 }
 
 func TestApiKeyListRow(t *testing.T) {

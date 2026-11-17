@@ -119,7 +119,7 @@ func TestDispatchItemStart_RoutesToStartChild(t *testing.T) {
 	req := types.StartTestItemRQ{
 		Name:       "child",
 		LaunchUuid: "launch-1",
-		Type:       types.TEST,
+		Type:       types.StartTestItemRQTypeTEST,
 		StartTime:  time.Now(),
 		Uuid:       "item-uuid",
 	}
@@ -138,7 +138,7 @@ func TestDispatchItemStart_RoutesToStartRoot(t *testing.T) {
 	req := types.StartTestItemRQ{
 		Name:       "root",
 		LaunchUuid: "launch-1",
-		Type:       types.SUITE,
+		Type:       types.StartTestItemRQTypeSUITE,
 		StartTime:  time.Now(),
 		Uuid:       "item-uuid",
 	}
@@ -176,7 +176,7 @@ func TestBuildItemStartRequest_FromFile_Valid(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "from file", req.Name)
 	assert.Equal(t, "launch-1", req.LaunchUuid)
-	assert.Equal(t, types.SUITE, req.Type)
+	assert.Equal(t, types.StartTestItemRQTypeSUITE, req.Type)
 }
 
 func TestItemFinishCmd_RequiresUUIDArg(t *testing.T) {

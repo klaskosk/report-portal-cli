@@ -184,11 +184,11 @@ func resolveAnalyzeLaunchAnalyzerMode(raw string) (types.AnalyzeLaunchRQAnalyzer
 	normalized := strings.ToUpper(strings.TrimSpace(raw))
 
 	switch normalized {
-	case string(types.ALL),
-		string(types.LAUNCHNAME),
-		string(types.CURRENTLAUNCH),
-		string(types.PREVIOUSLAUNCH),
-		string(types.CURRENTANDTHESAMENAME):
+	case string(types.AnalyzeLaunchRQAnalyzerModeALL),
+		string(types.AnalyzeLaunchRQAnalyzerModeLAUNCHNAME),
+		string(types.AnalyzeLaunchRQAnalyzerModeCURRENTLAUNCH),
+		string(types.AnalyzeLaunchRQAnalyzerModePREVIOUSLAUNCH),
+		string(types.AnalyzeLaunchRQAnalyzerModeCURRENTANDTHESAMENAME):
 		return types.AnalyzeLaunchRQAnalyzerMode(normalized), nil
 	default:
 		return "", fmt.Errorf(
@@ -203,7 +203,9 @@ func resolveAnalyzeLaunchItemsMode(
 ) ([]types.AnalyzeLaunchRQAnalyzeItemsMode, error) {
 	rawModes, _ := cmd.Flags().GetStringArray("items-mode")
 	if len(rawModes) == 0 {
-		return []types.AnalyzeLaunchRQAnalyzeItemsMode{types.TOINVESTIGATE}, nil
+		return []types.AnalyzeLaunchRQAnalyzeItemsMode{
+			types.AnalyzeLaunchRQAnalyzeItemsModeTOINVESTIGATE,
+		}, nil
 	}
 
 	modes := make([]types.AnalyzeLaunchRQAnalyzeItemsMode, 0, len(rawModes))
@@ -212,9 +214,9 @@ func resolveAnalyzeLaunchItemsMode(
 		normalized := strings.ToUpper(strings.TrimSpace(raw))
 
 		switch normalized {
-		case string(types.TOINVESTIGATE),
-			string(types.AUTOANALYZED),
-			string(types.MANUALLYANALYZED):
+		case string(types.AnalyzeLaunchRQAnalyzeItemsModeTOINVESTIGATE),
+			string(types.AnalyzeLaunchRQAnalyzeItemsModeAUTOANALYZED),
+			string(types.AnalyzeLaunchRQAnalyzeItemsModeMANUALLYANALYZED):
 			modes = append(modes, types.AnalyzeLaunchRQAnalyzeItemsMode(normalized))
 		default:
 			return nil, fmt.Errorf(
@@ -230,11 +232,12 @@ func resolveAnalyzeLaunchItemsMode(
 func resolveAnalyzeLaunchAnalyzerType(raw string) (types.AnalyzeLaunchRQAnalyzerTypeName, error) {
 	normalized := strings.TrimSpace(raw)
 	if normalized == "" {
-		return types.AutoAnalyzer, nil
+		return types.AnalyzeLaunchRQAnalyzerTypeNameAutoAnalyzer, nil
 	}
 
 	switch normalized {
-	case string(types.AutoAnalyzer), string(types.PatternAnalyzer):
+	case string(types.AnalyzeLaunchRQAnalyzerTypeNameAutoAnalyzer),
+		string(types.AnalyzeLaunchRQAnalyzerTypeNamePatternAnalyzer):
 		return types.AnalyzeLaunchRQAnalyzerTypeName(normalized), nil
 	default:
 		return "", fmt.Errorf(

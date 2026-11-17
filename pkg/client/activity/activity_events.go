@@ -120,10 +120,10 @@ func WithEventOrder(order EventSortOrder) searchActivityEventsOptionFunc {
 }
 
 // EventOrderAsc is the ascending sort order for activity event queries.
-const EventOrderAsc EventSortOrder = EventSortOrder(api.ASC)
+const EventOrderAsc EventSortOrder = EventSortOrder(api.GetActivitiesParamsOrderASC)
 
 // EventOrderDesc is the descending sort order for activity event queries.
-const EventOrderDesc EventSortOrder = EventSortOrder(api.DESC)
+const EventOrderDesc EventSortOrder = EventSortOrder(api.GetActivitiesParamsOrderDESC)
 
 // NewEventSearchCriteria creates a SearchCriteriaRQ with the given filter conditions.
 func NewEventSearchCriteria(criteria ...types.SearchCriteria) types.SearchCriteriaRQ {
@@ -155,7 +155,7 @@ func EventFilterByProjectName(projectName string) types.SearchCriteria {
 // newEqualityFilter creates a SearchCriteria with an equality operation.
 // This helper eliminates repetitive filter construction code.
 func newEqualityFilter(filterKey, value string) types.SearchCriteria {
-	equalityOperation := types.EQ
+	equalityOperation := types.SearchCriteriaOperationEQ
 
 	return types.SearchCriteria{
 		FilterKey: filterKey,

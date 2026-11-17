@@ -173,17 +173,17 @@ func newAuthInviteCmd() *cobra.Command {
 		Long: `Create an invitation for a new user.
 
 This command operates at the instance level and does not require --project/-p.
+The default project and role are required by the API.
 
 Examples:
-  rp auth invite --email newuser@example.com
-  rp auth invite --email newuser@example.com --default-project my_project --role USER`,
+  rp auth invite --email newuser@example.com --default-project my_project --role MEMBER`,
 		Args: cobra.NoArgs,
 		RunE: core.WithPrintedErrors(runAuthInvite),
 	}
 
 	cmd.Flags().String("email", "", "email address for the invited user (required)")
-	cmd.Flags().String("default-project", "", "default project for the invited user")
-	cmd.Flags().String("role", "", "role for the invited user")
+	cmd.Flags().String("default-project", "", "default project for the invited user (required)")
+	cmd.Flags().String("role", "", "project role for the invited user (required)")
 
 	return cmd
 }
@@ -410,14 +410,33 @@ func resolveChangePasswordFlags(cmd *cobra.Command) (string, string, error) {
 
 func resolveInviteRequest(cmd *cobra.Command) (types.CreateUserRQ, error) {
 	email := core.MustGetStringFlag(cmd, "email")
+	defaultProject := core.MustGetStringFlag(cmd, "default-project")
+	role := core.MustGetStringFlag(cmd, "role")
+
+	missing := make([]string, 0, 3)
 	if email == "" {
-		return types.CreateUserRQ{}, errors.New("missing required flags: --email")
+		missing = append(missing, "--email")
+	}
+
+	if defaultProject == "" {
+		missing = append(missing, "--default-project")
+	}
+
+	if role == "" {
+		missing = append(missing, "--role")
+	}
+
+	if len(missing) > 0 {
+		return types.CreateUserRQ{}, fmt.Errorf(
+			"missing required flags: %s",
+			strings.Join(missing, ", "),
+		)
 	}
 
 	return types.CreateUserRQ{
 		Email:          email,
-		DefaultProject: core.OptionalStringFlag(cmd, "default-project"),
-		Role:           core.OptionalStringFlag(cmd, "role"),
+		DefaultProject: defaultProject,
+		Role:           role,
 	}, nil
 }
 
