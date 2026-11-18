@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"slices"
 	"strings"
 
 	"github.com/klaskosk/report-portal-cli/pkg/client/internal/core"
@@ -237,15 +238,11 @@ func (i *TestItemScope) List(
 	return core.Execute[types.PageTestItemResource](ctx, logger, "list test items", resp, err)
 }
 
-// GetByIDs returns test items for the given numeric IDs using POST /v1/{projectName}/item/bulk.
+// GetByIDs returns test items for the given numeric IDs.
 //
-// It uses types.BulkItemsRQ and the generated GetTestItemsByIdsWithResponse method instead of the
-// deprecated GET /v1/{projectName}/item/items endpoint. An empty input slice returns an empty
-// result without issuing a request.
-//
-// The server caps BulkItemsRQ.ids at 300 entries (maxItems: 300). This method handles the cap by
-// transparently chunking larger inputs into multiple POST requests and concatenating the results.
-// Chunking preserves caller convenience for bulk fetches while respecting the server validation.
+// An empty input returns an empty result without issuing a request. Inputs
+// larger than 300 IDs are transparently chunked into multiple bulk requests
+// and the results are concatenated.
 func (i *TestItemScope) GetByIDs(
 	ctx context.Context,
 	ids ...int64,
@@ -258,15 +255,20 @@ func (i *TestItemScope) GetByIDs(
 
 	const bulkItemsMaxIDs = 300
 
-	var allItems []types.TestItemResource
+	allItems := make([]types.TestItemResource, 0, len(ids))
 
-	for start := 0; start < len(ids); start += bulkItemsMaxIDs {
-		end := min(start+bulkItemsMaxIDs, len(ids))
+	chunkIdx := 0
+	for chunk := range slices.Chunk(ids, bulkItemsMaxIDs) {
+		chunkIdx++
 
-		chunk := ids[start:end]
 		body := types.BulkItemsRQ{Ids: chunk}
 
-		logger.InfoContext(ctx, "API request")
+		logger.InfoContext(
+			ctx,
+			"API request",
+			slog.Int("chunk", chunkIdx),
+			slog.Int("chunkSize", len(chunk)),
+		)
 
 		resp, err := i.scope.Client.GetTestItemsByIdsWithResponse(ctx, i.scope.ProjectName, body)
 
@@ -281,13 +283,7 @@ func (i *TestItemScope) GetByIDs(
 			return nil, err
 		}
 
-		if items != nil {
-			allItems = append(allItems, *items...)
-		}
-	}
-
-	if allItems == nil {
-		return []types.TestItemResource{}, nil
+		allItems = append(allItems, *items...)
 	}
 
 	return allItems, nil

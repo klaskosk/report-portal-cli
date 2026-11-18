@@ -3,6 +3,7 @@ package item_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"testing"
@@ -628,14 +629,15 @@ func TestTestItemScope_GetByIDs_Chunked(t *testing.T) {
 	t.Parallel()
 
 	ids := make([]int64, 301)
-	for idx := range ids {
-		ids[idx] = int64(idx + 1)
+	for i := range ids {
+		ids[i] = int64(i + 1)
 	}
 
 	var callCount int
 
-	testClient := clienttest.NewClient(t, http.HandlerFunc(
-		func(responseWriter http.ResponseWriter, request *http.Request) {
+	testClient := clienttest.NewClient(
+		t,
+		http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
 			testutil.AssertBearerToken(t, request)
 			testutil.AssertPath(t, request, "/api/v1/my_project/item/bulk")
 			testutil.AssertMethod(t, request, http.MethodPost)
@@ -666,7 +668,7 @@ func TestTestItemScope_GetByIDs_Chunked(t *testing.T) {
 				for i := 1; i <= 300; i++ {
 					items = append(items, map[string]any{
 						"id":   i,
-						"uuid": "uuid-" + string(rune(i)),
+						"uuid": fmt.Sprintf("uuid-%d", i),
 						"name": "Item",
 						"type": "STEP",
 					})
@@ -687,7 +689,8 @@ func TestTestItemScope_GetByIDs_Chunked(t *testing.T) {
 				t.Errorf("unexpected call count %d", callCount)
 			}
 		},
-	))
+		),
+	)
 
 	items, err := testClient.Project("my_project").Items().GetByIDs(t.Context(), ids...)
 	require.NoError(t, err)
