@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"slices"
 	"strings"
 
 	"github.com/klaskosk/report-portal-cli/pkg/client/internal/core"
@@ -238,6 +239,10 @@ func (i *TestItemScope) List(
 }
 
 // GetByIDs returns test items for the given numeric IDs.
+//
+// An empty input returns an empty result without issuing a request. Inputs
+// larger than 300 IDs are transparently chunked into multiple bulk requests
+// and the results are concatenated.
 func (i *TestItemScope) GetByIDs(
 	ctx context.Context,
 	ids ...int64,
@@ -248,28 +253,40 @@ func (i *TestItemScope) GetByIDs(
 		return []types.TestItemResource{}, nil
 	}
 
-	params := &api.GetTestItems3Params{Ids: ids}
+	const bulkItemsMaxIDs = 300
 
-	logger.InfoContext(ctx, "API request")
+	allItems := make([]types.TestItemResource, 0, len(ids))
 
-	resp, err := i.scope.Client.GetTestItems3WithResponse(ctx, i.scope.ProjectName, params)
+	chunkIdx := 0
+	for chunk := range slices.Chunk(ids, bulkItemsMaxIDs) {
+		chunkIdx++
 
-	items, err := core.Execute[[]types.TestItemResource](
-		ctx,
-		logger,
-		"get test items by ids",
-		resp,
-		err,
-	)
-	if err != nil {
-		return nil, err
+		body := types.BulkItemsRQ{Ids: chunk}
+
+		logger.InfoContext(
+			ctx,
+			"API request",
+			slog.Int("chunk", chunkIdx),
+			slog.Int("chunkSize", len(chunk)),
+		)
+
+		resp, err := i.scope.Client.GetTestItemsByIdsWithResponse(ctx, i.scope.ProjectName, body)
+
+		items, err := core.Execute[[]types.TestItemResource](
+			ctx,
+			logger,
+			"get test items by ids",
+			resp,
+			err,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		allItems = append(allItems, *items...)
 	}
 
-	if items == nil {
-		return []types.TestItemResource{}, nil
-	}
-
-	return *items, nil
+	return allItems, nil
 }
 
 // Update modifies a single test item's attributes, description, or status.

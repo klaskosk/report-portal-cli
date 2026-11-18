@@ -3,6 +3,7 @@ package item_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"testing"
@@ -518,7 +519,7 @@ func TestItemScope_List_WithSortCleared(t *testing.T) {
 type getByIDsTestCase struct {
 	name             string
 	ids              []int64
-	expectedQueryIDs []string
+	expectedIDs      []int64
 	responseBody     string
 	expectedLength   int
 	expectedFirstID  int64
@@ -533,11 +534,20 @@ func runGetByIDsTestCase(t *testing.T, testCase getByIDsTestCase) {
 		t,
 		http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
 			testutil.AssertBearerToken(t, request)
-			testutil.AssertPath(t, request, "/api/v1/my_project/item/items")
-			testutil.AssertMethod(t, request, http.MethodGet)
+			testutil.AssertPath(t, request, "/api/v1/my_project/item/bulk")
+			testutil.AssertMethod(t, request, http.MethodPost)
 
-			query := request.URL.Query()["ids"]
-			assert.Equal(t, testCase.expectedQueryIDs, query)
+			body, err := io.ReadAll(request.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
+
+			var bulkReq types.BulkItemsRQ
+			if !assert.NoError(t, json.Unmarshal(body, &bulkReq)) {
+				return
+			}
+
+			assert.Equal(t, testCase.expectedIDs, bulkReq.Ids)
 
 			responseWriter.Header().Set("Content-Type", "application/json")
 			responseWriter.WriteHeader(http.StatusOK)
@@ -563,9 +573,9 @@ func TestTestItemScope_GetByIDs(t *testing.T) {
 
 	testCases := []getByIDsTestCase{
 		{
-			name:             "MultipleIDs",
-			ids:              []int64{101, 202},
-			expectedQueryIDs: []string{"101", "202"},
+			name:        "MultipleIDs",
+			ids:         []int64{101, 202},
+			expectedIDs: []int64{101, 202},
 			responseBody: `[
 				{"id": 101, "uuid": "suite-101", "name": "Suite A", "type": "SUITE"},
 				{"id": 202, "uuid": "test-202", "name": "Test B", "type": "TEST"}
@@ -575,9 +585,9 @@ func TestTestItemScope_GetByIDs(t *testing.T) {
 			expectedLastType: "TEST",
 		},
 		{
-			name:             "SingleID",
-			ids:              []int64{303},
-			expectedQueryIDs: []string{"303"},
+			name:        "SingleID",
+			ids:         []int64{303},
+			expectedIDs: []int64{303},
 			responseBody: `[
 				{"id": 303, "uuid": "step-303", "name": "Step C", "type": "STEP"}
 			]`,
@@ -613,6 +623,94 @@ func TestTestItemScope_GetByIDs_EmptyInput(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, called)
 	assert.Empty(t, items)
+}
+
+func TestTestItemScope_GetByIDs_Chunked(t *testing.T) {
+	t.Parallel()
+
+	ids := make([]int64, 301)
+	for i := range ids {
+		ids[i] = int64(i + 1)
+	}
+
+	var callCount int
+
+	testClient := clienttest.NewClient(
+		t,
+		http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
+			testutil.AssertBearerToken(t, request)
+			testutil.AssertPath(t, request, "/api/v1/my_project/item/bulk")
+			testutil.AssertMethod(t, request, http.MethodPost)
+
+			body, err := io.ReadAll(request.Body)
+			if !assert.NoError(t, err) {
+				return
+			}
+
+			var bulkReq types.BulkItemsRQ
+			if !assert.NoError(t, json.Unmarshal(body, &bulkReq)) {
+				return
+			}
+
+			callCount++
+
+			switch callCount {
+			case 1:
+				assert.Len(t, bulkReq.Ids, 300)
+				assert.Equal(t, int64(1), bulkReq.Ids[0])
+				assert.Equal(t, int64(300), bulkReq.Ids[299])
+
+				responseWriter.Header().Set("Content-Type", "application/json")
+				responseWriter.WriteHeader(http.StatusOK)
+
+				// Return 300 items for the first chunk.
+				var items []map[string]any
+				for i := 1; i <= 300; i++ {
+					items = append(items, map[string]any{
+						"id":   i,
+						"uuid": fmt.Sprintf("uuid-%d", i),
+						"name": "Item",
+						"type": "STEP",
+					})
+				}
+
+				encoded, _ := json.Marshal(items)
+				_, _ = responseWriter.Write(encoded)
+			case 2:
+				assert.Len(t, bulkReq.Ids, 1)
+				assert.Equal(t, int64(301), bulkReq.Ids[0])
+
+				responseWriter.Header().Set("Content-Type", "application/json")
+				responseWriter.WriteHeader(http.StatusOK)
+				_, _ = responseWriter.Write([]byte(`[
+					{"id": 301, "uuid": "uuid-301", "name": "Item 301", "type": "STEP"}
+				]`))
+			default:
+				t.Errorf("unexpected call count %d", callCount)
+			}
+		},
+		),
+	)
+
+	items, err := testClient.Project("my_project").Items().GetByIDs(t.Context(), ids...)
+	require.NoError(t, err)
+	require.Len(t, items, 301)
+	assert.Equal(t, 2, callCount)
+	require.NotNil(t, items[0].Id)
+	require.NotNil(t, items[300].Id)
+	assert.Equal(t, int64(1), *items[0].Id)
+	assert.Equal(t, int64(301), *items[300].Id)
+}
+
+func TestTestItemScope_GetByIDs_Error(t *testing.T) {
+	t.Parallel()
+
+	testClient := clienttest.NewClient(t, testutil.JSONHandler(http.StatusNotFound,
+		`{"errorCode": 40440, "message": "Test item not found."}`))
+
+	_, err := testClient.Project("my_project").Items().GetByIDs(t.Context(), 999)
+	require.Error(t, err)
+	assert.True(t, client.IsNotFound(err))
 }
 
 func TestTestItemScope_Update_Success(t *testing.T) {
