@@ -383,7 +383,7 @@ func TestIsEmptyErrorRS(t *testing.T) {
 		{"only errorCode", &types.ErrorRS{ErrorCode: 40410}, false},
 		{"only message", &types.ErrorRS{Message: "Not found"}, false},
 		{"code and message", &types.ErrorRS{ErrorCode: 40410, Message: "Not found"}, false},
-		{"empty with stackTrace", &types.ErrorRS{StackTrace: new("trace")}, false},
+		{"stackTrace only is still empty", &types.ErrorRS{StackTrace: new("trace")}, true},
 		{"empty stackTrace pointer", &types.ErrorRS{StackTrace: new("")}, true},
 	}
 

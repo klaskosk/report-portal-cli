@@ -138,12 +138,12 @@ const maxBodyPreview = 256
 
 func (e *UnexpectedStatusError) Error() string {
 	if len(e.body) == 0 {
-		return fmt.Sprintf("unexpected HTTP %d (no ErrorRS body)", e.statusCode)
+		return fmt.Sprintf("unexpected HTTP %d (no JSON error body)", e.statusCode)
 	}
 
 	if oauthMsg, ok := oauthErrorMessage(e.body); ok {
 		if len(oauthMsg) > maxBodyPreview {
-			oauthMsg = oauthMsg[:maxBodyPreview] + "..."
+			oauthMsg = truncateString(oauthMsg, maxBodyPreview) + "..."
 		}
 
 		return fmt.Sprintf("HTTP %d: %s", e.statusCode, oauthMsg)
@@ -181,20 +181,15 @@ func ErrorFor(statusCode int, errRS *types.ErrorRS, body []byte) error {
 // The generated client decodes every JSON error body into ErrorRS, so an OAuth
 // payload like {"error":"invalid_token",...} unmarshals into a zero value
 // without error. Empty values must be treated as "no structured error body".
+// Only errorCode and message determine emptiness; stackTrace alone is not
+// enough to produce a useful APIError (it would render as "HTTP 500: [0] "),
+// so it falls back to the raw body preview which already contains the trace.
 func IsEmptyErrorRS(errRS *types.ErrorRS) bool {
 	if errRS == nil {
 		return true
 	}
 
-	if errRS.ErrorCode != 0 || errRS.Message != "" {
-		return false
-	}
-
-	if errRS.StackTrace != nil && *errRS.StackTrace != "" {
-		return false
-	}
-
-	return true
+	return errRS.ErrorCode == 0 && errRS.Message == ""
 }
 
 // oauthEnvelope represents the Spring Security OAuth error shape that
@@ -246,15 +241,11 @@ func ParseErrorBody(statusCode int, body []byte) error {
 		return NewUnexpectedStatusError(statusCode, body)
 	}
 
-	if IsEmptyErrorRS(&errRS) {
-		return NewUnexpectedStatusError(statusCode, body)
-	}
-
-	return NewAPIError(statusCode, &errRS)
+	return ErrorFor(statusCode, &errRS, body)
 }
 
 // NewUnexpectedStatusError constructs an UnexpectedStatusError for non-2xx
-// responses without an ErrorRS body.
+// responses without a JSON body.
 func NewUnexpectedStatusError(statusCode int, body []byte) *UnexpectedStatusError {
 	return &UnexpectedStatusError{
 		statusCode: statusCode,
@@ -283,6 +274,20 @@ func sanitizeBodyPreview(body []byte) string {
 	}
 
 	return fmt.Sprintf("%q", s)
+}
+
+// truncateString truncates s to at most max bytes without splitting a UTF-8 rune.
+func truncateString(s string, limit int) string {
+	if len(s) <= limit {
+		return s
+	}
+
+	truncated := s[:limit]
+	for !utf8.ValidString(truncated) && len(truncated) > 0 {
+		truncated = truncated[:len(truncated)-1]
+	}
+
+	return truncated
 }
 
 // BodyOf extracts the raw response body from an error that carries one (e.g. UnexpectedStatusError). The second return
