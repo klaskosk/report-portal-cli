@@ -150,7 +150,11 @@ func decodeBatchSaveOperatingBody(
 	}
 
 	if jsonDefault != nil {
-		return nil, fmt.Errorf("%s: %w", opName, core.NewAPIError(statusCode, jsonDefault))
+		if !core.IsEmptyErrorRS(jsonDefault) {
+			return nil, fmt.Errorf("%s: %w", opName, core.NewAPIError(statusCode, jsonDefault))
+		}
+
+		return nil, fmt.Errorf("%s: %w", opName, core.NewUnexpectedStatusError(statusCode, rawBody))
 	}
 
 	if statusCode < 200 || statusCode >= 300 {
@@ -499,9 +503,16 @@ func (l *LogScope) GetPageNumber(
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
 	if response.JSONDefault != nil {
+		if !core.IsEmptyErrorRS(response.JSONDefault) {
+			return nil, fmt.Errorf(
+				"get log page number: %w",
+				core.NewAPIError(response.StatusCode(), response.JSONDefault),
+			)
+		}
+
 		return nil, fmt.Errorf(
 			"get log page number: %w",
-			core.NewAPIError(response.StatusCode(), response.JSONDefault),
+			core.NewUnexpectedStatusError(response.StatusCode(), response.Body),
 		)
 	}
 
@@ -576,9 +587,16 @@ func (l *LogScope) GetLogLocations(
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
 	if response.JSONDefault != nil {
+		if !core.IsEmptyErrorRS(response.JSONDefault) {
+			return nil, fmt.Errorf(
+				"get log locations: %w",
+				core.NewAPIError(response.StatusCode(), response.JSONDefault),
+			)
+		}
+
 		return nil, fmt.Errorf(
 			"get log locations: %w",
-			core.NewAPIError(response.StatusCode(), response.JSONDefault),
+			core.NewUnexpectedStatusError(response.StatusCode(), response.Body),
 		)
 	}
 

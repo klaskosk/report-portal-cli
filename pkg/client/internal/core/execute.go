@@ -43,7 +43,17 @@ func Execute[T any](
 	logger.DebugContext(ctx, "API response", "status", resp.StatusCode())
 
 	if jsonDefault := resp.GetJSONDefault(); jsonDefault != nil {
-		return nil, fmt.Errorf("%s: %w", opName, NewAPIError(resp.StatusCode(), jsonDefault))
+		if !isEmptyErrorRS(jsonDefault) {
+			return nil, fmt.Errorf("%s: %w", opName, NewAPIError(resp.StatusCode(), jsonDefault))
+		}
+		// Empty ErrorRS means the body did not match the expected envelope
+		// (e.g. ReportPortal's Spring Security OAuth envelope for 401s). Fall
+		// back to UnexpectedStatusError so the raw body preview is surfaced.
+		return nil, fmt.Errorf(
+			"%s: %w",
+			opName,
+			NewUnexpectedStatusError(resp.StatusCode(), resp.GetBody()),
+		)
 	}
 
 	code := resp.StatusCode()
@@ -79,7 +89,15 @@ func ExecuteVoid(
 	logger.DebugContext(ctx, "API response", "status", resp.StatusCode())
 
 	if jsonDefault := resp.GetJSONDefault(); jsonDefault != nil {
-		return fmt.Errorf("%s: %w", opName, NewAPIError(resp.StatusCode(), jsonDefault))
+		if !isEmptyErrorRS(jsonDefault) {
+			return fmt.Errorf("%s: %w", opName, NewAPIError(resp.StatusCode(), jsonDefault))
+		}
+		// Empty ErrorRS -> fall back to raw body preview (see Execute).
+		return fmt.Errorf(
+			"%s: %w",
+			opName,
+			NewUnexpectedStatusError(resp.StatusCode(), resp.GetBody()),
+		)
 	}
 
 	code := resp.StatusCode()

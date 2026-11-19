@@ -139,6 +139,10 @@ func (e *UnexpectedStatusError) Error() string {
 		return fmt.Sprintf("unexpected HTTP %d (no JSON error body)", e.statusCode)
 	}
 
+	if oauthMsg, ok := tryParseOAuthError(e.body); ok {
+		return fmt.Sprintf("unexpected HTTP %d: %s", e.statusCode, oauthMsg)
+	}
+
 	preview := e.body
 	suffix := ""
 
@@ -155,14 +159,81 @@ func (e *UnexpectedStatusError) Error() string {
 	)
 }
 
+// oauthEnvelope represents the Spring Security OAuth error shape that
+// ReportPortal returns for authentication failures. It is distinct from the
+// regular ErrorRS envelope and carries "error" and "error_description" fields.
+type oauthEnvelope struct {
+	Error            string `json:"error"`
+	ErrorDescription string `json:"error_description"`
+}
+
+// IsEmptyErrorRS reports whether an ErrorRS carries no information.
+// The generated client decodes every JSON error body into ErrorRS, so an OAuth
+// payload like {"error":"invalid_token",...} unmarshals into a zero value
+// without error. Empty values must be treated as "no structured error body".
+func IsEmptyErrorRS(errRS *types.ErrorRS) bool {
+	if errRS == nil {
+		return true
+	}
+
+	if errRS.ErrorCode != 0 || errRS.Message != "" {
+		return false
+	}
+
+	if errRS.StackTrace != nil && *errRS.StackTrace != "" {
+		return false
+	}
+
+	return true
+}
+
+// isEmptyErrorRS is the unexported alias used within this package.
+func isEmptyErrorRS(errRS *types.ErrorRS) bool {
+	return IsEmptyErrorRS(errRS)
+}
+
+// tryParseOAuthError attempts to parse body as an OAuth envelope and returns
+// a formatted message if successful.
+func tryParseOAuthError(body []byte) (string, bool) {
+	if len(body) == 0 {
+		return "", false
+	}
+
+	var env oauthEnvelope
+
+	err := json.Unmarshal(body, &env)
+	if err != nil {
+		return "", false
+	}
+
+	if env.Error == "" && env.ErrorDescription == "" {
+		return "", false
+	}
+
+	if env.Error != "" && env.ErrorDescription != "" {
+		return fmt.Sprintf("%s: %s", env.Error, env.ErrorDescription), true
+	}
+
+	if env.ErrorDescription != "" {
+		return env.ErrorDescription, true
+	}
+
+	return env.Error, true
+}
+
 // ParseErrorBody attempts to unmarshal body as an ErrorRS and returns an
-// APIError. If the body is not valid ErrorRS JSON, it falls back to an
-// UnexpectedStatusError.
+// APIError. If the body is not valid ErrorRS JSON, or if the decoded ErrorRS
+// is empty (e.g. an OAuth envelope), it falls back to an UnexpectedStatusError
+// so the raw body preview is preserved.
 func ParseErrorBody(statusCode int, body []byte) error {
 	var errRS types.ErrorRS
 
 	err := json.Unmarshal(body, &errRS)
 	if err != nil {
+		return NewUnexpectedStatusError(statusCode, body)
+	}
+
+	if isEmptyErrorRS(&errRS) {
 		return NewUnexpectedStatusError(statusCode, body)
 	}
 

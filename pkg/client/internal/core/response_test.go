@@ -370,6 +370,248 @@ func TestExecuteVoid_NonJSONError(t *testing.T) {
 	assert.Contains(t, err.Error(), "test op")
 }
 
+func TestIsEmptyErrorRS(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		in   *types.ErrorRS
+		want bool
+	}{
+		{"nil", nil, true},
+		{"zero value", &types.ErrorRS{}, true},
+		{"only errorCode", &types.ErrorRS{ErrorCode: 40410}, false},
+		{"only message", &types.ErrorRS{Message: "Not found"}, false},
+		{"code and message", &types.ErrorRS{ErrorCode: 40410, Message: "Not found"}, false},
+		{"empty with stackTrace", &types.ErrorRS{StackTrace: new("trace")}, false},
+		{"empty stackTrace pointer", &types.ErrorRS{StackTrace: new("")}, true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tc.want, IsEmptyErrorRS(tc.in))
+			assert.Equal(t, tc.want, isEmptyErrorRS(tc.in))
+		})
+	}
+}
+
+func TestParseErrorBody_EmptyErrorRSFallback(t *testing.T) {
+	t.Parallel()
+
+	oauthBody := []byte(`{"error":"invalid_token","error_description":"Invalid access token"}`)
+	err := ParseErrorBody(401, oauthBody)
+	require.Error(t, err)
+
+	var unexpected *UnexpectedStatusError
+	require.ErrorAs(t, err, &unexpected)
+	assert.Equal(t, 401, unexpected.StatusCode())
+	assert.Contains(t, err.Error(), "invalid_token")
+	assert.Contains(t, err.Error(), "Invalid access token")
+	body, ok := BodyOf(err)
+	require.True(t, ok)
+	assert.Equal(t, oauthBody, body)
+	assert.True(t, HasStatusCode(err, 401))
+	assert.True(t, IsUnauthorized(err))
+
+	// Valid ErrorRS should still produce APIError
+	validBody := []byte(`{"errorCode":40410,"message":"Not found"}`)
+	err = ParseErrorBody(404, validBody)
+	require.Error(t, err)
+
+	var apiErr *APIError
+	require.ErrorAs(t, err, &apiErr)
+	assert.Equal(t, 40410, apiErr.ErrorCode())
+	assert.Contains(t, err.Error(), "HTTP 404: [40410] Not found")
+}
+
+func TestExecute_EmptyErrorRSFallback(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		body       []byte
+		wantSubstr string
+	}{
+		{
+			name: "OAuth invalid_token",
+			body: []byte(
+				`{"error":"invalid_token","error_description":"Invalid access token"}`,
+			),
+			wantSubstr: "invalid_token: Invalid access token",
+		},
+		{
+			name: "OAuth malformed",
+			body: []byte(
+				`{"error":"invalid_token","error_description":"Bearer token is malformed"}`,
+			),
+			wantSubstr: "Bearer token is malformed",
+		},
+		{
+			name: "OAuth full auth required",
+			body: []byte(
+				`{"error":"unauthorized","error_description":"Full authentication ` +
+					`is required"}`,
+			),
+			wantSubstr: "Full authentication is required",
+		},
+		{
+			name:       "OAuth missing issuer",
+			body:       []byte(`{"error":"invalid_token","error_description":"Missing issuer"}`),
+			wantSubstr: "Missing issuer",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			resp := fakeTypedResponse[string]{
+				statusCode:  401,
+				body:        testCase.body,
+				jsonDefault: &types.ErrorRS{}, // empty due to OAuth envelope unmarshalling
+			}
+			_, err := Execute(context.Background(), discardLogger(), "test op", resp, nil)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), testCase.wantSubstr)
+			assert.Contains(t, err.Error(), "test op")
+			assert.True(t, IsUnauthorized(err))
+
+			var unexpected *UnexpectedStatusError
+			require.ErrorAs(t, err, &unexpected)
+			assert.Equal(t, 401, unexpected.StatusCode())
+
+			gotBody, ok := BodyOf(err)
+			require.True(t, ok)
+			assert.Equal(t, testCase.body, gotBody)
+			// Ensure we do NOT get the empty APIError message
+			assert.NotContains(t, err.Error(), "HTTP 401: [0]")
+		})
+	}
+}
+
+func TestExecute_EmptyErrorRSWithEmptyBodyFallback(t *testing.T) {
+	t.Parallel()
+
+	resp := fakeTypedResponse[string]{
+		statusCode:  401,
+		body:        nil,
+		jsonDefault: &types.ErrorRS{},
+	}
+	_, err := Execute(context.Background(), discardLogger(), "test op", resp, nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unexpected HTTP 401")
+
+	var unexpected *UnexpectedStatusError
+	require.ErrorAs(t, err, &unexpected)
+}
+
+func TestExecute_NonEmptyErrorRSStillAPIError(t *testing.T) {
+	t.Parallel()
+
+	resp := fakeTypedResponse[string]{
+		statusCode:  401,
+		body:        []byte(`{"errorCode":4010,"message":"Unauthorized"}`),
+		jsonDefault: &types.ErrorRS{ErrorCode: 4010, Message: "Unauthorized"},
+	}
+	_, err := Execute(context.Background(), discardLogger(), "test op", resp, nil)
+	require.Error(t, err)
+
+	var apiErr *APIError
+	require.ErrorAs(t, err, &apiErr)
+	assert.Equal(t, 4010, apiErr.ErrorCode())
+	assert.Contains(t, err.Error(), "HTTP 401: [4010] Unauthorized")
+}
+
+func TestExecuteVoid_EmptyErrorRSFallback(t *testing.T) {
+	t.Parallel()
+
+	body := []byte(`{"error":"invalid_token","error_description":"Invalid access token"}`)
+	resp := fakeVoidResp{
+		statusCode:  401,
+		body:        body,
+		jsonDefault: &types.ErrorRS{},
+	}
+	err := ExecuteVoid(context.Background(), discardLogger(), "test op", resp, nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid_token")
+	assert.True(t, IsUnauthorized(err))
+
+	var unexpected *UnexpectedStatusError
+	require.ErrorAs(t, err, &unexpected)
+	gotBody, ok := BodyOf(err)
+	require.True(t, ok)
+	assert.Equal(t, body, gotBody)
+}
+
+func TestHandleV2Response_EmptyErrorRSFallback(t *testing.T) {
+	t.Parallel()
+
+	body := []byte(`{"error":"invalid_token","error_description":"Invalid access token"}`)
+	resp := fakeV2Response{
+		statusCode:  401,
+		JSONDefault: &types.ErrorRS{},
+		Body:        body,
+	}
+	_, err := HandleV2Response(resp, resp.JSONDefault, resp.V2JSON200, resp.JSON200, resp.Body)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid_token")
+
+	var unexpected *UnexpectedStatusError
+	require.ErrorAs(t, err, &unexpected)
+	assert.Equal(t, 401, unexpected.StatusCode())
+}
+
+func TestHandleV2Response_NonEmptyErrorRSStillAPIError(t *testing.T) {
+	t.Parallel()
+
+	resp := fakeV2Response{
+		statusCode:  404,
+		JSONDefault: &types.ErrorRS{ErrorCode: 40410, Message: "Not found"},
+	}
+	_, err := HandleV2Response(resp, resp.JSONDefault, resp.V2JSON200, resp.JSON200, resp.Body)
+	require.Error(t, err)
+
+	var apiErr *APIError
+	require.ErrorAs(t, err, &apiErr)
+}
+
+func TestUnexpectedStatusError_OAuthFormatting(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		body       []byte
+		wantSubstr string
+	}{
+		{
+			"both fields",
+			[]byte(`{"error":"invalid_token","error_description":"Invalid access token"}`),
+			"invalid_token: Invalid access token",
+		},
+		{
+			"only description",
+			[]byte(`{"error_description":"Full authentication is required"}`),
+			"Full authentication is required",
+		},
+		{"only error", []byte(`{"error":"invalid_token"}`), "invalid_token"},
+		{
+			"plain text fallback",
+			[]byte("Full authentication is required"),
+			"Full authentication is required",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := NewUnexpectedStatusError(401, tc.body)
+			assert.Contains(t, err.Error(), tc.wantSubstr)
+		})
+	}
+}
+
 func TestLegacyPayloadPresent(t *testing.T) {
 	t.Parallel()
 

@@ -28,7 +28,11 @@ func HandleV2Response[R interface{ StatusCode() int }, T any](
 	}
 
 	if jsonDefault != nil {
-		return nil, NewAPIError(response.StatusCode(), jsonDefault)
+		if !isEmptyErrorRS(jsonDefault) {
+			return nil, NewAPIError(response.StatusCode(), jsonDefault)
+		}
+		// Empty ErrorRS -> fall back to raw body preview (see Execute).
+		return nil, NewUnexpectedStatusError(response.StatusCode(), body)
 	}
 
 	code := response.StatusCode()

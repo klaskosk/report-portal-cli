@@ -128,9 +128,16 @@ func (u *UsersScope) Export(ctx context.Context, options ...ListUsersOption) ([]
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
 	if response.JSONDefault != nil {
+		if !core.IsEmptyErrorRS(response.JSONDefault) {
+			return nil, fmt.Errorf(
+				"export users: %w",
+				core.NewAPIError(response.StatusCode(), response.JSONDefault),
+			)
+		}
+
 		return nil, fmt.Errorf(
 			"export users: %w",
-			core.NewAPIError(response.StatusCode(), response.JSONDefault),
+			core.NewUnexpectedStatusError(response.StatusCode(), response.Body),
 		)
 	}
 

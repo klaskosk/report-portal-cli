@@ -67,8 +67,13 @@ func (s *LogTypesScope) Create(
 	}
 
 	if resp.JSONDefault != nil {
+		if !core.IsEmptyErrorRS(resp.JSONDefault) {
+			return nil, fmt.Errorf("create log type: %w",
+				core.NewAPIError(resp.StatusCode(), resp.JSONDefault))
+		}
+
 		return nil, fmt.Errorf("create log type: %w",
-			core.NewAPIError(resp.StatusCode(), resp.JSONDefault))
+			core.NewUnexpectedStatusError(resp.StatusCode(), resp.Body))
 	}
 
 	return nil, fmt.Errorf("create log type: %w",

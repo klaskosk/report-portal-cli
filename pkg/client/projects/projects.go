@@ -400,9 +400,16 @@ func (p *ProjectsScope) Export(
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
 	if response.JSONDefault != nil {
+		if !core.IsEmptyErrorRS(response.JSONDefault) {
+			return nil, fmt.Errorf(
+				"export projects: %w",
+				core.NewAPIError(response.StatusCode(), response.JSONDefault),
+			)
+		}
+
 		return nil, fmt.Errorf(
 			"export projects: %w",
-			core.NewAPIError(response.StatusCode(), response.JSONDefault),
+			core.NewUnexpectedStatusError(response.StatusCode(), response.Body),
 		)
 	}
 

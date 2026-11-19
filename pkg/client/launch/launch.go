@@ -904,9 +904,16 @@ func (l *LaunchScope) GetReport(
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
 	if response.JSONDefault != nil {
+		if !core.IsEmptyErrorRS(response.JSONDefault) {
+			return nil, fmt.Errorf(
+				"get launch report: %w",
+				core.NewAPIError(response.StatusCode(), response.JSONDefault),
+			)
+		}
+
 		return nil, fmt.Errorf(
 			"get launch report: %w",
-			core.NewAPIError(response.StatusCode(), response.JSONDefault),
+			core.NewUnexpectedStatusError(response.StatusCode(), response.Body),
 		)
 	}
 
