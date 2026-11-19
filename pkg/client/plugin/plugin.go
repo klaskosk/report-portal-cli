@@ -240,16 +240,9 @@ func (s *PluginScope) GetPublicFile(
 	logger.DebugContext(ctx, "API response", "status", response.StatusCode())
 
 	if response.JSONDefault != nil {
-		if !core.IsEmptyErrorRS(response.JSONDefault) {
-			return nil, fmt.Errorf(
-				"get public plugin file: %w",
-				core.NewAPIError(response.StatusCode(), response.JSONDefault),
-			)
-		}
-
 		return nil, fmt.Errorf(
 			"get public plugin file: %w",
-			core.NewUnexpectedStatusError(response.StatusCode(), response.Body),
+			core.ErrorFor(response.StatusCode(), response.JSONDefault, response.Body),
 		)
 	}
 

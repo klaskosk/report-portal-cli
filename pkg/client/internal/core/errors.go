@@ -123,9 +123,11 @@ func HasErrorCode(err error, code int) bool {
 	return errors.As(err, &apiError) && apiError.ErrorCode() == code
 }
 
-// UnexpectedStatusError represents an HTTP error response that did not contain a parseable JSON error body. This
-// typically occurs when a proxy, gateway, or infrastructure component returns an HTML or plain-text error page, or
-// when the server returns a non-JSON response (e.g. a plain string for a 401). The raw response body is preserved
+// UnexpectedStatusError represents an HTTP error response that did not contain
+// a parseable ErrorRS body. This typically occurs when ReportPortal returns its
+// Spring Security OAuth envelope ({"error":"...","error_description":"..."}) for
+// authentication failures, or when a proxy, gateway, or infrastructure component
+// returns an HTML or plain-text error page. The raw response body is preserved
 // so callers can inspect what the server actually returned.
 type UnexpectedStatusError struct {
 	statusCode int
@@ -136,11 +138,15 @@ const maxBodyPreview = 256
 
 func (e *UnexpectedStatusError) Error() string {
 	if len(e.body) == 0 {
-		return fmt.Sprintf("unexpected HTTP %d (no JSON error body)", e.statusCode)
+		return fmt.Sprintf("unexpected HTTP %d (no ErrorRS body)", e.statusCode)
 	}
 
-	if oauthMsg, ok := tryParseOAuthError(e.body); ok {
-		return fmt.Sprintf("unexpected HTTP %d: %s", e.statusCode, oauthMsg)
+	if oauthMsg, ok := oauthErrorMessage(e.body); ok {
+		if len(oauthMsg) > maxBodyPreview {
+			oauthMsg = oauthMsg[:maxBodyPreview] + "..."
+		}
+
+		return fmt.Sprintf("HTTP %d: %s", e.statusCode, oauthMsg)
 	}
 
 	preview := e.body
@@ -159,12 +165,16 @@ func (e *UnexpectedStatusError) Error() string {
 	)
 }
 
-// oauthEnvelope represents the Spring Security OAuth error shape that
-// ReportPortal returns for authentication failures. It is distinct from the
-// regular ErrorRS envelope and carries "error" and "error_description" fields.
-type oauthEnvelope struct {
-	Error            string `json:"error"`
-	ErrorDescription string `json:"error_description"`
+// ErrorFor returns an APIError when errRS carries information, otherwise an
+// UnexpectedStatusError carrying the raw body. Use it wherever a decoded
+// ErrorRS might be empty (e.g. the OAuth envelope for 401s) to ensure the
+// response body is surfaced instead of "HTTP 401: [0]".
+func ErrorFor(statusCode int, errRS *types.ErrorRS, body []byte) error {
+	if !IsEmptyErrorRS(errRS) {
+		return NewAPIError(statusCode, errRS)
+	}
+
+	return NewUnexpectedStatusError(statusCode, body)
 }
 
 // IsEmptyErrorRS reports whether an ErrorRS carries no information.
@@ -187,14 +197,17 @@ func IsEmptyErrorRS(errRS *types.ErrorRS) bool {
 	return true
 }
 
-// isEmptyErrorRS is the unexported alias used within this package.
-func isEmptyErrorRS(errRS *types.ErrorRS) bool {
-	return IsEmptyErrorRS(errRS)
+// oauthEnvelope represents the Spring Security OAuth error shape that
+// ReportPortal returns for authentication failures. It is distinct from the
+// regular ErrorRS envelope and carries "error" and "error_description" fields.
+type oauthEnvelope struct {
+	Error            string `json:"error"`
+	ErrorDescription string `json:"error_description"`
 }
 
-// tryParseOAuthError attempts to parse body as an OAuth envelope and returns
+// oauthErrorMessage attempts to parse body as an OAuth envelope and returns
 // a formatted message if successful.
-func tryParseOAuthError(body []byte) (string, bool) {
+func oauthErrorMessage(body []byte) (string, bool) {
 	if len(body) == 0 {
 		return "", false
 	}
@@ -233,14 +246,15 @@ func ParseErrorBody(statusCode int, body []byte) error {
 		return NewUnexpectedStatusError(statusCode, body)
 	}
 
-	if isEmptyErrorRS(&errRS) {
+	if IsEmptyErrorRS(&errRS) {
 		return NewUnexpectedStatusError(statusCode, body)
 	}
 
 	return NewAPIError(statusCode, &errRS)
 }
 
-// NewUnexpectedStatusError constructs an UnexpectedStatusError for non-2xx responses without a JSON body.
+// NewUnexpectedStatusError constructs an UnexpectedStatusError for non-2xx
+// responses without an ErrorRS body.
 func NewUnexpectedStatusError(statusCode int, body []byte) *UnexpectedStatusError {
 	return &UnexpectedStatusError{
 		statusCode: statusCode,

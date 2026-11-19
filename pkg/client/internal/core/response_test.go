@@ -387,11 +387,10 @@ func TestIsEmptyErrorRS(t *testing.T) {
 		{"empty stackTrace pointer", &types.ErrorRS{StackTrace: new("")}, true},
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
-			assert.Equal(t, tc.want, IsEmptyErrorRS(tc.in))
-			assert.Equal(t, tc.want, isEmptyErrorRS(tc.in))
+			assert.Equal(t, testCase.want, IsEmptyErrorRS(testCase.in))
 		})
 	}
 }
@@ -413,10 +412,13 @@ func TestParseErrorBody_EmptyErrorRSFallback(t *testing.T) {
 	assert.Equal(t, oauthBody, body)
 	assert.True(t, HasStatusCode(err, 401))
 	assert.True(t, IsUnauthorized(err))
+}
 
-	// Valid ErrorRS should still produce APIError
+func TestParseErrorBody_ValidErrorRSStillAPIError(t *testing.T) {
+	t.Parallel()
+
 	validBody := []byte(`{"errorCode":40410,"message":"Not found"}`)
-	err = ParseErrorBody(404, validBody)
+	err := ParseErrorBody(404, validBody)
 	require.Error(t, err)
 
 	var apiErr *APIError

@@ -226,11 +226,7 @@ func extractFileContent(
 	operation string,
 ) (*FileContent, error) {
 	if jsonDefault != nil {
-		if !core.IsEmptyErrorRS(jsonDefault) {
-			return nil, fmt.Errorf("%s: %w", operation, core.NewAPIError(statusCode, jsonDefault))
-		}
-
-		return nil, fmt.Errorf("%s: %w", operation, core.NewUnexpectedStatusError(statusCode, body))
+		return nil, fmt.Errorf("%s: %w", operation, core.ErrorFor(statusCode, jsonDefault, body))
 	}
 
 	if statusCode < 200 || statusCode >= 300 {
