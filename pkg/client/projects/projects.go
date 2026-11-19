@@ -402,7 +402,7 @@ func (p *ProjectsScope) Export(
 	if response.JSONDefault != nil {
 		return nil, fmt.Errorf(
 			"export projects: %w",
-			core.NewAPIError(response.StatusCode(), response.JSONDefault),
+			core.ErrorFor(response.StatusCode(), response.JSONDefault, response.Body),
 		)
 	}
 

@@ -610,3 +610,27 @@ func TestPluginScope_ExecutePublicCommand_NotFound(t *testing.T) {
 	require.Error(t, err)
 	assert.True(t, client.IsNotFound(err))
 }
+
+func TestPluginScope_Import_Unauthorized_OAuthEnvelope(t *testing.T) {
+	t.Parallel()
+
+	// ReportPortal returns Spring Security OAuth JSON for auth failures, not
+	// ErrorRS. The generated client decodes it to a zero-value ErrorRS, which
+	// must fall back to UnexpectedStatusError with the OAuth message surfaced.
+	oauthBody := `{"error":"invalid_token","error_description":"Invalid access token"}`
+
+	c := clienttest.NewClient(t, clienttest.JSONHandler(http.StatusUnauthorized, oauthBody))
+
+	_, err := c.Plugins().Import(
+		t.Context(), "my_project", "jira",
+		"results.zip", strings.NewReader("data"), nil,
+	)
+	require.Error(t, err)
+	assert.True(t, client.IsUnauthorized(err))
+	assert.Contains(t, err.Error(), "invalid_token: Invalid access token")
+	assert.NotContains(t, err.Error(), "HTTP 401: [0]")
+
+	body, ok := client.BodyOf(err)
+	require.True(t, ok)
+	assert.JSONEq(t, oauthBody, string(body))
+}

@@ -148,7 +148,9 @@ client and `github.com/klaskosk/report-portal-cli/pkg/types` for generated data
 types. Wire scopes through `client.Client` and `client.ProjectScope`; avoid
 using generated API internals directly in application code.
 
-API errors are returned as `*client.APIError`. Use helpers such as
+API errors are returned as `*client.APIError` or
+`*client.UnexpectedStatusError` (e.g. authentication failures that use
+ReportPortal’s OAuth envelope). Use helpers such as
 `client.IsNotFound`, `client.IsUnauthorized`, and `client.HasStatusCode`
 rather than inspecting status fields manually.
 

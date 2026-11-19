@@ -906,7 +906,7 @@ func (l *LaunchScope) GetReport(
 	if response.JSONDefault != nil {
 		return nil, fmt.Errorf(
 			"get launch report: %w",
-			core.NewAPIError(response.StatusCode(), response.JSONDefault),
+			core.ErrorFor(response.StatusCode(), response.JSONDefault, response.Body),
 		)
 	}
 

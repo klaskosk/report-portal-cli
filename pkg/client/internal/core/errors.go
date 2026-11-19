@@ -123,9 +123,11 @@ func HasErrorCode(err error, code int) bool {
 	return errors.As(err, &apiError) && apiError.ErrorCode() == code
 }
 
-// UnexpectedStatusError represents an HTTP error response that did not contain a parseable JSON error body. This
-// typically occurs when a proxy, gateway, or infrastructure component returns an HTML or plain-text error page, or
-// when the server returns a non-JSON response (e.g. a plain string for a 401). The raw response body is preserved
+// UnexpectedStatusError represents an HTTP error response that did not contain
+// a parseable ErrorRS body. This typically occurs when ReportPortal returns its
+// Spring Security OAuth envelope ({"error":"...","error_description":"..."}) for
+// authentication failures, or when a proxy, gateway, or infrastructure component
+// returns an HTML or plain-text error page. The raw response body is preserved
 // so callers can inspect what the server actually returned.
 type UnexpectedStatusError struct {
 	statusCode int
@@ -137,6 +139,14 @@ const maxBodyPreview = 256
 func (e *UnexpectedStatusError) Error() string {
 	if len(e.body) == 0 {
 		return fmt.Sprintf("unexpected HTTP %d (no JSON error body)", e.statusCode)
+	}
+
+	if oauthMsg, ok := oauthErrorMessage(e.body); ok {
+		if len(oauthMsg) > maxBodyPreview {
+			oauthMsg = truncateString(oauthMsg, maxBodyPreview) + "..."
+		}
+
+		return fmt.Sprintf("HTTP %d: %s", e.statusCode, oauthMsg)
 	}
 
 	preview := e.body
@@ -155,9 +165,74 @@ func (e *UnexpectedStatusError) Error() string {
 	)
 }
 
+// ErrorFor returns an APIError when errRS carries information, otherwise an
+// UnexpectedStatusError carrying the raw body. Use it wherever a decoded
+// ErrorRS might be empty (e.g. the OAuth envelope for 401s) to ensure the
+// response body is surfaced instead of "HTTP 401: [0]".
+func ErrorFor(statusCode int, errRS *types.ErrorRS, body []byte) error {
+	if !IsEmptyErrorRS(errRS) {
+		return NewAPIError(statusCode, errRS)
+	}
+
+	return NewUnexpectedStatusError(statusCode, body)
+}
+
+// IsEmptyErrorRS reports whether an ErrorRS carries no information.
+// The generated client decodes every JSON error body into ErrorRS, so an OAuth
+// payload like {"error":"invalid_token",...} unmarshals into a zero value
+// without error. Empty values must be treated as "no structured error body".
+// Only errorCode and message determine emptiness; stackTrace alone is not
+// enough to produce a useful APIError (it would render as "HTTP 500: [0] "),
+// so it falls back to the raw body preview which already contains the trace.
+func IsEmptyErrorRS(errRS *types.ErrorRS) bool {
+	if errRS == nil {
+		return true
+	}
+
+	return errRS.ErrorCode == 0 && errRS.Message == ""
+}
+
+// oauthEnvelope represents the Spring Security OAuth error shape that
+// ReportPortal returns for authentication failures. It is distinct from the
+// regular ErrorRS envelope and carries "error" and "error_description" fields.
+type oauthEnvelope struct {
+	Error            string `json:"error"`
+	ErrorDescription string `json:"error_description"`
+}
+
+// oauthErrorMessage attempts to parse body as an OAuth envelope and returns
+// a formatted message if successful.
+func oauthErrorMessage(body []byte) (string, bool) {
+	if len(body) == 0 {
+		return "", false
+	}
+
+	var env oauthEnvelope
+
+	err := json.Unmarshal(body, &env)
+	if err != nil {
+		return "", false
+	}
+
+	if env.Error == "" && env.ErrorDescription == "" {
+		return "", false
+	}
+
+	if env.Error != "" && env.ErrorDescription != "" {
+		return fmt.Sprintf("%s: %s", env.Error, env.ErrorDescription), true
+	}
+
+	if env.ErrorDescription != "" {
+		return env.ErrorDescription, true
+	}
+
+	return env.Error, true
+}
+
 // ParseErrorBody attempts to unmarshal body as an ErrorRS and returns an
-// APIError. If the body is not valid ErrorRS JSON, it falls back to an
-// UnexpectedStatusError.
+// APIError. If the body is not valid ErrorRS JSON, or if the decoded ErrorRS
+// is empty (e.g. an OAuth envelope), it falls back to an UnexpectedStatusError
+// so the raw body preview is preserved.
 func ParseErrorBody(statusCode int, body []byte) error {
 	var errRS types.ErrorRS
 
@@ -166,10 +241,11 @@ func ParseErrorBody(statusCode int, body []byte) error {
 		return NewUnexpectedStatusError(statusCode, body)
 	}
 
-	return NewAPIError(statusCode, &errRS)
+	return ErrorFor(statusCode, &errRS, body)
 }
 
-// NewUnexpectedStatusError constructs an UnexpectedStatusError for non-2xx responses without a JSON body.
+// NewUnexpectedStatusError constructs an UnexpectedStatusError for non-2xx
+// responses without a JSON body.
 func NewUnexpectedStatusError(statusCode int, body []byte) *UnexpectedStatusError {
 	return &UnexpectedStatusError{
 		statusCode: statusCode,
@@ -198,6 +274,20 @@ func sanitizeBodyPreview(body []byte) string {
 	}
 
 	return fmt.Sprintf("%q", s)
+}
+
+// truncateString truncates s to at most max bytes without splitting a UTF-8 rune.
+func truncateString(s string, limit int) string {
+	if len(s) <= limit {
+		return s
+	}
+
+	truncated := s[:limit]
+	for !utf8.ValidString(truncated) && len(truncated) > 0 {
+		truncated = truncated[:len(truncated)-1]
+	}
+
+	return truncated
 }
 
 // BodyOf extracts the raw response body from an error that carries one (e.g. UnexpectedStatusError). The second return

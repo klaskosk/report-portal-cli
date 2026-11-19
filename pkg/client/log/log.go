@@ -150,7 +150,7 @@ func decodeBatchSaveOperatingBody(
 	}
 
 	if jsonDefault != nil {
-		return nil, fmt.Errorf("%s: %w", opName, core.NewAPIError(statusCode, jsonDefault))
+		return nil, fmt.Errorf("%s: %w", opName, core.ErrorFor(statusCode, jsonDefault, rawBody))
 	}
 
 	if statusCode < 200 || statusCode >= 300 {
@@ -501,7 +501,7 @@ func (l *LogScope) GetPageNumber(
 	if response.JSONDefault != nil {
 		return nil, fmt.Errorf(
 			"get log page number: %w",
-			core.NewAPIError(response.StatusCode(), response.JSONDefault),
+			core.ErrorFor(response.StatusCode(), response.JSONDefault, response.Body),
 		)
 	}
 
@@ -578,7 +578,7 @@ func (l *LogScope) GetLogLocations(
 	if response.JSONDefault != nil {
 		return nil, fmt.Errorf(
 			"get log locations: %w",
-			core.NewAPIError(response.StatusCode(), response.JSONDefault),
+			core.ErrorFor(response.StatusCode(), response.JSONDefault, response.Body),
 		)
 	}
 

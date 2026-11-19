@@ -43,7 +43,11 @@ func Execute[T any](
 	logger.DebugContext(ctx, "API response", "status", resp.StatusCode())
 
 	if jsonDefault := resp.GetJSONDefault(); jsonDefault != nil {
-		return nil, fmt.Errorf("%s: %w", opName, NewAPIError(resp.StatusCode(), jsonDefault))
+		return nil, fmt.Errorf(
+			"%s: %w",
+			opName,
+			ErrorFor(resp.StatusCode(), jsonDefault, resp.GetBody()),
+		)
 	}
 
 	code := resp.StatusCode()
@@ -79,7 +83,11 @@ func ExecuteVoid(
 	logger.DebugContext(ctx, "API response", "status", resp.StatusCode())
 
 	if jsonDefault := resp.GetJSONDefault(); jsonDefault != nil {
-		return fmt.Errorf("%s: %w", opName, NewAPIError(resp.StatusCode(), jsonDefault))
+		return fmt.Errorf(
+			"%s: %w",
+			opName,
+			ErrorFor(resp.StatusCode(), jsonDefault, resp.GetBody()),
+		)
 	}
 
 	code := resp.StatusCode()

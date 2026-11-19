@@ -68,7 +68,7 @@ func (s *LogTypesScope) Create(
 
 	if resp.JSONDefault != nil {
 		return nil, fmt.Errorf("create log type: %w",
-			core.NewAPIError(resp.StatusCode(), resp.JSONDefault))
+			core.ErrorFor(resp.StatusCode(), resp.JSONDefault, resp.Body))
 	}
 
 	return nil, fmt.Errorf("create log type: %w",

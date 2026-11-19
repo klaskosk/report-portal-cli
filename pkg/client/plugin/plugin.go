@@ -242,7 +242,7 @@ func (s *PluginScope) GetPublicFile(
 	if response.JSONDefault != nil {
 		return nil, fmt.Errorf(
 			"get public plugin file: %w",
-			core.NewAPIError(response.StatusCode(), response.JSONDefault),
+			core.ErrorFor(response.StatusCode(), response.JSONDefault, response.Body),
 		)
 	}
 

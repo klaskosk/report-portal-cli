@@ -130,7 +130,7 @@ func (u *UsersScope) Export(ctx context.Context, options ...ListUsersOption) ([]
 	if response.JSONDefault != nil {
 		return nil, fmt.Errorf(
 			"export users: %w",
-			core.NewAPIError(response.StatusCode(), response.JSONDefault),
+			core.ErrorFor(response.StatusCode(), response.JSONDefault, response.Body),
 		)
 	}
 
