@@ -243,13 +243,9 @@ func runSettingNotificationDelete(cmd *cobra.Command, args []string) error {
 	)
 }
 
+// readNotificationRequestFromFile reads a notification rule from a JSON file or stdin.
 func readNotificationRequestFromFile(path string) (types.SenderCaseDTO, error) {
-	result, err := core.ReadRequestFromFile[types.SenderCaseDTO](path)
-	if err != nil {
-		return result, core.WrapFileError(err, "notification rule", "notification rule JSON")
-	}
-
-	return result, nil
+	return core.ReadRequestFromFile[types.SenderCaseDTO](path, "notification rule")
 }
 
 func notificationHeaders() []string {

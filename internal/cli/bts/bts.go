@@ -208,9 +208,9 @@ func runBtsIssueCreate(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	request, err := core.ReadRequestFromFile[types.PostTicketRQ](path)
+	request, err := core.ReadRequestFromFile[types.PostTicketRQ](path, "bts issue")
 	if err != nil {
-		return core.WrapFileError(err, "bts issue request", "bts issue JSON")
+		return err
 	}
 
 	integrationID, err := cmd.Flags().GetInt64("integration")

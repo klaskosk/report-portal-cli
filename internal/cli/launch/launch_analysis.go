@@ -118,22 +118,22 @@ func runLaunchCompare(cmd *cobra.Command, _ []string) error {
 	return deps.Printer.Print(result, headers, rows)
 }
 
+// buildAnalyzeLaunchRequest builds the analysis request from flags or a file.
 func buildAnalyzeLaunchRequest(cmd *cobra.Command, launchID int64) (types.AnalyzeLaunchRQ, error) {
-	if cmd.Flags().Changed("from-file") {
-		path, _ := cmd.Flags().GetString("from-file")
+	return core.RequestInput(
+		cmd,
+		"launch analyze",
+		func(cmd *cobra.Command) (types.AnalyzeLaunchRQ, error) {
+			return buildAnalyzeLaunchRequestFromFlags(cmd, launchID)
+		},
+	)
+}
 
-		req, err := core.ReadRequestFromFile[types.AnalyzeLaunchRQ](path)
-		if err != nil {
-			return types.AnalyzeLaunchRQ{}, core.WrapFileError(
-				err,
-				"launch analyze file",
-				"launch analyze JSON",
-			)
-		}
-
-		return req, nil
-	}
-
+// buildAnalyzeLaunchRequestFromFlags builds the analysis request for the positional launch ID.
+func buildAnalyzeLaunchRequestFromFlags(
+	cmd *cobra.Command,
+	launchID int64,
+) (types.AnalyzeLaunchRQ, error) {
 	analyzerModeRaw, _ := cmd.Flags().GetString("analyzer-mode")
 	if analyzerModeRaw == "" {
 		return types.AnalyzeLaunchRQ{}, errors.New(

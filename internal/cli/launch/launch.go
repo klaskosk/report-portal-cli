@@ -220,22 +220,7 @@ func runLaunchDelete(cmd *cobra.Command, args []string) error {
 // buildLaunchUpdateRequest builds the UpdateLaunchRQ for the update command. When --from-file is
 // set it takes precedence; otherwise the request is assembled from individual flags.
 func buildLaunchUpdateRequest(cmd *cobra.Command) (types.UpdateLaunchRQ, error) {
-	if cmd.Flags().Changed("from-file") {
-		path, _ := cmd.Flags().GetString("from-file")
-
-		req, err := core.ReadRequestFromFile[types.UpdateLaunchRQ](path)
-		if err != nil {
-			return types.UpdateLaunchRQ{}, core.WrapFileError(
-				err,
-				"launch update file",
-				"launch update JSON",
-			)
-		}
-
-		return req, nil
-	}
-
-	return buildUpdateLaunchRequestFromFlags(cmd)
+	return core.RequestInput(cmd, "launch update", buildUpdateLaunchRequestFromFlags)
 }
 
 // buildUpdateLaunchRequestFromFlags builds an UpdateLaunchRQ from individual flags.

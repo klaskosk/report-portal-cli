@@ -235,7 +235,7 @@ func TestReadWidgetRequestFromFile_invalidJSON(t *testing.T) {
 
 	_, err := readWidgetRequestFromFile(path)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "parsing widget JSON")
+	require.EqualError(t, err, "parsing widget JSON: "+path+": unexpected end of JSON input")
 }
 
 func TestReadWidgetRequestFromFile_missingFile(t *testing.T) {
@@ -243,7 +243,7 @@ func TestReadWidgetRequestFromFile_missingFile(t *testing.T) {
 
 	_, err := readWidgetRequestFromFile(filepath.Join(t.TempDir(), "missing.json"))
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "reading widget definition")
+	assert.Contains(t, err.Error(), "reading widget:")
 }
 
 func TestReadWidgetRequestFromFile_stdin(t *testing.T) { //nolint:paralleltest // swaps os.Stdin

@@ -213,7 +213,7 @@ func TestItemUpdateCmd_FromFile_ValidJSON(t *testing.T) {
 	// No connection available; error is expected from core.ResolveCmd, not from file parsing.
 	err := runItemUpdate(cmd, []string{"100"})
 	require.Error(t, err)
-	assert.NotContains(t, err.Error(), "reading item update file")
+	assert.NotContains(t, err.Error(), "reading item update:")
 	assert.NotContains(t, err.Error(), "parsing item update JSON")
 }
 
@@ -230,7 +230,7 @@ func TestItemUpdateCmd_FromFile_TakesPrecedenceOverFlags(t *testing.T) {
 
 	err := runItemUpdate(cmd, []string{"100"})
 	require.Error(t, err)
-	assert.NotContains(t, err.Error(), "reading item update file")
+	assert.NotContains(t, err.Error(), "reading item update:")
 	assert.NotContains(t, err.Error(), "parsing item update JSON")
 }
 

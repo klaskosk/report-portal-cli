@@ -501,17 +501,17 @@ func runDashboardPreconfiguredCreate(cmd *cobra.Command, _ []string) error {
 	return deps.Printer.Print(result, headers, rows)
 }
 
+// loadDashboardPreconfiguredRequest loads the dashboard definition and applies flag overrides.
 func loadDashboardPreconfiguredRequest(
 	cmd *cobra.Command,
 	path string,
 ) (types.DashboardPreconfiguredRq, error) {
-	request, err := core.ReadRequestFromFile[types.DashboardPreconfiguredRq](path)
+	request, err := core.ReadRequestFromFile[types.DashboardPreconfiguredRq](
+		path,
+		"preconfigured dashboard",
+	)
 	if err != nil {
-		return types.DashboardPreconfiguredRq{}, core.WrapFileError(
-			err,
-			"preconfigured dashboard definition",
-			"preconfigured dashboard JSON",
-		)
+		return types.DashboardPreconfiguredRq{}, err
 	}
 
 	applyDashboardPreconfiguredFlagOverrides(cmd, &request)

@@ -273,16 +273,17 @@ func pluginExecTable(result map[string]any) ([]string, [][]string) {
 	return []string{"KEY", "VALUE"}, rows
 }
 
+// loadPluginExecBody reads optional JSON and defaults to an empty object.
 func loadPluginExecBody(cmd *cobra.Command) (map[string]any, error) {
-	if !cmd.Flags().Changed("from-file") {
-		return map[string]any{}, nil
-	}
-
-	path, _ := cmd.Flags().GetString("from-file")
-
-	body, err := core.ReadRequestFromFile[map[string]any](path)
+	body, err := core.RequestInput(
+		cmd,
+		"plugin command",
+		func(*cobra.Command) (map[string]any, error) {
+			return map[string]any{}, nil
+		},
+	)
 	if err != nil {
-		return nil, core.WrapFileError(err, "plugin command body", "plugin command JSON")
+		return nil, err
 	}
 
 	if body == nil {

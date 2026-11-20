@@ -198,7 +198,7 @@ func TestReadProjectUpdateFromFile_missingFile(t *testing.T) {
 
 	_, err := readProjectUpdateFromFile(filepath.Join(t.TempDir(), "missing.json"))
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "reading project update payload")
+	assert.Contains(t, err.Error(), "reading project update:")
 }
 
 func TestReadProjectUpdateFromFile_invalidJSON(t *testing.T) {

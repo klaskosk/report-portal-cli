@@ -339,7 +339,7 @@ func TestReadSingleLogEntry_missingFile(t *testing.T) {
 	_, err := readSingleLogEntry(filepath.Join(t.TempDir(), "missing.json"))
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "reading log entry file")
+	assert.Contains(t, err.Error(), "reading log entry:")
 }
 
 // --- Batch mode validation ---
@@ -425,7 +425,7 @@ func TestReadBatchLogEntries_missingFile(t *testing.T) {
 	_, err := readBatchLogEntries(filepath.Join(t.TempDir(), "missing.json"))
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "reading batch log entries file")
+	assert.Contains(t, err.Error(), "reading batch log entries:")
 }
 
 // --- Batch conversion ---

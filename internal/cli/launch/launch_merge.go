@@ -64,29 +64,12 @@ func runLaunchMerge(cmd *cobra.Command, _ []string) error {
 	return deps.Printer.Print(result, headers, [][]string{row})
 }
 
+// buildMergeLaunchesRequest builds the launch merge request from flags or a file.
 func buildMergeLaunchesRequest(cmd *cobra.Command) (types.MergeLaunchesRQ, error) {
-	if cmd.Flags().Changed("from-file") {
-		return readMergeLaunchesRequestFromFile(cmd)
-	}
-
-	return buildMergeLaunchesRequestFromFlags(cmd)
+	return core.RequestInput(cmd, "launch merge", buildMergeLaunchesRequestFromFlags)
 }
 
-func readMergeLaunchesRequestFromFile(cmd *cobra.Command) (types.MergeLaunchesRQ, error) {
-	path, _ := cmd.Flags().GetString("from-file")
-
-	req, err := core.ReadRequestFromFile[types.MergeLaunchesRQ](path)
-	if err != nil {
-		return types.MergeLaunchesRQ{}, core.WrapFileError(
-			err,
-			"launch merge file",
-			"launch merge JSON",
-		)
-	}
-
-	return req, nil
-}
-
+// buildMergeLaunchesRequestFromFlags builds the launch merge request from individual flags.
 func buildMergeLaunchesRequestFromFlags(cmd *cobra.Command) (types.MergeLaunchesRQ, error) {
 	launches, err := resolveMergeLaunchIDs(cmd)
 	if err != nil {

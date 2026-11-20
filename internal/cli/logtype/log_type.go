@@ -243,12 +243,16 @@ func runLogTypeDelete(cmd *cobra.Command, args []string) error {
 
 // resolveLogTypeCreateRequest determines the LogTypeRequest from either --from-file or flags.
 func resolveLogTypeCreateRequest(cmd *cobra.Command) (types.LogTypeRequest, error) {
-	if cmd.Flags().Changed("from-file") {
-		path, _ := cmd.Flags().GetString("from-file")
-
-		return loadAndValidateLogTypeRequest(path)
+	request, err := core.RequestInput(cmd, "log type", buildLogTypeCreateRequestFromFlags)
+	if err != nil {
+		return types.LogTypeRequest{}, err
 	}
 
+	return validateLogTypeInput(request)
+}
+
+// buildLogTypeCreateRequestFromFlags builds the request from individual flags.
+func buildLogTypeCreateRequestFromFlags(cmd *cobra.Command) (types.LogTypeRequest, error) {
 	if !cmd.Flags().Changed("name") && !cmd.Flags().Changed("level") {
 		return types.LogTypeRequest{}, errors.New(
 			"no input provided: use --name and --level flags, or --from-file to read from a JSON file",
@@ -263,56 +267,34 @@ func resolveLogTypeCreateRequest(cmd *cobra.Command) (types.LogTypeRequest, erro
 		return types.LogTypeRequest{}, errors.New("--name is required when not using --from-file")
 	}
 
-	request := types.LogTypeRequest{
+	return types.LogTypeRequest{
 		Name:         name,
 		Level:        level,
 		IsFilterable: &filterable,
-	}
-
-	err := validateLogTypeRequest(request)
-	if err != nil {
-		return types.LogTypeRequest{}, err
-	}
-
-	return request, nil
+	}, nil
 }
 
 // loadAndValidateLogTypeRequest reads a LogTypeRequest from a file and validates it.
 func loadAndValidateLogTypeRequest(path string) (types.LogTypeRequest, error) {
-	request, err := readLogTypeRequestFromFile(path)
+	request, err := core.ReadRequestFromFile[types.LogTypeRequest](path, "log type")
 	if err != nil {
 		return types.LogTypeRequest{}, err
 	}
 
-	err = validateLogTypeRequest(request)
-	if err != nil {
-		return types.LogTypeRequest{}, err
-	}
-
-	return request, nil
+	return validateLogTypeInput(request)
 }
 
-// validateLogTypeRequest validates that required fields are present and valid.
-func validateLogTypeRequest(request types.LogTypeRequest) error {
+// validateLogTypeInput returns the request if its required fields are valid.
+func validateLogTypeInput(request types.LogTypeRequest) (types.LogTypeRequest, error) {
 	if request.Name == "" {
-		return errors.New("log type name must not be empty")
+		return types.LogTypeRequest{}, errors.New("log type name must not be empty")
 	}
 
 	if request.Level <= 0 {
-		return errors.New("log type level must be greater than 0")
+		return types.LogTypeRequest{}, errors.New("log type level must be greater than 0")
 	}
 
-	return nil
-}
-
-// readLogTypeRequestFromFile reads JSON from path (or stdin when path is "-") into a LogTypeRequest.
-func readLogTypeRequestFromFile(path string) (types.LogTypeRequest, error) {
-	result, err := core.ReadRequestFromFile[types.LogTypeRequest](path)
-	if err != nil {
-		return result, core.WrapFileError(err, "log type definition", "log type JSON")
-	}
-
-	return result, nil
+	return request, nil
 }
 
 // logTypeHeaders returns the table column headers for log type rows.

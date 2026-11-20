@@ -384,10 +384,5 @@ func applyFilterRequestFlagOverrides(cmd *cobra.Command, request *types.UpdateUs
 
 // readFilterRequestFromFile reads JSON from path (or stdin when path is "-") into an UpdateUserFilterRQ.
 func readFilterRequestFromFile(path string) (types.UpdateUserFilterRQ, error) {
-	result, err := core.ReadRequestFromFile[types.UpdateUserFilterRQ](path)
-	if err != nil {
-		return result, core.WrapFileError(err, "filter definition", "filter JSON")
-	}
-
-	return result, nil
+	return core.ReadRequestFromFile[types.UpdateUserFilterRQ](path, "filter")
 }

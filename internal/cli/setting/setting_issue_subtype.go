@@ -167,7 +167,7 @@ func runSettingIssueSubtypeUpdate(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	request, err := readIssueSubTypeUpdateRequestFromFile(path)
+	request, err := core.ReadRequestFromFile[types.UpdateOneIssueSubTypeRQ](path, "issue sub-type")
 	if err != nil {
 		return err
 	}
@@ -230,22 +230,24 @@ func runSettingIssueSubtypeDelete(cmd *cobra.Command, args []string) error {
 	)
 }
 
+// resolveIssueSubTypeCreateRequest builds and validates the request from flags or a file.
 func resolveIssueSubTypeCreateRequest(cmd *cobra.Command) (types.CreateIssueSubTypeRQ, error) {
-	if cmd.Flags().Changed("from-file") {
-		path, _ := cmd.Flags().GetString("from-file")
-
-		request, err := core.ReadRequestFromFile[types.CreateIssueSubTypeRQ](path)
-		if err != nil {
-			return types.CreateIssueSubTypeRQ{}, core.WrapFileError(
-				err,
-				"issue sub-type",
-				"issue sub-type JSON",
-			)
-		}
-
-		return request, validateIssueSubTypeCreateRequest(request)
+	request, err := core.RequestInput(
+		cmd,
+		"issue sub-type",
+		buildIssueSubTypeCreateRequestFromFlags,
+	)
+	if err != nil {
+		return types.CreateIssueSubTypeRQ{}, err
 	}
 
+	return request, validateIssueSubTypeCreateRequest(request)
+}
+
+// buildIssueSubTypeCreateRequestFromFlags builds the request from individual flags.
+func buildIssueSubTypeCreateRequestFromFlags(
+	cmd *cobra.Command,
+) (types.CreateIssueSubTypeRQ, error) {
 	longName, _ := cmd.Flags().GetString("long-name")
 	shortName, _ := cmd.Flags().GetString("short-name")
 	color, _ := cmd.Flags().GetString("color")
@@ -260,14 +262,12 @@ func resolveIssueSubTypeCreateRequest(cmd *cobra.Command) (types.CreateIssueSubT
 		)
 	}
 
-	request := types.CreateIssueSubTypeRQ{
+	return types.CreateIssueSubTypeRQ{
 		LongName:  longName,
 		ShortName: shortName,
 		Color:     color,
 		TypeRef:   typeRef,
-	}
-
-	return request, validateIssueSubTypeCreateRequest(request)
+	}, nil
 }
 
 func validateIssueSubTypeCreateRequest(request types.CreateIssueSubTypeRQ) error {
@@ -283,15 +283,6 @@ func validateIssueSubTypeCreateRequest(request types.CreateIssueSubTypeRQ) error
 	default:
 		return nil
 	}
-}
-
-func readIssueSubTypeUpdateRequestFromFile(path string) (types.UpdateOneIssueSubTypeRQ, error) {
-	result, err := core.ReadRequestFromFile[types.UpdateOneIssueSubTypeRQ](path)
-	if err != nil {
-		return result, core.WrapFileError(err, "issue sub-type", "issue sub-type JSON")
-	}
-
-	return result, nil
 }
 
 func flattenIssueSubTypes(

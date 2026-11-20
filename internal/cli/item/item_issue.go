@@ -144,22 +144,7 @@ func runItemIssueUnlink(cmd *cobra.Command, _ []string) error {
 
 // buildLinkExternalIssueRequest builds a LinkExternalIssueRQ from flags or a file.
 func buildLinkExternalIssueRequest(cmd *cobra.Command) (types.LinkExternalIssueRQ, error) {
-	if cmd.Flags().Changed("from-file") {
-		path, _ := cmd.Flags().GetString("from-file")
-
-		request, err := core.ReadRequestFromFile[types.LinkExternalIssueRQ](path)
-		if err != nil {
-			return types.LinkExternalIssueRQ{}, core.WrapFileError(
-				err,
-				"item issue link file",
-				"item issue link JSON",
-			)
-		}
-
-		return request, nil
-	}
-
-	return buildLinkExternalIssueRequestFromFlags(cmd)
+	return core.RequestInput(cmd, "item issue link", buildLinkExternalIssueRequestFromFlags)
 }
 
 // buildLinkExternalIssueRequestFromFlags builds a LinkExternalIssueRQ from individual flags.
@@ -207,22 +192,7 @@ func buildLinkExternalIssueRequestFromFlags(cmd *cobra.Command) (types.LinkExter
 
 // buildUnlinkExternalIssueRequest builds an UnlinkExternalIssueRQ from flags or a file.
 func buildUnlinkExternalIssueRequest(cmd *cobra.Command) (types.UnlinkExternalIssueRQ, error) {
-	if cmd.Flags().Changed("from-file") {
-		path, _ := cmd.Flags().GetString("from-file")
-
-		request, err := core.ReadRequestFromFile[types.UnlinkExternalIssueRQ](path)
-		if err != nil {
-			return types.UnlinkExternalIssueRQ{}, core.WrapFileError(
-				err,
-				"item issue unlink file",
-				"item issue unlink JSON",
-			)
-		}
-
-		return request, nil
-	}
-
-	return buildUnlinkExternalIssueRequestFromFlags(cmd)
+	return core.RequestInput(cmd, "item issue unlink", buildUnlinkExternalIssueRequestFromFlags)
 }
 
 // buildUnlinkExternalIssueRequestFromFlags builds an UnlinkExternalIssueRQ from individual flags.

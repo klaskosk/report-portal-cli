@@ -115,25 +115,12 @@ func runLaunchFinish(cmd *cobra.Command, args []string) error {
 	return deps.Printer.Print(result, finishLaunchHeaders(), finishLaunchRows(result))
 }
 
+// buildLaunchStartRequest builds the launch start request from flags or a file.
 func buildLaunchStartRequest(cmd *cobra.Command) (types.StartLaunchRQ, error) {
-	if cmd.Flags().Changed("from-file") {
-		path, _ := cmd.Flags().GetString("from-file")
-
-		req, err := core.ReadRequestFromFile[types.StartLaunchRQ](path)
-		if err != nil {
-			return types.StartLaunchRQ{}, core.WrapFileError(
-				err,
-				"launch start file",
-				"launch start JSON",
-			)
-		}
-
-		return req, nil
-	}
-
-	return buildLaunchStartRequestFromFlags(cmd)
+	return core.RequestInput(cmd, "launch start", buildLaunchStartRequestFromFlags)
 }
 
+// buildLaunchStartRequestFromFlags builds the launch start request from individual flags.
 func buildLaunchStartRequestFromFlags(cmd *cobra.Command) (types.StartLaunchRQ, error) {
 	name, _ := cmd.Flags().GetString("name")
 	if strings.TrimSpace(name) == "" {
@@ -180,25 +167,12 @@ func buildLaunchStartRequestFromFlags(cmd *cobra.Command) (types.StartLaunchRQ, 
 	return request, nil
 }
 
+// buildLaunchFinishRequest builds the launch finish request from flags or a file.
 func buildLaunchFinishRequest(cmd *cobra.Command) (types.FinishExecutionRQ, error) {
-	if cmd.Flags().Changed("from-file") {
-		path, _ := cmd.Flags().GetString("from-file")
-
-		req, err := core.ReadRequestFromFile[types.FinishExecutionRQ](path)
-		if err != nil {
-			return types.FinishExecutionRQ{}, core.WrapFileError(
-				err,
-				"launch finish file",
-				"launch finish JSON",
-			)
-		}
-
-		return req, nil
-	}
-
-	return buildLaunchFinishRequestFromFlags(cmd)
+	return core.RequestInput(cmd, "launch finish", buildLaunchFinishRequestFromFlags)
 }
 
+// buildLaunchFinishRequestFromFlags builds the launch finish request from individual flags.
 func buildLaunchFinishRequestFromFlags(cmd *cobra.Command) (types.FinishExecutionRQ, error) {
 	request := types.FinishExecutionRQ{
 		EndTime: time.Now(),

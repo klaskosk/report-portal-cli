@@ -189,22 +189,7 @@ func runItemUpdate(cmd *cobra.Command, args []string) error {
 
 // buildItemUpdateRequest builds an UpdateTestItemRQ from flags or a file.
 func buildItemUpdateRequest(cmd *cobra.Command) (types.UpdateTestItemRQ, error) {
-	if cmd.Flags().Changed("from-file") {
-		path, _ := cmd.Flags().GetString("from-file")
-
-		request, err := core.ReadRequestFromFile[types.UpdateTestItemRQ](path)
-		if err != nil {
-			return types.UpdateTestItemRQ{}, core.WrapFileError(
-				err,
-				"item update file",
-				"item update JSON",
-			)
-		}
-
-		return request, nil
-	}
-
-	return buildItemUpdateRequestFromFlags(cmd)
+	return core.RequestInput(cmd, "item update", buildItemUpdateRequestFromFlags)
 }
 
 // buildItemUpdateRequestFromFlags builds an UpdateTestItemRQ from individual flags.
