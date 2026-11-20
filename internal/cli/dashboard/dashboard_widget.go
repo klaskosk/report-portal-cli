@@ -36,7 +36,7 @@ Examples:
     --width 6 --height 4 --position-x 0 --position-y 0 -p my_project
   rp dashboard widget add 5 --from-file widget.json -p my_project`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runDashboardWidgetAdd),
+		RunE: runDashboardWidgetAdd,
 	}
 
 	cmd.Flags().Int64("widget-id", 0, "widget ID to add (required without --from-file)")
@@ -64,21 +64,17 @@ func newDashboardWidgetRemoveCmd() *cobra.Command {
 Examples:
   rp dashboard widget remove 5 10 -p my_project`,
 		Args: cobra.ExactArgs(2),
-		RunE: core.WithPrintedErrors(runDashboardWidgetRemove),
+		RunE: runDashboardWidgetRemove,
 	}
 }
 
 func runDashboardWidgetAdd(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	dashboardID, err := parseDashboardID(args[0])
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	request, err := resolveAddWidgetRequest(cmd, printer)
+	request, err := resolveAddWidgetRequest(cmd)
 	if err != nil {
 		return err
 	}
@@ -104,8 +100,6 @@ func runDashboardWidgetAdd(cmd *cobra.Command, args []string) error {
 		Dashboards().
 		AddWidget(cmd.Context(), dashboardID, request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf(
 			"adding widget %d to dashboard %d in project %s: %w",
 			request.AddWidget.WidgetId,
@@ -123,19 +117,13 @@ func runDashboardWidgetAdd(cmd *cobra.Command, args []string) error {
 }
 
 func runDashboardWidgetRemove(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	dashboardID, err := parseDashboardID(args[0])
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
 	widgetID, err := core.ParseIDArg(args[1], "widget")
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -160,8 +148,6 @@ func runDashboardWidgetRemove(cmd *cobra.Command, args []string) error {
 		Dashboards().
 		RemoveWidget(cmd.Context(), dashboardID, widgetID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf(
 			"removing widget %d from dashboard %d in project %s: %w",
 			widgetID,
@@ -179,40 +165,31 @@ func runDashboardWidgetRemove(cmd *cobra.Command, args []string) error {
 }
 
 // resolveAddWidgetRequest determines the AddWidgetRq from either --from-file or flags.
-func resolveAddWidgetRequest(
-	cmd *cobra.Command,
-	printer *core.Printer,
-) (types.AddWidgetRq, error) {
+func resolveAddWidgetRequest(cmd *cobra.Command) (types.AddWidgetRq, error) {
 	if cmd.Flags().Changed("from-file") {
 		path, _ := cmd.Flags().GetString("from-file")
 
-		return loadAddWidgetRequest(path, printer)
+		return loadAddWidgetRequest(path)
 	}
 
-	return buildAddWidgetRequestFromFlags(cmd, printer)
+	return buildAddWidgetRequestFromFlags(cmd)
 }
 
-func buildAddWidgetRequestFromFlags(
-	cmd *cobra.Command,
-	printer *core.Printer,
-) (types.AddWidgetRq, error) {
+func buildAddWidgetRequestFromFlags(cmd *cobra.Command) (types.AddWidgetRq, error) {
 	if !cmd.Flags().Changed("widget-id") &&
 		!cmd.Flags().Changed("widget-name") &&
 		!cmd.Flags().Changed("widget-type") {
-		err := errors.New(
+		return types.AddWidgetRq{}, errors.New(
 			"no input provided: use --widget-id, --widget-name, and --widget-type flags, " +
 				"or --from-file to read from a JSON file",
 		)
-		printer.PrintError(err)
-
-		return types.AddWidgetRq{}, err
 	}
 
 	widgetID, _ := cmd.Flags().GetInt64("widget-id")
 	widgetName, _ := cmd.Flags().GetString("widget-name")
 	widgetType, _ := cmd.Flags().GetString("widget-type")
 
-	err := validateAddWidgetFlags(cmd, widgetID, widgetName, widgetType, printer)
+	err := validateAddWidgetFlags(cmd, widgetID, widgetName, widgetType)
 	if err != nil {
 		return types.AddWidgetRq{}, err
 	}
@@ -232,27 +209,17 @@ func validateAddWidgetFlags(
 	cmd *cobra.Command,
 	widgetID int64,
 	widgetName, widgetType string,
-	printer *core.Printer,
 ) error {
 	if !cmd.Flags().Changed("widget-id") || widgetID == 0 {
-		err := errors.New("--widget-id is required when not using --from-file")
-		printer.PrintError(err)
-
-		return err
+		return errors.New("--widget-id is required when not using --from-file")
 	}
 
 	if widgetName == "" {
-		err := errors.New("--widget-name is required when not using --from-file")
-		printer.PrintError(err)
-
-		return err
+		return errors.New("--widget-name is required when not using --from-file")
 	}
 
 	if widgetType == "" {
-		err := errors.New("--widget-type is required when not using --from-file")
-		printer.PrintError(err)
-
-		return err
+		return errors.New("--widget-type is required when not using --from-file")
 	}
 
 	return nil
@@ -298,11 +265,9 @@ func optionalWidgetPosition(cmd *cobra.Command) *types.Position {
 	return position
 }
 
-func loadAddWidgetRequest(path string, printer *core.Printer) (types.AddWidgetRq, error) {
+func loadAddWidgetRequest(path string) (types.AddWidgetRq, error) {
 	request, err := core.ReadRequestFromFile[types.AddWidgetRq](path)
 	if err != nil {
-		printer.PrintError(err)
-
 		return types.AddWidgetRq{}, core.WrapFileError(
 			err,
 			"add widget definition",

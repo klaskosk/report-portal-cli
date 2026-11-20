@@ -3,7 +3,6 @@ package setting //nolint:testpackage // white-box tests
 import (
 	"testing"
 
-	"github.com/klaskosk/report-portal-cli/internal/cli/core"
 	"github.com/klaskosk/report-portal-cli/internal/cli/testutil"
 	"github.com/klaskosk/report-portal-cli/pkg/types"
 	"github.com/stretchr/testify/assert"
@@ -63,7 +62,7 @@ func TestResolvePatternCreateRequest_fromFlags(t *testing.T) {
 		"--enabled=false",
 	}))
 
-	request, err := resolvePatternCreateRequest(cmd, core.NewPrinterFromCmd(cmd))
+	request, err := resolvePatternCreateRequest(cmd)
 	require.NoError(t, err)
 	assert.Equal(t, "timeout", request.Name)
 	assert.Equal(t, "STRING", request.Type)

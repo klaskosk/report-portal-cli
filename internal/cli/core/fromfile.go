@@ -46,12 +46,9 @@ func ReadRequestFromFile[T any](path string) (T, error) {
 }
 
 // RequireFromFile returns the --from-file path after validating the flag was set.
-func RequireFromFile(cmd *cobra.Command, printer *Printer, missingMessage string) (string, error) {
+func RequireFromFile(cmd *cobra.Command, missingMessage string) (string, error) {
 	if !cmd.Flags().Changed("from-file") {
-		err := errors.New(missingMessage)
-		printer.PrintError(err)
-
-		return "", err
+		return "", errors.New(missingMessage)
 	}
 
 	path, _ := cmd.Flags().GetString("from-file")

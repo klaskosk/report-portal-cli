@@ -22,7 +22,7 @@ Examples:
   rp launch merge --launch 41 --launch 42 --name "Merged" --merge-type DEEP -p my_project
   rp launch merge --from-file merge.json -p my_project`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runLaunchMerge),
+		RunE: runLaunchMerge,
 	}
 
 	cmd.Flags().Int64Slice("launch", nil, "launch ID to merge (repeatable, at least 2 required)")
@@ -39,12 +39,8 @@ Examples:
 }
 
 func runLaunchMerge(cmd *cobra.Command, _ []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	request, err := buildMergeLaunchesRequest(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -60,8 +56,6 @@ func runLaunchMerge(cmd *cobra.Command, _ []string) error {
 
 	result, err := deps.Client.Project(project).Launches().Merge(cmd.Context(), request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("merging launches in project %s: %w", project, err)
 	}
 

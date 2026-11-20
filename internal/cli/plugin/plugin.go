@@ -48,7 +48,7 @@ Examples:
   rp plugin exec my-plugin run -p my_project --from-file body.json
   rp plugin exec my-plugin run -p my_project -o json`,
 		Args: cobra.ExactArgs(2),
-		RunE: core.WithPrintedErrors(runPluginExec),
+		RunE: runPluginExec,
 	}
 
 	cmd.Flags().StringP("project", "p", "", "project name (required)")
@@ -71,7 +71,7 @@ func newPluginCreateCmd() *cobra.Command {
 Examples:
   rp plugin create --file my-plugin.jar`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runPluginCreate),
+		RunE: runPluginCreate,
 	}
 
 	cmd.Flags().String("file", "", "path to the plugin archive file (required)")
@@ -91,7 +91,7 @@ Examples:
   rp plugin list                             List all installed plugins
   rp plugin list -o json                     List plugins as JSON`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runPluginList),
+		RunE: runPluginList,
 	}
 }
 
@@ -109,7 +109,7 @@ Examples:
   rp plugin update 4 --enabled=true          Enable a plugin
   rp plugin update 4 --enabled=false         Disable a plugin`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runPluginUpdate),
+		RunE: runPluginUpdate,
 	}
 
 	cmd.Flags().Bool("enabled", false, "set the plugin's enabled state (required)")
@@ -128,7 +128,7 @@ func newPluginDeleteCmd() *cobra.Command {
 Examples:
   rp plugin delete 4                         Delete a plugin`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runPluginDelete),
+		RunE: runPluginDelete,
 	}
 }
 
@@ -142,8 +142,6 @@ func runPluginList(cmd *cobra.Command, _ []string) error {
 
 	plugins, err := deps.Client.Plugins().List(cmd.Context())
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("listing plugins: %w", err)
 	}
 
@@ -159,12 +157,8 @@ func runPluginList(cmd *cobra.Command, _ []string) error {
 }
 
 func runPluginUpdate(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	pluginID, err := core.ParseIDArg(args[0], "plugin")
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -181,8 +175,6 @@ func runPluginUpdate(cmd *cobra.Command, args []string) error {
 
 	result, err := deps.Client.Plugins().UpdateState(cmd.Context(), pluginID, request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("updating plugin %d: %w", pluginID, err)
 	}
 
@@ -194,12 +186,8 @@ func runPluginUpdate(cmd *cobra.Command, args []string) error {
 }
 
 func runPluginDelete(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	pluginID, err := core.ParseIDArg(args[0], "plugin")
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -212,8 +200,6 @@ func runPluginDelete(cmd *cobra.Command, args []string) error {
 
 	result, err := deps.Client.Plugins().Delete(cmd.Context(), pluginID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("deleting plugin %d: %w", pluginID, err)
 	}
 
@@ -240,10 +226,7 @@ func runPluginExec(cmd *cobra.Command, args []string) error {
 
 	project := core.MustGetStringFlag(cmd, "project")
 	if project == "" {
-		projectErr := errors.New("--project is required for plugin exec")
-		deps.Printer.PrintError(projectErr)
-
-		return projectErr
+		return errors.New("--project is required for plugin exec")
 	}
 
 	deps.Logger.Debug(
@@ -257,8 +240,6 @@ func runPluginExec(cmd *cobra.Command, args []string) error {
 		cmd.Context(), project, pluginName, commandName, body,
 	)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf(
 			"executing plugin command %s/%s in project %s: %w",
 			pluginName, commandName, project, err,
@@ -301,9 +282,6 @@ func loadPluginExecBody(cmd *cobra.Command) (map[string]any, error) {
 
 	body, err := core.ReadRequestFromFile[map[string]any](path)
 	if err != nil {
-		printer := core.NewPrinterFromCmd(cmd)
-		printer.PrintError(err)
-
 		return nil, core.WrapFileError(err, "plugin command body", "plugin command JSON")
 	}
 
@@ -320,10 +298,7 @@ func runPluginCreate(cmd *cobra.Command, _ []string) error {
 	//nolint:gosec // path is user-provided --file argument
 	data, err := os.ReadFile(filePath)
 	if err != nil {
-		readErr := fmt.Errorf("reading plugin file %s: %w", filePath, err)
-		core.NewPrinterFromCmd(cmd).PrintError(readErr)
-
-		return readErr
+		return fmt.Errorf("reading plugin file %s: %w", filePath, err)
 	}
 
 	deps, err := core.ResolveCmd(cmd)
@@ -339,8 +314,6 @@ func runPluginCreate(cmd *cobra.Command, _ []string) error {
 		cmd.Context(), filename, bytes.NewReader(data),
 	)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("uploading plugin %s: %w", filename, err)
 	}
 

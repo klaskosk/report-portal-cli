@@ -37,7 +37,7 @@ Examples:
   rp launch report get 42 -p my_project > report.html
   rp launch report get 42 -p my_project --output-file report.html`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runLaunchReportGet),
+		RunE: runLaunchReportGet,
 	}
 
 	cmd.Flags().String("output-file", "", "write to file instead of stdout")
@@ -46,12 +46,8 @@ Examples:
 }
 
 func runLaunchReportGet(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	launchID, err := core.ParseIDArg(args[0], "launch")
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -69,8 +65,6 @@ func runLaunchReportGet(cmd *cobra.Command, args []string) error {
 
 	report, err := deps.Client.Project(project).Launches().GetReport(cmd.Context(), launchID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("getting launch report %d: %w", launchID, err)
 	}
 

@@ -55,7 +55,7 @@ In interactive mode, --profile and --default-project pre-fill the corresponding
 prompts (press Enter to accept). The --config and --insecure-skip-verify flags are
 also respected; when --insecure-skip-verify is set, the TLS prompt is skipped.`,
 		Annotations: map[string]string{core.GroupAnnotationKey: "true"},
-		RunE: core.WithPrintedErrors(func(cmd *cobra.Command, _ []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			printer := core.NewPrinterFromCmd(cmd)
 
 			cfgPath := initConfigPath(cmd)
@@ -63,28 +63,28 @@ also respected; when --insecure-skip-verify is set, the TLS prompt is skipped.`,
 
 			err := checkInitConfigPath(cfgPath, force)
 			if err != nil {
-				return core.PrintAndReturnError(printer, err)
+				return err
 			}
 
 			profile, err := resolveInitProfile(cmd)
 			if err != nil {
-				return core.PrintAndReturnError(printer, err)
+				return err
 			}
 
 			err = writeInitConfig(cfgPath, profile)
 			if err != nil {
-				return core.PrintAndReturnError(printer, err)
+				return err
 			}
 
 			err = printer.PrintMessage(
 				fmt.Sprintf("Wrote config to %s (profile %q)", cfgPath, profile.name),
 			)
 			if err != nil {
-				return core.PrintAndReturnError(printer, err)
+				return fmt.Errorf("printing config confirmation: %w", err)
 			}
 
 			return nil
-		}),
+		},
 	}
 
 	cmd.Flags().String("default-project", "", "default Report Portal project for this profile")

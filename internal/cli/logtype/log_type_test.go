@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/klaskosk/report-portal-cli/internal/cli/core"
 	"github.com/klaskosk/report-portal-cli/internal/cli/testutil"
 	"github.com/klaskosk/report-portal-cli/pkg/types"
 	"github.com/stretchr/testify/assert"
@@ -138,9 +137,7 @@ func TestRunLogTypeCreate_validFlags(t *testing.T) {
 	cmd.SetContext(context.Background())
 	require.NoError(t, cmd.ParseFlags([]string{"--name", "TRACE", "--level", "5000"}))
 
-	printer := core.NewPrinterFromCmd(cmd)
-
-	request, err := resolveLogTypeCreateRequest(cmd, printer)
+	request, err := resolveLogTypeCreateRequest(cmd)
 	require.NoError(t, err)
 	assert.Equal(t, "TRACE", request.Name)
 	assert.Equal(t, int32(5000), request.Level)
@@ -155,9 +152,7 @@ func TestRunLogTypeCreate_filterableDefaultsFalse(t *testing.T) {
 	cmd.SetContext(context.Background())
 	require.NoError(t, cmd.ParseFlags([]string{"--name", "INFO", "--level", "20000"}))
 
-	printer := core.NewPrinterFromCmd(cmd)
-
-	request, err := resolveLogTypeCreateRequest(cmd, printer)
+	request, err := resolveLogTypeCreateRequest(cmd)
 	require.NoError(t, err)
 	require.NotNil(t, request.IsFilterable)
 	assert.False(t, *request.IsFilterable)
@@ -173,9 +168,7 @@ func TestRunLogTypeCreate_filterableExplicitTrue(t *testing.T) {
 		cmd.ParseFlags([]string{"--name", "WARN", "--level", "30000", "--filterable"}),
 	)
 
-	printer := core.NewPrinterFromCmd(cmd)
-
-	request, err := resolveLogTypeCreateRequest(cmd, printer)
+	request, err := resolveLogTypeCreateRequest(cmd)
 	require.NoError(t, err)
 	require.NotNil(t, request.IsFilterable)
 	assert.True(t, *request.IsFilterable)
@@ -199,9 +192,7 @@ func TestRunLogTypeCreate_fromFile_valid(t *testing.T) {
 	cmd.SetContext(context.Background())
 	require.NoError(t, cmd.ParseFlags([]string{"--from-file", path}))
 
-	printer := core.NewPrinterFromCmd(cmd)
-
-	request, err := resolveLogTypeCreateRequest(cmd, printer)
+	request, err := resolveLogTypeCreateRequest(cmd)
 	require.NoError(t, err)
 	assert.Equal(t, "CUSTOM", request.Name)
 	assert.Equal(t, int32(15000), request.Level)
@@ -221,9 +212,7 @@ func TestRunLogTypeCreate_fromFile_missingName(t *testing.T) {
 	cmd.SetContext(context.Background())
 	require.NoError(t, cmd.ParseFlags([]string{"--from-file", path}))
 
-	printer := core.NewPrinterFromCmd(cmd)
-
-	_, err := resolveLogTypeCreateRequest(cmd, printer)
+	_, err := resolveLogTypeCreateRequest(cmd)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "name must not be empty")
 }
@@ -240,9 +229,7 @@ func TestRunLogTypeCreate_fromFile_zeroLevel(t *testing.T) {
 	cmd.SetContext(context.Background())
 	require.NoError(t, cmd.ParseFlags([]string{"--from-file", path}))
 
-	printer := core.NewPrinterFromCmd(cmd)
-
-	_, err := resolveLogTypeCreateRequest(cmd, printer)
+	_, err := resolveLogTypeCreateRequest(cmd)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "level must be greater than 0")
 }
@@ -254,9 +241,7 @@ func TestRunLogTypeCreate_fromFile_nonExistent(t *testing.T) {
 	cmd.SetContext(context.Background())
 	require.NoError(t, cmd.ParseFlags([]string{"--from-file", "/nonexistent/path.json"}))
 
-	printer := core.NewPrinterFromCmd(cmd)
-
-	_, err := resolveLogTypeCreateRequest(cmd, printer)
+	_, err := resolveLogTypeCreateRequest(cmd)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "log type definition")
 }
@@ -273,9 +258,7 @@ func TestRunLogTypeCreate_fromFile_malformedJSON(t *testing.T) {
 	cmd.SetContext(context.Background())
 	require.NoError(t, cmd.ParseFlags([]string{"--from-file", path}))
 
-	printer := core.NewPrinterFromCmd(cmd)
-
-	_, err := resolveLogTypeCreateRequest(cmd, printer)
+	_, err := resolveLogTypeCreateRequest(cmd)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "log type JSON")
 }
@@ -300,9 +283,7 @@ func TestRunLogTypeCreate_fromFileTakesPrecedenceOverFlags(t *testing.T) {
 		"--from-file", path,
 	}))
 
-	printer := core.NewPrinterFromCmd(cmd)
-
-	request, err := resolveLogTypeCreateRequest(cmd, printer)
+	request, err := resolveLogTypeCreateRequest(cmd)
 	require.NoError(t, err)
 	assert.Equal(
 		t,
@@ -332,9 +313,7 @@ func TestRunLogTypeUpdate_fromFile_valid(t *testing.T) {
 		"is_filterable": true
 	}`), 0o600))
 
-	printer := core.NewPrinterFromCmd(newLogTypeUpdateCmd())
-
-	request, err := loadAndValidateLogTypeRequest(path, printer)
+	request, err := loadAndValidateLogTypeRequest(path)
 	require.NoError(t, err)
 	assert.Equal(t, "UPDATED", request.Name)
 	assert.Equal(t, int32(25000), request.Level)
@@ -348,9 +327,7 @@ func TestRunLogTypeUpdate_fromFile_missingName(t *testing.T) {
 
 	require.NoError(t, os.WriteFile(path, []byte(`{"level": 5000}`), 0o600))
 
-	printer := core.NewPrinterFromCmd(newLogTypeUpdateCmd())
-
-	_, err := loadAndValidateLogTypeRequest(path, printer)
+	_, err := loadAndValidateLogTypeRequest(path)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "name must not be empty")
 }
@@ -363,9 +340,7 @@ func TestRunLogTypeUpdate_fromFile_zeroLevel(t *testing.T) {
 
 	require.NoError(t, os.WriteFile(path, []byte(`{"name": "X", "level": 0}`), 0o600))
 
-	printer := core.NewPrinterFromCmd(newLogTypeUpdateCmd())
-
-	_, err := loadAndValidateLogTypeRequest(path, printer)
+	_, err := loadAndValidateLogTypeRequest(path)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "level must be greater than 0")
 }

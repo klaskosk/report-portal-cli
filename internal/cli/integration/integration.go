@@ -121,17 +121,14 @@ func (p *projectIntegrationOps) delete(
 // validateIntegrationProject checks the --project flag when it is explicitly set.
 // It must be called before core.ResolveCmd so that an empty --project value is rejected
 // before a missing-connection error can surface.
-func validateIntegrationProject(cmd *cobra.Command, printer *core.Printer) error {
+func validateIntegrationProject(cmd *cobra.Command) error {
 	if !cmd.Flags().Changed("project") {
 		return nil
 	}
 
 	project, _ := cmd.Flags().GetString("project")
 	if project == "" {
-		err := errors.New("project name cannot be empty (omit -p to use global scope)")
-		printer.PrintError(err)
-
-		return err
+		return errors.New("project name cannot be empty (omit -p to use global scope)")
 	}
 
 	return nil
@@ -193,7 +190,7 @@ Examples:
   rp integration list --plugin jira            List global integrations by plugin
   rp integration list -p my_project            List project integrations`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runIntegrationList),
+		RunE: runIntegrationList,
 	}
 
 	cmd.Flags().String("plugin", "", "filter integrations by plugin name")
@@ -213,7 +210,7 @@ Examples:
   rp integration get 10 -p my_project          Get project integration
   rp integration get 10 -o json -p my_project  Get integration as JSON`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runIntegrationGet),
+		RunE: runIntegrationGet,
 	}
 }
 
@@ -228,7 +225,7 @@ Examples:
   rp integration create --plugin email --from-file email.json
   rp integration create --plugin jira --from-file jira.json -p my_project`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runIntegrationCreate),
+		RunE: runIntegrationCreate,
 	}
 
 	cmd.Flags().String("plugin", "", "plugin name (e.g. jira, email, rally)")
@@ -249,7 +246,7 @@ Examples:
   rp integration update 1 --from-file updated.json
   rp integration update 10 --from-file updated.json -p my_project`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runIntegrationUpdate),
+		RunE: runIntegrationUpdate,
 	}
 
 	cmd.Flags().
@@ -269,14 +266,12 @@ Examples:
   rp integration delete 1                      Delete global integration
   rp integration delete 10 -p my_project       Delete project integration`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runIntegrationDelete),
+		RunE: runIntegrationDelete,
 	}
 }
 
 func runIntegrationList(cmd *cobra.Command, _ []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
-	err := validateIntegrationProject(cmd, printer)
+	err := validateIntegrationProject(cmd)
 	if err != nil {
 		return err
 	}
@@ -297,8 +292,6 @@ func runIntegrationList(cmd *cobra.Command, _ []string) error {
 
 	integrations, err := ops.list(cmd.Context(), plugin)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("listing integrations: %w", err)
 	}
 
@@ -314,16 +307,12 @@ func runIntegrationList(cmd *cobra.Command, _ []string) error {
 }
 
 func runIntegrationGet(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	integrationID, err := parseIntegrationID(args[0])
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	err = validateIntegrationProject(cmd, printer)
+	err = validateIntegrationProject(cmd)
 	if err != nil {
 		return err
 	}
@@ -339,8 +328,6 @@ func runIntegrationGet(cmd *cobra.Command, args []string) error {
 
 	result, err := ops.get(cmd.Context(), integrationID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("getting integration %d: %w", integrationID, err)
 	}
 
@@ -350,26 +337,17 @@ func runIntegrationGet(cmd *cobra.Command, args []string) error {
 }
 
 func runIntegrationCreate(cmd *cobra.Command, _ []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	if !cmd.Flags().Changed("plugin") {
-		err := errors.New("--plugin is required for integration creation")
-		printer.PrintError(err)
-
-		return err
+		return errors.New("--plugin is required for integration creation")
 	}
 
 	plugin, _ := cmd.Flags().GetString("plugin")
 	if plugin == "" {
-		err := errors.New("--plugin cannot be empty")
-		printer.PrintError(err)
-
-		return err
+		return errors.New("--plugin cannot be empty")
 	}
 
 	path, err := core.RequireFromFile(
 		cmd,
-		printer,
 		"--from-file is required for integration creation (integration parameters are specified in a JSON file)",
 	)
 	if err != nil {
@@ -378,12 +356,10 @@ func runIntegrationCreate(cmd *cobra.Command, _ []string) error {
 
 	request, err := readIntegrationRequestFromFile(path)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	err = validateIntegrationProject(cmd, printer)
+	err = validateIntegrationProject(cmd)
 	if err != nil {
 		return err
 	}
@@ -399,8 +375,6 @@ func runIntegrationCreate(cmd *cobra.Command, _ []string) error {
 
 	result, err := ops.create(cmd.Context(), plugin, request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("creating integration: %w", err)
 	}
 
@@ -411,18 +385,13 @@ func runIntegrationCreate(cmd *cobra.Command, _ []string) error {
 }
 
 func runIntegrationUpdate(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	integrationID, err := parseIntegrationID(args[0])
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
 	path, err := core.RequireFromFile(
 		cmd,
-		printer,
 		"--from-file is required for integration update",
 	)
 	if err != nil {
@@ -431,12 +400,10 @@ func runIntegrationUpdate(cmd *cobra.Command, args []string) error {
 
 	request, err := readIntegrationRequestFromFile(path)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	err = validateIntegrationProject(cmd, printer)
+	err = validateIntegrationProject(cmd)
 	if err != nil {
 		return err
 	}
@@ -452,8 +419,6 @@ func runIntegrationUpdate(cmd *cobra.Command, args []string) error {
 
 	result, err := ops.update(cmd.Context(), integrationID, request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("updating integration %d: %w", integrationID, err)
 	}
 
@@ -465,16 +430,12 @@ func runIntegrationUpdate(cmd *cobra.Command, args []string) error {
 }
 
 func runIntegrationDelete(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	integrationID, err := parseIntegrationID(args[0])
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	err = validateIntegrationProject(cmd, printer)
+	err = validateIntegrationProject(cmd)
 	if err != nil {
 		return err
 	}
@@ -490,8 +451,6 @@ func runIntegrationDelete(cmd *cobra.Command, args []string) error {
 
 	result, err := ops.delete(cmd.Context(), integrationID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("deleting integration %d: %w", integrationID, err)
 	}
 

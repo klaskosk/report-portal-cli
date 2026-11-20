@@ -113,7 +113,7 @@ Examples:
   rp log list --launch 10 -o json -p my_project  List logs as JSON
   rp log list --item 42 --level ERROR -p my_project  List error-level logs for item 42`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runLogList),
+		RunE: runLogList,
 	}
 
 	core.RegisterListFlagsWithDefaults(cmd, core.ListFlagDefaults{Sort: []string{"logTime,desc"}})
@@ -134,7 +134,7 @@ Examples:
   rp log get abc-def-123 -p my_project  Get log by UUID
   rp log get 100 -o json -p my_project  Get log as JSON`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runLogGet),
+		RunE: runLogGet,
 	}
 }
 
@@ -164,7 +164,7 @@ Examples:
   rp log create --batch --from-file batch.json -p my_project
   rp log create --batch --async --from-file batch.json -p my_project`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runLogCreate),
+		RunE: runLogCreate,
 	}
 
 	cmd.Flags().String("from-file", "", "path to JSON file containing SaveLogRQ (use - for stdin)")
@@ -185,7 +185,7 @@ func newLogDeleteCmd() *cobra.Command {
 Examples:
   rp log delete 42 -p my_project`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runLogDelete),
+		RunE: runLogDelete,
 	}
 }
 
@@ -225,13 +225,8 @@ func runLogGet(cmd *cobra.Command, args []string) error {
 
 // runLogCreate executes the log create command, delegating to single or batch helpers.
 func runLogCreate(cmd *cobra.Command, _ []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	if !cmd.Flags().Changed("from-file") {
-		err := errors.New("--from-file is required for log creation")
-		printer.PrintError(err)
-
-		return err
+		return errors.New("--from-file is required for log creation")
 	}
 
 	path, _ := cmd.Flags().GetString("from-file")
@@ -239,25 +234,21 @@ func runLogCreate(cmd *cobra.Command, _ []string) error {
 	batch, _ := cmd.Flags().GetBool("batch")
 
 	if batch {
-		return runLogCreateBatch(cmd, printer, path, async)
+		return runLogCreateBatch(cmd, path, async)
 	}
 
-	return runLogCreateSingle(cmd, printer, path, async)
+	return runLogCreateSingle(cmd, path, async)
 }
 
 // runLogCreateSingle handles single-entry log creation (sync or async).
-func runLogCreateSingle(cmd *cobra.Command, printer *core.Printer, path string, async bool) error {
+func runLogCreateSingle(cmd *cobra.Command, path string, async bool) error {
 	request, err := readSingleLogEntry(path)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
 	err = validateSingleLogEntry(request)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -278,8 +269,6 @@ func runLogCreateSingle(cmd *cobra.Command, printer *core.Printer, path string, 
 
 	result, err := dispatchSingleCreate(ctx, scope, request, async)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return err
 	}
 
@@ -290,18 +279,14 @@ func runLogCreateSingle(cmd *cobra.Command, printer *core.Printer, path string, 
 }
 
 // runLogCreateBatch handles batch log creation (sync or async).
-func runLogCreateBatch(cmd *cobra.Command, printer *core.Printer, path string, async bool) error {
+func runLogCreateBatch(cmd *cobra.Command, path string, async bool) error {
 	jsonEntries, err := readBatchLogEntries(path)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
 	err = validateBatchLogEntries(jsonEntries)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -335,8 +320,6 @@ func runLogCreateBatch(cmd *cobra.Command, printer *core.Printer, path string, a
 
 	result, err := dispatchBatchCreate(ctx, scope, entries, async)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return err
 	}
 
@@ -345,12 +328,8 @@ func runLogCreateBatch(cmd *cobra.Command, printer *core.Printer, path string, a
 
 // runLogDelete executes the log delete command.
 func runLogDelete(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	logID, err := core.ParseIDArg(args[0], "log")
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -368,8 +347,6 @@ func runLogDelete(cmd *cobra.Command, args []string) error {
 
 	result, err := deps.Client.Project(project).Logs().Delete(cmd.Context(), logID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("deleting log %d: %w", logID, err)
 	}
 
@@ -403,8 +380,6 @@ func getSingleLog(
 	}
 
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("getting log %s: %w", idOrUUID, err)
 	}
 
@@ -425,23 +400,16 @@ func listLogs(
 
 	flags, err := core.ResolveListFlags(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("invalid list flags: %w", err)
 	}
 
 	filterFlags, err := resolveLogFilterFlags(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("invalid filter flags: %w", err)
 	}
 
 	if !filterFlags.hasItem && !filterFlags.hasLaunch {
-		validationErr := errors.New("listing logs requires --item or --launch to scope results")
-		printer.PrintError(validationErr)
-
-		return validationErr
+		return errors.New("listing logs requires --item or --launch to scope results")
 	}
 
 	options := make([]client.ListLogsOption, 0, 6)
@@ -455,8 +423,6 @@ func listLogs(
 
 	result, err := scope.List(ctx, options...)
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("listing logs: %w", err)
 	}
 

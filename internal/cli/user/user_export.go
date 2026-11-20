@@ -26,7 +26,7 @@ Examples:
   rp user export --output-file users.csv
   rp user export --role ADMINISTRATOR --active`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runUserExport),
+		RunE: runUserExport,
 	}
 
 	cmd.Flags().String("output-file", "", "write to file instead of stdout")
@@ -47,8 +47,6 @@ func runUserExport(cmd *cobra.Command, _ []string) error {
 
 	data, err := deps.Client.Users().Export(cmd.Context(), options...)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("exporting users: %w", err)
 	}
 

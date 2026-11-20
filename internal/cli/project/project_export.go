@@ -28,7 +28,7 @@ Examples:
   rp project export --output-file projects.csv
   rp project export --name my_project --type INTERNAL`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runProjectExport),
+		RunE: runProjectExport,
 	}
 
 	cmd.Flags().String("output-file", "", "write to file instead of stdout")
@@ -48,8 +48,6 @@ func runProjectExport(cmd *cobra.Command, _ []string) error {
 
 	options, err := resolveProjectExportOptions(cmd)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("invalid project export flags: %w", err)
 	}
 
@@ -57,8 +55,6 @@ func runProjectExport(cmd *cobra.Command, _ []string) error {
 
 	data, err := deps.Client.Projects().Export(cmd.Context(), options...)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("exporting projects: %w", err)
 	}
 

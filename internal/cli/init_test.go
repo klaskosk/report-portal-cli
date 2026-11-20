@@ -178,7 +178,7 @@ func TestInit_FlagMode_RequiresBothURLAndToken(t *testing.T) {
 	)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "--url and --token must both be provided")
-	assert.Contains(t, stderr, "--url and --token must both be provided")
+	assert.Empty(t, stderr)
 }
 
 func TestInit_NonInteractive_RequiresTTY(t *testing.T) {
@@ -199,7 +199,7 @@ func TestInit_NonInteractive_RequiresTTY(t *testing.T) {
 	)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "interactive mode requires a terminal")
-	assert.Contains(t, stderr, "interactive mode requires a terminal")
+	assert.Empty(t, stderr)
 }
 
 func TestInit_InteractiveMode(t *testing.T) { //nolint:paralleltest // overrides package-level hooks
@@ -313,7 +313,7 @@ func TestInit_FailsIfConfigExists(t *testing.T) {
 	)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "config file already exists")
-	assert.Contains(t, stderr, "config file already exists")
+	assert.Empty(t, stderr)
 	assert.Contains(t, err.Error(), "--force")
 
 	content, readErr := os.ReadFile(cfgPath) //nolint:gosec // test path from t.TempDir()
@@ -341,7 +341,7 @@ func TestInit_InteractiveFailsIfConfigExists(t *testing.T) {
 	)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "config file already exists")
-	assert.Contains(t, stderr, "config file already exists")
+	assert.Empty(t, stderr)
 
 	content, readErr := os.ReadFile(cfgPath) //nolint:gosec // test path from t.TempDir()
 	require.NoError(t, readErr)

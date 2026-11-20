@@ -50,7 +50,7 @@ Examples:
   rp item list --launch 101 --suites                List suite items for launch 101
   rp item list --parent 2001                        List child items under suite item 2001`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runItemList),
+		RunE: runItemList,
 	}
 
 	core.RegisterListFlags(cmd)
@@ -71,7 +71,7 @@ Examples:
   rp item get 550e8400-e29b-41d4-a716-446655440000 Get test item by UUID
   rp item get 42 -o json -p my_project             Get test item as JSON`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runItemGet),
+		RunE: runItemGet,
 	}
 }
 
@@ -125,7 +125,7 @@ Examples:
   rp item update 100 --attribute "env:prod" --attribute "feature:login" -p my_project
   rp item update 100 --from-file item_update.json -p my_project`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runItemUpdate),
+		RunE: runItemUpdate,
 	}
 
 	cmd.Flags().String("description", "", "updated description")
@@ -147,25 +147,19 @@ func newItemDeleteCmd() *cobra.Command {
 Examples:
   rp item delete 100 -p my_project`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runItemDelete),
+		RunE: runItemDelete,
 	}
 }
 
 // runItemUpdate executes the item update command.
 func runItemUpdate(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	itemID, err := core.ParseIDArg(args[0], "item")
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
 	request, err := buildItemUpdateRequest(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -183,8 +177,6 @@ func runItemUpdate(cmd *cobra.Command, args []string) error {
 
 	result, err := deps.Client.Project(project).Items().Update(cmd.Context(), itemID, request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("updating item %d: %w", itemID, err)
 	}
 
@@ -245,12 +237,8 @@ func buildItemUpdateRequestFromFlags(cmd *cobra.Command) (types.UpdateTestItemRQ
 
 // runItemDelete executes the item delete command.
 func runItemDelete(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	itemID, err := core.ParseIDArg(args[0], "item")
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -268,8 +256,6 @@ func runItemDelete(cmd *cobra.Command, args []string) error {
 
 	result, err := deps.Client.Project(project).Items().Delete(cmd.Context(), itemID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("deleting item %d: %w", itemID, err)
 	}
 
@@ -308,8 +294,6 @@ func getSingleItem(
 	if parseErr == nil {
 		item, err := scope.GetByID(ctx, numericID)
 		if err != nil {
-			printer.PrintError(err)
-
 			return fmt.Errorf("getting item %s: %w", idOrUUID, err)
 		}
 
@@ -320,8 +304,6 @@ func getSingleItem(
 
 	item, err := scope.GetByUUID(ctx, idOrUUID)
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("getting item %s: %w", idOrUUID, err)
 	}
 
@@ -342,15 +324,11 @@ func listItems(
 
 	flags, err := core.ResolveListFlags(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("invalid list flags: %w", err)
 	}
 
 	filterFlags, err := resolveItemFilterFlags(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("invalid filter flags: %w", err)
 	}
 
@@ -365,8 +343,6 @@ func listItems(
 
 	result, err := scope.List(ctx, options...)
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("listing items: %w", err)
 	}
 

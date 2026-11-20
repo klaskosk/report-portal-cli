@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/klaskosk/report-portal-cli/internal/cli/core"
 	"github.com/klaskosk/report-portal-cli/internal/cli/testutil"
 	"github.com/klaskosk/report-portal-cli/pkg/client"
 	"github.com/stretchr/testify/assert"
@@ -61,9 +60,7 @@ func TestResolveDataIDFromLog_noBinaryContent(t *testing.T) {
 	require.NoError(t, err)
 
 	cmd := testutil.AttachCmdToRoot(t, NewCommand())
-	printer := core.NewPrinter("")
-
-	_, err = resolveDataIDFromLog(cmd, apiClient, "my_project", "99", printer)
+	_, err = resolveDataIDFromLog(cmd, apiClient, "my_project", "99")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "has no attachment")
 }
@@ -85,7 +82,7 @@ func TestResolveDataIDFromLog_emptyBinaryContentID(t *testing.T) {
 
 	cmd := testutil.AttachCmdToRoot(t, NewCommand())
 
-	_, err = resolveDataIDFromLog(cmd, apiClient, "my_project", "99", core.NewPrinter(""))
+	_, err = resolveDataIDFromLog(cmd, apiClient, "my_project", "99")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "empty binaryContent.id")
 }
@@ -108,7 +105,7 @@ func TestResolveDataIDFromLog_success(t *testing.T) {
 	cmd := testutil.AttachCmdToRoot(t, NewCommand())
 	cmd.SetContext(context.Background())
 
-	dataID, err := resolveDataIDFromLog(cmd, apiClient, "my_project", "99", core.NewPrinter(""))
+	dataID, err := resolveDataIDFromLog(cmd, apiClient, "my_project", "99")
 	require.NoError(t, err)
 	assert.Equal(t, int64(12345), dataID)
 }

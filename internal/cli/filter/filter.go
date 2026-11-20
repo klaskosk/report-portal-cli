@@ -43,7 +43,7 @@ Examples:
   rp filter list -o json -p my_project       List filters as JSON
   rp filter list --page-size 25 -p my_project  List with custom page size`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runFilterList),
+		RunE: runFilterList,
 	}
 
 	core.RegisterListFlagsWithDefaults(cmd, core.ListFlagDefaults{Sort: []string{"name,ASC"}})
@@ -62,7 +62,7 @@ Examples:
   rp filter get 42 -p my_project             Get filter by ID
   rp filter get 42 -o json -p my_project     Get filter as JSON`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runFilterGet),
+		RunE: runFilterGet,
 	}
 }
 
@@ -76,7 +76,7 @@ func newFilterCreateCmd() *cobra.Command {
 Examples:
   rp filter create --from-file filter.json   Create a filter from file`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runFilterCreate),
+		RunE: runFilterCreate,
 	}
 
 	cmd.Flags().String(
@@ -99,7 +99,7 @@ func newFilterUpdateCmd() *cobra.Command {
 Examples:
   rp filter update 42 --from-file f.json     Update a filter from file`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runFilterUpdate),
+		RunE: runFilterUpdate,
 	}
 
 	cmd.Flags().String(
@@ -122,7 +122,7 @@ func newFilterDeleteCmd() *cobra.Command {
 Examples:
   rp filter delete 42                        Delete a filter`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runFilterDelete),
+		RunE: runFilterDelete,
 	}
 }
 
@@ -143,12 +143,8 @@ func runFilterList(cmd *cobra.Command, _ []string) error {
 }
 
 func runFilterGet(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	filterID, err := parseFilterID(args[0])
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -168,18 +164,15 @@ func runFilterGet(cmd *cobra.Command, args []string) error {
 }
 
 func runFilterCreate(cmd *cobra.Command, _ []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	path, err := core.RequireFromFile(
 		cmd,
-		printer,
 		"--from-file is required for filter creation (filter definitions contain structured conditions and orders)",
 	)
 	if err != nil {
 		return err
 	}
 
-	request, err := loadFilterMutationRequest(cmd, printer, path)
+	request, err := loadFilterMutationRequest(cmd, path)
 	if err != nil {
 		return err
 	}
@@ -196,8 +189,6 @@ func runFilterCreate(cmd *cobra.Command, _ []string) error {
 
 	result, err := deps.Client.Project(project).Filters().Create(cmd.Context(), request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("creating filter in project %s: %w", project, err)
 	}
 
@@ -208,25 +199,20 @@ func runFilterCreate(cmd *cobra.Command, _ []string) error {
 }
 
 func runFilterUpdate(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	filterID, err := parseFilterID(args[0])
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
 	path, err := core.RequireFromFile(
 		cmd,
-		printer,
 		"--from-file is required for filter update (the API expects the complete filter definition)",
 	)
 	if err != nil {
 		return err
 	}
 
-	request, err := loadFilterMutationRequest(cmd, printer, path)
+	request, err := loadFilterMutationRequest(cmd, path)
 	if err != nil {
 		return err
 	}
@@ -245,8 +231,6 @@ func runFilterUpdate(cmd *cobra.Command, args []string) error {
 		Filters().
 		Update(cmd.Context(), filterID, request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("updating filter %d in project %s: %w", filterID, project, err)
 	}
 
@@ -258,12 +242,8 @@ func runFilterUpdate(cmd *cobra.Command, args []string) error {
 }
 
 func runFilterDelete(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	filterID, err := parseFilterID(args[0])
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -279,8 +259,6 @@ func runFilterDelete(cmd *cobra.Command, args []string) error {
 
 	result, err := deps.Client.Project(project).Filters().Delete(cmd.Context(), filterID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("deleting filter %d in project %s: %w", filterID, project, err)
 	}
 
@@ -292,25 +270,18 @@ func runFilterDelete(cmd *cobra.Command, args []string) error {
 }
 
 // loadFilterMutationRequest reads the JSON file, applies CLI overrides, and validates name.
-func loadFilterMutationRequest(
-	cmd *cobra.Command,
-	printer *core.Printer,
-	path string,
-) (types.UpdateUserFilterRQ, error) {
+func loadFilterMutationRequest(cmd *cobra.Command, path string) (types.UpdateUserFilterRQ, error) {
 	request, err := readFilterRequestFromFile(path)
 	if err != nil {
-		printer.PrintError(err)
-
 		return types.UpdateUserFilterRQ{}, err
 	}
 
 	applyFilterRequestFlagOverrides(cmd, &request)
 
 	if request.Name == "" {
-		nameErr := errors.New("filter name is required (provide via --from-file or --name flag)")
-		printer.PrintError(nameErr)
-
-		return types.UpdateUserFilterRQ{}, nameErr
+		return types.UpdateUserFilterRQ{}, errors.New(
+			"filter name is required (provide via --from-file or --name flag)",
+		)
 	}
 
 	return request, nil
@@ -324,8 +295,6 @@ func listFilters(
 ) error {
 	flags, err := core.ResolveListFlags(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("invalid list flags: %w", err)
 	}
 
@@ -337,8 +306,6 @@ func listFilters(
 
 	result, err := clientInstance.Project(project).Filters().List(cmd.Context(), options...)
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("listing filters: %w", err)
 	}
 
@@ -369,8 +336,6 @@ func getSingleFilter(
 		Filters().
 		GetByID(cmd.Context(), filterID)
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("getting filter %d: %w", filterID, err)
 	}
 

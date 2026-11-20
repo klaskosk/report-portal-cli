@@ -26,7 +26,7 @@ Examples:
   rp launch analyze 42 --analyzer-mode CURRENT_LAUNCH --items-mode TO_INVESTIGATE -p my_project
   rp launch analyze 42 --from-file analyze.json -p my_project`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runLaunchAnalyze),
+		RunE: runLaunchAnalyze,
 	}
 
 	cmd.Flags().String("analyzer-mode", "", "analyzer mode (required without --from-file)")
@@ -51,7 +51,7 @@ Examples:
   rp launch compare --id 41 --id 42 -o json -p my_project
   rp launch compare --id 41 --id 42 --id 43 -p my_project`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runLaunchCompare),
+		RunE: runLaunchCompare,
 	}
 
 	cmd.Flags().Int64Slice("id", nil, "launch ID to compare (repeatable, at least 2 required)")
@@ -60,19 +60,13 @@ Examples:
 }
 
 func runLaunchAnalyze(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	launchID, err := core.ParseIDArg(args[0], "launch")
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
 	request, err := buildAnalyzeLaunchRequest(cmd, launchID)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -88,8 +82,6 @@ func runLaunchAnalyze(cmd *cobra.Command, args []string) error {
 
 	result, err := deps.Client.Project(project).Launches().Analyze(cmd.Context(), request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("analyzing launch %d in project %s: %w", launchID, project, err)
 	}
 
@@ -101,12 +93,8 @@ func runLaunchAnalyze(cmd *cobra.Command, args []string) error {
 }
 
 func runLaunchCompare(cmd *cobra.Command, _ []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	ids, err := resolveCompareLaunchIDs(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -122,8 +110,6 @@ func runLaunchCompare(cmd *cobra.Command, _ []string) error {
 
 	result, err := deps.Client.Project(project).Launches().Compare(cmd.Context(), ids)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("comparing launches in project %s: %w", project, err)
 	}
 

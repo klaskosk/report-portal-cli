@@ -40,7 +40,7 @@ Examples:
   rp demo-data generate --from-file demo_config.json -p my_project
   rp demo-data generate -p my_project -o json`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runDemoDataGenerate),
+		RunE: runDemoDataGenerate,
 	}
 
 	cmd.Flags().String(
@@ -71,8 +71,6 @@ func runDemoDataGenerate(cmd *cobra.Command, _ []string) error {
 
 	result, err := deps.Client.Project(project).DemoData().Generate(cmd.Context(), request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("generating demo data in project %s: %w", project, err)
 	}
 
@@ -90,9 +88,6 @@ func loadDemoDataRequest(cmd *cobra.Command) (types.DemoDataRq, error) {
 
 	request, err := core.ReadRequestFromFile[types.DemoDataRq](path)
 	if err != nil {
-		printer := core.NewPrinterFromCmd(cmd)
-		printer.PrintError(err)
-
 		return types.DemoDataRq{}, core.WrapFileError(err, "demo data request", "demo data JSON")
 	}
 

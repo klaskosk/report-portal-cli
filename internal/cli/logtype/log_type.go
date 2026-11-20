@@ -42,7 +42,7 @@ Examples:
   rp log-type list -p my_project               List all log types
   rp log-type list -o json -p my_project       List log types as JSON`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runLogTypeList),
+		RunE: runLogTypeList,
 	}
 }
 
@@ -61,7 +61,7 @@ Examples:
   rp log-type create --name "TRACE" --level 5000 --filterable -p my_project
   rp log-type create --from-file log_type.json -p my_project`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runLogTypeCreate),
+		RunE: runLogTypeCreate,
 	}
 
 	cmd.Flags().String("name", "", "log type name (required without --from-file)")
@@ -88,7 +88,7 @@ Name and level are required. is_filterable is optional and may be omitted.
 Examples:
   rp log-type update 5 --from-file updated.json -p my_project`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runLogTypeUpdate),
+		RunE: runLogTypeUpdate,
 	}
 
 	cmd.Flags().
@@ -107,7 +107,7 @@ func newLogTypeDeleteCmd() *cobra.Command {
 Examples:
   rp log-type delete 5 -p my_project`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runLogTypeDelete),
+		RunE: runLogTypeDelete,
 	}
 }
 
@@ -126,8 +126,6 @@ func runLogTypeList(cmd *cobra.Command, _ []string) error {
 
 	result, err := deps.Client.Project(project).LogTypes().List(cmd.Context())
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("listing log types in project %s: %w", project, err)
 	}
 
@@ -143,9 +141,7 @@ func runLogTypeList(cmd *cobra.Command, _ []string) error {
 }
 
 func runLogTypeCreate(cmd *cobra.Command, _ []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
-	request, err := resolveLogTypeCreateRequest(cmd, printer)
+	request, err := resolveLogTypeCreateRequest(cmd)
 	if err != nil {
 		return err
 	}
@@ -164,8 +160,6 @@ func runLogTypeCreate(cmd *cobra.Command, _ []string) error {
 
 	result, err := deps.Client.Project(project).LogTypes().Create(cmd.Context(), request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("creating log type in project %s: %w", project, err)
 	}
 
@@ -175,25 +169,20 @@ func runLogTypeCreate(cmd *cobra.Command, _ []string) error {
 }
 
 func runLogTypeUpdate(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	logTypeID, err := parseLogTypeID(args[0])
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
 	path, err := core.RequireFromFile(
 		cmd,
-		printer,
 		"--from-file is required for log type update (the API expects the complete log type definition)",
 	)
 	if err != nil {
 		return err
 	}
 
-	request, err := loadAndValidateLogTypeRequest(path, printer)
+	request, err := loadAndValidateLogTypeRequest(path)
 	if err != nil {
 		return err
 	}
@@ -212,8 +201,6 @@ func runLogTypeUpdate(cmd *cobra.Command, args []string) error {
 
 	result, err := deps.Client.Project(project).LogTypes().Update(cmd.Context(), logTypeID, request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("updating log type %d in project %s: %w", logTypeID, project, err)
 	}
 
@@ -225,12 +212,8 @@ func runLogTypeUpdate(cmd *cobra.Command, args []string) error {
 }
 
 func runLogTypeDelete(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	logTypeID, err := parseLogTypeID(args[0])
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -248,8 +231,6 @@ func runLogTypeDelete(cmd *cobra.Command, args []string) error {
 
 	err = deps.Client.Project(project).LogTypes().Delete(cmd.Context(), logTypeID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("deleting log type %d in project %s: %w", logTypeID, project, err)
 	}
 
@@ -261,23 +242,17 @@ func runLogTypeDelete(cmd *cobra.Command, args []string) error {
 }
 
 // resolveLogTypeCreateRequest determines the LogTypeRequest from either --from-file or flags.
-func resolveLogTypeCreateRequest(
-	cmd *cobra.Command,
-	printer *core.Printer,
-) (types.LogTypeRequest, error) {
+func resolveLogTypeCreateRequest(cmd *cobra.Command) (types.LogTypeRequest, error) {
 	if cmd.Flags().Changed("from-file") {
 		path, _ := cmd.Flags().GetString("from-file")
 
-		return loadAndValidateLogTypeRequest(path, printer)
+		return loadAndValidateLogTypeRequest(path)
 	}
 
 	if !cmd.Flags().Changed("name") && !cmd.Flags().Changed("level") {
-		err := errors.New(
+		return types.LogTypeRequest{}, errors.New(
 			"no input provided: use --name and --level flags, or --from-file to read from a JSON file",
 		)
-		printer.PrintError(err)
-
-		return types.LogTypeRequest{}, err
 	}
 
 	name, _ := cmd.Flags().GetString("name")
@@ -285,10 +260,7 @@ func resolveLogTypeCreateRequest(
 	filterable, _ := cmd.Flags().GetBool("filterable")
 
 	if name == "" {
-		err := errors.New("--name is required when not using --from-file")
-		printer.PrintError(err)
-
-		return types.LogTypeRequest{}, err
+		return types.LogTypeRequest{}, errors.New("--name is required when not using --from-file")
 	}
 
 	request := types.LogTypeRequest{
@@ -299,8 +271,6 @@ func resolveLogTypeCreateRequest(
 
 	err := validateLogTypeRequest(request)
 	if err != nil {
-		printer.PrintError(err)
-
 		return types.LogTypeRequest{}, err
 	}
 
@@ -308,21 +278,14 @@ func resolveLogTypeCreateRequest(
 }
 
 // loadAndValidateLogTypeRequest reads a LogTypeRequest from a file and validates it.
-func loadAndValidateLogTypeRequest(
-	path string,
-	printer *core.Printer,
-) (types.LogTypeRequest, error) {
+func loadAndValidateLogTypeRequest(path string) (types.LogTypeRequest, error) {
 	request, err := readLogTypeRequestFromFile(path)
 	if err != nil {
-		printer.PrintError(err)
-
 		return types.LogTypeRequest{}, err
 	}
 
 	err = validateLogTypeRequest(request)
 	if err != nil {
-		printer.PrintError(err)
-
 		return types.LogTypeRequest{}, err
 	}
 

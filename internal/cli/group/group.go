@@ -47,7 +47,7 @@ Examples:
   rp group list -o json                      List groups as JSON
   rp group list --page-size 25               List with custom page size`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runGroupList),
+		RunE: runGroupList,
 	}
 
 	core.RegisterListFlagsWithDefaults(cmd, core.ListFlagDefaults{Sort: []string{"name,ASC"}})
@@ -66,7 +66,7 @@ Examples:
   rp group get 42                            Get group by ID
   rp group get 42 -o json                    Get group as JSON`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runGroupGet),
+		RunE: runGroupGet,
 	}
 }
 
@@ -84,7 +84,7 @@ Examples:
   rp group create --name "My Group"          Create a group
   rp group create --name "My Group" --slug my-group  Create with explicit slug`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runGroupCreate),
+		RunE: runGroupCreate,
 	}
 
 	cmd.Flags().String("name", "", "display name for the group (required)")
@@ -110,7 +110,7 @@ Examples:
   rp group update 42 --name "New Name"       Rename a group
   rp group update 42 --slug new-slug         Update slug (preserves current name)`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runGroupUpdate),
+		RunE: runGroupUpdate,
 	}
 
 	cmd.Flags().String("name", "", "display name for the group")
@@ -130,7 +130,7 @@ func newGroupDeleteCmd() *cobra.Command {
 Examples:
   rp group delete 42                         Delete a group`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runGroupDelete),
+		RunE: runGroupDelete,
 	}
 }
 
@@ -148,8 +148,6 @@ func listGroups(cmd *cobra.Command, clientInstance *client.Client, printer *core
 
 	flags, err := core.ResolveListFlags(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("invalid list flags: %w", err)
 	}
 
@@ -187,8 +185,6 @@ func listGroups(cmd *cobra.Command, clientInstance *client.Client, printer *core
 
 	result, err := clientInstance.Groups().List(cmd.Context(), options...)
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("listing groups: %w", err)
 	}
 
@@ -213,12 +209,8 @@ func printGroupList(result *types.GroupPage, printer *core.Printer) error {
 }
 
 func runGroupGet(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	groupID, err := parseGroupID(args[0])
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -231,8 +223,6 @@ func runGroupGet(cmd *cobra.Command, args []string) error {
 
 	result, err := deps.Client.Groups().Get(cmd.Context(), groupID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("getting group %d: %w", groupID, err)
 	}
 
@@ -242,14 +232,9 @@ func runGroupGet(cmd *cobra.Command, args []string) error {
 }
 
 func runGroupCreate(cmd *cobra.Command, _ []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	name := core.MustGetStringFlag(cmd, "name")
 	if name == "" {
-		err := errors.New("--name is required")
-		printer.PrintError(err)
-
-		return err
+		return errors.New("--name is required")
 	}
 
 	deps, err := core.ResolveCmd(cmd)
@@ -268,8 +253,6 @@ func runGroupCreate(cmd *cobra.Command, _ []string) error {
 
 	result, err := deps.Client.Groups().Create(cmd.Context(), request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("creating group: %w", err)
 	}
 
@@ -279,12 +262,8 @@ func runGroupCreate(cmd *cobra.Command, _ []string) error {
 }
 
 func runGroupUpdate(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	groupID, err := parseGroupID(args[0])
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -295,8 +274,6 @@ func runGroupUpdate(cmd *cobra.Command, args []string) error {
 
 	name, err := resolveGroupUpdateName(cmd, deps.Client.Groups(), groupID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return err
 	}
 
@@ -311,8 +288,6 @@ func runGroupUpdate(cmd *cobra.Command, args []string) error {
 
 	result, err := deps.Client.Groups().Update(cmd.Context(), groupID, request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("updating group %d: %w", groupID, err)
 	}
 
@@ -353,12 +328,8 @@ func resolveGroupUpdateName(
 }
 
 func runGroupDelete(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	groupID, err := parseGroupID(args[0])
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -371,8 +342,6 @@ func runGroupDelete(cmd *cobra.Command, args []string) error {
 
 	err = deps.Client.Groups().Delete(cmd.Context(), groupID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("deleting group %d: %w", groupID, err)
 	}
 

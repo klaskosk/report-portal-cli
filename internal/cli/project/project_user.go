@@ -41,7 +41,7 @@ Examples:
   rp project user assign --user john:MEMBER --user jane:PROJECT_MANAGER my_project
   rp project user assign --from-file users.json my_project`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runProjectUserAssign),
+		RunE: runProjectUserAssign,
 	}
 
 	cmd.Flags().StringArray("user", nil, "user assignment in username:role format (repeatable)")
@@ -67,7 +67,7 @@ Examples:
   rp project user unassign --user john --user jane my_project
   rp project user unassign --from-file users.json my_project`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runProjectUserUnassign),
+		RunE: runProjectUserUnassign,
 	}
 
 	cmd.Flags().StringArray("user", nil, "username to remove from the project (repeatable)")
@@ -78,9 +78,7 @@ Examples:
 }
 
 func runProjectUserAssign(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
-	request, err := resolveAssignUsersRequest(cmd, printer)
+	request, err := resolveAssignUsersRequest(cmd)
 	if err != nil {
 		return err
 	}
@@ -96,8 +94,6 @@ func runProjectUserAssign(cmd *cobra.Command, args []string) error {
 
 	result, err := deps.Client.Projects().AssignUsers(cmd.Context(), projectName, request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("assigning users to project %s: %w", projectName, err)
 	}
 
@@ -109,9 +105,7 @@ func runProjectUserAssign(cmd *cobra.Command, args []string) error {
 }
 
 func runProjectUserUnassign(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
-	request, err := resolveUnassignUsersRequest(cmd, printer)
+	request, err := resolveUnassignUsersRequest(cmd)
 	if err != nil {
 		return err
 	}
@@ -127,8 +121,6 @@ func runProjectUserUnassign(cmd *cobra.Command, args []string) error {
 
 	result, err := deps.Client.Projects().UnassignUsers(cmd.Context(), projectName, request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("unassigning users from project %s: %w", projectName, err)
 	}
 
@@ -140,17 +132,12 @@ func runProjectUserUnassign(cmd *cobra.Command, args []string) error {
 }
 
 // resolveAssignUsersRequest builds AssignUsersRQ from --from-file or --user flags.
-func resolveAssignUsersRequest(
-	cmd *cobra.Command,
-	printer *core.Printer,
-) (types.AssignUsersRQ, error) {
+func resolveAssignUsersRequest(cmd *cobra.Command) (types.AssignUsersRQ, error) {
 	if cmd.Flags().Changed("from-file") {
 		path, _ := cmd.Flags().GetString("from-file")
 
 		request, err := readAssignUsersFromFile(path)
 		if err != nil {
-			printer.PrintError(err)
-
 			return types.AssignUsersRQ{}, err
 		}
 
@@ -161,8 +148,6 @@ func resolveAssignUsersRequest(
 
 	userNames, err := buildAssignUsersMap(users)
 	if err != nil {
-		printer.PrintError(err)
-
 		return types.AssignUsersRQ{}, err
 	}
 
@@ -170,17 +155,12 @@ func resolveAssignUsersRequest(
 }
 
 // resolveUnassignUsersRequest builds UnassignUsersRQ from --from-file or --user flags.
-func resolveUnassignUsersRequest(
-	cmd *cobra.Command,
-	printer *core.Printer,
-) (types.UnassignUsersRQ, error) {
+func resolveUnassignUsersRequest(cmd *cobra.Command) (types.UnassignUsersRQ, error) {
 	if cmd.Flags().Changed("from-file") {
 		path, _ := cmd.Flags().GetString("from-file")
 
 		request, err := readUnassignUsersFromFile(path)
 		if err != nil {
-			printer.PrintError(err)
-
 			return types.UnassignUsersRQ{}, err
 		}
 
@@ -191,8 +171,6 @@ func resolveUnassignUsersRequest(
 
 	userNames, err := buildUnassignUsersList(users)
 	if err != nil {
-		printer.PrintError(err)
-
 		return types.UnassignUsersRQ{}, err
 	}
 

@@ -39,7 +39,7 @@ Examples:
   rp activity get 123 -p my_project               Get activity by ID
   rp activity get 123 -p my_project -o json       Get activity as JSON`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runActivityGet),
+		RunE: runActivityGet,
 	}
 }
 
@@ -55,7 +55,7 @@ Examples:
   rp activity list --item 456 -o json -p my_project  List activities as JSON
   rp activity list --item 456 -p my_project --page 2 --page-size 25`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runActivityList),
+		RunE: runActivityList,
 	}
 
 	cmd.Flags().Int64("item", 0, "test item ID to list activities for")
@@ -69,12 +69,8 @@ Examples:
 }
 
 func runActivityGet(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	activityID, err := parseActivityID(args[0])
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -120,8 +116,6 @@ func getActivity(
 ) error {
 	activity, err := clientInstance.Project(project).Activities().GetByID(cmd.Context(), activityID)
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("getting activity %d: %w", activityID, err)
 	}
 
@@ -140,8 +134,6 @@ func listActivities(
 ) error {
 	flags, err := core.ResolveListFlags(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("invalid list flags: %w", err)
 	}
 
@@ -155,8 +147,6 @@ func listActivities(
 		Activities().
 		ListForItem(cmd.Context(), itemID, options...)
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("listing activities for item %d: %w", itemID, err)
 	}
 

@@ -3,7 +3,6 @@ package setting //nolint:testpackage // white-box tests
 import (
 	"testing"
 
-	"github.com/klaskosk/report-portal-cli/internal/cli/core"
 	"github.com/klaskosk/report-portal-cli/internal/cli/testutil"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
@@ -109,7 +108,7 @@ func TestResolveServerSettingUpdateRequest_fromFlags(t *testing.T) {
 	cmd := newSettingServerUpdateCmd()
 	require.NoError(t, cmd.ParseFlags([]string{"--key", "foo", "--value", "bar"}))
 
-	request, err := resolveServerSettingUpdateRequest(cmd, core.NewPrinterFromCmd(cmd))
+	request, err := resolveServerSettingUpdateRequest(cmd)
 	require.NoError(t, err)
 	assert.Equal(t, "foo", request.Key)
 	assert.Equal(t, "bar", request.Value)

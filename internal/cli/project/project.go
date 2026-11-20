@@ -49,7 +49,7 @@ Examples:
   rp project list -o json           List accessible projects as JSON
   rp project list -o go-template='{{range .}}{{.}}{{"\n"}}{{end}}'  Custom template over name list`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runProjectList),
+		RunE: runProjectList,
 	}
 }
 
@@ -66,7 +66,7 @@ Examples:
   rp project get my_project          Get project details by name
   rp project get my_project -o json  Get project details as JSON`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runProjectGet),
+		RunE: runProjectGet,
 	}
 }
 
@@ -103,8 +103,6 @@ func getSingleProject(
 ) error {
 	project, err := clientInstance.Projects().Get(cmd.Context(), name)
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("getting project %s: %w", name, err)
 	}
 
@@ -114,25 +112,17 @@ func getSingleProject(
 }
 
 // listProjects retrieves and prints all projects accessible to the current user.
-func listProjects(
-	cmd *cobra.Command,
-	clientInstance *client.Client,
-	printer *core.Printer,
-) error {
+func listProjects(cmd *cobra.Command, clientInstance *client.Client, printer *core.Printer) error {
 	ctx := cmd.Context()
 
 	// Get current user to find their accessible projects.
 	user, err := clientInstance.Users().GetMyself(ctx)
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("getting current user: %w", err)
 	}
 
 	projects, err := clientInstance.Users().ListProjects(ctx, user.UserId)
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("listing projects: %w", err)
 	}
 
@@ -193,7 +183,7 @@ Examples:
   rp project create --name "new_project"                Create a project
   rp project create --name "new_project" --entry-type INTERNAL  Create with explicit entry type`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runProjectCreate),
+		RunE: runProjectCreate,
 	}
 
 	cmd.Flags().String("name", "", "project name (required)")
@@ -217,7 +207,7 @@ This command does not require --project/-p since it operates on the instance lev
 Examples:
   rp project update my_project --from-file config.json  Update project configuration`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runProjectUpdate),
+		RunE: runProjectUpdate,
 	}
 
 	cmd.Flags().
@@ -241,17 +231,14 @@ This command does not require --project/-p since it operates on the instance lev
 Examples:
   rp project delete old_project   Delete a project by name`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runProjectDelete),
+		RunE: runProjectDelete,
 	}
 }
 
 func runProjectCreate(cmd *cobra.Command, _ []string) error {
 	name := core.MustGetStringFlag(cmd, "name")
 	if name == "" {
-		err := errors.New("--name is required")
-		core.NewPrinterFromCmd(cmd).PrintError(err)
-
-		return err
+		return errors.New("--name is required")
 	}
 
 	entryType := core.MustGetStringFlag(cmd, "entry-type")
@@ -270,8 +257,6 @@ func runProjectCreate(cmd *cobra.Command, _ []string) error {
 
 	result, err := deps.Client.Projects().Create(cmd.Context(), request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("creating project: %w", err)
 	}
 
@@ -282,23 +267,16 @@ func runProjectCreate(cmd *cobra.Command, _ []string) error {
 }
 
 func runProjectUpdate(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	if !cmd.Flags().Changed("from-file") {
-		err := errors.New(
+		return errors.New(
 			"--from-file is required for project update (the payload contains structured configuration and user fields)",
 		)
-		printer.PrintError(err)
-
-		return err
 	}
 
 	path := core.MustGetStringFlag(cmd, "from-file")
 
 	request, err := readProjectUpdateFromFile(path)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -313,8 +291,6 @@ func runProjectUpdate(cmd *cobra.Command, args []string) error {
 
 	result, err := deps.Client.Projects().Update(cmd.Context(), projectName, request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("updating project %s: %w", projectName, err)
 	}
 
@@ -346,22 +322,15 @@ func deleteProject(
 ) error {
 	project, err := clientInstance.Projects().Get(cmd.Context(), name)
 	if err != nil {
-		var wrappedErr error
 		if client.IsNotFound(err) {
-			wrappedErr = fmt.Errorf("project %q not found: cannot delete: %w", name, err)
-		} else {
-			wrappedErr = fmt.Errorf("resolving project %q for deletion: %w", name, err)
+			return fmt.Errorf("project %q not found: cannot delete: %w", name, err)
 		}
 
-		printer.PrintError(wrappedErr)
-
-		return wrappedErr
+		return fmt.Errorf("resolving project %q for deletion: %w", name, err)
 	}
 
 	result, err := clientInstance.Projects().Delete(cmd.Context(), project.ProjectId)
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("deleting project %s: %w", name, err)
 	}
 

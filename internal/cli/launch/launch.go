@@ -55,7 +55,7 @@ Examples:
   rp launch list --latest            List latest launches
   rp launch list --debug             List debug launches (shorthand)`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runLaunchList),
+		RunE: runLaunchList,
 	}
 
 	core.RegisterListFlags(cmd)
@@ -77,7 +77,7 @@ Examples:
   rp launch get 42 -p other_project Get launch in a different project
   rp launch get 42 -o json -p my_project  Get launch as JSON`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runLaunchGet),
+		RunE: runLaunchGet,
 	}
 }
 
@@ -128,7 +128,7 @@ Examples:
   rp launch update 42 --attribute "env:staging" -p my_project
   rp launch update 42 --from-file launch_update.json -p my_project`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runLaunchUpdate),
+		RunE: runLaunchUpdate,
 	}
 
 	cmd.Flags().String("description", "", "updated description")
@@ -150,25 +150,19 @@ func newLaunchDeleteCmd() *cobra.Command {
 Examples:
   rp launch delete 42 -p my_project`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runLaunchDelete),
+		RunE: runLaunchDelete,
 	}
 }
 
 // runLaunchUpdate executes the launch update command.
 func runLaunchUpdate(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	launchID, err := core.ParseIDArg(args[0], "launch")
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
 	request, err := buildLaunchUpdateRequest(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -184,8 +178,6 @@ func runLaunchUpdate(cmd *cobra.Command, args []string) error {
 
 	result, err := deps.Client.Project(project).Launches().Update(cmd.Context(), launchID, request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("updating launch %d in project %s: %w", launchID, project, err)
 	}
 
@@ -198,12 +190,8 @@ func runLaunchUpdate(cmd *cobra.Command, args []string) error {
 
 // runLaunchDelete executes the launch delete command.
 func runLaunchDelete(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	launchID, err := core.ParseIDArg(args[0], "launch")
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -219,8 +207,6 @@ func runLaunchDelete(cmd *cobra.Command, args []string) error {
 
 	result, err := deps.Client.Project(project).Launches().Delete(cmd.Context(), launchID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("deleting launch %d in project %s: %w", launchID, project, err)
 	}
 
@@ -342,8 +328,6 @@ func getSingleLaunch(
 	if parseErr == nil {
 		launch, err := scope.GetByID(ctx, numericID)
 		if err != nil {
-			printer.PrintError(err)
-
 			return fmt.Errorf("getting launch %s: %w", idOrUUID, err)
 		}
 
@@ -354,8 +338,6 @@ func getSingleLaunch(
 
 	launch, err := scope.GetByUUID(ctx, idOrUUID)
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("getting launch %s: %w", idOrUUID, err)
 	}
 
@@ -374,7 +356,7 @@ func listLaunches(
 	ctx := cmd.Context()
 	scope := clientInstance.Project(project).Launches()
 
-	options, filterFlags, err := resolveLaunchOptions(cmd, printer)
+	options, filterFlags, err := resolveLaunchOptions(cmd)
 	if err != nil {
 		return err
 	}
@@ -391,8 +373,6 @@ func listLaunches(
 	}
 
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("listing launches: %w", err)
 	}
 
@@ -415,26 +395,19 @@ func listLaunches(
 // resolveLaunchOptions builds the full set of list options from pagination and filter flags.
 func resolveLaunchOptions(
 	cmd *cobra.Command,
-	printer *core.Printer,
 ) ([]client.ListLaunchesOption, launchFilterFlags, error) {
 	flags, err := core.ResolveListFlags(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return nil, launchFilterFlags{}, fmt.Errorf("invalid list flags: %w", err)
 	}
 
 	filterFlags, err := resolveLaunchFilterFlags(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return nil, launchFilterFlags{}, fmt.Errorf("invalid filter flags: %w", err)
 	}
 
 	filterOptions, err := applyLaunchFilterOptions(filterFlags)
 	if err != nil {
-		printer.PrintError(err)
-
 		return nil, launchFilterFlags{}, fmt.Errorf("invalid filter flags: %w", err)
 	}
 

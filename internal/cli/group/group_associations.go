@@ -38,7 +38,7 @@ Examples:
   rp group user list 42
   rp group user list 42 --page-size 25 --offset 50`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runGroupUserList),
+		RunE: runGroupUserList,
 	}
 
 	registerGroupAssociationListFlags(cmd)
@@ -57,7 +57,7 @@ Examples:
   rp group user get 42 7
   rp group user get 42 7 -o json`,
 		Args: cobra.ExactArgs(2),
-		RunE: core.WithPrintedErrors(runGroupUserGet),
+		RunE: runGroupUserGet,
 	}
 }
 
@@ -71,7 +71,7 @@ func newGroupUserAddCmd() *cobra.Command {
 Examples:
   rp group user add 42 7`,
 		Args: cobra.ExactArgs(2),
-		RunE: core.WithPrintedErrors(runGroupUserAdd),
+		RunE: runGroupUserAdd,
 	}
 }
 
@@ -85,7 +85,7 @@ func newGroupUserRemoveCmd() *cobra.Command {
 Examples:
   rp group user remove 42 7`,
 		Args: cobra.ExactArgs(2),
-		RunE: core.WithPrintedErrors(runGroupUserRemove),
+		RunE: runGroupUserRemove,
 	}
 }
 
@@ -114,7 +114,7 @@ Examples:
   rp group project list 42
   rp group project list 42 --page-size 25 --offset 50`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runGroupProjectList),
+		RunE: runGroupProjectList,
 	}
 
 	registerGroupAssociationListFlags(cmd)
@@ -133,7 +133,7 @@ Examples:
   rp group project get 42 3
   rp group project get 42 3 -o json`,
 		Args: cobra.ExactArgs(2),
-		RunE: core.WithPrintedErrors(runGroupProjectGet),
+		RunE: runGroupProjectGet,
 	}
 }
 
@@ -148,7 +148,7 @@ Examples:
   rp group project add 42 3
   rp group project add 42 3 --permission MEMBER`,
 		Args: cobra.ExactArgs(2),
-		RunE: core.WithPrintedErrors(runGroupProjectAdd),
+		RunE: runGroupProjectAdd,
 	}
 
 	cmd.Flags().
@@ -167,17 +167,13 @@ func newGroupProjectRemoveCmd() *cobra.Command {
 Examples:
   rp group project remove 42 3`,
 		Args: cobra.ExactArgs(2),
-		RunE: core.WithPrintedErrors(runGroupProjectRemove),
+		RunE: runGroupProjectRemove,
 	}
 }
 
 func runGroupUserList(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	groupID, err := parseGroupID(args[0])
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -188,8 +184,6 @@ func runGroupUserList(cmd *cobra.Command, args []string) error {
 
 	pageSize, offset, err := resolveGroupAssociationPagination(cmd)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return err
 	}
 
@@ -207,8 +201,6 @@ func runGroupUserList(cmd *cobra.Command, args []string) error {
 		client.WithGroupUserOffset(offset),
 	)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("listing users in group %d: %w", groupID, err)
 	}
 
@@ -216,12 +208,8 @@ func runGroupUserList(cmd *cobra.Command, args []string) error {
 }
 
 func runGroupUserGet(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	groupID, userID, err := parseGroupUserIDs(args)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -234,8 +222,6 @@ func runGroupUserGet(cmd *cobra.Command, args []string) error {
 
 	result, err := deps.Client.Groups().GetUser(cmd.Context(), groupID, userID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("getting user %d in group %d: %w", userID, groupID, err)
 	}
 
@@ -245,12 +231,8 @@ func runGroupUserGet(cmd *cobra.Command, args []string) error {
 }
 
 func runGroupUserAdd(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	groupID, userID, err := parseGroupUserIDs(args)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -263,8 +245,6 @@ func runGroupUserAdd(cmd *cobra.Command, args []string) error {
 
 	result, err := deps.Client.Groups().AddUser(cmd.Context(), groupID, userID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("adding user %d to group %d: %w", userID, groupID, err)
 	}
 
@@ -276,12 +256,8 @@ func runGroupUserAdd(cmd *cobra.Command, args []string) error {
 }
 
 func runGroupUserRemove(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	groupID, userID, err := parseGroupUserIDs(args)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -294,8 +270,6 @@ func runGroupUserRemove(cmd *cobra.Command, args []string) error {
 
 	err = deps.Client.Groups().RemoveUser(cmd.Context(), groupID, userID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("removing user %d from group %d: %w", userID, groupID, err)
 	}
 
@@ -306,12 +280,8 @@ func runGroupUserRemove(cmd *cobra.Command, args []string) error {
 }
 
 func runGroupProjectList(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	groupID, err := parseGroupID(args[0])
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -322,8 +292,6 @@ func runGroupProjectList(cmd *cobra.Command, args []string) error {
 
 	pageSize, offset, err := resolveGroupAssociationPagination(cmd)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return err
 	}
 
@@ -341,8 +309,6 @@ func runGroupProjectList(cmd *cobra.Command, args []string) error {
 		client.WithGroupProjectOffset(offset),
 	)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("listing projects in group %d: %w", groupID, err)
 	}
 
@@ -350,12 +316,8 @@ func runGroupProjectList(cmd *cobra.Command, args []string) error {
 }
 
 func runGroupProjectGet(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	groupID, projectID, err := parseGroupProjectIDs(args)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -368,8 +330,6 @@ func runGroupProjectGet(cmd *cobra.Command, args []string) error {
 
 	result, err := deps.Client.Groups().GetProject(cmd.Context(), groupID, projectID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("getting project %d in group %d: %w", projectID, groupID, err)
 	}
 
@@ -379,12 +339,8 @@ func runGroupProjectGet(cmd *cobra.Command, args []string) error {
 }
 
 func runGroupProjectAdd(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	groupID, projectID, err := parseGroupProjectIDs(args)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -409,8 +365,6 @@ func runGroupProjectAdd(cmd *cobra.Command, args []string) error {
 
 	result, err := deps.Client.Groups().AddProject(cmd.Context(), groupID, projectID, request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("adding project %d to group %d: %w", projectID, groupID, err)
 	}
 
@@ -422,12 +376,8 @@ func runGroupProjectAdd(cmd *cobra.Command, args []string) error {
 }
 
 func runGroupProjectRemove(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	groupID, projectID, err := parseGroupProjectIDs(args)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -440,8 +390,6 @@ func runGroupProjectRemove(cmd *cobra.Command, args []string) error {
 
 	err = deps.Client.Groups().RemoveProject(cmd.Context(), groupID, projectID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("removing project %d from group %d: %w", projectID, groupID, err)
 	}
 

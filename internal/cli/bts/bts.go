@@ -52,7 +52,7 @@ Examples:
   rp bts ticket get PROJ-123 --bts-url https://jira.example.com \
     --bts-project PROJ -o json -p my_project`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runBtsTicketGet),
+		RunE: runBtsTicketGet,
 	}
 
 	cmd.Flags().String("bts-url", "", "BTS instance URL (required)")
@@ -85,7 +85,7 @@ Examples:
   rp bts field list --integration 1 -p my_project
   rp bts field list --integration 1 -o json -p my_project`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runBtsFieldList),
+		RunE: runBtsFieldList,
 	}
 
 	cmd.Flags().Int64("integration", 0, "integration ID (required)")
@@ -115,7 +115,7 @@ func newBtsIssueCreateCmd() *cobra.Command {
 Examples:
   rp bts issue create --integration 1 --from-file issue.json -p my_project`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runBtsIssueCreate),
+		RunE: runBtsIssueCreate,
 	}
 
 	cmd.Flags().Int64("integration", 0, "integration ID (required)")
@@ -156,8 +156,6 @@ func runBtsTicketGet(cmd *cobra.Command, args []string) error {
 		cmd.Context(), ticketID, btsURL, btsProject,
 	)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("getting bts ticket %s: %w", ticketID, err)
 	}
 
@@ -188,8 +186,6 @@ func runBtsFieldList(cmd *cobra.Command, _ []string) error {
 		BugTracking().
 		GetSystemFields(cmd.Context(), integrationID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("listing bts fields for integration %d: %w", integrationID, err)
 	}
 
@@ -204,11 +200,8 @@ func runBtsFieldList(cmd *cobra.Command, _ []string) error {
 }
 
 func runBtsIssueCreate(cmd *cobra.Command, _ []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	path, err := core.RequireFromFile(
 		cmd,
-		printer,
 		"--from-file is required for bts issue creation",
 	)
 	if err != nil {
@@ -217,8 +210,6 @@ func runBtsIssueCreate(cmd *cobra.Command, _ []string) error {
 
 	request, err := core.ReadRequestFromFile[types.PostTicketRQ](path)
 	if err != nil {
-		printer.PrintError(err)
-
 		return core.WrapFileError(err, "bts issue request", "bts issue JSON")
 	}
 
@@ -243,8 +234,6 @@ func runBtsIssueCreate(cmd *cobra.Command, _ []string) error {
 		cmd.Context(), integrationID, request,
 	)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("creating bts issue for integration %d: %w", integrationID, err)
 	}
 

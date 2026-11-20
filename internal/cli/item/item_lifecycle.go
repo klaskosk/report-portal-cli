@@ -62,7 +62,7 @@ Examples:
   rp item start --name "Login Test" --launch-uuid abc-uuid --type TEST --parent-uuid def-uuid -p my_project
   rp item start --from-file item_start.json -p my_project`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runItemStart),
+		RunE: runItemStart,
 	}
 
 	cmd.Flags().String("name", "", "test item name")
@@ -88,7 +88,7 @@ Examples:
   rp item finish item-uuid-789 --launch-uuid abc-uuid --status PASSED -p my_project
   rp item finish item-uuid-789 --from-file item_finish.json -p my_project`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runItemFinish),
+		RunE: runItemFinish,
 	}
 
 	cmd.Flags().String("status", "", "final item status (PASSED, FAILED, SKIPPED, etc.)")
@@ -102,12 +102,8 @@ Examples:
 }
 
 func runItemStart(cmd *cobra.Command, _ []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	request, err := buildItemStartRequest(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -136,8 +132,6 @@ func runItemStart(cmd *cobra.Command, _ []string) error {
 
 	result, err := dispatchItemStart(cmd.Context(), scope, parentUUID, request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("starting test item in project %s: %w", project, err)
 	}
 
@@ -145,12 +139,8 @@ func runItemStart(cmd *cobra.Command, _ []string) error {
 }
 
 func runItemFinish(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	request, err := buildItemFinishRequest(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -169,8 +159,6 @@ func runItemFinish(cmd *cobra.Command, args []string) error {
 
 	result, err := deps.Client.Project(project).Items().Finish(cmd.Context(), itemUUID, request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("finishing test item %s in project %s: %w", itemUUID, project, err)
 	}
 
