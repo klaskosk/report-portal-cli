@@ -34,7 +34,7 @@ Examples:
   rp setting notification list -p my_project
   rp setting notification list -p my_project -o json`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runSettingNotificationList),
+		RunE: runSettingNotificationList,
 	}
 }
 
@@ -47,7 +47,7 @@ func newSettingNotificationCreateCmd() *cobra.Command {
 Examples:
   rp setting notification create --from-file rule.json -p my_project`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runSettingNotificationCreate),
+		RunE: runSettingNotificationCreate,
 	}
 
 	cmd.Flags().String(
@@ -70,7 +70,7 @@ The JSON must include the notification rule ID.
 Examples:
   rp setting notification update --from-file rule.json -p my_project`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runSettingNotificationUpdate),
+		RunE: runSettingNotificationUpdate,
 	}
 
 	cmd.Flags().String(
@@ -91,7 +91,7 @@ func newSettingNotificationDeleteCmd() *cobra.Command {
 Examples:
   rp setting notification delete 42 -p my_project`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runSettingNotificationDelete),
+		RunE: runSettingNotificationDelete,
 	}
 }
 
@@ -110,8 +110,6 @@ func runSettingNotificationList(cmd *cobra.Command, _ []string) error {
 
 	notifications, err := deps.Client.Project(project).Settings().GetNotifications(cmd.Context())
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("listing notification rules in project %s: %w", project, err)
 	}
 
@@ -126,11 +124,8 @@ func runSettingNotificationList(cmd *cobra.Command, _ []string) error {
 }
 
 func runSettingNotificationCreate(cmd *cobra.Command, _ []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	path, err := core.RequireFromFile(
 		cmd,
-		printer,
 		"--from-file is required for notification rule creation",
 	)
 	if err != nil {
@@ -139,8 +134,6 @@ func runSettingNotificationCreate(cmd *cobra.Command, _ []string) error {
 
 	request, err := readNotificationRequestFromFile(path)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -160,8 +153,6 @@ func runSettingNotificationCreate(cmd *cobra.Command, _ []string) error {
 		Settings().
 		CreateNotification(cmd.Context(), request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("creating notification rule in project %s: %w", project, err)
 	}
 
@@ -172,11 +163,8 @@ func runSettingNotificationCreate(cmd *cobra.Command, _ []string) error {
 }
 
 func runSettingNotificationUpdate(cmd *cobra.Command, _ []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	path, err := core.RequireFromFile(
 		cmd,
-		printer,
 		"--from-file is required for notification rule update",
 	)
 	if err != nil {
@@ -185,16 +173,11 @@ func runSettingNotificationUpdate(cmd *cobra.Command, _ []string) error {
 
 	request, err := readNotificationRequestFromFile(path)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
 	if request.Id == nil {
-		err := errors.New("notification rule ID must be set in --from-file payload")
-		printer.PrintError(err)
-
-		return err
+		return errors.New("notification rule ID must be set in --from-file payload")
 	}
 
 	deps, err := core.ResolveCmd(cmd)
@@ -213,8 +196,6 @@ func runSettingNotificationUpdate(cmd *cobra.Command, _ []string) error {
 		Settings().
 		UpdateNotification(cmd.Context(), request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("updating notification rule in project %s: %w", project, err)
 	}
 
@@ -226,12 +207,8 @@ func runSettingNotificationUpdate(cmd *cobra.Command, _ []string) error {
 }
 
 func runSettingNotificationDelete(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	notificationID, err := parseNotificationID(args[0])
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -251,8 +228,6 @@ func runSettingNotificationDelete(cmd *cobra.Command, args []string) error {
 		Settings().
 		DeleteNotification(cmd.Context(), notificationID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf(
 			"deleting notification rule %d in project %s: %w",
 			notificationID,

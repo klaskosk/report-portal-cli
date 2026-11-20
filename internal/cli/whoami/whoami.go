@@ -23,7 +23,7 @@ Examples:
   rp whoami                Show current user info as table
   rp whoami -o json        Show current user info as JSON`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runWhoami),
+		RunE: runWhoami,
 	}
 
 	return cmd
@@ -38,8 +38,6 @@ func runWhoami(cmd *cobra.Command, _ []string) error {
 
 	user, err := deps.Client.Users().GetMyself(cmd.Context())
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("getting current user: %w", err)
 	}
 

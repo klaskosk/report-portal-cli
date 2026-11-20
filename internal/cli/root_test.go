@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"path/filepath"
 	"testing"
 
 	"github.com/klaskosk/report-portal-cli/internal/cli/launch"
@@ -95,6 +98,38 @@ func TestExecute_JSONFlagProducesJSONErrorBeforePersistentPreRunE(t *testing.T) 
 		errBuf.String(),
 	)
 	assert.NotEmpty(t, result["error"])
+}
+
+func TestExecute_JSONErrorIncludesCommandContext(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(
+		http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+			assert.Equal(t, http.MethodDelete, request.Method)
+			assert.Equal(t, "/api/v1/test_project/log/42", request.URL.Path)
+
+			writer.Header().Set("Content-Type", "application/json")
+			writer.WriteHeader(http.StatusNotFound)
+			_, _ = writer.Write([]byte(`{"errorCode":4041,"message":"log not found"}`))
+		}),
+	)
+	t.Cleanup(server.Close)
+
+	var errBuf bytes.Buffer
+
+	err := execute([]string{
+		"log", "delete", "42", "-p", "test_project", "-o", "json",
+		"--url", server.URL, "--token", "test-token",
+		"--config", filepath.Join(t.TempDir(), "config.yaml"),
+	}, &errBuf)
+	require.ErrorContains(t, err, "deleting log 42")
+
+	var result map[string]string
+
+	require.NoError(t, json.Unmarshal(errBuf.Bytes(), &result))
+	assert.Equal(t, map[string]string{
+		"error": "deleting log 42: delete log: HTTP 404: [4041] log not found",
+	}, result)
 }
 
 func TestNewLaunchGetCmd_RequiresExactlyOneArg(t *testing.T) {

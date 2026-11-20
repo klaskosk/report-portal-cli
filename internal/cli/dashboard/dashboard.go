@@ -60,7 +60,7 @@ Examples:
   rp dashboard config get 42                 Get widget configuration
   rp dashboard config get 42 -o json         Get configuration as JSON`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runDashboardConfigGet),
+		RunE: runDashboardConfigGet,
 	}
 }
 
@@ -86,7 +86,7 @@ Examples:
   rp dashboard preconfigured create --from-file dash.json
   rp dashboard preconfigured create --from-file dash.json --name "My Dashboard"`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runDashboardPreconfiguredCreate),
+		RunE: runDashboardPreconfiguredCreate,
 	}
 
 	cmd.Flags().String(
@@ -111,7 +111,7 @@ Examples:
   rp dashboard list                          List dashboards
   rp dashboard list --page-size 25           List with custom page size`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runDashboardList),
+		RunE: runDashboardList,
 	}
 
 	core.RegisterListFlagsWithDefaults(cmd, core.ListFlagDefaults{Sort: nil})
@@ -130,7 +130,7 @@ Examples:
   rp dashboard get 42                        Get dashboard by ID
   rp dashboard get 42 -o json                Get dashboard as JSON`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runDashboardGet),
+		RunE: runDashboardGet,
 	}
 }
 
@@ -145,7 +145,7 @@ Examples:
   rp dashboard create --name "My Dashboard"                          Create a dashboard
   rp dashboard create --name "My Dashboard" --description "desc"     Create with description`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runDashboardCreate),
+		RunE: runDashboardCreate,
 	}
 
 	cmd.Flags().String("name", "", "dashboard name (required)")
@@ -168,7 +168,7 @@ Examples:
   rp dashboard update 42 --name "New Name"            Rename a dashboard
   rp dashboard update 42 --description "New desc"     Update description`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runDashboardUpdate),
+		RunE: runDashboardUpdate,
 	}
 
 	cmd.Flags().String("name", "", "updated name")
@@ -187,7 +187,7 @@ func newDashboardDeleteCmd() *cobra.Command {
 Examples:
   rp dashboard delete 42                     Delete a dashboard`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runDashboardDelete),
+		RunE: runDashboardDelete,
 	}
 }
 
@@ -215,8 +215,6 @@ func listDashboards(
 ) error {
 	flags, err := core.ResolveListFlags(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("invalid list flags: %w", err)
 	}
 
@@ -228,8 +226,6 @@ func listDashboards(
 
 	result, err := clientInstance.Project(project).Dashboards().List(cmd.Context(), options...)
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("listing dashboards: %w", err)
 	}
 
@@ -250,12 +246,8 @@ func listDashboards(
 }
 
 func runDashboardGet(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	dashboardID, err := parseDashboardID(args[0])
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -273,8 +265,6 @@ func runDashboardGet(cmd *cobra.Command, args []string) error {
 
 	result, err := deps.Client.Project(project).Dashboards().GetByID(cmd.Context(), dashboardID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("getting dashboard %d: %w", dashboardID, err)
 	}
 
@@ -286,10 +276,7 @@ func runDashboardGet(cmd *cobra.Command, args []string) error {
 func runDashboardCreate(cmd *cobra.Command, _ []string) error {
 	name := core.MustGetStringFlag(cmd, "name")
 	if name == "" {
-		err := errors.New("--name must not be empty")
-		core.NewPrinterFromCmd(cmd).PrintError(err)
-
-		return err
+		return errors.New("--name must not be empty")
 	}
 
 	deps, err := core.ResolveCmd(cmd)
@@ -311,8 +298,6 @@ func runDashboardCreate(cmd *cobra.Command, _ []string) error {
 
 	result, err := deps.Client.Project(project).Dashboards().Create(cmd.Context(), request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("creating dashboard in project %s: %w", project, err)
 	}
 
@@ -323,20 +308,13 @@ func runDashboardCreate(cmd *cobra.Command, _ []string) error {
 }
 
 func runDashboardUpdate(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	dashboardID, err := parseDashboardID(args[0])
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
 	if !cmd.Flags().Changed("name") && !cmd.Flags().Changed("description") {
-		noChangeErr := errors.New("at least one flag (--name, --description) must be provided")
-		printer.PrintError(noChangeErr)
-
-		return noChangeErr
+		return errors.New("at least one flag (--name, --description) must be provided")
 	}
 
 	deps, err := core.ResolveCmd(cmd)
@@ -353,8 +331,6 @@ func runDashboardUpdate(cmd *cobra.Command, args []string) error {
 
 	name, err := resolveDashboardUpdateName(cmd, scope, dashboardID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return err
 	}
 
@@ -367,8 +343,6 @@ func runDashboardUpdate(cmd *cobra.Command, args []string) error {
 
 	result, err := scope.Update(cmd.Context(), dashboardID, request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("updating dashboard %d in project %s: %w", dashboardID, project, err)
 	}
 
@@ -405,12 +379,8 @@ func resolveDashboardUpdateName(
 }
 
 func runDashboardDelete(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	dashboardID, err := parseDashboardID(args[0])
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -428,8 +398,6 @@ func runDashboardDelete(cmd *cobra.Command, args []string) error {
 
 	result, err := deps.Client.Project(project).Dashboards().Delete(cmd.Context(), dashboardID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("deleting dashboard %d in project %s: %w", dashboardID, project, err)
 	}
 
@@ -466,12 +434,8 @@ func parseDashboardID(raw string) (int64, error) {
 }
 
 func runDashboardConfigGet(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	dashboardID, err := parseDashboardID(args[0])
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -489,8 +453,6 @@ func runDashboardConfigGet(cmd *cobra.Command, args []string) error {
 
 	config, err := deps.Client.Project(project).Dashboards().GetConfig(cmd.Context(), dashboardID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("getting dashboard config %d: %w", dashboardID, err)
 	}
 
@@ -501,18 +463,15 @@ func runDashboardConfigGet(cmd *cobra.Command, args []string) error {
 }
 
 func runDashboardPreconfiguredCreate(cmd *cobra.Command, _ []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	path, err := core.RequireFromFile(
 		cmd,
-		printer,
 		"--from-file is required for preconfigured dashboard creation",
 	)
 	if err != nil {
 		return err
 	}
 
-	request, err := loadDashboardPreconfiguredRequest(cmd, printer, path)
+	request, err := loadDashboardPreconfiguredRequest(cmd, path)
 	if err != nil {
 		return err
 	}
@@ -533,8 +492,6 @@ func runDashboardPreconfiguredCreate(cmd *cobra.Command, _ []string) error {
 		Dashboards().
 		CreatePreconfigured(cmd.Context(), request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("creating preconfigured dashboard in project %s: %w", project, err)
 	}
 
@@ -546,13 +503,10 @@ func runDashboardPreconfiguredCreate(cmd *cobra.Command, _ []string) error {
 
 func loadDashboardPreconfiguredRequest(
 	cmd *cobra.Command,
-	printer *core.Printer,
 	path string,
 ) (types.DashboardPreconfiguredRq, error) {
 	request, err := core.ReadRequestFromFile[types.DashboardPreconfiguredRq](path)
 	if err != nil {
-		printer.PrintError(err)
-
 		return types.DashboardPreconfiguredRq{}, core.WrapFileError(
 			err,
 			"preconfigured dashboard definition",
@@ -563,12 +517,9 @@ func loadDashboardPreconfiguredRequest(
 	applyDashboardPreconfiguredFlagOverrides(cmd, &request)
 
 	if request.Name == "" {
-		nameErr := errors.New(
+		return types.DashboardPreconfiguredRq{}, errors.New(
 			"dashboard name is required (provide via --from-file or --name flag)",
 		)
-		printer.PrintError(nameErr)
-
-		return types.DashboardPreconfiguredRq{}, nameErr
 	}
 
 	return request, nil

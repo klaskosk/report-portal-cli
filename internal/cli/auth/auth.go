@@ -67,7 +67,7 @@ Examples:
   rp auth apikey list --user-id 1
   rp auth apikey list -o json`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runAuthAPIKeyList),
+		RunE: runAuthAPIKeyList,
 	}
 
 	cmd.Flags().Int64("user-id", 0, "target user numeric ID (defaults to current user)")
@@ -91,7 +91,7 @@ Examples:
   rp auth apikey create --name "dev-token" --user-id 1
   rp auth apikey create --name "ci-token" -o json`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runAuthAPIKeyCreate),
+		RunE: runAuthAPIKeyCreate,
 	}
 
 	cmd.Flags().String("name", "", "API key name (required)")
@@ -114,7 +114,7 @@ Examples:
   rp auth apikey delete 3
   rp auth apikey delete 3 --user-id 1`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runAuthAPIKeyDelete),
+		RunE: runAuthAPIKeyDelete,
 	}
 
 	cmd.Flags().Int64("user-id", 0, "target user numeric ID (defaults to current user)")
@@ -135,7 +135,7 @@ Passwords are passed via flags and will be visible in shell history.
 Examples:
   rp auth change-password --old-password "old123" --new-password "new456"`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runAuthChangePassword),
+		RunE: runAuthChangePassword,
 	}
 
 	cmd.Flags().String("old-password", "", "current password (required)")
@@ -157,7 +157,7 @@ It initiates the password reset flow; it does not complete the reset.
 Examples:
   rp auth reset-password --email user@example.com`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runAuthResetPassword),
+		RunE: runAuthResetPassword,
 	}
 
 	cmd.Flags().String("email", "", "email address for the account to reset (required)")
@@ -178,7 +178,7 @@ The default project and role are required by the API.
 Examples:
   rp auth invite --email newuser@example.com --default-project my_project --role MEMBER`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runAuthInvite),
+		RunE: runAuthInvite,
 	}
 
 	cmd.Flags().String("email", "", "email address for the invited user (required)")
@@ -196,15 +196,11 @@ func runAuthAPIKeyList(cmd *cobra.Command, _ []string) error {
 
 	userID, err := resolveAuthUserID(cmd, deps.Client.Users())
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return err
 	}
 
 	keys, err := deps.Client.Users().ListAPIKeys(cmd.Context(), userID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("listing api keys: %w", err)
 	}
 
@@ -221,10 +217,7 @@ func runAuthAPIKeyList(cmd *cobra.Command, _ []string) error {
 func runAuthAPIKeyCreate(cmd *cobra.Command, _ []string) error {
 	name := core.MustGetStringFlag(cmd, "name")
 	if name == "" {
-		err := errors.New("missing required flags: --name")
-		core.NewPrinterFromCmd(cmd).PrintError(err)
-
-		return err
+		return errors.New("missing required flags: --name")
 	}
 
 	deps, err := core.ResolveCmd(cmd)
@@ -234,15 +227,11 @@ func runAuthAPIKeyCreate(cmd *cobra.Command, _ []string) error {
 
 	userID, err := resolveAuthUserID(cmd, deps.Client.Users())
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return err
 	}
 
 	key, err := deps.Client.Users().CreateAPIKey(cmd.Context(), userID, types.ApiKeyRQ{Name: name})
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("creating api key: %w", err)
 	}
 
@@ -254,8 +243,6 @@ func runAuthAPIKeyCreate(cmd *cobra.Command, _ []string) error {
 func runAuthAPIKeyDelete(cmd *cobra.Command, args []string) error {
 	keyID, err := core.ParseIDArg(args[0], "api key")
 	if err != nil {
-		core.NewPrinterFromCmd(cmd).PrintError(err)
-
 		return err
 	}
 
@@ -266,15 +253,11 @@ func runAuthAPIKeyDelete(cmd *cobra.Command, args []string) error {
 
 	userID, err := resolveAuthUserID(cmd, deps.Client.Users())
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return err
 	}
 
 	result, err := deps.Client.Users().DeleteAPIKey(cmd.Context(), userID, keyID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("deleting api key: %w", err)
 	}
 
@@ -288,8 +271,6 @@ func runAuthAPIKeyDelete(cmd *cobra.Command, args []string) error {
 func runAuthChangePassword(cmd *cobra.Command, _ []string) error {
 	oldPassword, newPassword, err := resolveChangePasswordFlags(cmd)
 	if err != nil {
-		core.NewPrinterFromCmd(cmd).PrintError(err)
-
 		return err
 	}
 
@@ -303,8 +284,6 @@ func runAuthChangePassword(cmd *cobra.Command, _ []string) error {
 		NewPassword: &newPassword,
 	})
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("changing password: %w", err)
 	}
 
@@ -318,10 +297,7 @@ func runAuthChangePassword(cmd *cobra.Command, _ []string) error {
 func runAuthResetPassword(cmd *cobra.Command, _ []string) error {
 	email := core.MustGetStringFlag(cmd, "email")
 	if email == "" {
-		err := errors.New("missing required flags: --email")
-		core.NewPrinterFromCmd(cmd).PrintError(err)
-
-		return err
+		return errors.New("missing required flags: --email")
 	}
 
 	deps, err := core.ResolveCmd(cmd)
@@ -332,8 +308,6 @@ func runAuthResetPassword(cmd *cobra.Command, _ []string) error {
 	result, err := deps.Client.Users().
 		RestorePassword(cmd.Context(), types.RestorePasswordRQ{Email: email})
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("resetting password: %w", err)
 	}
 
@@ -347,8 +321,6 @@ func runAuthResetPassword(cmd *cobra.Command, _ []string) error {
 func runAuthInvite(cmd *cobra.Command, _ []string) error {
 	request, err := resolveInviteRequest(cmd)
 	if err != nil {
-		core.NewPrinterFromCmd(cmd).PrintError(err)
-
 		return err
 	}
 
@@ -359,8 +331,6 @@ func runAuthInvite(cmd *cobra.Command, _ []string) error {
 
 	result, err := deps.Client.Users().CreateInvitation(cmd.Context(), request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("creating invitation: %w", err)
 	}
 

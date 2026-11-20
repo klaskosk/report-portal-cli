@@ -23,7 +23,7 @@ Examples:
   rp launch start --name "Debug Run" --mode debug -p my_project
   rp launch start --from-file launch_start.json -p my_project`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runLaunchStart),
+		RunE: runLaunchStart,
 	}
 
 	cmd.Flags().String("name", "", "launch name")
@@ -48,7 +48,7 @@ Examples:
   rp launch finish abc-uuid-123 --status PASSED -p my_project
   rp launch finish abc-uuid-123 --from-file launch_finish.json -p my_project`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runLaunchFinish),
+		RunE: runLaunchFinish,
 	}
 
 	cmd.Flags().String("status", "", "final launch status")
@@ -61,12 +61,8 @@ Examples:
 }
 
 func runLaunchStart(cmd *cobra.Command, _ []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	request, err := buildLaunchStartRequest(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -84,8 +80,6 @@ func runLaunchStart(cmd *cobra.Command, _ []string) error {
 
 	result, err := deps.Client.Project(project).Launches().Start(cmd.Context(), request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("starting launch in project %s: %w", project, err)
 	}
 
@@ -93,12 +87,8 @@ func runLaunchStart(cmd *cobra.Command, _ []string) error {
 }
 
 func runLaunchFinish(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	request, err := buildLaunchFinishRequest(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -119,8 +109,6 @@ func runLaunchFinish(cmd *cobra.Command, args []string) error {
 		Launches().
 		Finish(cmd.Context(), launchUUID, request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("finishing launch %s in project %s: %w", launchUUID, project, err)
 	}
 

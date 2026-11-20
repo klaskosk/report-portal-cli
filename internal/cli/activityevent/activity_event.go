@@ -43,7 +43,7 @@ Examples:
   rp activity-event list --object-type launch --event-name startLaunch
   rp activity-event list --project-name my_project --page 2 --page-size 25`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runActivityEventList),
+		RunE: runActivityEventList,
 	}
 
 	cmd.Flags().String("user", "", "filter by subject (user) name")
@@ -73,8 +73,6 @@ func listActivityEvents(
 ) error {
 	flags, err := core.ResolveListFlags(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("invalid list flags: %w", err)
 	}
 
@@ -90,8 +88,6 @@ func listActivityEvents(
 
 	result, err := clientInstance.ActivityEvents().Search(cmd.Context(), criteria, options...)
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("listing activity events: %w", err)
 	}
 

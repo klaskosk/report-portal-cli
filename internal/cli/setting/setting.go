@@ -55,7 +55,7 @@ Examples:
   rp setting server get
   rp setting server get -o json`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runSettingServerGet),
+		RunE: runSettingServerGet,
 	}
 }
 
@@ -70,7 +70,7 @@ Examples:
   rp setting server update --key analytics.enabled --value true
   rp setting server update --from-file setting.json`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runSettingServerUpdate),
+		RunE: runSettingServerUpdate,
 	}
 
 	cmd.Flags().String("key", "", "setting key (required without --from-file)")
@@ -93,8 +93,6 @@ func runSettingServerGet(cmd *cobra.Command, _ []string) error {
 
 	settings, err := deps.Client.Settings().GetServerSettings(cmd.Context())
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("getting server settings: %w", err)
 	}
 
@@ -105,9 +103,7 @@ func runSettingServerGet(cmd *cobra.Command, _ []string) error {
 }
 
 func runSettingServerUpdate(cmd *cobra.Command, _ []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
-	request, err := resolveServerSettingUpdateRequest(cmd, printer)
+	request, err := resolveServerSettingUpdateRequest(cmd)
 	if err != nil {
 		return err
 	}
@@ -121,8 +117,6 @@ func runSettingServerUpdate(cmd *cobra.Command, _ []string) error {
 
 	result, err := deps.Client.Settings().UpdateServerSettings(cmd.Context(), request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("updating server setting %q: %w", request.Key, err)
 	}
 
@@ -133,17 +127,12 @@ func runSettingServerUpdate(cmd *cobra.Command, _ []string) error {
 	)
 }
 
-func resolveServerSettingUpdateRequest(
-	cmd *cobra.Command,
-	printer *core.Printer,
-) (types.UpdateSettingsRq, error) {
+func resolveServerSettingUpdateRequest(cmd *cobra.Command) (types.UpdateSettingsRq, error) {
 	if cmd.Flags().Changed("from-file") {
 		path, _ := cmd.Flags().GetString("from-file")
 
 		request, err := core.ReadRequestFromFile[types.UpdateSettingsRq](path)
 		if err != nil {
-			printer.PrintError(err)
-
 			return types.UpdateSettingsRq{}, core.WrapFileError(
 				err,
 				"server setting",
@@ -152,10 +141,9 @@ func resolveServerSettingUpdateRequest(
 		}
 
 		if request.Key == "" {
-			err = errors.New("setting key must not be empty in --from-file payload")
-			printer.PrintError(err)
-
-			return types.UpdateSettingsRq{}, err
+			return types.UpdateSettingsRq{}, errors.New(
+				"setting key must not be empty in --from-file payload",
+			)
 		}
 
 		return request, nil
@@ -165,17 +153,13 @@ func resolveServerSettingUpdateRequest(
 	value, _ := cmd.Flags().GetString("value")
 
 	if key == "" || !cmd.Flags().Changed("key") {
-		err := errors.New("--key is required when not using --from-file")
-		printer.PrintError(err)
-
-		return types.UpdateSettingsRq{}, err
+		return types.UpdateSettingsRq{}, errors.New("--key is required when not using --from-file")
 	}
 
 	if !cmd.Flags().Changed("value") {
-		err := errors.New("--value is required when not using --from-file")
-		printer.PrintError(err)
-
-		return types.UpdateSettingsRq{}, err
+		return types.UpdateSettingsRq{}, errors.New(
+			"--value is required when not using --from-file",
+		)
 	}
 
 	return types.UpdateSettingsRq{Key: key, Value: value}, nil

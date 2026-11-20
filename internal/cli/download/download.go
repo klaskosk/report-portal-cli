@@ -29,7 +29,7 @@ Examples:
   rp download 12345 -p my_project --output-file out.png  Save to a file
   rp download --log 678 -p my_project                Resolve data ID from log entry`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runDownload),
+		RunE: runDownload,
 	}
 
 	core.RegisterProjectFlag(cmd)
@@ -58,17 +58,14 @@ func runDownload(cmd *cobra.Command, args []string) error {
 	var dataID int64
 
 	if shouldResolveFromLog {
-		dataID, err = resolveDataIDFromLog(cmd, deps.Client, project, argumentValue, deps.Printer)
+		dataID, err = resolveDataIDFromLog(cmd, deps.Client, project, argumentValue)
 		if err != nil {
 			return err
 		}
 	} else {
 		dataID, err = strconv.ParseInt(argumentValue, 10, 64)
 		if err != nil {
-			parseErr := fmt.Errorf("invalid data ID %q: %w", argumentValue, err)
-			deps.Printer.PrintError(parseErr)
-
-			return parseErr
+			return fmt.Errorf("invalid data ID %q: %w", argumentValue, err)
 		}
 	}
 
@@ -76,8 +73,6 @@ func runDownload(cmd *cobra.Command, args []string) error {
 
 	content, err := deps.Client.Project(project).DownloadFile(cmd.Context(), dataID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("downloading file %d: %w", dataID, err)
 	}
 
@@ -89,7 +84,6 @@ func resolveDataIDFromLog(
 	cmd *cobra.Command,
 	clientInstance *client.Client,
 	project, logID string,
-	printer *core.Printer,
 ) (int64, error) {
 	numericID, parseErr := strconv.ParseInt(logID, 10, 64)
 	if parseErr != nil {
@@ -98,32 +92,21 @@ func resolveDataIDFromLog(
 
 	logEntry, err := clientInstance.Project(project).Logs().GetByID(cmd.Context(), numericID)
 	if err != nil {
-		printer.PrintError(err)
-
 		return 0, fmt.Errorf("getting log %s: %w", logID, err)
 	}
 
 	if logEntry.BinaryContent == nil {
-		noAttachErr := fmt.Errorf("log %s has no attachment", logID)
-		printer.PrintError(noAttachErr)
-
-		return 0, noAttachErr
+		return 0, fmt.Errorf("log %s has no attachment", logID)
 	}
 
 	rawID := logEntry.BinaryContent.Id
 	if rawID == "" {
-		emptyErr := fmt.Errorf("log %s has empty binaryContent.id", logID)
-		printer.PrintError(emptyErr)
-
-		return 0, emptyErr
+		return 0, fmt.Errorf("log %s has empty binaryContent.id", logID)
 	}
 
 	dataID, convErr := strconv.ParseInt(rawID, 10, 64)
 	if convErr != nil {
-		convErr = fmt.Errorf("parsing binaryContent.id for log %s: %w", logID, convErr)
-		printer.PrintError(convErr)
-
-		return 0, convErr
+		return 0, fmt.Errorf("parsing binaryContent.id for log %s: %w", logID, convErr)
 	}
 
 	return dataID, nil

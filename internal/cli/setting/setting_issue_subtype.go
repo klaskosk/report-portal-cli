@@ -34,7 +34,7 @@ Examples:
   rp setting issue-subtype list -p my_project
   rp setting issue-subtype list -p my_project -o json`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runSettingIssueSubtypeList),
+		RunE: runSettingIssueSubtypeList,
 	}
 }
 
@@ -49,7 +49,7 @@ Examples:
     --color "#ff0000" --type-ref PRODUCT_BUG -p my_project
   rp setting issue-subtype create --from-file subtype.json -p my_project`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runSettingIssueSubtypeCreate),
+		RunE: runSettingIssueSubtypeCreate,
 	}
 
 	cmd.Flags().String("long-name", "", "long display name (required without --from-file)")
@@ -73,7 +73,7 @@ func newSettingIssueSubtypeUpdateCmd() *cobra.Command {
 Examples:
   rp setting issue-subtype update --from-file subtype.json -p my_project`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runSettingIssueSubtypeUpdate),
+		RunE: runSettingIssueSubtypeUpdate,
 	}
 
 	cmd.Flags().String(
@@ -94,7 +94,7 @@ func newSettingIssueSubtypeDeleteCmd() *cobra.Command {
 Examples:
   rp setting issue-subtype delete 42 -p my_project`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runSettingIssueSubtypeDelete),
+		RunE: runSettingIssueSubtypeDelete,
 	}
 }
 
@@ -113,8 +113,6 @@ func runSettingIssueSubtypeList(cmd *cobra.Command, _ []string) error {
 
 	settings, err := deps.Client.Project(project).Settings().Get(cmd.Context())
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("listing issue sub-types in project %s: %w", project, err)
 	}
 
@@ -130,9 +128,7 @@ func runSettingIssueSubtypeList(cmd *cobra.Command, _ []string) error {
 }
 
 func runSettingIssueSubtypeCreate(cmd *cobra.Command, _ []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
-	request, err := resolveIssueSubTypeCreateRequest(cmd, printer)
+	request, err := resolveIssueSubTypeCreateRequest(cmd)
 	if err != nil {
 		return err
 	}
@@ -153,8 +149,6 @@ func runSettingIssueSubtypeCreate(cmd *cobra.Command, _ []string) error {
 		Settings().
 		CreateIssueSubType(cmd.Context(), request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("creating issue sub-type in project %s: %w", project, err)
 	}
 
@@ -165,11 +159,8 @@ func runSettingIssueSubtypeCreate(cmd *cobra.Command, _ []string) error {
 }
 
 func runSettingIssueSubtypeUpdate(cmd *cobra.Command, _ []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	path, err := core.RequireFromFile(
 		cmd,
-		printer,
 		"--from-file is required for issue sub-type update",
 	)
 	if err != nil {
@@ -178,8 +169,6 @@ func runSettingIssueSubtypeUpdate(cmd *cobra.Command, _ []string) error {
 
 	request, err := readIssueSubTypeUpdateRequestFromFile(path)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -199,8 +188,6 @@ func runSettingIssueSubtypeUpdate(cmd *cobra.Command, _ []string) error {
 		Settings().
 		UpdateIssueSubType(cmd.Context(), request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("updating issue sub-type in project %s: %w", project, err)
 	}
 
@@ -212,12 +199,8 @@ func runSettingIssueSubtypeUpdate(cmd *cobra.Command, _ []string) error {
 }
 
 func runSettingIssueSubtypeDelete(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	subTypeID, err := parseIssueSubTypeID(args[0])
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -237,8 +220,6 @@ func runSettingIssueSubtypeDelete(cmd *cobra.Command, args []string) error {
 		Settings().
 		DeleteIssueSubType(cmd.Context(), subTypeID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("deleting issue sub-type %d in project %s: %w", subTypeID, project, err)
 	}
 
@@ -249,17 +230,12 @@ func runSettingIssueSubtypeDelete(cmd *cobra.Command, args []string) error {
 	)
 }
 
-func resolveIssueSubTypeCreateRequest(
-	cmd *cobra.Command,
-	printer *core.Printer,
-) (types.CreateIssueSubTypeRQ, error) {
+func resolveIssueSubTypeCreateRequest(cmd *cobra.Command) (types.CreateIssueSubTypeRQ, error) {
 	if cmd.Flags().Changed("from-file") {
 		path, _ := cmd.Flags().GetString("from-file")
 
 		request, err := core.ReadRequestFromFile[types.CreateIssueSubTypeRQ](path)
 		if err != nil {
-			printer.PrintError(err)
-
 			return types.CreateIssueSubTypeRQ{}, core.WrapFileError(
 				err,
 				"issue sub-type",
@@ -267,7 +243,7 @@ func resolveIssueSubTypeCreateRequest(
 			)
 		}
 
-		return request, validateIssueSubTypeCreateRequest(request, printer)
+		return request, validateIssueSubTypeCreateRequest(request)
 	}
 
 	longName, _ := cmd.Flags().GetString("long-name")
@@ -279,12 +255,9 @@ func resolveIssueSubTypeCreateRequest(
 		!cmd.Flags().Changed("short-name") &&
 		!cmd.Flags().Changed("color") &&
 		!cmd.Flags().Changed("type-ref") {
-		err := errors.New(
+		return types.CreateIssueSubTypeRQ{}, errors.New(
 			"no input provided: use --long-name, --short-name, --color, and --type-ref, or --from-file",
 		)
-		printer.PrintError(err)
-
-		return types.CreateIssueSubTypeRQ{}, err
 	}
 
 	request := types.CreateIssueSubTypeRQ{
@@ -294,34 +267,19 @@ func resolveIssueSubTypeCreateRequest(
 		TypeRef:   typeRef,
 	}
 
-	return request, validateIssueSubTypeCreateRequest(request, printer)
+	return request, validateIssueSubTypeCreateRequest(request)
 }
 
-func validateIssueSubTypeCreateRequest(
-	request types.CreateIssueSubTypeRQ,
-	printer *core.Printer,
-) error {
+func validateIssueSubTypeCreateRequest(request types.CreateIssueSubTypeRQ) error {
 	switch {
 	case request.LongName == "":
-		err := errors.New("--long-name is required")
-		printer.PrintError(err)
-
-		return err
+		return errors.New("--long-name is required")
 	case request.ShortName == "":
-		err := errors.New("--short-name is required")
-		printer.PrintError(err)
-
-		return err
+		return errors.New("--short-name is required")
 	case request.Color == "":
-		err := errors.New("--color is required")
-		printer.PrintError(err)
-
-		return err
+		return errors.New("--color is required")
 	case request.TypeRef == "":
-		err := errors.New("--type-ref is required")
-		printer.PrintError(err)
-
-		return err
+		return errors.New("--type-ref is required")
 	default:
 		return nil
 	}

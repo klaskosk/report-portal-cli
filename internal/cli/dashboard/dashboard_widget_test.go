@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/klaskosk/report-portal-cli/internal/cli/core"
 	"github.com/klaskosk/report-portal-cli/internal/cli/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -44,9 +43,7 @@ func TestResolveAddWidgetRequest_noInputProvided(t *testing.T) {
 	cmd := newDashboardWidgetAddCmd()
 	require.NoError(t, cmd.ParseFlags([]string{}))
 
-	printer := core.NewPrinterFromCmd(cmd)
-
-	_, err := resolveAddWidgetRequest(cmd, printer)
+	_, err := resolveAddWidgetRequest(cmd)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "no input provided")
@@ -66,9 +63,7 @@ func TestResolveAddWidgetRequest_fromFlags(t *testing.T) {
 		"--position-y", "1",
 	}))
 
-	printer := core.NewPrinterFromCmd(cmd)
-
-	request, err := resolveAddWidgetRequest(cmd, printer)
+	request, err := resolveAddWidgetRequest(cmd)
 	require.NoError(t, err)
 
 	assert.Equal(t, int64(10), request.AddWidget.WidgetId)
@@ -97,9 +92,7 @@ func TestResolveAddWidgetRequest_missingWidgetName(t *testing.T) {
 		"--widget-type", "statisticTrend",
 	}))
 
-	printer := core.NewPrinterFromCmd(cmd)
-
-	_, err := resolveAddWidgetRequest(cmd, printer)
+	_, err := resolveAddWidgetRequest(cmd)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "--widget-name")
@@ -114,9 +107,7 @@ func TestResolveAddWidgetRequest_missingWidgetType(t *testing.T) {
 		"--widget-name", "Pass Rate",
 	}))
 
-	printer := core.NewPrinterFromCmd(cmd)
-
-	_, err := resolveAddWidgetRequest(cmd, printer)
+	_, err := resolveAddWidgetRequest(cmd)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "--widget-type")
@@ -139,9 +130,7 @@ func TestResolveAddWidgetRequest_fromFile(t *testing.T) {
 	cmd := newDashboardWidgetAddCmd()
 	require.NoError(t, cmd.ParseFlags([]string{"--from-file", path}))
 
-	printer := core.NewPrinterFromCmd(cmd)
-
-	request, err := resolveAddWidgetRequest(cmd, printer)
+	request, err := resolveAddWidgetRequest(cmd)
 	require.NoError(t, err)
 
 	assert.Equal(t, int64(10), request.AddWidget.WidgetId)
@@ -173,9 +162,7 @@ func TestResolveAddWidgetRequest_fromFileTakesPrecedenceOverFlags(t *testing.T) 
 		"--from-file", path,
 	}))
 
-	printer := core.NewPrinterFromCmd(cmd)
-
-	request, err := resolveAddWidgetRequest(cmd, printer)
+	request, err := resolveAddWidgetRequest(cmd)
 	require.NoError(t, err)
 
 	assert.Equal(t, int64(99), request.AddWidget.WidgetId)
@@ -272,9 +259,7 @@ func TestResolveAddWidgetRequest_noSizeOrPositionWhenOmitted(t *testing.T) {
 		"--widget-type", "statisticTrend",
 	}))
 
-	printer := core.NewPrinterFromCmd(cmd)
-
-	request, err := resolveAddWidgetRequest(cmd, printer)
+	request, err := resolveAddWidgetRequest(cmd)
 	require.NoError(t, err)
 
 	assert.Nil(t, request.AddWidget.WidgetSize)

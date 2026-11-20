@@ -34,9 +34,7 @@ func Execute() error {
 	return execute(nil, os.Stderr)
 }
 
-// execute runs the root command. args are passed to cobra (nil means os.Args[1:]). Errors from
-// command handlers are already printed by the handler via printer.PrintError and wrapped with
-// printedError. Any other errors (Cobra-level failures, config errors) are written to errOut.
+// execute runs the root command and writes any error to errOut. Nil args use os.Args[1:].
 func execute(args []string, errOut io.Writer) error {
 	cmd := newRootCmd()
 	if args != nil {
@@ -48,9 +46,7 @@ func execute(args []string, errOut io.Writer) error {
 		return nil
 	}
 
-	if !core.IsPrintedError(err) {
-		core.NewPrinterWithErrOut(core.EffectiveOutputFormat(cmd.Root()), errOut).PrintError(err)
-	}
+	core.NewPrinterWithErrOut(core.EffectiveOutputFormat(cmd), errOut).PrintError(err)
 
 	return fmt.Errorf("executing command: %w", err)
 }

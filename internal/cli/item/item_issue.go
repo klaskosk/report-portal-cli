@@ -39,7 +39,7 @@ Examples:
     --bts-project PROJ -p my_project
   rp item issue link --from-file link_issue.json -p my_project`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runItemIssueLink),
+		RunE: runItemIssueLink,
 	}
 
 	cmd.Flags().Int64Slice("item-id", nil, "test item ID to link (repeatable)")
@@ -67,7 +67,7 @@ Examples:
   rp item issue unlink --item-id 100 --ticket-id PROJ-456 --ticket-id PROJ-789 -p my_project
   rp item issue unlink --from-file unlink_issue.json -p my_project`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runItemIssueUnlink),
+		RunE: runItemIssueUnlink,
 	}
 
 	cmd.Flags().Int64Slice("item-id", nil, "test item ID to unlink (repeatable)")
@@ -80,12 +80,8 @@ Examples:
 
 // runItemIssueLink executes the item issue link command.
 func runItemIssueLink(cmd *cobra.Command, _ []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	request, err := buildLinkExternalIssueRequest(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -103,8 +99,6 @@ func runItemIssueLink(cmd *cobra.Command, _ []string) error {
 
 	results, err := deps.Client.Project(project).Items().LinkExternalIssues(cmd.Context(), request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("linking external issue: %w", err)
 	}
 
@@ -117,12 +111,8 @@ func runItemIssueLink(cmd *cobra.Command, _ []string) error {
 
 // runItemIssueUnlink executes the item issue unlink command.
 func runItemIssueUnlink(cmd *cobra.Command, _ []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	request, err := buildUnlinkExternalIssueRequest(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -142,8 +132,6 @@ func runItemIssueUnlink(cmd *cobra.Command, _ []string) error {
 		Items().
 		UnlinkExternalIssues(cmd.Context(), request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("unlinking external issue: %w", err)
 	}
 

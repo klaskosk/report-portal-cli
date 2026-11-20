@@ -1,7 +1,6 @@
 package core
 
 import (
-	"bytes"
 	"os"
 	"path/filepath"
 	"testing"
@@ -78,16 +77,11 @@ func TestRequireFromFile_missingFlag(t *testing.T) {
 	cmd := &cobra.Command{}
 	cmd.Flags().String("from-file", "", "")
 
-	var stderr bytes.Buffer
-
-	printer := NewPrinterWithErrOut("json", &stderr)
-
-	path, err := RequireFromFile(cmd, printer, "--from-file is required for update")
+	path, err := RequireFromFile(cmd, "--from-file is required for update")
 
 	require.Error(t, err)
 	assert.Empty(t, path)
 	assert.Contains(t, err.Error(), "--from-file is required for update")
-	assert.Contains(t, stderr.String(), "--from-file is required for update")
 }
 
 func TestRequireFromFile_returnsPath(t *testing.T) {
@@ -97,9 +91,7 @@ func TestRequireFromFile_returnsPath(t *testing.T) {
 	cmd.Flags().String("from-file", "", "")
 	require.NoError(t, cmd.Flags().Set("from-file", "/tmp/payload.json"))
 
-	printer := NewPrinter("json")
-
-	path, err := RequireFromFile(cmd, printer, "--from-file is required")
+	path, err := RequireFromFile(cmd, "--from-file is required")
 
 	require.NoError(t, err)
 	assert.Equal(t, "/tmp/payload.json", path)

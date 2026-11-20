@@ -37,7 +37,7 @@ Examples:
   rp setting pattern list -p my_project
   rp setting pattern list -p my_project -o json`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runSettingPatternList),
+		RunE: runSettingPatternList,
 	}
 }
 
@@ -51,7 +51,7 @@ Examples:
   rp setting pattern create --name timeout --type STRING --value "timeout" -p my_project
   rp setting pattern create --from-file pattern.json -p my_project`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runSettingPatternCreate),
+		RunE: runSettingPatternCreate,
 	}
 
 	cmd.Flags().String("name", "", "pattern template name (required without --from-file)")
@@ -79,7 +79,7 @@ Examples:
   rp setting pattern update 42 --name updated-name -p my_project
   rp setting pattern update 42 --from-file pattern.json -p my_project`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runSettingPatternUpdate),
+		RunE: runSettingPatternUpdate,
 	}
 
 	cmd.Flags().String("name", "", "updated pattern template name")
@@ -101,7 +101,7 @@ func newSettingPatternDeleteCmd() *cobra.Command {
 Examples:
   rp setting pattern delete 42 -p my_project`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runSettingPatternDelete),
+		RunE: runSettingPatternDelete,
 	}
 }
 
@@ -120,8 +120,6 @@ func runSettingPatternList(cmd *cobra.Command, _ []string) error {
 
 	projectResource, err := deps.Client.Projects().Get(cmd.Context(), project)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("listing pattern templates in project %s: %w", project, err)
 	}
 
@@ -143,9 +141,7 @@ func runSettingPatternList(cmd *cobra.Command, _ []string) error {
 }
 
 func runSettingPatternCreate(cmd *cobra.Command, _ []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
-	request, err := resolvePatternCreateRequest(cmd, printer)
+	request, err := resolvePatternCreateRequest(cmd)
 	if err != nil {
 		return err
 	}
@@ -166,8 +162,6 @@ func runSettingPatternCreate(cmd *cobra.Command, _ []string) error {
 		Settings().
 		CreatePatternTemplate(cmd.Context(), request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("creating pattern template in project %s: %w", project, err)
 	}
 
@@ -178,24 +172,17 @@ func runSettingPatternCreate(cmd *cobra.Command, _ []string) error {
 }
 
 func runSettingPatternUpdate(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	patternID, err := parsePatternID(args[0])
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
 	if !cmd.Flags().Changed("from-file") &&
 		!cmd.Flags().Changed("name") &&
 		!cmd.Flags().Changed("enabled") {
-		err = errors.New(
+		return errors.New(
 			"no input provided: use --name or --enabled, or --from-file to read from a JSON file",
 		)
-		printer.PrintError(err)
-
-		return err
 	}
 
 	deps, err := core.ResolveCmd(cmd)
@@ -208,7 +195,7 @@ func runSettingPatternUpdate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	request, err := resolvePatternUpdateRequest(cmd, printer, deps, project, patternID)
+	request, err := resolvePatternUpdateRequest(cmd, deps, project, patternID)
 	if err != nil {
 		return err
 	}
@@ -219,8 +206,6 @@ func runSettingPatternUpdate(cmd *cobra.Command, args []string) error {
 		Settings().
 		UpdatePatternTemplate(cmd.Context(), patternID, request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("updating pattern template %d in project %s: %w", patternID, project, err)
 	}
 
@@ -232,12 +217,8 @@ func runSettingPatternUpdate(cmd *cobra.Command, args []string) error {
 }
 
 func runSettingPatternDelete(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	patternID, err := parsePatternID(args[0])
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -257,8 +238,6 @@ func runSettingPatternDelete(cmd *cobra.Command, args []string) error {
 		Settings().
 		DeletePatternTemplate(cmd.Context(), patternID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("deleting pattern template %d in project %s: %w", patternID, project, err)
 	}
 
@@ -269,17 +248,12 @@ func runSettingPatternDelete(cmd *cobra.Command, args []string) error {
 	)
 }
 
-func resolvePatternCreateRequest(
-	cmd *cobra.Command,
-	printer *core.Printer,
-) (types.CreatePatternTemplateRQ, error) {
+func resolvePatternCreateRequest(cmd *cobra.Command) (types.CreatePatternTemplateRQ, error) {
 	if cmd.Flags().Changed("from-file") {
 		path, _ := cmd.Flags().GetString("from-file")
 
 		request, err := core.ReadRequestFromFile[types.CreatePatternTemplateRQ](path)
 		if err != nil {
-			printer.PrintError(err)
-
 			return types.CreatePatternTemplateRQ{}, core.WrapFileError(
 				err,
 				"pattern template",
@@ -288,10 +262,9 @@ func resolvePatternCreateRequest(
 		}
 
 		if request.Name == "" {
-			err = errors.New("pattern template name must not be empty in --from-file payload")
-			printer.PrintError(err)
-
-			return types.CreatePatternTemplateRQ{}, err
+			return types.CreatePatternTemplateRQ{}, errors.New(
+				"pattern template name must not be empty in --from-file payload",
+			)
 		}
 
 		return request, nil
@@ -303,24 +276,21 @@ func resolvePatternCreateRequest(
 	enabled, _ := cmd.Flags().GetBool("enabled")
 
 	if name == "" || !cmd.Flags().Changed("name") {
-		err := errors.New("--name is required when not using --from-file")
-		printer.PrintError(err)
-
-		return types.CreatePatternTemplateRQ{}, err
+		return types.CreatePatternTemplateRQ{}, errors.New(
+			"--name is required when not using --from-file",
+		)
 	}
 
 	if patternType == "" || !cmd.Flags().Changed("type") {
-		err := errors.New("--type is required when not using --from-file")
-		printer.PrintError(err)
-
-		return types.CreatePatternTemplateRQ{}, err
+		return types.CreatePatternTemplateRQ{}, errors.New(
+			"--type is required when not using --from-file",
+		)
 	}
 
 	if value == "" || !cmd.Flags().Changed("value") {
-		err := errors.New("--value is required when not using --from-file")
-		printer.PrintError(err)
-
-		return types.CreatePatternTemplateRQ{}, err
+		return types.CreatePatternTemplateRQ{}, errors.New(
+			"--value is required when not using --from-file",
+		)
 	}
 
 	return types.CreatePatternTemplateRQ{
@@ -333,28 +303,22 @@ func resolvePatternCreateRequest(
 
 func resolvePatternUpdateRequest(
 	cmd *cobra.Command,
-	printer *core.Printer,
 	deps *core.Deps,
 	project string,
 	patternID int64,
 ) (types.UpdatePatternTemplateRQ, error) {
 	if cmd.Flags().Changed("from-file") {
-		return readPatternUpdateRequestFromFile(cmd, printer)
+		return readPatternUpdateRequestFromFile(cmd)
 	}
 
-	return buildPatternUpdateRequestFromFlags(cmd, printer, deps, project, patternID)
+	return buildPatternUpdateRequestFromFlags(cmd, deps, project, patternID)
 }
 
-func readPatternUpdateRequestFromFile(
-	cmd *cobra.Command,
-	printer *core.Printer,
-) (types.UpdatePatternTemplateRQ, error) {
+func readPatternUpdateRequestFromFile(cmd *cobra.Command) (types.UpdatePatternTemplateRQ, error) {
 	path, _ := cmd.Flags().GetString("from-file")
 
 	request, err := core.ReadRequestFromFile[types.UpdatePatternTemplateRQ](path)
 	if err != nil {
-		printer.PrintError(err)
-
 		return types.UpdatePatternTemplateRQ{}, core.WrapFileError(
 			err,
 			"pattern template",
@@ -363,10 +327,9 @@ func readPatternUpdateRequestFromFile(
 	}
 
 	if request.Name == "" {
-		err = errors.New("pattern template name must not be empty in --from-file payload")
-		printer.PrintError(err)
-
-		return types.UpdatePatternTemplateRQ{}, err
+		return types.UpdatePatternTemplateRQ{}, errors.New(
+			"pattern template name must not be empty in --from-file payload",
+		)
 	}
 
 	return request, nil
@@ -374,15 +337,12 @@ func readPatternUpdateRequestFromFile(
 
 func buildPatternUpdateRequestFromFlags(
 	cmd *cobra.Command,
-	printer *core.Printer,
 	deps *core.Deps,
 	project string,
 	patternID int64,
 ) (types.UpdatePatternTemplateRQ, error) {
 	current, err := findPatternTemplate(deps, cmd.Context(), project, patternID)
 	if err != nil {
-		printer.PrintError(err)
-
 		return types.UpdatePatternTemplateRQ{}, err
 	}
 
@@ -400,10 +360,9 @@ func buildPatternUpdateRequestFromFlags(
 	}
 
 	if request.Name == "" {
-		err = errors.New("pattern template name must not be empty")
-		printer.PrintError(err)
-
-		return types.UpdatePatternTemplateRQ{}, err
+		return types.UpdatePatternTemplateRQ{}, errors.New(
+			"pattern template name must not be empty",
+		)
 	}
 
 	return request, nil

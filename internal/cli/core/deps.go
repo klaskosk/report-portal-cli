@@ -31,15 +31,11 @@ func ResolveCmd(cmd *cobra.Command) (*Deps, error) {
 
 	conn, err := ResolveConnection(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return nil, err
 	}
 
 	clientInstance, err := NewClient(conn, logger)
 	if err != nil {
-		printer.PrintError(err)
-
 		return nil, err
 	}
 
@@ -53,12 +49,5 @@ func ResolveCmd(cmd *cobra.Command) (*Deps, error) {
 
 // ResolveProject resolves the project name for project-scoped commands.
 func (d *Deps) ResolveProject(cmd *cobra.Command) (string, error) {
-	project, err := resolveProject(cmd, d.Connection)
-	if err != nil {
-		d.Printer.PrintError(err)
-
-		return "", err
-	}
-
-	return project, nil
+	return resolveProject(cmd, d.Connection)
 }

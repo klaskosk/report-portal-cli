@@ -94,7 +94,7 @@ func TestValidateIntegrationProject_noProjectFlag_noError(t *testing.T) {
 
 	cmd := NewCommand()
 
-	err := validateIntegrationProject(cmd, core.NewPrinterFromCmd(cmd))
+	err := validateIntegrationProject(cmd)
 
 	require.NoError(t, err)
 }
@@ -105,7 +105,7 @@ func TestValidateIntegrationProject_emptyProjectFlag_errors(t *testing.T) {
 	cmd := NewCommand()
 	require.NoError(t, cmd.ParseFlags([]string{"--project", ""}))
 
-	err := validateIntegrationProject(cmd, core.NewPrinterFromCmd(cmd))
+	err := validateIntegrationProject(cmd)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "project name cannot be empty")

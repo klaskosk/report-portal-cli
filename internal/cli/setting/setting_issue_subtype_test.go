@@ -4,7 +4,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/klaskosk/report-portal-cli/internal/cli/core"
 	"github.com/klaskosk/report-portal-cli/internal/cli/testutil"
 	"github.com/klaskosk/report-portal-cli/pkg/types"
 	"github.com/stretchr/testify/assert"
@@ -142,7 +141,7 @@ func TestResolveIssueSubTypeCreateRequest_fromFlags(t *testing.T) {
 		"--type-ref", "PRODUCT_BUG",
 	}))
 
-	request, err := resolveIssueSubTypeCreateRequest(cmd, core.NewPrinterFromCmd(cmd))
+	request, err := resolveIssueSubTypeCreateRequest(cmd)
 	require.NoError(t, err)
 	assert.Equal(t, "Custom Bug", request.LongName)
 	assert.Equal(t, "CB", request.ShortName)

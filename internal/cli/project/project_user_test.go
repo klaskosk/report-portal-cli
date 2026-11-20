@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/klaskosk/report-portal-cli/internal/cli/core"
 	"github.com/klaskosk/report-portal-cli/internal/cli/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,9 +24,7 @@ func TestResolveAssignUsersRequest_requiresUser(t *testing.T) {
 	cmd := newProjectUserAssignCmd()
 	require.NoError(t, cmd.ParseFlags([]string{}))
 
-	printer := core.NewPrinter("")
-
-	_, err := resolveAssignUsersRequest(cmd, printer)
+	_, err := resolveAssignUsersRequest(cmd)
 	require.Error(t, err)
 	assert.EqualError(t, err, "--user is required when not using --from-file")
 }
@@ -38,9 +35,7 @@ func TestResolveAssignUsersRequest_invalidFormat(t *testing.T) {
 	cmd := newProjectUserAssignCmd()
 	require.NoError(t, cmd.ParseFlags([]string{"--user", "no-colon"}))
 
-	printer := core.NewPrinter("")
-
-	_, err := resolveAssignUsersRequest(cmd, printer)
+	_, err := resolveAssignUsersRequest(cmd)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid --user format")
 	assert.Contains(t, err.Error(), "username:role")
@@ -52,9 +47,7 @@ func TestResolveAssignUsersRequest_invalidRole(t *testing.T) {
 	cmd := newProjectUserAssignCmd()
 	require.NoError(t, cmd.ParseFlags([]string{"--user", "john:INVALID"}))
 
-	printer := core.NewPrinter("")
-
-	_, err := resolveAssignUsersRequest(cmd, printer)
+	_, err := resolveAssignUsersRequest(cmd)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid role")
 }
@@ -82,9 +75,7 @@ func TestResolveAssignUsersRequest_validRolesCaseInsensitive(t *testing.T) {
 			cmd := newProjectUserAssignCmd()
 			require.NoError(t, cmd.ParseFlags([]string{"--user", "john:" + testCase.input}))
 
-			printer := core.NewPrinter("")
-
-			request, err := resolveAssignUsersRequest(cmd, printer)
+			request, err := resolveAssignUsersRequest(cmd)
 			require.NoError(t, err)
 			assert.Equal(t, testCase.expected, request.UserNames["john"])
 		})
@@ -100,9 +91,7 @@ func TestResolveAssignUsersRequest_duplicateUser(t *testing.T) {
 		"--user", "john:PROJECT_MANAGER",
 	}))
 
-	printer := core.NewPrinter("")
-
-	_, err := resolveAssignUsersRequest(cmd, printer)
+	_, err := resolveAssignUsersRequest(cmd)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "duplicate --user entry")
 	assert.Contains(t, err.Error(), "john")
@@ -114,9 +103,7 @@ func TestResolveAssignUsersRequest_fromFile_nonExistent(t *testing.T) {
 	cmd := newProjectUserAssignCmd()
 	require.NoError(t, cmd.ParseFlags([]string{"--from-file", "/nonexistent/users.json"}))
 
-	printer := core.NewPrinter("")
-
-	_, err := resolveAssignUsersRequest(cmd, printer)
+	_, err := resolveAssignUsersRequest(cmd)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "project user assign")
 }
@@ -127,9 +114,7 @@ func TestResolveUnassignUsersRequest_fromFile_nonExistent(t *testing.T) {
 	cmd := newProjectUserUnassignCmd()
 	require.NoError(t, cmd.ParseFlags([]string{"--from-file", "/nonexistent/users.json"}))
 
-	printer := core.NewPrinter("")
-
-	_, err := resolveUnassignUsersRequest(cmd, printer)
+	_, err := resolveUnassignUsersRequest(cmd)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "project user unassign")
 }
@@ -143,9 +128,7 @@ func TestResolveAssignUsersRequest_multipleUsers(t *testing.T) {
 		"--user", "jane:PROJECT_MANAGER",
 	}))
 
-	printer := core.NewPrinter("")
-
-	request, err := resolveAssignUsersRequest(cmd, printer)
+	request, err := resolveAssignUsersRequest(cmd)
 	require.NoError(t, err)
 	assert.Equal(t, map[string]string{
 		"john": "MEMBER",
@@ -171,9 +154,7 @@ func TestResolveAssignUsersRequest_fromFileTakesPrecedence(t *testing.T) {
 		"--from-file", path,
 	}))
 
-	printer := core.NewPrinter("")
-
-	request, err := resolveAssignUsersRequest(cmd, printer)
+	request, err := resolveAssignUsersRequest(cmd)
 	require.NoError(t, err)
 	assert.Equal(t, map[string]string{"from_file": "CUSTOMER"}, request.UserNames)
 }
@@ -184,9 +165,7 @@ func TestResolveUnassignUsersRequest_requiresUser(t *testing.T) {
 	cmd := newProjectUserUnassignCmd()
 	require.NoError(t, cmd.ParseFlags([]string{}))
 
-	printer := core.NewPrinter("")
-
-	_, err := resolveUnassignUsersRequest(cmd, printer)
+	_, err := resolveUnassignUsersRequest(cmd)
 	require.Error(t, err)
 	assert.EqualError(t, err, "--user is required when not using --from-file")
 }
@@ -197,9 +176,7 @@ func TestResolveUnassignUsersRequest_multipleUsers(t *testing.T) {
 	cmd := newProjectUserUnassignCmd()
 	require.NoError(t, cmd.ParseFlags([]string{"--user", "john", "--user", "jane"}))
 
-	printer := core.NewPrinter("")
-
-	request, err := resolveUnassignUsersRequest(cmd, printer)
+	request, err := resolveUnassignUsersRequest(cmd)
 	require.NoError(t, err)
 	assert.Equal(t, []string{"john", "jane"}, request.UserNames)
 }
@@ -220,9 +197,7 @@ func TestResolveUnassignUsersRequest_fromFileTakesPrecedence(t *testing.T) {
 		"--from-file", path,
 	}))
 
-	printer := core.NewPrinter("")
-
-	request, err := resolveUnassignUsersRequest(cmd, printer)
+	request, err := resolveUnassignUsersRequest(cmd)
 	require.NoError(t, err)
 	assert.Equal(t, []string{"from_file"}, request.UserNames)
 }

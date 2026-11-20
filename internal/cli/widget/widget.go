@@ -54,7 +54,7 @@ Examples:
   rp widget get 42                           Get widget definition
   rp widget get 42 -o json                   Get widget as JSON`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runWidgetGet),
+		RunE: runWidgetGet,
 	}
 }
 
@@ -68,7 +68,7 @@ func newWidgetCreateCmd() *cobra.Command {
 Examples:
   rp widget create --from-file widget.json   Create a widget from file`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runWidgetCreate),
+		RunE: runWidgetCreate,
 	}
 
 	cmd.Flags().String(
@@ -91,7 +91,7 @@ func newWidgetUpdateCmd() *cobra.Command {
 Examples:
   rp widget update 42 --from-file w.json     Update a widget from file`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runWidgetUpdate),
+		RunE: runWidgetUpdate,
 	}
 
 	cmd.Flags().String(
@@ -119,7 +119,7 @@ Examples:
   rp widget data get 42 --json               Full computed data as JSON (recommended)
   rp widget data get 42 --attribute key1     Get data with attribute filter`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runWidgetDataGet),
+		RunE: runWidgetDataGet,
 	}
 
 	cmd.Flags().StringArray("attribute", nil, "attribute key to pass to the API (repeatable)")
@@ -128,12 +128,8 @@ Examples:
 }
 
 func runWidgetGet(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	widgetID, err := parseWidgetID(args[0])
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -151,8 +147,6 @@ func runWidgetGet(cmd *cobra.Command, args []string) error {
 
 	result, err := deps.Client.Project(project).Widgets().GetByID(cmd.Context(), widgetID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("getting widget %d in project %s: %w", widgetID, project, err)
 	}
 
@@ -162,18 +156,15 @@ func runWidgetGet(cmd *cobra.Command, args []string) error {
 }
 
 func runWidgetCreate(cmd *cobra.Command, _ []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
-	path, err := requireWidgetFromFile(
+	path, err := core.RequireFromFile(
 		cmd,
-		printer,
 		"--from-file is required for widget creation (widget definitions contain complex content parameters)",
 	)
 	if err != nil {
 		return err
 	}
 
-	request, err := loadWidgetMutationRequest(cmd, printer, path)
+	request, err := loadWidgetMutationRequest(cmd, path)
 	if err != nil {
 		return err
 	}
@@ -190,8 +181,6 @@ func runWidgetCreate(cmd *cobra.Command, _ []string) error {
 
 	result, err := deps.Client.Project(project).Widgets().Create(cmd.Context(), request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("creating widget in project %s: %w", project, err)
 	}
 
@@ -202,25 +191,20 @@ func runWidgetCreate(cmd *cobra.Command, _ []string) error {
 }
 
 func runWidgetUpdate(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	widgetID, err := parseWidgetID(args[0])
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
-	path, err := requireWidgetFromFile(
+	path, err := core.RequireFromFile(
 		cmd,
-		printer,
 		"--from-file is required for widget update (the API expects the complete widget definition)",
 	)
 	if err != nil {
 		return err
 	}
 
-	request, err := loadWidgetMutationRequest(cmd, printer, path)
+	request, err := loadWidgetMutationRequest(cmd, path)
 	if err != nil {
 		return err
 	}
@@ -239,8 +223,6 @@ func runWidgetUpdate(cmd *cobra.Command, args []string) error {
 		Widgets().
 		Update(cmd.Context(), widgetID, request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("updating widget %d in project %s: %w", widgetID, project, err)
 	}
 
@@ -252,12 +234,8 @@ func runWidgetUpdate(cmd *cobra.Command, args []string) error {
 }
 
 func runWidgetDataGet(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	widgetID, err := parseWidgetID(args[0])
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -292,8 +270,6 @@ func runWidgetDataGet(cmd *cobra.Command, args []string) error {
 		Widgets().
 		GetData(cmd.Context(), widgetID, options...)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("getting widget data %d in project %s: %w", widgetID, project, err)
 	}
 
@@ -302,46 +278,19 @@ func runWidgetDataGet(cmd *cobra.Command, args []string) error {
 	return deps.Printer.Print(result, headers, [][]string{row})
 }
 
-// requireWidgetFromFile returns the --from-file path after validating the flag was set.
-func requireWidgetFromFile(
-	cmd *cobra.Command,
-	printer *core.Printer,
-	missingMessage string,
-) (string, error) {
-	if !cmd.Flags().Changed("from-file") {
-		err := errors.New(missingMessage)
-		printer.PrintError(err)
-
-		return "", err
-	}
-
-	path, _ := cmd.Flags().GetString("from-file")
-
-	return path, nil
-}
-
 // loadWidgetMutationRequest reads the JSON file, applies CLI overrides, and validates name.
-func loadWidgetMutationRequest(
-	cmd *cobra.Command,
-	printer *core.Printer,
-	path string,
-) (types.WidgetRQ, error) {
+func loadWidgetMutationRequest(cmd *cobra.Command, path string) (types.WidgetRQ, error) {
 	request, err := readWidgetRequestFromFile(path)
 	if err != nil {
-		printer.PrintError(err)
-
 		return types.WidgetRQ{}, err
 	}
 
 	applyWidgetRequestFlagOverrides(cmd, &request)
 
 	if request.Name == "" {
-		nameErr := errors.New(
+		return types.WidgetRQ{}, errors.New(
 			"widget name is required (provide via --from-file or --name flag)",
 		)
-		printer.PrintError(nameErr)
-
-		return types.WidgetRQ{}, nameErr
 	}
 
 	return request, nil

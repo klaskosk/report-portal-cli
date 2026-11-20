@@ -96,7 +96,7 @@ Examples:
   rp user list --role ADMINISTRATOR --active
   rp user list --email admin@example.com -o json`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runUserList),
+		RunE: runUserList,
 	}
 
 	core.RegisterListFlagsWithDefaults(cmd, core.ListFlagDefaults{Sort: nil})
@@ -118,7 +118,7 @@ Examples:
   rp user get superadmin
   rp user get superadmin -o json`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runUserGet),
+		RunE: runUserGet,
 	}
 }
 
@@ -137,7 +137,7 @@ Examples:
   rp user create --login jane --email jane@example.com --full-name "Jane Doe" \
     --password 'Secret123!' --account-role USER --project-role MEMBER`,
 		Args: cobra.NoArgs,
-		RunE: core.WithPrintedErrors(runUserCreate),
+		RunE: runUserCreate,
 	}
 
 	registerCreateUserFlags(cmd)
@@ -160,7 +160,7 @@ Examples:
   rp user update jane --full-name "Jane Doe" --active=false
   rp user update jane --account-role ADMINISTRATOR --account-type INTERNAL`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runUserUpdate),
+		RunE: runUserUpdate,
 	}
 
 	registerEditUserFlags(cmd)
@@ -181,7 +181,7 @@ given login to the current user ID to keep the CLI login-based.
 Examples:
   rp user delete jane`,
 		Args: cobra.ExactArgs(1),
-		RunE: core.WithPrintedErrors(runUserDelete),
+		RunE: runUserDelete,
 	}
 }
 
@@ -211,12 +211,8 @@ func runUserGet(cmd *cobra.Command, args []string) error {
 
 // runUserCreate executes the user create command.
 func runUserCreate(cmd *cobra.Command, _ []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	request, err := resolveCreateUserRequest(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return err
 	}
 
@@ -227,8 +223,6 @@ func runUserCreate(cmd *cobra.Command, _ []string) error {
 
 	result, err := deps.Client.Users().Create(cmd.Context(), request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("creating user %s: %w", request.Login, err)
 	}
 
@@ -239,14 +233,9 @@ func runUserCreate(cmd *cobra.Command, _ []string) error {
 
 // runUserUpdate executes the user update command.
 func runUserUpdate(cmd *cobra.Command, args []string) error {
-	printer := core.NewPrinterFromCmd(cmd)
-
 	flags := resolveEditUserFlags(cmd)
 	if !flags.hasChanges() {
-		noChangeErr := errors.New("at least one mutable flag must be provided to update a user")
-		printer.PrintError(noChangeErr)
-
-		return noChangeErr
+		return errors.New("at least one mutable flag must be provided to update a user")
 	}
 
 	deps, err := core.ResolveCmd(cmd)
@@ -258,23 +247,17 @@ func runUserUpdate(cmd *cobra.Command, args []string) error {
 	if flags.fullName == nil {
 		currentUser, err = getUserByLogin(cmd.Context(), deps.Client.Users(), args[0])
 		if err != nil {
-			deps.Printer.PrintError(err)
-
 			return err
 		}
 	}
 
 	request, err := buildEditUserRequest(currentUser, flags)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return err
 	}
 
 	result, err := deps.Client.Users().Edit(cmd.Context(), args[0], request)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("updating user %s: %w", args[0], err)
 	}
 
@@ -294,15 +277,11 @@ func runUserDelete(cmd *cobra.Command, args []string) error {
 
 	userID, err := resolveUserIDByLogin(cmd.Context(), deps.Client.Users(), args[0])
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return err
 	}
 
 	result, err := deps.Client.Users().Delete(cmd.Context(), userID)
 	if err != nil {
-		deps.Printer.PrintError(err)
-
 		return fmt.Errorf("deleting user %s: %w", args[0], err)
 	}
 
@@ -322,8 +301,6 @@ func getSingleUser(
 ) error {
 	user, err := clientInstance.Users().GetByLogin(cmd.Context(), login)
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("getting user %s: %w", login, err)
 	}
 
@@ -333,22 +310,14 @@ func getSingleUser(
 }
 
 // listUsers retrieves and prints a filtered, paginated list of users.
-func listUsers(
-	cmd *cobra.Command,
-	clientInstance *client.Client,
-	printer *core.Printer,
-) error {
+func listUsers(cmd *cobra.Command, clientInstance *client.Client, printer *core.Printer) error {
 	options, err := resolveUserListOptions(cmd)
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("invalid user list flags: %w", err)
 	}
 
 	result, err := clientInstance.Users().List(cmd.Context(), options.clientOptions()...)
 	if err != nil {
-		printer.PrintError(err)
-
 		return fmt.Errorf("listing users: %w", err)
 	}
 
