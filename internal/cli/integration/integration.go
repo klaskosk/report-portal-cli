@@ -463,12 +463,7 @@ func runIntegrationDelete(cmd *cobra.Command, args []string) error {
 
 // readIntegrationRequestFromFile reads JSON from path (or stdin when path is "-") into an IntegrationRQ.
 func readIntegrationRequestFromFile(path string) (types.IntegrationRQ, error) {
-	result, err := core.ReadRequestFromFile[types.IntegrationRQ](path)
-	if err != nil {
-		return result, core.WrapFileError(err, "integration definition", "integration JSON")
-	}
-
-	return result, nil
+	return core.ReadRequestFromFile[types.IntegrationRQ](path, "integration")
 }
 
 // integrationHeaders returns the table column headers for integration rows.

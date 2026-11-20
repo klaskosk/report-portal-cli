@@ -166,15 +166,10 @@ func runDashboardWidgetRemove(cmd *cobra.Command, args []string) error {
 
 // resolveAddWidgetRequest determines the AddWidgetRq from either --from-file or flags.
 func resolveAddWidgetRequest(cmd *cobra.Command) (types.AddWidgetRq, error) {
-	if cmd.Flags().Changed("from-file") {
-		path, _ := cmd.Flags().GetString("from-file")
-
-		return loadAddWidgetRequest(path)
-	}
-
-	return buildAddWidgetRequestFromFlags(cmd)
+	return core.RequestInput(cmd, "add widget", buildAddWidgetRequestFromFlags)
 }
 
+// buildAddWidgetRequestFromFlags builds the widget request from individual flags.
 func buildAddWidgetRequestFromFlags(cmd *cobra.Command) (types.AddWidgetRq, error) {
 	if !cmd.Flags().Changed("widget-id") &&
 		!cmd.Flags().Changed("widget-name") &&
@@ -263,17 +258,4 @@ func optionalWidgetPosition(cmd *cobra.Command) *types.Position {
 	}
 
 	return position
-}
-
-func loadAddWidgetRequest(path string) (types.AddWidgetRq, error) {
-	request, err := core.ReadRequestFromFile[types.AddWidgetRq](path)
-	if err != nil {
-		return types.AddWidgetRq{}, core.WrapFileError(
-			err,
-			"add widget definition",
-			"add widget JSON",
-		)
-	}
-
-	return request, nil
 }

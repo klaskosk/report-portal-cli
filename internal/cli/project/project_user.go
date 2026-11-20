@@ -133,17 +133,11 @@ func runProjectUserUnassign(cmd *cobra.Command, args []string) error {
 
 // resolveAssignUsersRequest builds AssignUsersRQ from --from-file or --user flags.
 func resolveAssignUsersRequest(cmd *cobra.Command) (types.AssignUsersRQ, error) {
-	if cmd.Flags().Changed("from-file") {
-		path, _ := cmd.Flags().GetString("from-file")
+	return core.RequestInput(cmd, "project user assign", buildAssignUsersRequestFromFlags)
+}
 
-		request, err := readAssignUsersFromFile(path)
-		if err != nil {
-			return types.AssignUsersRQ{}, err
-		}
-
-		return request, nil
-	}
-
+// buildAssignUsersRequestFromFlags builds the request from individual flags.
+func buildAssignUsersRequestFromFlags(cmd *cobra.Command) (types.AssignUsersRQ, error) {
 	users, _ := cmd.Flags().GetStringArray("user")
 
 	userNames, err := buildAssignUsersMap(users)
@@ -156,17 +150,11 @@ func resolveAssignUsersRequest(cmd *cobra.Command) (types.AssignUsersRQ, error) 
 
 // resolveUnassignUsersRequest builds UnassignUsersRQ from --from-file or --user flags.
 func resolveUnassignUsersRequest(cmd *cobra.Command) (types.UnassignUsersRQ, error) {
-	if cmd.Flags().Changed("from-file") {
-		path, _ := cmd.Flags().GetString("from-file")
+	return core.RequestInput(cmd, "project user unassign", buildUnassignUsersRequestFromFlags)
+}
 
-		request, err := readUnassignUsersFromFile(path)
-		if err != nil {
-			return types.UnassignUsersRQ{}, err
-		}
-
-		return request, nil
-	}
-
+// buildUnassignUsersRequestFromFlags builds the request from individual flags.
+func buildUnassignUsersRequestFromFlags(cmd *cobra.Command) (types.UnassignUsersRQ, error) {
 	users, _ := cmd.Flags().GetStringArray("user")
 
 	userNames, err := buildUnassignUsersList(users)
@@ -228,32 +216,4 @@ func normalizeProjectRole(raw string) (string, error) {
 			raw,
 		)
 	}
-}
-
-// readAssignUsersFromFile reads a JSON file into an AssignUsersRQ.
-func readAssignUsersFromFile(path string) (types.AssignUsersRQ, error) {
-	result, err := core.ReadRequestFromFile[types.AssignUsersRQ](path)
-	if err != nil {
-		return result, core.WrapFileError(
-			err,
-			"project user assign payload",
-			"project user assign JSON",
-		)
-	}
-
-	return result, nil
-}
-
-// readUnassignUsersFromFile reads a JSON file into an UnassignUsersRQ.
-func readUnassignUsersFromFile(path string) (types.UnassignUsersRQ, error) {
-	result, err := core.ReadRequestFromFile[types.UnassignUsersRQ](path)
-	if err != nil {
-		return result, core.WrapFileError(
-			err,
-			"project user unassign payload",
-			"project user unassign JSON",
-		)
-	}
-
-	return result, nil
 }

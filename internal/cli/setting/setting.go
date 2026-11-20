@@ -127,28 +127,28 @@ func runSettingServerUpdate(cmd *cobra.Command, _ []string) error {
 	)
 }
 
+// resolveServerSettingUpdateRequest builds and validates the request from flags or a file.
 func resolveServerSettingUpdateRequest(cmd *cobra.Command) (types.UpdateSettingsRq, error) {
-	if cmd.Flags().Changed("from-file") {
-		path, _ := cmd.Flags().GetString("from-file")
-
-		request, err := core.ReadRequestFromFile[types.UpdateSettingsRq](path)
-		if err != nil {
-			return types.UpdateSettingsRq{}, core.WrapFileError(
-				err,
-				"server setting",
-				"server setting JSON",
-			)
-		}
-
-		if request.Key == "" {
-			return types.UpdateSettingsRq{}, errors.New(
-				"setting key must not be empty in --from-file payload",
-			)
-		}
-
-		return request, nil
+	request, err := core.RequestInput(
+		cmd,
+		"server setting",
+		buildServerSettingUpdateRequestFromFlags,
+	)
+	if err != nil {
+		return types.UpdateSettingsRq{}, err
 	}
 
+	if request.Key == "" {
+		return types.UpdateSettingsRq{}, errors.New(
+			"setting key must not be empty in --from-file payload",
+		)
+	}
+
+	return request, nil
+}
+
+// buildServerSettingUpdateRequestFromFlags builds the request from individual flags.
+func buildServerSettingUpdateRequestFromFlags(cmd *cobra.Command) (types.UpdateSettingsRq, error) {
 	key, _ := cmd.Flags().GetString("key")
 	value, _ := cmd.Flags().GetString("value")
 

@@ -169,25 +169,12 @@ func runItemFinish(cmd *cobra.Command, args []string) error {
 	)
 }
 
+// buildItemStartRequest builds the item start request from flags or a file.
 func buildItemStartRequest(cmd *cobra.Command) (types.StartTestItemRQ, error) {
-	if cmd.Flags().Changed("from-file") {
-		path, _ := cmd.Flags().GetString("from-file")
-
-		req, err := core.ReadRequestFromFile[types.StartTestItemRQ](path)
-		if err != nil {
-			return types.StartTestItemRQ{}, core.WrapFileError(
-				err,
-				"item start file",
-				"item start JSON",
-			)
-		}
-
-		return req, nil
-	}
-
-	return buildItemStartRequestFromFlags(cmd)
+	return core.RequestInput(cmd, "item start", buildItemStartRequestFromFlags)
 }
 
+// buildItemStartRequestFromFlags builds the item start request from individual flags.
 func buildItemStartRequestFromFlags(cmd *cobra.Command) (types.StartTestItemRQ, error) {
 	name, _ := cmd.Flags().GetString("name")
 	if strings.TrimSpace(name) == "" {
@@ -235,25 +222,12 @@ func buildItemStartRequestFromFlags(cmd *cobra.Command) (types.StartTestItemRQ, 
 	return request, nil
 }
 
+// buildItemFinishRequest builds the item finish request from flags or a file.
 func buildItemFinishRequest(cmd *cobra.Command) (types.FinishTestItemRQ, error) {
-	if cmd.Flags().Changed("from-file") {
-		path, _ := cmd.Flags().GetString("from-file")
-
-		req, err := core.ReadRequestFromFile[types.FinishTestItemRQ](path)
-		if err != nil {
-			return types.FinishTestItemRQ{}, core.WrapFileError(
-				err,
-				"item finish file",
-				"item finish JSON",
-			)
-		}
-
-		return req, nil
-	}
-
-	return buildItemFinishRequestFromFlags(cmd)
+	return core.RequestInput(cmd, "item finish", buildItemFinishRequestFromFlags)
 }
 
+// buildItemFinishRequestFromFlags builds the item finish request from individual flags.
 func buildItemFinishRequestFromFlags(cmd *cobra.Command) (types.FinishTestItemRQ, error) {
 	launchUUID, _ := cmd.Flags().GetString("launch-uuid")
 	if strings.TrimSpace(launchUUID) == "" {

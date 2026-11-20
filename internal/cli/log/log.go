@@ -225,11 +225,11 @@ func runLogGet(cmd *cobra.Command, args []string) error {
 
 // runLogCreate executes the log create command, delegating to single or batch helpers.
 func runLogCreate(cmd *cobra.Command, _ []string) error {
-	if !cmd.Flags().Changed("from-file") {
-		return errors.New("--from-file is required for log creation")
+	path, err := core.RequireFromFile(cmd, "--from-file is required for log creation")
+	if err != nil {
+		return err
 	}
 
-	path, _ := cmd.Flags().GetString("from-file")
 	async, _ := cmd.Flags().GetBool("async")
 	batch, _ := cmd.Flags().GetBool("batch")
 
@@ -522,12 +522,7 @@ func batchLogRows(result *types.BatchSaveOperatingRS) [][]string {
 
 // readSingleLogEntry reads a SaveLogRQ from the given file path.
 func readSingleLogEntry(path string) (types.SaveLogRQ, error) {
-	result, err := core.ReadRequestFromFile[types.SaveLogRQ](path)
-	if err != nil {
-		return result, core.WrapFileError(err, "log entry file", "log entry JSON")
-	}
-
-	return result, nil
+	return core.ReadRequestFromFile[types.SaveLogRQ](path, "log entry")
 }
 
 // validateSingleLogEntry checks that required fields of a SaveLogRQ are populated.
@@ -545,12 +540,7 @@ func validateSingleLogEntry(req types.SaveLogRQ) error {
 
 // readBatchLogEntries reads a JSON array of batch log entries from the given file path.
 func readBatchLogEntries(path string) ([]batchLogEntryJSON, error) {
-	result, err := core.ReadRequestFromFile[[]batchLogEntryJSON](path)
-	if err != nil {
-		return nil, core.WrapFileError(err, "batch log entries file", "batch log entries JSON")
-	}
-
-	return result, nil
+	return core.ReadRequestFromFile[[]batchLogEntryJSON](path, "batch log entries")
 }
 
 // validateBatchLogEntries checks that the batch is non-empty and each entry is valid.

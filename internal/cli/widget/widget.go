@@ -309,12 +309,7 @@ func applyWidgetRequestFlagOverrides(cmd *cobra.Command, request *types.WidgetRQ
 
 // readWidgetRequestFromFile reads JSON from path (or stdin when path is "-") into a WidgetRQ.
 func readWidgetRequestFromFile(path string) (types.WidgetRQ, error) {
-	result, err := core.ReadRequestFromFile[types.WidgetRQ](path)
-	if err != nil {
-		return result, core.WrapFileError(err, "widget definition", "widget JSON")
-	}
-
-	return result, nil
+	return core.ReadRequestFromFile[types.WidgetRQ](path, "widget")
 }
 
 // widgetHeaders returns the table column headers for widget rows.

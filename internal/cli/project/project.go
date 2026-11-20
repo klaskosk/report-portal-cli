@@ -267,13 +267,13 @@ func runProjectCreate(cmd *cobra.Command, _ []string) error {
 }
 
 func runProjectUpdate(cmd *cobra.Command, args []string) error {
-	if !cmd.Flags().Changed("from-file") {
-		return errors.New(
-			"--from-file is required for project update (the payload contains structured configuration and user fields)",
-		)
+	path, err := core.RequireFromFile(
+		cmd,
+		"--from-file is required for project update (the payload contains structured configuration and user fields)",
+	)
+	if err != nil {
+		return err
 	}
-
-	path := core.MustGetStringFlag(cmd, "from-file")
 
 	request, err := readProjectUpdateFromFile(path)
 	if err != nil {
@@ -341,10 +341,5 @@ func deleteProject(
 
 // readProjectUpdateFromFile reads a JSON file into an UpdateProjectRQ.
 func readProjectUpdateFromFile(path string) (types.UpdateProjectRQ, error) {
-	result, err := core.ReadRequestFromFile[types.UpdateProjectRQ](path)
-	if err != nil {
-		return result, core.WrapFileError(err, "project update payload", "project update JSON")
-	}
-
-	return result, nil
+	return core.ReadRequestFromFile[types.UpdateProjectRQ](path, "project update")
 }

@@ -212,7 +212,7 @@ func TestReadFilterRequestFromFile_missingFile(t *testing.T) {
 
 	_, err := readFilterRequestFromFile(filepath.Join(t.TempDir(), "missing.json"))
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "reading filter definition")
+	assert.Contains(t, err.Error(), "reading filter:")
 }
 
 func TestReadFilterRequestFromFile_stdin(t *testing.T) { //nolint:paralleltest // swaps os.Stdin

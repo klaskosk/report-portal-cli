@@ -243,7 +243,7 @@ func TestRunLogTypeCreate_fromFile_nonExistent(t *testing.T) {
 
 	_, err := resolveLogTypeCreateRequest(cmd)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "log type definition")
+	assert.Contains(t, err.Error(), "reading log type:")
 }
 
 func TestRunLogTypeCreate_fromFile_malformedJSON(t *testing.T) {
@@ -436,14 +436,14 @@ func TestLogTypeRow_notFilterable(t *testing.T) {
 func TestValidateLogTypeRequest_valid(t *testing.T) {
 	t.Parallel()
 
-	err := validateLogTypeRequest(types.LogTypeRequest{Name: "TRACE", Level: 5000})
+	_, err := validateLogTypeInput(types.LogTypeRequest{Name: "TRACE", Level: 5000})
 	require.NoError(t, err)
 }
 
 func TestValidateLogTypeRequest_emptyName(t *testing.T) {
 	t.Parallel()
 
-	err := validateLogTypeRequest(types.LogTypeRequest{Name: "", Level: 5000})
+	_, err := validateLogTypeInput(types.LogTypeRequest{Name: "", Level: 5000})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "name must not be empty")
 }
@@ -451,7 +451,7 @@ func TestValidateLogTypeRequest_emptyName(t *testing.T) {
 func TestValidateLogTypeRequest_zeroLevel(t *testing.T) {
 	t.Parallel()
 
-	err := validateLogTypeRequest(types.LogTypeRequest{Name: "X", Level: 0})
+	_, err := validateLogTypeInput(types.LogTypeRequest{Name: "X", Level: 0})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "level must be greater than 0")
 }
@@ -459,7 +459,7 @@ func TestValidateLogTypeRequest_zeroLevel(t *testing.T) {
 func TestValidateLogTypeRequest_negativeLevel(t *testing.T) {
 	t.Parallel()
 
-	err := validateLogTypeRequest(types.LogTypeRequest{Name: "X", Level: -1})
+	_, err := validateLogTypeInput(types.LogTypeRequest{Name: "X", Level: -1})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "level must be greater than 0")
 }

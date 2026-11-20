@@ -79,19 +79,11 @@ func runDemoDataGenerate(cmd *cobra.Command, _ []string) error {
 	return deps.Printer.Print(result, headers, rows)
 }
 
+// loadDemoDataRequest reads optional JSON or uses the API defaults.
 func loadDemoDataRequest(cmd *cobra.Command) (types.DemoDataRq, error) {
-	if !cmd.Flags().Changed("from-file") {
+	return core.RequestInput(cmd, "demo data", func(*cobra.Command) (types.DemoDataRq, error) {
 		return types.DemoDataRq{}, nil
-	}
-
-	path, _ := cmd.Flags().GetString("from-file")
-
-	request, err := core.ReadRequestFromFile[types.DemoDataRq](path)
-	if err != nil {
-		return types.DemoDataRq{}, core.WrapFileError(err, "demo data request", "demo data JSON")
-	}
-
-	return request, nil
+	})
 }
 
 func demoDataGenerateTable(result *types.DemoDataRs) ([]string, [][]string) {

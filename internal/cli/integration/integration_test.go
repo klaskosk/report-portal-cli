@@ -357,7 +357,7 @@ func TestReadIntegrationRequestFromFile_missingFile(t *testing.T) {
 
 	_, err := readIntegrationRequestFromFile(filepath.Join(t.TempDir(), "missing.json"))
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "reading integration definition")
+	assert.Contains(t, err.Error(), "reading integration:")
 }
 
 //nolint:paralleltest // mutates os.Stdin

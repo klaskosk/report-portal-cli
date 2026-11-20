@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/klaskosk/report-portal-cli/internal/cli/core"
+	"github.com/klaskosk/report-portal-cli/pkg/client"
 	"github.com/klaskosk/report-portal-cli/pkg/types"
 	"github.com/spf13/cobra"
 )
@@ -195,7 +196,7 @@ func runSettingPatternUpdate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	request, err := resolvePatternUpdateRequest(cmd, deps, project, patternID)
+	request, err := resolvePatternUpdateRequest(cmd, deps.Client, project, patternID)
 	if err != nil {
 		return err
 	}
@@ -248,28 +249,24 @@ func runSettingPatternDelete(cmd *cobra.Command, args []string) error {
 	)
 }
 
+// resolvePatternCreateRequest builds and validates the request from flags or a file.
 func resolvePatternCreateRequest(cmd *cobra.Command) (types.CreatePatternTemplateRQ, error) {
-	if cmd.Flags().Changed("from-file") {
-		path, _ := cmd.Flags().GetString("from-file")
-
-		request, err := core.ReadRequestFromFile[types.CreatePatternTemplateRQ](path)
-		if err != nil {
-			return types.CreatePatternTemplateRQ{}, core.WrapFileError(
-				err,
-				"pattern template",
-				"pattern template JSON",
-			)
-		}
-
-		if request.Name == "" {
-			return types.CreatePatternTemplateRQ{}, errors.New(
-				"pattern template name must not be empty in --from-file payload",
-			)
-		}
-
-		return request, nil
+	request, err := core.RequestInput(cmd, "pattern template", buildPatternCreateRequestFromFlags)
+	if err != nil {
+		return types.CreatePatternTemplateRQ{}, err
 	}
 
+	if request.Name == "" {
+		return types.CreatePatternTemplateRQ{}, errors.New(
+			"pattern template name must not be empty in --from-file payload",
+		)
+	}
+
+	return request, nil
+}
+
+// buildPatternCreateRequestFromFlags builds the request from individual flags.
+func buildPatternCreateRequestFromFlags(cmd *cobra.Command) (types.CreatePatternTemplateRQ, error) {
 	name, _ := cmd.Flags().GetString("name")
 	patternType, _ := cmd.Flags().GetString("type")
 	value, _ := cmd.Flags().GetString("value")
@@ -301,29 +298,22 @@ func resolvePatternCreateRequest(cmd *cobra.Command) (types.CreatePatternTemplat
 	}, nil
 }
 
+// resolvePatternUpdateRequest builds the update from flags or a file.
 func resolvePatternUpdateRequest(
 	cmd *cobra.Command,
-	deps *core.Deps,
+	apiClient *client.Client,
 	project string,
 	patternID int64,
 ) (types.UpdatePatternTemplateRQ, error) {
-	if cmd.Flags().Changed("from-file") {
-		return readPatternUpdateRequestFromFile(cmd)
-	}
-
-	return buildPatternUpdateRequestFromFlags(cmd, deps, project, patternID)
-}
-
-func readPatternUpdateRequestFromFile(cmd *cobra.Command) (types.UpdatePatternTemplateRQ, error) {
-	path, _ := cmd.Flags().GetString("from-file")
-
-	request, err := core.ReadRequestFromFile[types.UpdatePatternTemplateRQ](path)
+	request, err := core.RequestInput(
+		cmd,
+		"pattern template",
+		func(cmd *cobra.Command) (types.UpdatePatternTemplateRQ, error) {
+			return buildPatternUpdateRequestFromFlags(cmd, apiClient, project, patternID)
+		},
+	)
 	if err != nil {
-		return types.UpdatePatternTemplateRQ{}, core.WrapFileError(
-			err,
-			"pattern template",
-			"pattern template JSON",
-		)
+		return types.UpdatePatternTemplateRQ{}, err
 	}
 
 	if request.Name == "" {
@@ -335,13 +325,14 @@ func readPatternUpdateRequestFromFile(cmd *cobra.Command) (types.UpdatePatternTe
 	return request, nil
 }
 
+// buildPatternUpdateRequestFromFlags applies flag values to the current pattern.
 func buildPatternUpdateRequestFromFlags(
 	cmd *cobra.Command,
-	deps *core.Deps,
+	apiClient *client.Client,
 	project string,
 	patternID int64,
 ) (types.UpdatePatternTemplateRQ, error) {
-	current, err := findPatternTemplate(deps, cmd.Context(), project, patternID)
+	current, err := findPatternTemplate(apiClient, cmd.Context(), project, patternID)
 	if err != nil {
 		return types.UpdatePatternTemplateRQ{}, err
 	}
@@ -368,13 +359,14 @@ func buildPatternUpdateRequestFromFlags(
 	return request, nil
 }
 
+// findPatternTemplate looks up the pattern in the project configuration.
 func findPatternTemplate(
-	deps *core.Deps,
+	apiClient *client.Client,
 	ctx context.Context,
 	project string,
 	patternID int64,
 ) (*types.PatternTemplateResource, error) {
-	projectResource, err := deps.Client.Projects().Get(ctx, project)
+	projectResource, err := apiClient.Projects().Get(ctx, project)
 	if err != nil {
 		return nil, fmt.Errorf("loading project configuration: %w", err)
 	}
