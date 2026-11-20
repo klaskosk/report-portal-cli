@@ -100,7 +100,7 @@ func TestExecute_JSONFlagProducesJSONErrorBeforePersistentPreRunE(t *testing.T) 
 	assert.NotEmpty(t, result["error"])
 }
 
-func TestExecute_JSONErrorIncludesCommandContext(t *testing.T) {
+func TestExecute_PrintsOneJSONErrorWithCommandContext(t *testing.T) {
 	t.Parallel()
 
 	server := httptest.NewServer(

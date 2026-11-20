@@ -37,6 +37,8 @@ func Execute() error {
 // execute runs the root command and writes any error to errOut. Nil args use os.Args[1:].
 func execute(args []string, errOut io.Writer) error {
 	cmd := newRootCmd()
+	cmd.SetErr(errOut)
+
 	if args != nil {
 		cmd.SetArgs(args)
 	}
@@ -46,7 +48,7 @@ func execute(args []string, errOut io.Writer) error {
 		return nil
 	}
 
-	core.NewPrinterWithErrOut(core.EffectiveOutputFormat(cmd), errOut).PrintError(err)
+	core.NewPrinterFromCmd(cmd).PrintError(err)
 
 	return fmt.Errorf("executing command: %w", err)
 }
