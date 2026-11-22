@@ -1,6 +1,10 @@
 package core
 
 import (
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -152,4 +156,38 @@ func TestApplyEnvOverrides_InsecureSkipVerify_InvalidValue(t *testing.T) {
 
 	assert.True(t, connection.InsecureSkipVerify,
 		"invalid RP_INSECURE_SKIP_VERIFY should leave connection unchanged")
+}
+
+//nolint:paralleltest // This test replaces http.DefaultTransport.
+func TestNewClient_InsecureSkipVerifyPreservesProxy(t *testing.T) {
+	handler := http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		assert.True(t, request.URL.IsAbs(), "proxy requests use an absolute request target")
+		writer.Header().Set("Content-Type", "application/json")
+		_, _ = writer.Write([]byte(`{"page":"WELCOME"}`))
+	})
+	proxy := httptest.NewServer(handler)
+	t.Cleanup(proxy.Close)
+
+	proxyURL, err := url.Parse(proxy.URL)
+	require.NoError(t, err)
+
+	defaultTransport := http.DefaultTransport
+	http.DefaultTransport = &http.Transport{Proxy: http.ProxyURL(proxyURL)}
+
+	t.Cleanup(func() { http.DefaultTransport = defaultTransport })
+
+	cmd := NewMinimalRootCmd()
+	err = cmd.ParseFlags([]string{"--insecure-skip-verify"})
+	require.NoError(t, err)
+
+	connection := &Connection{URL: proxy.URL, Token: "test-token"}
+	applyFlagOverrides(cmd, connection)
+	require.True(t, connection.InsecureSkipVerify)
+
+	apiClient, err := NewClient(connection, slog.New(slog.DiscardHandler))
+	require.NoError(t, err)
+
+	result, err := apiClient.Onboarding().GetStatus(t.Context(), nil)
+	require.NoError(t, err)
+	assert.Equal(t, map[string]any{"page": "WELCOME"}, result)
 }

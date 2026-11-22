@@ -229,13 +229,19 @@ func NewClient(connection *Connection, logger *slog.Logger) (*client.Client, err
 	options = append(options, client.WithLogger(logger))
 
 	if connection.InsecureSkipVerify {
-		transport := &http.Transport{
-			TLSClientConfig: &tls.Config{
-				MinVersion:         tls.VersionTLS12,
-				InsecureSkipVerify: true, //nolint:gosec // user-requested
-			},
+		transport := &http.Transport{Proxy: http.ProxyFromEnvironment}
+		if defaultTransport, ok := http.DefaultTransport.(*http.Transport); ok {
+			transport = defaultTransport.Clone()
 		}
 
+		tlsConfig := transport.TLSClientConfig
+		if tlsConfig == nil {
+			tlsConfig = &tls.Config{}
+		}
+
+		tlsConfig.MinVersion = max(tlsConfig.MinVersion, tls.VersionTLS12)
+		tlsConfig.InsecureSkipVerify = true
+		transport.TLSClientConfig = tlsConfig
 		options = append(options, client.WithHTTPClient(&http.Client{Transport: transport}))
 	}
 

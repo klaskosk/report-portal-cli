@@ -8,6 +8,7 @@
 package client
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -159,18 +160,46 @@ type emptyJSONBodyNormalizer struct {
 	next http.RoundTripper
 }
 
+// RoundTrip normalizes empty JSON success bodies before they reach the decoder.
 func (n *emptyJSONBodyNormalizer) RoundTrip(req *http.Request) (*http.Response, error) {
 	resp, err := n.next.RoundTrip(req)
 	if err != nil {
 		return nil, fmt.Errorf("round trip: %w", err)
 	}
 
-	if resp.StatusCode >= 200 && resp.StatusCode < 300 &&
-		resp.ContentLength == 0 &&
-		strings.Contains(resp.Header.Get("Content-Type"), "json") {
-		resp.Body = io.NopCloser(strings.NewReader("null"))
-		resp.ContentLength = 4
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 || resp.ContentLength > 0 ||
+		!strings.Contains(resp.Header.Get("Content-Type"), "json") {
+		return resp, nil
 	}
 
+	if resp.Body != nil {
+		if resp.ContentLength < 0 {
+			reader := bufio.NewReaderSize(resp.Body, 1)
+			_, err := reader.Peek(1)
+
+			switch {
+			case err == nil:
+				resp.Body = &bufferedResponseBody{Reader: reader, Closer: resp.Body}
+
+				return resp, nil
+			case !errors.Is(err, io.EOF):
+				_ = resp.Body.Close()
+
+				return nil, fmt.Errorf("peeking at JSON response body: %w", err)
+			}
+		}
+
+		_ = resp.Body.Close()
+	}
+
+	resp.Body = io.NopCloser(strings.NewReader("null"))
+	resp.ContentLength = 4
+
 	return resp, nil
+}
+
+// bufferedResponseBody keeps the peeked bytes and delegates Close to the original body.
+type bufferedResponseBody struct {
+	io.Reader
+	io.Closer
 }

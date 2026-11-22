@@ -48,6 +48,39 @@ func TestUsersScope_GetMyself_Success(t *testing.T) {
 	assert.Equal(t, "admin@example.com", user.Email)
 }
 
+func TestUsersScope_GetMyself_ChunkedBody(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		body   string
+		userID string
+	}{
+		{name: "empty"},
+		{name: "with JSON", body: `{"userId":"superadmin"}`, userID: "superadmin"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			handler := http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+				writer.Header().Set("Content-Type", "application/json")
+				writer.WriteHeader(http.StatusOK)
+				// Flushing the headers forces chunked framing for this HTTP/1.1 response.
+				assert.NoError(t, http.NewResponseController(writer).Flush())
+				_, _ = writer.Write([]byte(test.body))
+			})
+			testClient := clienttest.NewClient(t, handler)
+
+			user, err := testClient.Users().GetMyself(t.Context())
+			require.NoError(t, err)
+			require.NotNil(t, user)
+			assert.Equal(t, test.userID, user.UserId)
+		})
+	}
+}
+
 func TestUsersScope_GetMyself_Unauthorized(t *testing.T) {
 	t.Parallel()
 
