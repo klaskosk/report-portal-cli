@@ -117,8 +117,8 @@ var _ = Describe("Client: Dashboards", Label("client", "dashboards"), func() {
 
 			By("creating a filter for the widget")
 			filterCreated, err := filters.Create(ctx, types.UpdateUserFilterRQ{
-				Name:       fmt.Sprintf("widget-filter-%d", time.Now().UnixNano()),
-				Type:       types.UpdateUserFilterRQTypeLaunch,
+				Name: fmt.Sprintf("widget-filter-%d", time.Now().UnixNano()),
+				Type: types.UpdateUserFilterRQTypeLaunch,
 				Conditions: []types.UserFilterCondition{
 					{
 						FilteringField: "name",

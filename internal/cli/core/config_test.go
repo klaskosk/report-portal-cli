@@ -1,12 +1,14 @@
 package core
 
 import (
+	"crypto/x509"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
 
+	"github.com/klaskosk/report-portal-cli/pkg/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -158,10 +160,13 @@ func TestApplyEnvOverrides_InsecureSkipVerify_InvalidValue(t *testing.T) {
 		"invalid RP_INSECURE_SKIP_VERIFY should leave connection unchanged")
 }
 
-//nolint:paralleltest // This test replaces http.DefaultTransport.
-func TestNewClient_InsecureSkipVerifyPreservesProxy(t *testing.T) {
+func TestNewInsecureTransport_PreservesProxy(t *testing.T) {
+	t.Parallel()
+
+	requestURLs := make(chan *url.URL, 1)
 	handler := http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		assert.True(t, request.URL.IsAbs(), "proxy requests use an absolute request target")
+		requestURLs <- request.URL
+
 		writer.Header().Set("Content-Type", "application/json")
 		_, _ = writer.Write([]byte(`{"page":"WELCOME"}`))
 	})
@@ -171,20 +176,45 @@ func TestNewClient_InsecureSkipVerifyPreservesProxy(t *testing.T) {
 	proxyURL, err := url.Parse(proxy.URL)
 	require.NoError(t, err)
 
-	defaultTransport := http.DefaultTransport
-	http.DefaultTransport = &http.Transport{Proxy: http.ProxyURL(proxyURL)}
+	transport := newInsecureTransport(&http.Transport{Proxy: http.ProxyURL(proxyURL)})
+	t.Cleanup(transport.CloseIdleConnections)
 
-	t.Cleanup(func() { http.DefaultTransport = defaultTransport })
+	apiClient, err := client.New("http://report-portal.invalid", "test-token",
+		client.WithHTTPClient(&http.Client{Transport: transport}))
+	require.NoError(t, err)
+
+	result, err := apiClient.Onboarding().GetStatus(t.Context(), nil)
+	require.NoError(t, err)
+	assert.True(t, (<-requestURLs).IsAbs(), "proxy requests use an absolute request target")
+	assert.Equal(t, map[string]any{"page": "WELCOME"}, result)
+}
+
+func TestNewClient_InsecureSkipVerify(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		writer.Header().Set("Content-Type", "application/json")
+		_, _ = writer.Write([]byte(`{"page":"WELCOME"}`))
+	})
+	server := httptest.NewTLSServer(handler)
+	t.Cleanup(server.Close)
+
+	connection := &Connection{URL: server.URL, Token: "test-token"}
+	logger := slog.New(slog.DiscardHandler)
+	apiClient, err := NewClient(connection, logger)
+	require.NoError(t, err)
+
+	_, err = apiClient.Onboarding().GetStatus(t.Context(), nil)
+	require.ErrorAs(t, err, new(x509.UnknownAuthorityError))
 
 	cmd := NewMinimalRootCmd()
 	err = cmd.ParseFlags([]string{"--insecure-skip-verify"})
 	require.NoError(t, err)
 
-	connection := &Connection{URL: proxy.URL, Token: "test-token"}
 	applyFlagOverrides(cmd, connection)
 	require.True(t, connection.InsecureSkipVerify)
 
-	apiClient, err := NewClient(connection, slog.New(slog.DiscardHandler))
+	apiClient, err = NewClient(connection, logger)
 	require.NoError(t, err)
 
 	result, err := apiClient.Onboarding().GetStatus(t.Context(), nil)

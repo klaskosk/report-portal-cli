@@ -229,19 +229,8 @@ func NewClient(connection *Connection, logger *slog.Logger) (*client.Client, err
 	options = append(options, client.WithLogger(logger))
 
 	if connection.InsecureSkipVerify {
-		transport := &http.Transport{Proxy: http.ProxyFromEnvironment}
-		if defaultTransport, ok := http.DefaultTransport.(*http.Transport); ok {
-			transport = defaultTransport.Clone()
-		}
-
-		tlsConfig := transport.TLSClientConfig
-		if tlsConfig == nil {
-			tlsConfig = &tls.Config{}
-		}
-
-		tlsConfig.MinVersion = max(tlsConfig.MinVersion, tls.VersionTLS12)
-		tlsConfig.InsecureSkipVerify = true
-		transport.TLSClientConfig = tlsConfig
+		defaultTransport, _ := http.DefaultTransport.(*http.Transport)
+		transport := newInsecureTransport(defaultTransport)
 		options = append(options, client.WithHTTPClient(&http.Client{Transport: transport}))
 	}
 
@@ -253,6 +242,28 @@ func NewClient(connection *Connection, logger *slog.Logger) (*client.Client, err
 	logger.Debug("created API client", "url", connection.URL)
 
 	return clientInstance, nil
+}
+
+// newInsecureTransport preserves the base settings and disables TLS certificate verification.
+func newInsecureTransport(base *http.Transport) *http.Transport {
+	var transport *http.Transport
+	if base != nil {
+		transport = base.Clone()
+	} else {
+		// Fall back to environment proxies when http.DefaultTransport is not an *http.Transport.
+		transport = &http.Transport{Proxy: http.ProxyFromEnvironment}
+	}
+
+	tlsConfig := transport.TLSClientConfig
+	if tlsConfig == nil {
+		tlsConfig = &tls.Config{}
+	}
+
+	tlsConfig.MinVersion = max(tlsConfig.MinVersion, tls.VersionTLS12)
+	tlsConfig.InsecureSkipVerify = true
+	transport.TLSClientConfig = tlsConfig
+
+	return transport
 }
 
 func activeProfile(cmd *cobra.Command, config *Config) (*Profile, error) {

@@ -3,8 +3,10 @@ package client
 import (
 	"context"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -69,6 +71,87 @@ func TestEmptyJSONBodyNormalizer_NonJSONResponse(t *testing.T) {
 	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, int64(0), resp.ContentLength)
+}
+
+func TestEmptyJSONBodyNormalizer_ChunkedResponse(t *testing.T) {
+	t.Parallel()
+
+	jsonWithLeadingWhitespace := " \n\t{\"id\":1}\n"
+	jsonPastPeekLimit := strings.Repeat(" ", 32) + `{"id":1}`
+	tests := []struct {
+		name                 string
+		contentType          string
+		body                 string
+		wantBody             string
+		wantContentLength    int64
+		wantTransferEncoding []string
+	}{
+		{
+			name:              "empty",
+			contentType:       "application/json",
+			wantBody:          "null",
+			wantContentLength: 4,
+		},
+		{
+			name:              "whitespace with mixed-case content type",
+			contentType:       "Application/JSON",
+			body:              " \n\r\t",
+			wantBody:          "null",
+			wantContentLength: 4,
+		},
+		{
+			name:                 "leading whitespace with JSON",
+			contentType:          "application/json",
+			body:                 jsonWithLeadingWhitespace,
+			wantBody:             jsonWithLeadingWhitespace,
+			wantContentLength:    -1,
+			wantTransferEncoding: []string{"chunked"},
+		},
+		{
+			name:                 "JSON after the peek window",
+			contentType:          "application/json",
+			body:                 jsonPastPeekLimit,
+			wantBody:             jsonPastPeekLimit,
+			wantContentLength:    -1,
+			wantTransferEncoding: []string{"chunked"},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			normalizer := &emptyJSONBodyNormalizer{
+				next: roundTripFunc(func(_ *http.Request) (*http.Response, error) {
+					return &http.Response{
+						StatusCode:       http.StatusOK,
+						ContentLength:    -1,
+						TransferEncoding: []string{"chunked"},
+						Header: http.Header{
+							"Content-Type":      {test.contentType},
+							"Transfer-Encoding": {"chunked"},
+						},
+						Body: io.NopCloser(strings.NewReader(test.body)),
+					}, nil
+				}),
+			}
+
+			req := httptest.NewRequestWithContext(
+				t.Context(), http.MethodGet, "http://example.com/api/test", nil,
+			)
+			resp, err := normalizer.RoundTrip(req)
+			require.NoError(t, err)
+
+			t.Cleanup(func() { _ = resp.Body.Close() })
+
+			body, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+			assert.Equal(t, test.wantBody, string(body))
+			assert.Equal(t, test.wantContentLength, resp.ContentLength)
+			assert.Equal(t, test.wantTransferEncoding, resp.TransferEncoding)
+			assert.Equal(t, test.wantTransferEncoding, resp.Header.Values("Transfer-Encoding"))
+		})
+	}
 }
 
 type roundTripFunc func(*http.Request) (*http.Response, error)
