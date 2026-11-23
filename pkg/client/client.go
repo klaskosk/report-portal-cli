@@ -156,9 +156,9 @@ const jsonBodyPeekLimit = 16
 
 // emptyJSONBodyNormalizer is an http.RoundTripper that replaces empty bodies and
 // unknown-length bodies of up to 16 JSON whitespace bytes on 2xx JSON responses
-// with "null". The generated decoder checks Content-Type case-sensitively, so
-// replacing the body avoids a JSON parse error while mixed-case Content-Type can
-// still fail downstream.
+// with "null". The generated response parser checks Content-Type case-sensitively,
+// so replacing the body only avoids a JSON parse error: mixed-case Content-Type
+// responses still yield no parsed body downstream.
 type emptyJSONBodyNormalizer struct {
 	next http.RoundTripper
 }

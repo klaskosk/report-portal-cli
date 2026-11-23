@@ -162,7 +162,7 @@ func TestApplyEnvOverrides_InsecureSkipVerify_InvalidValue(t *testing.T) {
 		"invalid RP_INSECURE_SKIP_VERIFY should leave connection unchanged")
 }
 
-func TestNewInsecureTransport_PreservesProxy(t *testing.T) {
+func TestNewInsecureHTTPClient_PreservesProxy(t *testing.T) {
 	t.Parallel()
 
 	absoluteTargets := make(chan bool, 1)
@@ -192,14 +192,18 @@ func TestNewInsecureTransport_PreservesProxy(t *testing.T) {
 	assert.Equal(t, map[string]any{"page": "WELCOME"}, result)
 }
 
-//nolint:paralleltest // Keep the transport mutation check serial.
 func TestNewInsecureHTTPClient_ClonesTransport(t *testing.T) {
+	t.Parallel()
+
 	base := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: false}}
 
 	httpClient, err := newInsecureHTTPClient(base)
 	require.NoError(t, err)
 
-	assert.NotSame(t, base, httpClient.Transport)
+	transport, ok := httpClient.Transport.(*http.Transport)
+	require.True(t, ok)
+	assert.NotSame(t, base, transport)
+	assert.True(t, transport.TLSClientConfig.InsecureSkipVerify)
 	assert.False(t, base.TLSClientConfig.InsecureSkipVerify)
 }
 
@@ -220,6 +224,14 @@ func TestNewClient_InsecureSkipVerify(t *testing.T) {
 	})
 	server := httptest.NewTLSServer(handler)
 	t.Cleanup(server.Close)
+
+	defaultTransport, ok := http.DefaultTransport.(*http.Transport)
+	require.True(t, ok)
+
+	// Go lazily installs a TLSClientConfig (NextProtos) on first use, so assert the
+	// security-relevant property rather than pointer identity.
+	insecureBefore := defaultTransport.TLSClientConfig != nil &&
+		defaultTransport.TLSClientConfig.InsecureSkipVerify
 
 	connection := &Connection{URL: server.URL, Token: "test-token"}
 	logger := slog.New(slog.DiscardHandler)
@@ -242,4 +254,9 @@ func TestNewClient_InsecureSkipVerify(t *testing.T) {
 	result, err := apiClient.Onboarding().GetStatus(t.Context(), nil)
 	require.NoError(t, err)
 	assert.Equal(t, map[string]any{"page": "WELCOME"}, result)
+	assert.False(t, insecureBefore, "test setup must not start from an insecure default transport")
+
+	insecureAfter := defaultTransport.TLSClientConfig != nil &&
+		defaultTransport.TLSClientConfig.InsecureSkipVerify
+	assert.False(t, insecureAfter, "insecure client must not mutate the shared default transport")
 }

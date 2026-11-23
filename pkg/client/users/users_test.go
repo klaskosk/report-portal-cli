@@ -86,7 +86,7 @@ func TestUsersScope_GetMyself_ChunkedBody(t *testing.T) {
 				transferEncoding []string
 			)
 
-			transport := clienttest.RoundTripFunc(
+			transport := testutil.RoundTripFunc(
 				func(request *http.Request) (*http.Response, error) {
 					response, err := http.DefaultTransport.RoundTrip(request)
 					if err != nil {

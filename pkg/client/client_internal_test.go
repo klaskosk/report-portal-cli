@@ -1,4 +1,4 @@
-package client_test
+package client
 
 import (
 	"context"
@@ -9,8 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/klaskosk/report-portal-cli/pkg/client"
-	"github.com/klaskosk/report-portal-cli/pkg/client/internal/clienttest"
+	"github.com/klaskosk/report-portal-cli/pkg/client/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -19,9 +18,9 @@ func TestEmptyJSONBodyNormalizer_TransportError(t *testing.T) {
 	t.Parallel()
 
 	wantErr := errors.New("connection refused")
-	normalizer := client.NewTestEmptyJSONBodyNormalizer(clienttest.RoundTripFunc(
+	normalizer := &emptyJSONBodyNormalizer{next: testutil.RoundTripFunc(
 		func(_ *http.Request) (*http.Response, error) { return nil, wantErr },
-	))
+	)}
 
 	req := httptest.NewRequestWithContext(
 		context.Background(),
@@ -43,7 +42,7 @@ func TestEmptyJSONBodyNormalizer_TransportError(t *testing.T) {
 func TestEmptyJSONBodyNormalizer_NonJSONResponse(t *testing.T) {
 	t.Parallel()
 
-	normalizer := client.NewTestEmptyJSONBodyNormalizer(clienttest.RoundTripFunc(
+	normalizer := &emptyJSONBodyNormalizer{next: testutil.RoundTripFunc(
 		func(_ *http.Request) (*http.Response, error) {
 			return &http.Response{
 				StatusCode:    http.StatusOK,
@@ -52,7 +51,7 @@ func TestEmptyJSONBodyNormalizer_NonJSONResponse(t *testing.T) {
 				Body:          http.NoBody,
 			}, nil
 		},
-	))
+	)}
 
 	req := httptest.NewRequestWithContext(
 		context.Background(),
@@ -115,6 +114,22 @@ func TestEmptyJSONBodyNormalizer_ChunkedResponse(t *testing.T) {
 			wantTransferEncoding: []string{"chunked"},
 		},
 		{
+			name:                 "form feed",
+			contentType:          "application/json",
+			body:                 "\f",
+			wantBody:             "\f",
+			wantContentLength:    -1,
+			wantTransferEncoding: []string{"chunked"},
+		},
+		{
+			name:                 "whitespace past the peek window",
+			contentType:          "application/json",
+			body:                 strings.Repeat(" ", 17),
+			wantBody:             strings.Repeat(" ", 17),
+			wantContentLength:    -1,
+			wantTransferEncoding: []string{"chunked"},
+		},
+		{
 			name:                 "leading whitespace with JSON",
 			contentType:          "application/json",
 			body:                 jsonWithLeadingWhitespace,
@@ -136,7 +151,7 @@ func TestEmptyJSONBodyNormalizer_ChunkedResponse(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			normalizer := client.NewTestEmptyJSONBodyNormalizer(clienttest.RoundTripFunc(
+			normalizer := &emptyJSONBodyNormalizer{next: testutil.RoundTripFunc(
 				func(_ *http.Request) (*http.Response, error) {
 					return &http.Response{
 						StatusCode:       http.StatusOK,
@@ -149,7 +164,7 @@ func TestEmptyJSONBodyNormalizer_ChunkedResponse(t *testing.T) {
 						Body: io.NopCloser(strings.NewReader(test.body)),
 					}, nil
 				},
-			))
+			)}
 
 			req := httptest.NewRequestWithContext(
 				t.Context(), http.MethodGet, "http://example.com/api/test", nil,
@@ -229,7 +244,7 @@ func TestNormalizeBaseURL(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := client.NormalizeTestBaseURL(test.input)
+			got, err := normalizeBaseURL(test.input)
 			require.NoError(t, err)
 			assert.Equal(t, test.want, got)
 		})
