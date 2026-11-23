@@ -202,8 +202,10 @@ func TestNewInsecureHTTPClient_ClonesTransport(t *testing.T) {
 
 	transport, ok := httpClient.Transport.(*http.Transport)
 	require.True(t, ok)
+	require.NotNil(t, transport.TLSClientConfig)
 	assert.NotSame(t, base, transport)
 	assert.True(t, transport.TLSClientConfig.InsecureSkipVerify)
+	assert.Equal(t, uint16(tls.VersionTLS12), transport.TLSClientConfig.MinVersion)
 	assert.False(t, base.TLSClientConfig.InsecureSkipVerify)
 }
 

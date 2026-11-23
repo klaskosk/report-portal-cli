@@ -15,14 +15,6 @@ import (
 
 const testBearerToken = "test-token"
 
-// RoundTripFunc adapts a test function to http.RoundTripper.
-type RoundTripFunc func(*http.Request) (*http.Response, error)
-
-// RoundTrip delegates to the test's transport function.
-func (f RoundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) {
-	return f(request)
-}
-
 // NewClient creates a Client pointed at an httptest server using handler.
 func NewClient(t *testing.T, handler http.Handler) *client.Client {
 	t.Helper()
