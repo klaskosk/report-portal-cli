@@ -1,8 +1,16 @@
 package core
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"testing"
+	"testing/fstest"
 
+	"github.com/klaskosk/report-portal-cli/pkg/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -152,4 +160,105 @@ func TestApplyEnvOverrides_InsecureSkipVerify_InvalidValue(t *testing.T) {
 
 	assert.True(t, connection.InsecureSkipVerify,
 		"invalid RP_INSECURE_SKIP_VERIFY should leave connection unchanged")
+}
+
+func TestNewInsecureHTTPClient_PreservesProxy(t *testing.T) {
+	t.Parallel()
+
+	absoluteTargets := make(chan bool, 1)
+	handler := http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		absoluteTargets <- request.URL.IsAbs()
+
+		writer.Header().Set("Content-Type", "application/json")
+		_, _ = writer.Write([]byte(`{"page":"WELCOME"}`))
+	})
+	proxy := httptest.NewServer(handler)
+	t.Cleanup(proxy.Close)
+
+	proxyURL, err := url.Parse(proxy.URL)
+	require.NoError(t, err)
+
+	httpClient, err := newInsecureHTTPClient(&http.Transport{Proxy: http.ProxyURL(proxyURL)})
+	require.NoError(t, err)
+	t.Cleanup(httpClient.CloseIdleConnections)
+
+	apiClient, err := client.New("http://report-portal.invalid", "test-token",
+		client.WithHTTPClient(httpClient))
+	require.NoError(t, err)
+
+	result, err := apiClient.Onboarding().GetStatus(t.Context(), nil)
+	require.NoError(t, err)
+	assert.True(t, <-absoluteTargets, "proxy requests use an absolute request target")
+	assert.Equal(t, map[string]any{"page": "WELCOME"}, result)
+}
+
+func TestNewInsecureHTTPClient_ClonesTransport(t *testing.T) {
+	t.Parallel()
+
+	base := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: false}}
+
+	httpClient, err := newInsecureHTTPClient(base)
+	require.NoError(t, err)
+
+	transport, ok := httpClient.Transport.(*http.Transport)
+	require.True(t, ok)
+	require.NotNil(t, transport.TLSClientConfig)
+	assert.NotSame(t, base, transport)
+	assert.True(t, transport.TLSClientConfig.InsecureSkipVerify)
+	assert.Equal(t, uint16(tls.VersionTLS12), transport.TLSClientConfig.MinVersion)
+	assert.False(t, base.TLSClientConfig.InsecureSkipVerify)
+}
+
+func TestNewInsecureHTTPClient_RejectsUnsupportedTransport(t *testing.T) {
+	t.Parallel()
+
+	httpClient, err := newInsecureHTTPClient(http.NewFileTransportFS(fstest.MapFS{}))
+	require.ErrorContains(t, err, "insecure TLS requires a non-nil *http.Transport")
+	assert.Nil(t, httpClient)
+}
+
+func TestNewClient_InsecureSkipVerify(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		writer.Header().Set("Content-Type", "application/json")
+		_, _ = writer.Write([]byte(`{"page":"WELCOME"}`))
+	})
+	server := httptest.NewTLSServer(handler)
+	t.Cleanup(server.Close)
+
+	defaultTransport, ok := http.DefaultTransport.(*http.Transport)
+	require.True(t, ok)
+
+	// Go lazily installs a TLSClientConfig (NextProtos) on first use, so assert the
+	// security-relevant property rather than pointer identity.
+	insecureBefore := defaultTransport.TLSClientConfig != nil &&
+		defaultTransport.TLSClientConfig.InsecureSkipVerify
+
+	connection := &Connection{URL: server.URL, Token: "test-token"}
+	logger := slog.New(slog.DiscardHandler)
+	apiClient, err := NewClient(connection, logger)
+	require.NoError(t, err)
+
+	_, err = apiClient.Onboarding().GetStatus(t.Context(), nil)
+	require.ErrorAs(t, err, new(x509.UnknownAuthorityError))
+
+	cmd := NewMinimalRootCmd()
+	err = cmd.ParseFlags([]string{"--insecure-skip-verify"})
+	require.NoError(t, err)
+
+	applyFlagOverrides(cmd, connection)
+	require.True(t, connection.InsecureSkipVerify)
+
+	apiClient, err = NewClient(connection, logger)
+	require.NoError(t, err)
+
+	result, err := apiClient.Onboarding().GetStatus(t.Context(), nil)
+	require.NoError(t, err)
+	assert.Equal(t, map[string]any{"page": "WELCOME"}, result)
+	assert.False(t, insecureBefore, "test setup must not start from an insecure default transport")
+
+	insecureAfter := defaultTransport.TLSClientConfig != nil &&
+		defaultTransport.TLSClientConfig.InsecureSkipVerify
+	assert.False(t, insecureAfter, "insecure client must not mutate the shared default transport")
 }

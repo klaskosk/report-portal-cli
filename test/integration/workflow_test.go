@@ -51,10 +51,10 @@ type workflowLog struct {
 
 var _ = Describe("End-to-end read workflow", Label("workflow"), Ordered, func() {
 	var (
-		c                   *client.Client
-		projectName         string
-		seededTestData      seededTestItems
-		attachmentDataID    int64
+		c                *client.Client
+		projectName      string
+		seededTestData   seededTestItems
+		attachmentDataID int64
 
 		// Identifiers discovered during the workflow steps and passed to subsequent steps.
 		discoveredLaunchID string

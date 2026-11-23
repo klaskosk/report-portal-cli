@@ -91,8 +91,8 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 				expectJSONString(launch, "uuid")
 				expectJSONString(launch, "name")
 				expectJSONString(launch, "status")
-			expectJSONString(launch, "startTime")
-			expectJSONNumber(launch, "number")
+				expectJSONString(launch, "startTime")
+				expectJSONNumber(launch, "number")
 			}
 		})
 	})
@@ -150,8 +150,8 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 				expectJSONString(item, "name")
 				expectJSONString(item, "type")
 				expectJSONString(item, "status")
-			expectJSONString(item, "startTime")
-			expectJSONNumber(item, "launchId")
+				expectJSONString(item, "startTime")
+				expectJSONNumber(item, "launchId")
 			}
 		})
 	})
@@ -277,20 +277,20 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 				Expect(result.Stdout).To(BeEmpty(),
 					"stdout must be empty when error is written to stderr")
 			},
-		Entry("rp launch get (not found)",
-			[]string{
-				"--url", baseURL, "--token", bearerToken,
-				"-o", "json",
-				"launch", "get", "999999", "-p", "default_personal",
-			},
-			"launch not found"),
-		Entry("rp item get (not found)",
-			[]string{
-				"--url", baseURL, "--token", bearerToken,
-				"-o", "json",
-				"item", "get", "999999", "-p", "default_personal",
-			},
-			"item not found"),
+			Entry("rp launch get (not found)",
+				[]string{
+					"--url", baseURL, "--token", bearerToken,
+					"-o", "json",
+					"launch", "get", "999999", "-p", "default_personal",
+				},
+				"launch not found"),
+			Entry("rp item get (not found)",
+				[]string{
+					"--url", baseURL, "--token", bearerToken,
+					"-o", "json",
+					"item", "get", "999999", "-p", "default_personal",
+				},
+				"item not found"),
 			Entry("rp whoami (bad token)",
 				[]string{
 					"--url", baseURL, "--token", "invalid-token",
@@ -313,13 +313,13 @@ var _ = Describe("Contract: CLI JSON output stability", Label("contract"), func(
 				Expect(payload).To(HaveKey("error"),
 					"the single key must be \"error\"")
 			},
-		Entry("not found error",
-			[]string{
-				"--url", baseURL, "--token", bearerToken,
-				"-o", "json",
-				"launch", "get", "999999", "-p", "default_personal",
-			},
-			"single-key error JSON (not found)"),
+			Entry("not found error",
+				[]string{
+					"--url", baseURL, "--token", bearerToken,
+					"-o", "json",
+					"launch", "get", "999999", "-p", "default_personal",
+				},
+				"single-key error JSON (not found)"),
 			Entry("auth error",
 				[]string{
 					"--url", baseURL, "--token", "invalid-token",

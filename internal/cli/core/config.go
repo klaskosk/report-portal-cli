@@ -229,14 +229,12 @@ func NewClient(connection *Connection, logger *slog.Logger) (*client.Client, err
 	options = append(options, client.WithLogger(logger))
 
 	if connection.InsecureSkipVerify {
-		transport := &http.Transport{
-			TLSClientConfig: &tls.Config{
-				MinVersion:         tls.VersionTLS12,
-				InsecureSkipVerify: true, //nolint:gosec // user-requested
-			},
+		httpClient, err := newInsecureHTTPClient(http.DefaultTransport)
+		if err != nil {
+			return nil, err
 		}
 
-		options = append(options, client.WithHTTPClient(&http.Client{Transport: transport}))
+		options = append(options, client.WithHTTPClient(httpClient))
 	}
 
 	clientInstance, err := client.New(connection.URL, connection.Token, options...)
@@ -247,6 +245,29 @@ func NewClient(connection *Connection, logger *slog.Logger) (*client.Client, err
 	logger.Debug("created API client", "url", connection.URL)
 
 	return clientInstance, nil
+}
+
+// newInsecureHTTPClient clones the base transport and disables TLS certificate verification.
+func newInsecureHTTPClient(baseTransport http.RoundTripper) (*http.Client, error) {
+	base, ok := baseTransport.(*http.Transport)
+	if !ok || base == nil {
+		return nil, fmt.Errorf(
+			"insecure TLS requires a non-nil *http.Transport, got %T", baseTransport,
+		)
+	}
+
+	transport := base.Clone()
+
+	tlsConfig := transport.TLSClientConfig
+	if tlsConfig == nil {
+		tlsConfig = &tls.Config{}
+	}
+
+	tlsConfig.MinVersion = max(tlsConfig.MinVersion, tls.VersionTLS12)
+	tlsConfig.InsecureSkipVerify = true
+	transport.TLSClientConfig = tlsConfig
+
+	return &http.Client{Transport: transport}, nil
 }
 
 func activeProfile(cmd *cobra.Command, config *Config) (*Profile, error) {

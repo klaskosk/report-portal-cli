@@ -3,27 +3,24 @@ package client
 import (
 	"context"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
+	"github.com/klaskosk/report-portal-cli/pkg/client/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-type failingTransport struct {
-	err error
-}
-
-func (t *failingTransport) RoundTrip(_ *http.Request) (*http.Response, error) {
-	return nil, t.err
-}
 
 func TestEmptyJSONBodyNormalizer_TransportError(t *testing.T) {
 	t.Parallel()
 
 	wantErr := errors.New("connection refused")
-	normalizer := &emptyJSONBodyNormalizer{next: &failingTransport{err: wantErr}}
+	normalizer := &emptyJSONBodyNormalizer{next: testutil.RoundTripFunc(
+		func(_ *http.Request) (*http.Response, error) { return nil, wantErr },
+	)}
 
 	req := httptest.NewRequestWithContext(
 		context.Background(),
@@ -45,16 +42,16 @@ func TestEmptyJSONBodyNormalizer_TransportError(t *testing.T) {
 func TestEmptyJSONBodyNormalizer_NonJSONResponse(t *testing.T) {
 	t.Parallel()
 
-	normalizer := &emptyJSONBodyNormalizer{
-		next: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+	normalizer := &emptyJSONBodyNormalizer{next: testutil.RoundTripFunc(
+		func(_ *http.Request) (*http.Response, error) {
 			return &http.Response{
 				StatusCode:    http.StatusOK,
 				ContentLength: 0,
 				Header:        http.Header{"Content-Type": {"text/plain"}},
 				Body:          http.NoBody,
 			}, nil
-		}),
-	}
+		},
+	)}
 
 	req := httptest.NewRequestWithContext(
 		context.Background(),
@@ -71,10 +68,121 @@ func TestEmptyJSONBodyNormalizer_NonJSONResponse(t *testing.T) {
 	assert.Equal(t, int64(0), resp.ContentLength)
 }
 
-type roundTripFunc func(*http.Request) (*http.Response, error)
+func TestEmptyJSONBodyNormalizer_ChunkedResponse(t *testing.T) {
+	t.Parallel()
 
-func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) {
-	return f(r)
+	jsonWithLeadingWhitespace := " \n\t{\"id\":1}\n"
+	jsonPastPeekLimit := strings.Repeat(" ", 32) + `{"id":1}`
+	tests := []struct {
+		name                 string
+		contentType          string
+		body                 string
+		wantBody             string
+		wantContentLength    int64
+		wantLengthHeader     string
+		wantTransferEncoding []string
+	}{
+		{
+			name:              "empty",
+			contentType:       "application/json",
+			wantBody:          "null",
+			wantContentLength: 4,
+			wantLengthHeader:  "4",
+		},
+		{
+			name:              "whitespace with mixed-case content type",
+			contentType:       "Application/JSON",
+			body:              " \n\r\t",
+			wantBody:          "null",
+			wantContentLength: 4,
+			wantLengthHeader:  "4",
+		},
+		{
+			name:              "whitespace fills the peek window",
+			contentType:       "application/json",
+			body:              strings.Repeat(" ", 16),
+			wantBody:          "null",
+			wantContentLength: 4,
+			wantLengthHeader:  "4",
+		},
+		{
+			name:                 "vertical tab",
+			contentType:          "application/json",
+			body:                 "\v",
+			wantBody:             "\v",
+			wantContentLength:    -1,
+			wantTransferEncoding: []string{"chunked"},
+		},
+		{
+			name:                 "form feed",
+			contentType:          "application/json",
+			body:                 "\f",
+			wantBody:             "\f",
+			wantContentLength:    -1,
+			wantTransferEncoding: []string{"chunked"},
+		},
+		{
+			name:                 "whitespace past the peek window",
+			contentType:          "application/json",
+			body:                 strings.Repeat(" ", 17),
+			wantBody:             strings.Repeat(" ", 17),
+			wantContentLength:    -1,
+			wantTransferEncoding: []string{"chunked"},
+		},
+		{
+			name:                 "leading whitespace with JSON",
+			contentType:          "application/json",
+			body:                 jsonWithLeadingWhitespace,
+			wantBody:             jsonWithLeadingWhitespace,
+			wantContentLength:    -1,
+			wantTransferEncoding: []string{"chunked"},
+		},
+		{
+			name:                 "JSON after the peek window",
+			contentType:          "application/json",
+			body:                 jsonPastPeekLimit,
+			wantBody:             jsonPastPeekLimit,
+			wantContentLength:    -1,
+			wantTransferEncoding: []string{"chunked"},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			normalizer := &emptyJSONBodyNormalizer{next: testutil.RoundTripFunc(
+				func(_ *http.Request) (*http.Response, error) {
+					return &http.Response{
+						StatusCode:       http.StatusOK,
+						ContentLength:    -1,
+						TransferEncoding: []string{"chunked"},
+						Header: http.Header{
+							"Content-Type":      {test.contentType},
+							"Transfer-Encoding": {"chunked"},
+						},
+						Body: io.NopCloser(strings.NewReader(test.body)),
+					}, nil
+				},
+			)}
+
+			req := httptest.NewRequestWithContext(
+				t.Context(), http.MethodGet, "http://example.com/api/test", nil,
+			)
+			resp, err := normalizer.RoundTrip(req)
+			require.NoError(t, err)
+
+			t.Cleanup(func() { _ = resp.Body.Close() })
+
+			body, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+			assert.Equal(t, test.wantBody, string(body))
+			assert.Equal(t, test.wantContentLength, resp.ContentLength)
+			assert.Equal(t, test.wantLengthHeader, resp.Header.Get("Content-Length"))
+			assert.Equal(t, test.wantTransferEncoding, resp.TransferEncoding)
+			assert.Equal(t, test.wantTransferEncoding, resp.Header.Values("Transfer-Encoding"))
+		})
+	}
 }
 
 func TestNormalizeBaseURL(t *testing.T) {

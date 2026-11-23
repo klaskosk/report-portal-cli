@@ -116,8 +116,8 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 			if len(*result.Content) >= 2 {
 				content := *result.Content
 				for i := 1; i < len(content); i++ {
-				prev := content[i-1].StartTime
-				curr := content[i].StartTime
+					prev := content[i-1].StartTime
+					curr := content[i].StartTime
 					Expect(prev).To(
 						BeTemporally(">=", curr),
 						"launch[%d] startTime %v should be >= launch[%d] startTime %v (descending order)",
@@ -548,7 +548,6 @@ var _ = Describe("Client: Launches", Label("client", "launches"), func() {
 				}
 			}
 		})
-
 
 		It("filters by description", func(ctx SpecContext) {
 			// Note: this test may not find matches if seeded launches don't have descriptions

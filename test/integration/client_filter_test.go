@@ -148,8 +148,8 @@ var _ = Describe("Client: Filters", Label("client", "filters"), func() {
 
 			filterName := fmt.Sprintf("listed-filter-%d", time.Now().UnixNano())
 			created, err := filters.Create(ctx, types.UpdateUserFilterRQ{
-				Name:       filterName,
-				Type:       types.UpdateUserFilterRQTypeLaunch,
+				Name: filterName,
+				Type: types.UpdateUserFilterRQTypeLaunch,
 				Conditions: []types.UserFilterCondition{
 					{
 						FilteringField: "name",
@@ -182,4 +182,3 @@ var _ = Describe("Client: Filters", Label("client", "filters"), func() {
 		})
 	})
 })
-

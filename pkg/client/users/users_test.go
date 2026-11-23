@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/klaskosk/report-portal-cli/pkg/client"
@@ -46,6 +47,72 @@ func TestUsersScope_GetMyself_Success(t *testing.T) {
 	assert.Equal(t, int64(1), user.Id)
 	assert.Equal(t, "superadmin", user.UserId)
 	assert.Equal(t, "admin@example.com", user.Email)
+}
+
+func TestUsersScope_GetMyself_ChunkedBody(t *testing.T) {
+	t.Parallel()
+
+	const userJSON = `{"userId":"superadmin"}`
+
+	tests := []struct {
+		name   string
+		body   string
+		userID string
+	}{
+		{name: "empty"},
+		{name: "whitespace only", body: " \n\t"},
+		{name: "with JSON", body: userJSON, userID: "superadmin"},
+		{name: "leading whitespace with JSON", body: " \n" + userJSON, userID: "superadmin"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			flushErrors := make(chan error, 1)
+			handler := http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+				writer.Header().Set("Content-Type", "application/json")
+				writer.WriteHeader(http.StatusOK)
+				// Flushing the headers forces chunked framing for this HTTP/1.1 response.
+				flushErrors <- http.NewResponseController(writer).Flush()
+
+				_, _ = writer.Write([]byte(test.body))
+			})
+			server := httptest.NewServer(handler)
+			t.Cleanup(server.Close)
+
+			var (
+				contentLength    int64
+				transferEncoding []string
+			)
+
+			transport := testutil.RoundTripFunc(
+				func(request *http.Request) (*http.Response, error) {
+					response, err := http.DefaultTransport.RoundTrip(request)
+					if err != nil {
+						return nil, fmt.Errorf("round trip: %w", err)
+					}
+
+					contentLength = response.ContentLength
+					transferEncoding = response.TransferEncoding
+
+					return response, nil
+				},
+			)
+			testClient, err := client.New(
+				server.URL, "test-token", client.WithHTTPClient(&http.Client{Transport: transport}),
+			)
+			require.NoError(t, err)
+
+			user, err := testClient.Users().GetMyself(t.Context())
+			require.NoError(t, err)
+			assert.NoError(t, <-flushErrors)
+			assert.Equal(t, int64(-1), contentLength)
+			assert.Contains(t, transferEncoding, "chunked")
+			// Empty chunked JSON intentionally unmarshals to a zero-value UserResource.
+			assert.Equal(t, &types.UserResource{UserId: test.userID}, user)
+		})
+	}
 }
 
 func TestUsersScope_GetMyself_Unauthorized(t *testing.T) {
