@@ -1,12 +1,14 @@
 package core
 
 import (
+	"crypto/tls"
 	"crypto/x509"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"testing/fstest"
 
 	"github.com/klaskosk/report-portal-cli/pkg/client"
 	"github.com/stretchr/testify/assert"
@@ -163,9 +165,9 @@ func TestApplyEnvOverrides_InsecureSkipVerify_InvalidValue(t *testing.T) {
 func TestNewInsecureTransport_PreservesProxy(t *testing.T) {
 	t.Parallel()
 
-	requestURLs := make(chan *url.URL, 1)
+	absoluteTargets := make(chan bool, 1)
 	handler := http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		requestURLs <- request.URL
+		absoluteTargets <- request.URL.IsAbs()
 
 		writer.Header().Set("Content-Type", "application/json")
 		_, _ = writer.Write([]byte(`{"page":"WELCOME"}`))
@@ -176,17 +178,37 @@ func TestNewInsecureTransport_PreservesProxy(t *testing.T) {
 	proxyURL, err := url.Parse(proxy.URL)
 	require.NoError(t, err)
 
-	transport := newInsecureTransport(&http.Transport{Proxy: http.ProxyURL(proxyURL)})
-	t.Cleanup(transport.CloseIdleConnections)
+	httpClient, err := newInsecureHTTPClient(&http.Transport{Proxy: http.ProxyURL(proxyURL)})
+	require.NoError(t, err)
+	t.Cleanup(httpClient.CloseIdleConnections)
 
 	apiClient, err := client.New("http://report-portal.invalid", "test-token",
-		client.WithHTTPClient(&http.Client{Transport: transport}))
+		client.WithHTTPClient(httpClient))
 	require.NoError(t, err)
 
 	result, err := apiClient.Onboarding().GetStatus(t.Context(), nil)
 	require.NoError(t, err)
-	assert.True(t, (<-requestURLs).IsAbs(), "proxy requests use an absolute request target")
+	assert.True(t, <-absoluteTargets, "proxy requests use an absolute request target")
 	assert.Equal(t, map[string]any{"page": "WELCOME"}, result)
+}
+
+//nolint:paralleltest // Keep the transport mutation check serial.
+func TestNewInsecureHTTPClient_ClonesTransport(t *testing.T) {
+	base := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: false}}
+
+	httpClient, err := newInsecureHTTPClient(base)
+	require.NoError(t, err)
+
+	assert.NotSame(t, base, httpClient.Transport)
+	assert.False(t, base.TLSClientConfig.InsecureSkipVerify)
+}
+
+func TestNewInsecureHTTPClient_RejectsUnsupportedTransport(t *testing.T) {
+	t.Parallel()
+
+	httpClient, err := newInsecureHTTPClient(http.NewFileTransportFS(fstest.MapFS{}))
+	require.ErrorContains(t, err, "insecure TLS requires a non-nil *http.Transport")
+	assert.Nil(t, httpClient)
 }
 
 func TestNewClient_InsecureSkipVerify(t *testing.T) {

@@ -1,9 +1,19 @@
 package client
 
 import (
+	"net/http"
+
 	"github.com/klaskosk/report-portal-cli/pkg/client/internal/core"
 	"github.com/klaskosk/report-portal-cli/pkg/types"
 )
+
+// NewTestEmptyJSONBodyNormalizer wraps a transport for tests of response normalization.
+func NewTestEmptyJSONBodyNormalizer(next http.RoundTripper) http.RoundTripper {
+	return &emptyJSONBodyNormalizer{next: next}
+}
+
+// NormalizeTestBaseURL exposes base URL normalization for external tests.
+var NormalizeTestBaseURL = normalizeBaseURL
 
 // FailingOption returns an Option that always returns the given error. Test-only.
 var FailingOption = func(err error) Option {

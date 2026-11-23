@@ -151,9 +151,14 @@ func WithLogger(logger *slog.Logger) Option {
 	}
 }
 
+// jsonBodyPeekLimit is the maximum number of whitespace bytes to normalize in an unknown-length body.
+const jsonBodyPeekLimit = 16
+
 // emptyJSONBodyNormalizer is an http.RoundTripper that replaces empty bodies and
-// short, whitespace-only bodies of unknown length on 2xx JSON responses with
-// the JSON literal "null". The generated parser rejects these bodies otherwise.
+// unknown-length bodies of up to 16 JSON whitespace bytes on 2xx JSON responses
+// with "null". The generated decoder checks Content-Type case-sensitively, so
+// replacing the body avoids a JSON parse error while mixed-case Content-Type can
+// still fail downstream.
 type emptyJSONBodyNormalizer struct {
 	next http.RoundTripper
 }
@@ -165,45 +170,46 @@ func (n *emptyJSONBodyNormalizer) RoundTrip(req *http.Request) (*http.Response, 
 		return nil, fmt.Errorf("round trip: %w", err)
 	}
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 || resp.ContentLength > 0 ||
+	if resp.StatusCode/100 != 2 || resp.ContentLength > 0 ||
 		!strings.Contains(strings.ToLower(resp.Header.Get("Content-Type")), "json") {
 		return resp, nil
 	}
 
-	if resp.Body != nil {
-		if resp.ContentLength < 0 {
-			reader := bufio.NewReader(resp.Body)
+	if resp.Body != nil && resp.ContentLength < 0 {
+		reader := bufio.NewReaderSize(resp.Body, jsonBodyPeekLimit+1)
 
-			switch empty, err := isEmptyJSONBody(reader); {
-			case err != nil:
-				_ = resp.Body.Close()
+		empty, err := isEmptyJSONBody(reader)
+		if err != nil {
+			_ = resp.Body.Close()
 
-				return nil, err
-			case !empty:
-				resp.Body = &bufferedResponseBody{Reader: reader, Closer: resp.Body}
-
-				return resp, nil
-			}
+			return nil, fmt.Errorf("round trip: %w", err)
 		}
 
+		if !empty {
+			resp.Body = &bufferedResponseBody{Reader: reader, Closer: resp.Body}
+
+			return resp, nil
+		}
+	}
+
+	if resp.Body != nil {
 		_ = resp.Body.Close()
 	}
 
 	resp.Body = io.NopCloser(strings.NewReader("null"))
 	resp.ContentLength = 4
 	resp.TransferEncoding = nil
+	resp.Header.Set("Content-Length", "4")
 	resp.Header.Del("Transfer-Encoding")
 
 	return resp, nil
 }
 
-// isEmptyJSONBody checks for EOF after at most a short run of ASCII whitespace.
-// It stops at the first non-whitespace byte and leaves all peeked bytes in the
-// reader. Bodies that fill the peek window pass through.
+// isEmptyJSONBody checks for EOF after at most jsonBodyPeekLimit JSON whitespace
+// bytes. It stops at the first non-whitespace byte and leaves all peeked bytes
+// in the reader.
 func isEmptyJSONBody(reader *bufio.Reader) (bool, error) {
-	const peekLimit = 16
-
-	for offset := range peekLimit {
+	for offset := range jsonBodyPeekLimit {
 		prefix, err := reader.Peek(offset + 1)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
@@ -214,10 +220,19 @@ func isEmptyJSONBody(reader *bufio.Reader) (bool, error) {
 		}
 
 		switch prefix[offset] {
-		case ' ', '\t', '\n', '\r', '\v', '\f':
+		case ' ', '\t', '\n', '\r':
 		default:
 			return false, nil
 		}
+	}
+
+	_, err := reader.Peek(jsonBodyPeekLimit + 1)
+	if errors.Is(err, io.EOF) {
+		return true, nil
+	}
+
+	if err != nil {
+		return false, fmt.Errorf("peeking at JSON response body: %w", err)
 	}
 
 	return false, nil

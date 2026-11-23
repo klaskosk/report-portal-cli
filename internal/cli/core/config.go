@@ -229,9 +229,12 @@ func NewClient(connection *Connection, logger *slog.Logger) (*client.Client, err
 	options = append(options, client.WithLogger(logger))
 
 	if connection.InsecureSkipVerify {
-		defaultTransport, _ := http.DefaultTransport.(*http.Transport)
-		transport := newInsecureTransport(defaultTransport)
-		options = append(options, client.WithHTTPClient(&http.Client{Transport: transport}))
+		httpClient, err := newInsecureHTTPClient(http.DefaultTransport)
+		if err != nil {
+			return nil, err
+		}
+
+		options = append(options, client.WithHTTPClient(httpClient))
 	}
 
 	clientInstance, err := client.New(connection.URL, connection.Token, options...)
@@ -244,15 +247,16 @@ func NewClient(connection *Connection, logger *slog.Logger) (*client.Client, err
 	return clientInstance, nil
 }
 
-// newInsecureTransport preserves the base settings and disables TLS certificate verification.
-func newInsecureTransport(base *http.Transport) *http.Transport {
-	var transport *http.Transport
-	if base != nil {
-		transport = base.Clone()
-	} else {
-		// Fall back to environment proxies when http.DefaultTransport is not an *http.Transport.
-		transport = &http.Transport{Proxy: http.ProxyFromEnvironment}
+// newInsecureHTTPClient clones the base transport and disables TLS certificate verification.
+func newInsecureHTTPClient(baseTransport http.RoundTripper) (*http.Client, error) {
+	base, ok := baseTransport.(*http.Transport)
+	if !ok || base == nil {
+		return nil, fmt.Errorf(
+			"insecure TLS requires a non-nil *http.Transport, got %T", baseTransport,
+		)
 	}
+
+	transport := base.Clone()
 
 	tlsConfig := transport.TLSClientConfig
 	if tlsConfig == nil {
@@ -263,7 +267,7 @@ func newInsecureTransport(base *http.Transport) *http.Transport {
 	tlsConfig.InsecureSkipVerify = true
 	transport.TLSClientConfig = tlsConfig
 
-	return transport
+	return &http.Client{Transport: transport}, nil
 }
 
 func activeProfile(cmd *cobra.Command, config *Config) (*Profile, error) {

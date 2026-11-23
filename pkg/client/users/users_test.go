@@ -16,13 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type roundTripFunc func(*http.Request) (*http.Response, error)
-
-// RoundTrip delegates to the test's transport function.
-func (f roundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) {
-	return f(request)
-}
-
 func TestUsersScope_GetMyself_Success(t *testing.T) {
 	t.Parallel()
 
@@ -88,21 +81,24 @@ func TestUsersScope_GetMyself_ChunkedBody(t *testing.T) {
 			server := httptest.NewServer(handler)
 			t.Cleanup(server.Close)
 
-			var contentLength int64
+			var (
+				contentLength    int64
+				transferEncoding []string
+			)
 
-			var transferEncoding []string
+			transport := clienttest.RoundTripFunc(
+				func(request *http.Request) (*http.Response, error) {
+					response, err := http.DefaultTransport.RoundTrip(request)
+					if err != nil {
+						return nil, fmt.Errorf("round trip: %w", err)
+					}
 
-			transport := roundTripFunc(func(request *http.Request) (*http.Response, error) {
-				response, err := http.DefaultTransport.RoundTrip(request)
-				if err != nil {
-					return nil, fmt.Errorf("round trip: %w", err)
-				}
+					contentLength = response.ContentLength
+					transferEncoding = response.TransferEncoding
 
-				contentLength = response.ContentLength
-				transferEncoding = response.TransferEncoding
-
-				return response, nil
-			})
+					return response, nil
+				},
+			)
 			testClient, err := client.New(
 				server.URL, "test-token", client.WithHTTPClient(&http.Client{Transport: transport}),
 			)
